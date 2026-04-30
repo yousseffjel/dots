@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# tmux-palette — Warp-style fuzzy command palette.
+# Each entry is "label|tmux-command". Selecting an entry runs the
+# tmux-command via source-file (same parser tmux uses for tmux.conf).
+
+set -euo pipefail
+
+entries=$(cat <<'EOF'
+new window|new-window -c "#{pane_current_path}"
+new session|command-prompt -p "session name:" "new-session -d -s '%%'"
+rename window|command-prompt -I "#W" -p "rename window:" "rename-window '%%'"
+rename session|command-prompt -I "#S" -p "rename session:" "rename-session '%%'"
+split → horizontal|split-window -h -c "#{pane_current_path}"
+split ↓ vertical|split-window -v -c "#{pane_current_path}"
+zoom toggle|resize-pane -Z
+swap pane up|swap-pane -U
+swap pane down|swap-pane -D
+break pane to window|break-pane
+join pane from window…|choose-window "join-pane -s '%%'"
+kill pane|kill-pane
+kill window|kill-window
+kill other windows|kill-window -a
+kill session|kill-session
+detach|detach-client
+choose tree|choose-tree -Zw
+copy mode|copy-mode
+clear scrollback|clear-history
+reload config|source-file ~/.config/tmux/tmux.conf
+list bindings|display-popup -E -w 80% -h 80% -T " keybindings " "tmux list-keys -N | sort | fzf --prompt='binding> ' --reverse"
+resurrect: save|run-shell ~/.local/share/tmux/plugins/tmux-resurrect/scripts/save.sh
+resurrect: restore|run-shell ~/.local/share/tmux/plugins/tmux-resurrect/scripts/restore.sh
+ai: claude (new)|display-popup -E -w 90% -h 90% -d "#{pane_current_path}" -T " claude " claude
+ai: claude --continue|display-popup -E -w 90% -h 90% -d "#{pane_current_path}" -T " claude --continue " "claude --continue"
+ai: pipe last block to claude|run-shell "$HOME/.config/tmux/bin/tmux-block-to-claude"
+workflow: run…|run-shell "$HOME/.config/tmux/bin/tmux-workflow"
+EOF
+)
+
+selected=$(printf '%s\n' "$entries" \
+  | awk -F'|' '{printf "%-32s  %s\n", $1, $2}' \
+  | fzf --prompt='palette> ' --reverse --height=100% \
+        --header='enter: run · esc: cancel') || exit 0
+
+# Recover the matching raw entry (label is left-padded to 32 cols)
+label=$(printf '%s' "$selected" | awk '{ s=substr($0,1,32); sub(/[[:space:]]+$/,"",s); print s }')
+cmd=$(printf '%s\n' "$entries" | awk -F'|' -v L="$label" '$1==L { sub(/^[^|]*\|/,""); print; exit }')
+
+[[ -z "${cmd:-}" ]] && exit 0
+
+# Use source-file to execute — handles quoting/format-strings exactly
+# the way tmux.conf does.
+tmpf=$(mktemp -t tmux-palette.XXXXXX)
+trap 'rm -f "$tmpf"' EXIT
+printf '%s\n' "$cmd" > "$tmpf"
+tmux source-file "$tmpf"

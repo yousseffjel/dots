@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# tmux-copy-block — copy the current "block" (most recent prompt → end of
+# pane) to the system clipboard.  Relies on OSC 133 marks emitted by the
+# shell (see ~/.config/zsh/conf.d/55-osc133.zsh).
+
+set -euo pipefail
+
+pane="${TMUX_PANE:-$(tmux display -p '#{pane_id}')}"
+
+tmux copy-mode    -t "$pane"
+tmux send-keys    -t "$pane" -X clear-selection
+tmux send-keys    -t "$pane" -X previous-prompt
+tmux send-keys    -t "$pane" -X begin-selection
+tmux send-keys    -t "$pane" -X history-bottom
+tmux send-keys    -t "$pane" -X copy-pipe-and-cancel "$HOME/.config/tmux/bin/tmux-copy"
+tmux display-message "block copied to clipboard"

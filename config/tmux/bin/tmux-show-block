@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# tmux-show-block — print the most recent command's output to stdout
+# (for piping into a popup viewer like `less`).
+
+set -euo pipefail
+
+pane="${TMUX_PANE:-$(tmux display -p '#{pane_id}')}"
+
+tmux copy-mode -t "$pane"
+tmux send-keys -t "$pane" -X clear-selection
+# Jump to the prev prompt that has output, select to next prompt
+tmux send-keys -t "$pane" -X previous-prompt -o
+tmux send-keys -t "$pane" -X begin-selection
+tmux send-keys -t "$pane" -X next-prompt
+tmux send-keys -t "$pane" -X copy-selection-no-clear
+tmux send-keys -t "$pane" -X cancel
+
+tmux save-buffer -
+# Drop the buffer we just used so it doesn't pollute paste history
+tmux delete-buffer 2>/dev/null || true

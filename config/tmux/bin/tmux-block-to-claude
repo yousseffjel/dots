@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# tmux-block-to-claude — pipe the last command's output into a Claude Code
+# popup.  Great for "this build failed, here's the trace, help me fix it".
+
+set -euo pipefail
+
+block=$("$HOME/.config/tmux/bin/tmux-show-block" 2>/dev/null || true)
+if [[ -z "${block:-}" ]]; then
+  tmux display-message "no block to send (no OSC 133 marks yet?)"
+  exit 0
+fi
+
+# Stash the block in a tmpfile and open Claude with an instruction that
+# references it.  Claude Code reads the file from cwd.
+tmpf="$(mktemp -t tmux-block.XXXXXX.txt)"
+printf '%s\n' "$block" > "$tmpf"
+
+tmux display-popup -E -w 90% -h 90% \
+   -d "#{pane_current_path}" \
+   -T " claude · last block " \
+   "claude 'Read $tmpf — it is the output of my last shell command. Tell me what went wrong and how to fix it.'"

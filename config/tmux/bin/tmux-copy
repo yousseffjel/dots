@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Read stdin and copy to the system clipboard using whichever tool is
+# available on this host. On a headless server with no clipboard tool we
+# silently drain stdin — tmux's `set-clipboard on` (OSC 52) already pushes
+# the selection to the outer terminal over SSH.
+
+set -eu
+
+if [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+    exec wl-copy
+elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+    exec xclip -selection clipboard
+elif [[ -n "${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then
+    exec xsel --clipboard --input
+elif command -v pbcopy >/dev/null 2>&1; then
+    exec pbcopy
+fi
+
+cat >/dev/null

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# tmux-windows — fuzzy window switcher within current session.
+set -euo pipefail
+
+LIST_CMD='tmux list-windows -F "#{window_index}	#{window_name}	#{window_panes}p#{?window_active, · active,}#{?window_zoomed_flag, · zoomed,}"'
+
+current=$(tmux display -p '#I' 2>/dev/null || true)
+
+selected=$(eval "$LIST_CMD" \
+  | column -t -s $'\t' \
+  | fzf --prompt='window> ' --reverse \
+        --header=$'enter: switch · ctrl-x: kill window' \
+        --bind "ctrl-x:execute-silent(tmux kill-window -t {1})+reload($LIST_CMD | column -t -s $'\t')" \
+        --query="$current") || exit 0
+
+idx=$(awk '{print $1}' <<< "$selected")
+[[ -n "${idx:-}" ]] && tmux select-window -t ":$idx"

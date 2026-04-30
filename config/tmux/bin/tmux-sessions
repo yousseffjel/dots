@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# tmux-sessions — fuzzy session switcher / killer / creator.
+set -euo pipefail
+
+LIST_CMD='tmux list-sessions -F "#{session_name}	#{session_windows}w · #{?session_attached,attached,detached} · #{t/r:session_activity}" 2>/dev/null'
+
+current=$(tmux display -p '#S' 2>/dev/null || true)
+
+selected=$(eval "$LIST_CMD" \
+  | column -t -s $'\t' \
+  | fzf --prompt='session> ' --reverse \
+        --header=$'enter: switch · ctrl-x: kill · ctrl-n: new session' \
+        --bind "ctrl-x:execute-silent(tmux kill-session -t {1})+reload($LIST_CMD | column -t -s $'\t')" \
+        --bind "ctrl-n:execute(tmux command-prompt -p name: \"new-session -d -s '%%'\")+abort" \
+        --query="$current") || exit 0
+
+target=$(awk '{print $1}' <<< "$selected")
+[[ -n "${target:-}" ]] && tmux switch-client -t "$target"

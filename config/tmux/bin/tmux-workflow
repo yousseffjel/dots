@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# tmux-workflow — pick a TSV-defined workflow, fill in {placeholders},
+# send the resulting command into the active pane.
+#
+# File format (one workflow per line):
+#   <name>\t<description>\t<command>
+# Lines starting with `#` and blank lines are skipped.
+
+set -euo pipefail
+
+WF_DIR="${HOME}/.config/tmux/workflows"
+shopt -s nullglob
+files=("$WF_DIR"/*.tsv)
+if [[ ${#files[@]} -eq 0 ]]; then
+  tmux display-message "no workflows in $WF_DIR"
+  exit 0
+fi
+
+# All non-blank, non-comment lines (must have ≥ 3 tab-separated fields)
+lines=$(awk -F'\t' '/^[^#]/ && NF>=3 { print }' "${files[@]}")
+if [[ -z "${lines:-}" ]]; then
+  tmux display-message "no workflows defined (see $WF_DIR/examples.tsv)"
+  exit 0
+fi
+
+selected=$(printf '%s\n' "$lines" \
+  | fzf --delimiter=$'\t' --with-nth='1,2' \
+        --prompt='workflow> ' --reverse --height=100% \
+        --header='enter: run in active pane · esc: cancel' \
+        --preview='echo {3}' --preview-window=down:3:wrap) || exit 0
+
+cmd=$(awk -F'\t' '{print $3}' <<< "$selected")
+
+# Substitute {placeholder} tokens by prompting interactively.
+# (display-popup -E keeps stdin attached, so `read` works inside the popup.)
+while [[ "$cmd" =~ \{([a-zA-Z_][a-zA-Z0-9_-]*)\} ]]; do
+  var="${BASH_REMATCH[1]}"
+  printf '\033[1;36m%s\033[0m: ' "$var" >&2
+  IFS= read -r val
+  cmd="${cmd//\{$var\}/$val}"
+done
+
+# Send into the *outer* active pane (the one we were in before the popup)
+target=$(tmux display -p -t '{last}' '#{pane_id}' 2>/dev/null || tmux display -p '#{pane_id}')
+tmux send-keys -t "$target" -- "$cmd"
+tmux send-keys -t "$target" Enter

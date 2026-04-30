@@ -1,0 +1,19 @@
+# tmux workflows — name<TAB>description<TAB>command
+# Placeholders look like {var} and prompt interactively when chosen.
+# Run them with <prefix>r.
+gco	checkout branch	git checkout {branch}
+gcb	new branch	git checkout -b {branch}
+glog	pretty git log	git log --oneline --graph --decorate -n 30
+gst	short git status	git status -sb
+gpl	pull --rebase	git pull --rebase
+gps	push current branch	git push -u origin HEAD
+pnpm-dev	start dev server	pnpm dev
+pnpm-build	prod build	pnpm build
+pnpm-test	run tests	pnpm test
+pnpm-add	add a pnpm dep	pnpm add {pkg}
+zsh-reload	reload current shell	exec zsh
+nvim	open nvim here	nvim .
+claude	launch claude in cwd	claude
+claude-cont	resume last claude	claude --continue
+ports	what's listening	ss -tlnp
+top	resource hog list	btop
