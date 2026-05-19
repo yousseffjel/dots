@@ -49,5 +49,15 @@ alias tch='touch'
 alias py='python3'
 alias cls='clear'
 
-# Arch pacman shortcut for editing config
-[[ -f /etc/pacman.conf ]] && alias paconf='sudo -E nvim /etc/pacman.conf'
+# Package-manager shortcuts (Arch / macOS-MacPorts)
+if [[ -f /etc/pacman.conf ]]; then
+  alias paconf='sudo -E nvim /etc/pacman.conf'
+elif [[ -f /opt/local/etc/macports/macports.conf ]]; then
+  alias paconf='sudo -E nvim /opt/local/etc/macports/macports.conf'
+  alias pi='sudo port install'
+  alias prm='sudo port uninstall'
+  alias pu='sudo port selfupdate && sudo port upgrade outdated'
+  alias psr='port search'           # `ps` is /bin/ps
+  alias pinfo='port info'
+  alias plist='port installed'
+fi
