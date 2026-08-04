@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and install the vendored suckless programs (dwm, st, dwmblocks), the
+# Build and install the vendored suckless programs (dwm, st, dmenu, dwmblocks), the
 # dwmblocks block scripts, and the dwm autostart hook that actually launches
 # the status bar.
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
-PROGRAMS=(dwm st dwmblocks)
+PROGRAMS=(dwm st dmenu dwmblocks)
 
 SKIP_DEPS=0
 for arg in "$@"; do
@@ -161,6 +161,6 @@ fi
 green "✓ suckless install complete"
 yellow "  - start the session with:  startx"
 yellow "  - rebuild after a config edit:  scripts/install-suckless.sh --skip-deps"
-yellow "  - dwm/st/dwmblocks read config.h / blocks.h, which are generated from"
+yellow "  - dwm/st/dmenu/dwmblocks read config.h / blocks.h, which are generated from"
 yellow "    their *.def.h once and then left alone — delete the generated file"
 yellow "    to pick up upstream default changes"
