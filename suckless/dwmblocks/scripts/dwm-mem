@@ -1,0 +1,25 @@
+#!/bin/sh
+# Used / total physical memory, read straight from /proc/meminfo so the output
+# does not depend on the locale or the `free` version installed.
+
+# Shared palette, with a fallback so the block still renders if it is missing.
+colors="${0%/*}/dwm-colors"
+[ -r "$colors" ] || colors="$HOME/.local/bin/dwm-colors"
+[ -r "$colors" ] && . "$colors"
+: "${COL_MEM:=#7ebd6f}"
+
+awk -v c="$COL_MEM" '
+	/^MemTotal:/     { total = $2 }
+	/^MemAvailable:/ { avail = $2 }
+	END {
+		# MemAvailable is absent on kernels older than 3.14. Left
+		# unchecked it reads as 0 and the block would claim every byte
+		# of RAM is in use, which looks plausible and is wrong.
+		if (total <= 0 || avail == "") {
+			printf "^c%s^MEM^d^ n/a\n", c
+			exit
+		}
+		used = total - avail
+		printf "^c%s^MEM^d^ %.1fG/%.0fG\n", c, used / 1048576, total / 1048576
+	}
+' /proc/meminfo

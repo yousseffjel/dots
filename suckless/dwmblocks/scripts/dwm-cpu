@@ -1,0 +1,50 @@
+#!/bin/sh
+# CPU utilisation averaged over the interval since the previous invocation.
+# /proc/stat is monotonic since boot, so a single read is meaningless on its
+# own -- the previous sample is cached and differenced.
+
+# Shared palette, with a fallback so the block still renders if it is missing.
+colors="${0%/*}/dwm-colors"
+[ -r "$colors" ] || colors="$HOME/.local/bin/dwm-colors"
+[ -r "$colors" ] && . "$colors"
+: "${COL_CPU:=#5294e2}"
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/dwmblocks"
+if ! mkdir -p "$cache" 2>/dev/null; then
+	# No cache means no delta, but a silent block is worse than an honest one.
+	printf '^c%s^CPU^d^ n/a\n' "$COL_CPU"
+	exit 0
+fi
+prev="$cache/cpu"
+
+read -r _ user nice sys idle iowait irq softirq steal _ < /proc/stat
+
+idle_all=$((idle + iowait))
+busy=$((user + nice + sys + irq + softirq + steal))
+total=$((idle_all + busy))
+
+pbusy=0
+ptotal=0
+ppct=0
+[ -r "$prev" ] && read -r pbusy ptotal ppct < "$prev"
+# An older two-field cache file leaves ppct empty.
+: "${ppct:=0}"
+
+dbusy=$((busy - pbusy))
+dtotal=$((total - ptotal))
+
+# Under ~0.2s of accumulated jiffies the sample is noise. That covers the first
+# run, a counter reset, and -- the common case -- a click refreshing the block
+# milliseconds after its scheduled update. Reprint the previous figure and
+# leave the cached sample alone, so the next scheduled run still measures
+# against a full window instead of a truncated one.
+if [ "$dtotal" -ge 20 ] && [ "$dbusy" -ge 0 ]; then
+	pct=$(((dbusy * 100 + dtotal / 2) / dtotal))
+	printf '%s %s %s\n' "$busy" "$total" "$pct" > "$prev"
+else
+	pct=$ppct
+	# Seed the baseline on the very first run.
+	[ -r "$prev" ] || printf '%s %s %s\n' "$busy" "$total" "$pct" > "$prev"
+fi
+
+printf '^c%s^CPU^d^ %d%%\n' "$COL_CPU" "$pct"

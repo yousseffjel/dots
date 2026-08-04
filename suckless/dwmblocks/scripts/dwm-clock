@@ -1,0 +1,21 @@
+#!/bin/sh
+# Wall clock. Left-click pops up the current month via notify-send when a
+# notification daemon is present; the block degrades to plain output if not.
+
+# Shared palette, with a fallback so the block still renders if it is missing.
+colors="${0%/*}/dwm-colors"
+[ -r "$colors" ] || colors="$HOME/.local/bin/dwm-colors"
+[ -r "$colors" ] && . "$colors"
+: "${COL_CLOCK:=#d9a05b}"
+
+case "$BUTTON" in
+1)
+	if command -v notify-send >/dev/null 2>&1; then
+		notify-send -u low "$(date '+%B %Y')" "$(cal)"
+	fi
+	;;
+esac
+
+# One date(1) call, not two: this runs every 10s for the life of the session,
+# and the two calls could also straddle a minute boundary and disagree.
+date "+^c${COL_CLOCK}^%a %d %b^d^ %H:%M"

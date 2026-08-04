@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Bootstrap zsh + tmux on Debian/Ubuntu (incl. Ubuntu Server).
 # Re-runnable: every step is idempotent.
+#
+# usage: install.sh [--with-suckless]
+#
+#   --with-suckless   also build and install dwm, st and dwmblocks, and wire
+#                     up the dwm autostart hook. Off by default: this script
+#                     targets servers, which have no X11 to run them on.
+#
+# On Arch (no apt-get) run scripts/install-suckless.sh directly instead.
 
 set -euo pipefail
 
@@ -12,8 +20,22 @@ green()  { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
 
+WITH_SUCKLESS=0
+for arg in "$@"; do
+    case "$arg" in
+        --with-suckless) WITH_SUCKLESS=1 ;;
+        -h|--help)
+            sed -n '2,11p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *) red "unknown argument: $arg"; exit 1 ;;
+    esac
+done
+
 if ! command -v apt-get >/dev/null 2>&1; then
     red "apt-get not found — this script targets Debian/Ubuntu."
+    yellow "for the suckless programs on another distro, run:"
+    yellow "  $SCRIPT_DIR/install-suckless.sh"
     exit 1
 fi
 
@@ -105,6 +127,17 @@ if [[ -n "$ZSH_BIN" ]]; then
     fi
 fi
 
+# dwm/st/dwmblocks: opt-in, because the common target here is a headless
+# server. install-suckless.sh handles its own build deps and the autostart
+# hook that actually launches the status bar.
+if [[ $WITH_SUCKLESS -eq 1 ]]; then
+    blue "==> building suckless programs"
+    "$SCRIPT_DIR/install-suckless.sh"
+fi
+
 green "✓ install complete"
 yellow "  - open a new shell or run: exec zsh"
 yellow "  - on first tmux start, TPM auto-installs plugins"
+if [[ $WITH_SUCKLESS -eq 0 ]]; then
+    yellow "  - dwm/st/dwmblocks were skipped — re-run with --with-suckless for a desktop"
+fi

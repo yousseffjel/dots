@@ -1,0 +1,13 @@
+# Shared status2d palette for the dwmblocks block scripts. Sourced, never run.
+#
+# Keep these in sync with suckless/dwm/config.def.h -- dwm renders the
+# ^c#RRGGBB^ escapes the scripts emit, but knows nothing about these values, so
+# nothing will warn you when they drift apart.
+#
+# Every script falls back to a hardcoded copy of its own colour if this file is
+# missing, so a partial install degrades to the right colours rather than to a
+# blank status bar.
+
+COL_CPU='#5294e2'
+COL_MEM='#7ebd6f'
+COL_CLOCK='#d9a05b'

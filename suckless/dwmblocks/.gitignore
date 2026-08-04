@@ -1,0 +1,4 @@
+blocks.h
+*.o
+dwmblocks
+dwmblocks-nox
