@@ -636,7 +636,7 @@ clientmessage(XEvent *e)
 		/* add systray icons */
 		if (cme->data.l[1] == SYSTEM_TRAY_REQUEST_DOCK) {
 			if (!(c = (Client *)calloc(1, sizeof(Client))))
-				die("fatal: could not malloc() %u bytes\n", sizeof(Client));
+				die("fatal: could not malloc() %zu bytes\n", sizeof(Client));
 			if (!(c->win = cme->data.l[2])) {
 				free(c);
 				return;
@@ -882,6 +882,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	short isCode = 0;
 	char *text;
 	char *p;
+	char *end;
 
 	len = strlen(stext) + 1 ;
 	if (!(text = (char*) malloc(sizeof(char)*len)))
@@ -893,6 +894,10 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 		if ((unsigned char)stext[i] >= ' ')
 			text[j++] = stext[i];
 	text[j] = '\0';
+	/* absolute end of the buffer; `text` is re-based as codes are consumed,
+	 * so every bounds test below is made against this rather than against
+	 * a length relative to the current `text`. */
+	end = text + j;
 
 	/* compute width of the status text */
 	w = 0;
@@ -941,30 +946,39 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
 			x += w;
 
-			/* process code */
-			while (text[++i] != '^') {
-				if (text[i] == 'c') {
+			/* Process code. Every scan below is NUL-terminated: the status
+			 * string comes from the root window name and so is fully
+			 * attacker-controlled. Upstream scans for a closing '^' and
+			 * memcpy()s a fixed 7 bytes without checking either against the
+			 * end of the buffer, which over-reads the heap on any truncated
+			 * code (e.g. a status ending in "^c#12" or "^r1,2,3"). */
+			while (text[++i] && text[i] != '^') {
+				if (text[i] == 'c' || text[i] == 'b') {
 					char buf[8];
+					if (end - (text + i + 1) < 7)
+						break;
 					memcpy(buf, (char*)text+i+1, 7);
 					buf[7] = '\0';
-					drw_clr_create(drw, &drw->scheme[ColFg], buf);
-					i += 7;
-				} else if (text[i] == 'b') {
-					char buf[8];
-					memcpy(buf, (char*)text+i+1, 7);
-					buf[7] = '\0';
-					drw_clr_create(drw, &drw->scheme[ColBg], buf);
+					drw_clr_create(drw, text[i] == 'c'
+					               ? &drw->scheme[ColFg]
+					               : &drw->scheme[ColBg], buf);
 					i += 7;
 				} else if (text[i] == 'd') {
 					drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
 					drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
 				} else if (text[i] == 'r') {
 					int rx = atoi(text + ++i);
-					while (text[++i] != ',');
+					while (text[++i] && text[i] != ',');
+					if (!text[i])
+						break;
 					int ry = atoi(text + ++i);
-					while (text[++i] != ',');
+					while (text[++i] && text[i] != ',');
+					if (!text[i])
+						break;
 					int rw = atoi(text + ++i);
-					while (text[++i] != ',');
+					while (text[++i] && text[i] != ',');
+					if (!text[i])
+						break;
 					int rh = atoi(text + ++i);
 
 					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
@@ -972,6 +986,8 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 					x += atoi(text + ++i);
 				}
 			}
+			if (!text[i]) /* unterminated code - nothing left to draw */
+				break;
 
 			text = text + i + 1;
 			i=-1;
@@ -1469,7 +1485,7 @@ monocle(Monitor *m)
 		if (ISVISIBLE(c))
 			n++;
 	if (n > 0) /* override layout symbol */
-		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", n);
+		snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%u]", n);
 	for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
 		resize(c, m->wx, m->wy, m->ww - 2 * c->bw, m->wh - 2 * c->bw, 0);
 }
@@ -1643,8 +1659,11 @@ removesystrayicon(Client *i)
 
 	if (!showsystray || !i)
 		return;
+	/* `ii` is the address of a link and is never NULL; testing it (as upstream
+	 * does) is always true, so an icon that is not in the list would splice
+	 * its successor onto the tail. Test the link's target instead. */
 	for (ii = &systray->icons; *ii && *ii != i; ii = &(*ii)->next);
-	if (ii)
+	if (*ii)
 		*ii = i->next;
 	refresh_systray_icons = 1;
 	free(i);
@@ -1859,6 +1878,7 @@ runautostart(void)
 	if (sprintf(path, "%s/%s", pathpfx, autostartblocksh) <= 0) {
 		free(path);
 		free(pathpfx);
+		return;
 	}
 
 	if (access(path, X_OK) == 0)
@@ -1868,6 +1888,7 @@ runautostart(void)
 	if (sprintf(path, "%s/%s", pathpfx, autostartsh) <= 0) {
 		free(path);
 		free(pathpfx);
+		return;
 	}
 
 	if (access(path, X_OK) == 0)
@@ -2351,8 +2372,12 @@ toggleview(const Arg *arg)
 			selmon->pertag->curtag = 0;
 		}
 
-		/* test if the user did not select the same tag */
-		if (!(newtagset & 1 << (selmon->pertag->curtag - 1))) {
+		/* Test if the user did not select the same tag. curtag is unsigned and
+		 * is set to 0 just above on the all-tags view, so `curtag - 1` wraps
+		 * to UINT_MAX and the shift is undefined; skip the test in that case
+		 * (prevtag/curtag were already updated by the branch above). */
+		if (selmon->pertag->curtag
+		    && !(newtagset & 1 << (selmon->pertag->curtag - 1))) {
 			selmon->pertag->prevtag = selmon->pertag->curtag;
 			for (i = 0; !(newtagset & 1 << i); i++) ;
 			selmon->pertag->curtag = i + 1;
@@ -2704,7 +2729,7 @@ updatesystray(void)
 	if (!systray) {
 		/* init systray */
 		if (!(systray = (Systray *)calloc(1, sizeof(Systray))))
-			die("fatal: could not malloc() %u bytes\n", sizeof(Systray));
+			die("fatal: could not malloc() %zu bytes\n", sizeof(Systray));
 		systray->win = XCreateSimpleWindow(dpy, root, x, m->by, w, bh, 0, 0, scheme[SchemeSel][ColBg].pixel);
 		wa.event_mask        = ButtonPressMask | ExposureMask;
 		wa.override_redirect = True;

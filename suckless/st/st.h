@@ -77,6 +77,12 @@ typedef union {
 	const char *s;
 } Arg;
 
+/* die() always exit()s; see the note in dwm's util.h. Declaring it noreturn
+ * also removes the bogus -Wimplicit-fallthrough on the `case -1: die(..)` in
+ * ttyread(). Attribute syntax is GNU/clang only. */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noreturn, format(printf, 1, 2)))
+#endif
 void die(const char *, ...);
 void redraw(void);
 void draw(void);
