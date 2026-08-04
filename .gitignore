@@ -1,2 +1,4 @@
 *.zcompdump
+config/zsh/zcompdump
+config/zsh/zhistory
 *.zwc

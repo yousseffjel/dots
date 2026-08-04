@@ -43,10 +43,8 @@ TERMINFO_DIRS="$XDG_DATA_HOME"/terminfo:/usr/share/terminfo
 WGETRC="${XDG_CONFIG_HOME}/wgetrc"
 PYTHON_HISTORY="$XDG_STATE_HOME/python_history"
 
-# HyDEs Compositor Configuration (Linux/Hyprland only)
-if [[ "$OSTYPE" != darwin* ]]; then
-  export HYPRLAND_CONFIG="${XDG_DATA_HOME:-$HOME/.local/share}/hypr/hyprland.conf"
-fi
+# HyDEs Compositor Configuration
+export HYPRLAND_CONFIG="${XDG_DATA_HOME:-$HOME/.local/share}/hypr/hyprland.conf"
 
 # Export all variables
 export PATH \
