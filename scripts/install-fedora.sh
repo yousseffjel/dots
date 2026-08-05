@@ -114,6 +114,13 @@ if [[ $RUN_PRE -eq 1 ]]; then
     "$SCRIPT_DIR/install-pre.sh" "${dry_run_args[@]}"
 fi
 
+# Runs unconditionally (regardless of which --only-* stages were picked):
+# a no-op on a fresh install (no manifest yet) or one already at VERSION,
+# and otherwise brings an older existing install's manifest version
+# forward before any stage below re-stamps it via manifest_init.
+blue "=== migrations ==="
+"$SCRIPT_DIR/migrate.sh" "${dry_run_args[@]}"
+
 if [[ $RUN_INSTALL -eq 1 ]]; then
     blue "=== install stage ==="
     "$SCRIPT_DIR/install-pkg.sh" "${dry_run_args[@]}"
