@@ -24,6 +24,20 @@ static const char *colors[][3]      = {
 	[SchemeSel]  = { col_gray4, col_cyan,  col_focus }, /* focused: high-contrast accent */
 };
 
+/* X resources read at startup (xresources patch) — reload path is
+ * restartsig (kill -HUP $(pidof dwm)), which re-execs dwm and so re-reads
+ * these on the next xresupdate() call in main(), no in-place hot-reload
+ * function needed here. */
+static const XResPref resources[] = {
+	/* name                    type     address */
+	{ "dwm.normbgcolor",      STRING,  &colors[SchemeNorm][ColBg] },
+	{ "dwm.normfgcolor",      STRING,  &colors[SchemeNorm][ColFg] },
+	{ "dwm.normbordercolor",  STRING,  &colors[SchemeNorm][ColBorder] },
+	{ "dwm.selbgcolor",       STRING,  &colors[SchemeSel][ColBg] },
+	{ "dwm.selfgcolor",       STRING,  &colors[SchemeSel][ColFg] },
+	{ "dwm.selbordercolor",   STRING,  &colors[SchemeSel][ColBorder] },
+};
+
 /* scratchpads */
 typedef struct {
 	const char *name;

@@ -1,0 +1,141 @@
+diff --git a/suckless/dwm/config.def.h b/suckless/dwm/config.def.h
+index ef2f79f..84a4d2c 100644
+--- a/suckless/dwm/config.def.h
++++ b/suckless/dwm/config.def.h
+@@ -24,6 +24,20 @@ static const char *colors[][3]      = {
+ 	[SchemeSel]  = { col_gray4, col_cyan,  col_focus }, /* focused: high-contrast accent */
+ };
+ 
++/* X resources read at startup (xresources patch) — reload path is
++ * restartsig (kill -HUP $(pidof dwm)), which re-execs dwm and so re-reads
++ * these on the next xresupdate() call in main(), no in-place hot-reload
++ * function needed here. */
++static const XResPref resources[] = {
++	/* name                    type     address */
++	{ "dwm.normbgcolor",      STRING,  &colors[SchemeNorm][ColBg] },
++	{ "dwm.normfgcolor",      STRING,  &colors[SchemeNorm][ColFg] },
++	{ "dwm.normbordercolor",  STRING,  &colors[SchemeNorm][ColBorder] },
++	{ "dwm.selbgcolor",       STRING,  &colors[SchemeSel][ColBg] },
++	{ "dwm.selfgcolor",       STRING,  &colors[SchemeSel][ColFg] },
++	{ "dwm.selbordercolor",   STRING,  &colors[SchemeSel][ColBorder] },
++};
++
+ /* scratchpads */
+ typedef struct {
+ 	const char *name;
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+index 2a6b034..50c8171 100644
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -37,6 +37,7 @@
+ #include <X11/Xlib.h>
+ #include <X11/Xproto.h>
+ #include <X11/Xutil.h>
++#include <X11/Xresource.h>
+ #ifdef XINERAMA
+ #include <X11/extensions/Xinerama.h>
+ #endif /* XINERAMA */
+@@ -84,6 +85,7 @@ enum { Manager, Xembed, XembedInfo, XLast }; /* Xembed atoms */
+ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
++enum XResType { STRING, INTEGER, FLOAT }; /* xresources value types */
+ 
+ typedef union {
+ 	int i;
+@@ -168,6 +170,12 @@ struct Systray {
+ 	Client *icons;
+ };
+ 
++typedef struct {
++	const char *name;
++	enum XResType type;
++	void *dst;
++} XResPref;
++
+ /* function declarations */
+ static void applyrules(Client *c);
+ static int applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
+@@ -276,6 +284,8 @@ static Client *wintosystrayicon(Window w);
+ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
++static void xresload(const XResPref *resource);
++static void xresupdate(void);
+ static void zoom(const Arg *arg);
+ 
+ /* variables */
+@@ -322,6 +332,7 @@ static Display *dpy;
+ static Drw *drw;
+ static Monitor *mons, *selmon;
+ static Window root, wmcheckwin;
++static XrmDatabase xrdb = NULL;
+ 
+ /* configuration, allows nested code to access above variables */
+ #include "config.h"
+@@ -603,6 +614,8 @@ cleanup(void)
+ 	free(scheme);
+ 	XDestroyWindow(dpy, wmcheckwin);
+ 	drw_free(drw);
++	if (xrdb)
++		XrmDestroyDatabase(xrdb);
+ 	XSync(dpy, False);
+ 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
+ 	XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
+@@ -2961,6 +2974,47 @@ zoom(const Arg *arg)
+ 	pop(c);
+ }
+ 
++void
++xresload(const XResPref *resource)
++{
++	char *type;
++	XrmValue ret;
++
++	if (!XrmGetResource(xrdb, resource->name, NULL, &type, &ret))
++		return;
++	if (!ret.addr || strncmp(type, "String", sizeof("String")))
++		return;
++
++	switch (resource->type) {
++	case STRING:
++		*(char **)resource->dst = ret.addr;
++		break;
++	case INTEGER:
++		*(int *)resource->dst = strtoul(ret.addr, NULL, 10);
++		break;
++	case FLOAT:
++		*(float *)resource->dst = strtof(ret.addr, NULL);
++		break;
++	}
++}
++
++void
++xresupdate(void)
++{
++	char *resm;
++
++	resm = XResourceManagerString(dpy);
++	if (!resm)
++		return;
++	if (xrdb)
++		XrmDestroyDatabase(xrdb);
++	xrdb = XrmGetStringDatabase(resm);
++	if (!xrdb)
++		return;
++	for (const XResPref *p = resources; p < resources + LENGTH(resources); ++p)
++		xresload(p);
++}
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -2973,6 +3027,8 @@ main(int argc, char *argv[])
+ 	if (!(dpy = XOpenDisplay(NULL)))
+ 		die("dwm: cannot open display");
+ 	checkotherwm();
++	XrmInitialize();
++	xresupdate();
+ 	setup();
+ #ifdef __OpenBSD__
+ 	if (pledge("stdio rpath proc exec", NULL) == -1)

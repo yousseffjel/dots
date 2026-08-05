@@ -8,5 +8,15 @@ static const char *colorname[NUMCOLS] = {
 	[FAILED] = "#CC3333",   /* wrong password */
 };
 
+/* X resources read once at launch (xresources patch) — slock exits and
+ * respawns per lock, so a fresh read at startup is the only reload path
+ * it needs. */
+static const ResourcePref resources[] = {
+	/* name          type     address */
+	{ "initcolor",  STRING,  &colorname[INIT] },
+	{ "inputcolor", STRING,  &colorname[INPUT] },
+	{ "failedcolor", STRING, &colorname[FAILED] },
+};
+
 /* treat a cleared input like a wrong password (color) */
 static const int failonclear = 1;
