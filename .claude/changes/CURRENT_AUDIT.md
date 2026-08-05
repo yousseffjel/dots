@@ -98,3 +98,23 @@ directory for the running history.
   trimmed scope).
 - See `.claude/changes/2026-08-05-theming-xresources-patches.md` for
   full detail. Reviewer verdict: READY (after fix).
+
+## 2026-08-05 — theming engine epic, sub-task 2: colorgen.sh
+- Added `scripts/theme/colorgen.sh <wallpaper> [--force]` — ImageMagick-
+  only (kmeans + histogram, HSB hue-locked accent curve), dark-mode-only,
+  producing a HyDE-wallbash-compatible `colors.dcol` (dcol_pry1-4,
+  dcol_txt1-4, dcol_NxaJ accent shades, `_rgba` siblings) at
+  `~/.cache/dots/theme/colors.dcol`, cached by sha256(path+mtime).
+  Reimplements (not copies) HyDE-Project/HyDE's `wallbash.sh` algorithm,
+  read locally as a design reference per CLAUDE.md rule 9 — never
+  sourced/shelled-out-to at runtime.
+- Dark-mode floor verified live: a synthetic near-white test wallpaper
+  correctly darkens `dcol_pry1` in a bounded loop until under the
+  luminance threshold; a 4-distinct-color test wallpaper correctly sorts
+  primaries darkest-to-lightest and produces a well-formed, sourceable
+  90-line `colors.dcol`.
+- Reviewer subagent (first pass) BLOCKed on the file exceeding this
+  repo's 250-line cap (256 lines) — fixed by trimming the header comment
+  to a concise summary (design rationale moved to the dated log, no
+  logic change), landing at 235 lines; second pass returned READY.
+- See `.claude/changes/2026-08-05-theming-colorgen.md` for full detail.
