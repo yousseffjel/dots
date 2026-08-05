@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# dwm-clipmenu — clipmenu (clipboard history), themed to match dwm's dmenu.
+# Requires clipmenu + clipnotify (Fedora: skidnik/clipmenu COPR, enabled by
+# install-fedora.sh) and a running clipmenud (started by dwm's autostart.sh,
+# see scripts/install-suckless.sh). clipmenu forwards all its args straight
+# to dmenu, so no manual list-building/selection plumbing is needed here.
+set -euo pipefail
+
+FONT="monospace:size=10"
+NB="#222222"; NF="#bbbbbb"; SB="#005577"; SF="#eeeeee"
+
+exec clipmenu -i -fn "$FONT" -nb "$NB" -nf "$NF" -sb "$SB" -sf "$SF"

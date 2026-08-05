@@ -12,6 +12,7 @@ BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
+    "$CONFIG_DIR/dwm:$HOME/.config/dwm"
 )
 
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }

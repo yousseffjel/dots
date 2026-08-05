@@ -3,8 +3,8 @@
 # slock), the dwmblocks block scripts, and the dwm autostart hook that
 # actually launches the status bar.
 #
-# Runs standalone (Arch, Debian/Ubuntu, Fedora) or via `install.sh
-# --with-suckless` / `install-fedora.sh --with-suckless`.
+# Runs standalone, or as part of `install-fedora.sh` (which calls this
+# unless run with --skip-suckless).
 # Re-runnable: every step is idempotent, and nothing that the user may have
 # customised (autostart.sh, .xinitrc) is ever overwritten.
 
@@ -128,6 +128,12 @@ if [[ -e "$AUTOSTART" ]]; then
         yellow "kept    $AUTOSTART (exists, does not mention dwmblocks)"
         yellow "        add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &"
     fi
+    if grep -q 'clipmenud' "$AUTOSTART"; then
+        green "ok      $AUTOSTART already starts clipmenud"
+    else
+        yellow "kept    $AUTOSTART (exists, does not mention clipmenud)"
+        yellow "        add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &"
+    fi
 else
     cat > "$AUTOSTART" <<'EOF'
 #!/bin/sh
@@ -140,6 +146,13 @@ else
 # ambiguous.
 if ! pgrep -x dwmblocks >/dev/null 2>&1; then
 	dwmblocks &
+fi
+
+# Clipboard history for dwm-clipmenu (Super+v) — only present if clipmenu's
+# COPR was enabled (Fedora, via install-fedora.sh). Silently skipped
+# elsewhere so this line is harmless on distros without it wired up yet.
+if command -v clipmenud >/dev/null 2>&1 && ! pgrep -x clipmenud >/dev/null 2>&1; then
+	clipmenud &
 fi
 EOF
     chmod 755 "$AUTOSTART"

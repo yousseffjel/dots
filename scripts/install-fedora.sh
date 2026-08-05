@@ -2,15 +2,21 @@
 # Bootstrap a full dwm desktop on Fedora: zsh + tmux, X11 + suckless build
 # deps, fonts/theming, desktop utilities, the ly display manager, and
 # dwm/st/dmenu/dwmblocks/slock built from suckless/.
+#
+# This is the ONE supported installer for this repo. It targets plain `dnf`
+# and installs Xorg itself, so it works identically on a fresh Fedora Server
+# install or a Fedora Workstation install — there is no separate
+# "headless" variant; running this script on a Fedora Server box is exactly
+# how you get the full desktop (dwm + this repo's config) on it.
 # Re-runnable: every step is idempotent.
 #
 # usage: install-fedora.sh [--skip-suckless]
 #
-#   --skip-suckless   skip building dwm/st/dmenu/dwmblocks/slock. On by
-#                      default, since this script targets a desktop machine
-#                      (it installs Xorg + the suckless build deps either
-#                      way). Run scripts/install-suckless.sh directly later
-#                      to build them on their own.
+#   --skip-suckless   skip building dwm/st/dmenu/dwmblocks/slock on this run.
+#                      Off by default — the suckless programs are built every
+#                      run, since this script installs Xorg + their build
+#                      deps either way. Run scripts/install-suckless.sh
+#                      directly later to rebuild them on their own.
 #
 # Node.js is intentionally not installed here — install nvm yourself
 # afterwards (https://github.com/nvm-sh/nvm) and let it manage Node, since
@@ -20,6 +26,11 @@
 # lazygit and bibata-cursor-themes are not in official Fedora repos (COPR
 # only) — install them yourself via `dnf copr enable dejan/lazygit` and
 # `dnf copr enable peterwu/rendezvous` respectively if you want them.
+#
+# clipmenu + clipnotify (dwm-clipmenu's backend, see config/dwm/bin/) are
+# also COPR-only (skidnik/clipmenu) — unlike the two above, this repo IS
+# auto-enabled below since it's required for a core keybind (Super+v) to
+# work out of the box.
 
 set -euo pipefail
 
@@ -36,7 +47,7 @@ for arg in "$@"; do
     case "$arg" in
         --skip-suckless) SKIP_SUCKLESS=1 ;;
         -h|--help)
-            sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         *) red "unknown argument: $arg"; exit 1 ;;
@@ -64,7 +75,7 @@ PACKAGES=(
     # core system & display server
     xorg-x11-server-Xorg xorg-x11-xinit xrandr xsetroot xset xrdb xinput
     libX11-devel libXft-devel libXinerama-devel freetype-devel fontconfig-devel
-    NetworkManager network-manager-applet
+    NetworkManager network-manager-applet dnf-plugins-core
     pipewire pipewire-pulseaudio pipewire-alsa pipewire-jack-audio-connection-kit
     wireplumber polkit-gnome opendoas fuse
     # shell & interface foundation
@@ -73,7 +84,7 @@ PACKAGES=(
     jetbrains-mono-fonts-all google-noto-emoji-fonts google-noto-sans-fonts
     papirus-icon-theme adwaita-icon-theme
     # desktop utilities, clipboard & file management
-    picom dunst libnotify feh xclip xsel copyq
+    picom dunst libnotify feh xclip xsel
     brightnessctl playerctl pamixer pavucontrol alsa-utils
     thunar thunar-archive-plugin tumbler file-roller gvfs
     lxappearance xdg-user-dirs
@@ -102,6 +113,23 @@ for pkg in "${PACKAGES[@]}"; do
         yellow "  skipped (not found in enabled repos): $pkg"
     fi
 done
+
+# clipmenu + clipnotify back dwm-clipmenu (Super+v) and aren't in Fedora's
+# official repos — enabling this COPR is a deliberate exception to this
+# repo's usual "COPR is opt-in, never auto-enabled" rule, since the feature
+# is core to the desktop rather than a nice-to-have.
+blue "==> enabling skidnik/clipmenu COPR"
+if $SUDO dnf copr enable -y skidnik/clipmenu; then
+    for pkg in clipmenu clipnotify; do
+        if $SUDO dnf install -y "$pkg" >/dev/null 2>&1; then
+            green "  installed: $pkg"
+        else
+            yellow "  skipped (not found in enabled repos): $pkg"
+        fi
+    done
+else
+    yellow "  could not enable skidnik/clipmenu — dwm-clipmenu (Super+v) needs clipmenu+clipnotify installed manually"
+fi
 
 # Fedora's fd-find package ships its binary as `fdfind` (name clash with
 # another package, same as Debian/Ubuntu) — shim it under ~/.local/bin so
@@ -165,8 +193,7 @@ if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
     green "enabled ly.service"
 fi
 
-# dwm/st/dmenu/dwmblocks/slock: on by default here, unlike install.sh's
-# server-oriented --with-suckless opt-in — this script already installs
+# dwm/st/dmenu/dwmblocks/slock: on by default — this script already installs
 # Xorg and the suckless build deps, so the common case is "build them."
 if [[ $SKIP_SUCKLESS -eq 0 ]]; then
     blue "==> building suckless programs"
