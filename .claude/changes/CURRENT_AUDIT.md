@@ -75,3 +75,26 @@ directory for the running history.
   full detail, including a correction of a stale claim in the CI
   session's own log (the SC2086 fix it thought was still uncommitted
   actually landed in commit `0068a70`).
+
+## 2026-08-05 — theming engine epic, sub-task 1: xresources patches
+- Kicked off a 7-sub-task Epic (`.claude/tasks/scope-a-theming-engine.md`)
+  to build a HyDE-wallbash-inspired dark-mode-only theming engine for the
+  Fedora+dwm+X11+suckless stack. Sub-task 1 (this entry) adds xresources
+  runtime color support to dwm, st, dmenu, slock — the prerequisite every
+  later sub-task (color extraction, template engine, reload) targets.
+- dwm and dmenu were hand-merged against 10 and 7 already-applied patches
+  respectively (no `config.h` in this repo, only `config.def.h` with
+  prior patches baked directly into the vendored source); st and slock
+  were clean applies (zero prior patches on either). All 4 build clean
+  (`make clean && make`, zero new warnings).
+- Reviewer subagent (first pass) caught a real use-after-free in st's
+  `xrdb_load()` — an `XrmDestroyDatabase()` call freed memory that
+  `colorname[]` still pointed to, hit on every st launch and every
+  `SIGUSR1` reload. Fixed by removing the destroy call (matches
+  upstream's own behavior, which never destroys it either); rebuilt
+  clean; second reviewer pass returned READY.
+- Every tool's `patches/PATCHES.md` documents exact merge decisions and
+  deviations from upstream (resource naming, precedence handling,
+  trimmed scope).
+- See `.claude/changes/2026-08-05-theming-xresources-patches.md` for
+  full detail. Reviewer verdict: READY (after fix).
