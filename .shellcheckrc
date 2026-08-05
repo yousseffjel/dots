@@ -1,0 +1,14 @@
+# shellcheck configuration — see https://www.shellcheck.net/wiki/Ignore
+#
+# Scope: scripts/*.sh and any *.sh at the repo root. Suckless C sources and
+# vendored .diff patches are out of scope.
+
+# Resolve `source`d files relative to the sourcing script (e.g.
+# scripts/version.sh sourcing scripts/global_fn.sh) instead of requiring a
+# `# shellcheck source=` hint on every call site.
+external-sources=true
+
+# Every script in this repo starts with `#!/usr/bin/env bash` and is invoked
+# directly or via another script's SCRIPT_DIR-relative call — never dot-sourced
+# from an unknown shell — so shellcheck's default "assume bash" is correct
+# and no explicit shell= override is needed here.
