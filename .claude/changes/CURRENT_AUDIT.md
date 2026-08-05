@@ -147,3 +147,27 @@ directory for the running history.
   1.5 MB/60k-rule palette, placeholder-prefix-collision, graceful-skip,
   and error-path cases. shellcheck + shfmt clean, 201 lines.
 - See `.claude/changes/2026-08-05-theming-apply-templates.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 4: templates + base configs
+- Added the 5 `.dcol` templates (xresources, dunst, picom, gtk,
+  statusbar), all in `always/` since every one is purely color-driven;
+  plus base `config/dunst/dunstrc` and `config/picom/picom.conf`
+  generated from the templates themselves so they cannot drift.
+- **Base configs are copied, never symlinked** — the templates write the
+  whole file into `~/.config`, so adding `config/dunst`/`config/picom` to
+  `symlinks.sh` (CLAUDE.md rule 7) would make every wallpaper change
+  write back into the repo. Noted in each file; sub-task 7 must honor it.
+- Resolved a spec/repo conflict on the statusbar contract: the spec asks
+  for `STATUS_*` status2d escape strings, but the existing dwmblocks
+  scripts source `COL_*` raw hex. Emitting only `STATUS_*` would have
+  left the file inert. The generated file now emits both, and the 3 block
+  scripts prefer it over their static `dwm-colors`, with fallback.
+- Validated against the real parsers rather than by eye, which caught
+  three bugs: `xrdb` pipes through `cpp` so a `/*` in a comment broke the
+  merge outright and apostrophes warned on every change; `mktemp`'s 0600
+  survived the `mv` leaving every generated config user-only-readable
+  (fixed in `apply-templates.sh`); and a deprecated picom `@:c` type
+  specifier. `xrdb -query` confirmed the emitted resource names match the
+  `resources[]` arrays in the sub-task 1 C patches exactly.
+- Reviewer verdict: READY (independently re-verified all of the above).
+- See `.claude/changes/2026-08-05-theming-templates.md` for full detail.
