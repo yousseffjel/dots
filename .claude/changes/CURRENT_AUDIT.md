@@ -56,3 +56,22 @@ directory for the running history.
   files (undone via `git reset --soft`, not pushed).
 - See `.claude/changes/2026-08-05-ci-tooling-shellcheck-precommit.md` for
   full detail.
+
+## 2026-08-05 — post-push verification audit
+- User asked to verify the day's two pushed sessions (above). Three
+  parallel read-only audits (collision damage, versioning/uninstall/
+  migrations correctness, CI tooling correctness) found: no collision
+  damage; a real bug in `scripts/version.sh` (crashes on every real
+  install — `dwm -v`'s intentional exit 1 under `set -euo pipefail`); a
+  latent same-class footgun in `install-restore.sh`; `.shellcheckrc` not
+  actually resolving sourced files (SC1091 on 7 scripts); `shfmt` diffs
+  in all 14 scripts; two untracked/un-reversible uninstall gaps
+  (dwmblocks block scripts, login-shell change).
+- All fixed and verified with real `shellcheck`/`shfmt` (installed fresh
+  for this audit — neither prior session had them available) plus
+  sandboxed functional tests. `tests/lint.sh` and `tests/pkglist.sh` both
+  pass end-to-end.
+- See `.claude/changes/2026-08-05-post-push-verification-audit.md` for
+  full detail, including a correction of a stale claim in the CI
+  session's own log (the SC2086 fix it thought was still uncommitted
+  actually landed in commit `0068a70`).
