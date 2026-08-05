@@ -5,8 +5,12 @@
 
 # Resolve `source`d files relative to the sourcing script (e.g.
 # scripts/version.sh sourcing scripts/global_fn.sh) instead of requiring a
-# `# shellcheck source=` hint on every call site.
+# `# shellcheck source=` hint on every call site. external-sources alone only
+# permits following paths outside the given file set — source-path=SCRIPTDIR
+# is what actually makes shellcheck resolve a dynamic
+# `source "$SCRIPT_DIR/global_fn.sh"` without a per-call-site directive.
 external-sources=true
+source-path=SCRIPTDIR
 
 # Every script in this repo starts with `#!/usr/bin/env bash` and is invoked
 # directly or via another script's SCRIPT_DIR-relative call — never dot-sourced

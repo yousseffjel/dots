@@ -14,22 +14,28 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKUP_ROOT="$HOME/.dotfiles-backup"
 source "$SCRIPT_DIR/global_fn.sh"
 
-red()   { printf '\033[31m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
-blue()  { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 DRY_RUN=0
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
-        -h|--help) echo "usage: install-restore.sh [--dry-run]"; exit 0 ;;
-        *) red "unknown argument: $arg"; exit 1 ;;
+        -h | --help)
+            echo "usage: install-restore.sh [--dry-run]"
+            exit 0
+            ;;
+        *)
+            red "unknown argument: $arg"
+            exit 1
+            ;;
     esac
 done
 
 if [[ $DRY_RUN -eq 0 ]]; then
     manifest_init \
-        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
         "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 fi
 
@@ -40,7 +46,10 @@ if [[ -f "$ZSHENV" ]] && grep -q 'ZDOTDIR' "$ZSHENV"; then
 elif [[ $DRY_RUN -eq 1 ]]; then
     blue "  (dry-run) would append ZDOTDIR export to ~/.zshenv"
 else
-    printf '%s\n' 'export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' >> "$ZSHENV"
+    # Literal shell syntax written into .zshenv, meant to expand at its own
+    # runtime, not here.
+    # shellcheck disable=SC2016
+    printf '%s\n' 'export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' >>"$ZSHENV"
     green "wrote   ZDOTDIR export -> ~/.zshenv"
 fi
 
@@ -59,7 +68,14 @@ backups_before=""
 if [[ $DRY_RUN -eq 0 ]]; then
     run_backup_dir=""
     if [[ -d "$BACKUP_ROOT" ]]; then
-        run_backup_dir="$(comm -13 <(printf '%s\n' "$backups_before" | sort) <(ls -1 "$BACKUP_ROOT" | sort) | head -1)"
+        # `|| true`: under pipefail, `head -1` closing the pipe early on
+        # multi-line output can SIGPIPE `comm`, which would otherwise trip
+        # this script's own set -e (same class of bug as version.sh's
+        # `dwm -v` pipeline). BACKUP_ROOT only ever contains entries this
+        # repo's own symlinks.sh names as timestamps (YYYYMMDD_HHMMSS),
+        # never arbitrary/adversarial filenames.
+        # shellcheck disable=SC2012
+        run_backup_dir="$(comm -13 <(printf '%s\n' "$backups_before" | sort) <(ls -1 "$BACKUP_ROOT" | sort) | head -1)" || true
     fi
     while IFS=$'\t' read -r src dst; do
         [[ -L "$dst" && "$(readlink "$dst")" == "$src" ]] || continue
