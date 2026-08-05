@@ -52,6 +52,22 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Tee this run's full output (stdout+stderr, including every stage script
+# invoked below as a child process) into install.log at the repo root, so
+# repeated runs can be diffed later, while still showing live colored
+# output in the terminal. ANSI color codes are stripped before the log
+# write only (sed -u keeps it unbuffered/live) — the terminal stays
+# colored, the log file stays plain text. Append mode: runs accumulate in
+# the same file, separated by the timestamp header below. --dry-run runs
+# ARE logged too (deliberate, not skipped) — a dry-run's stage plan is
+# exactly the kind of thing worth comparing against a later real run.
+LOG_FILE="$DOTS_DIR/install.log"
+exec > >(tee >(sed -u 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE")) 2>&1
+
+echo "=== install-fedora.sh run started: $(date '+%Y-%m-%d %H:%M:%S') (args: $*) ==="
+trap 'echo "=== install-fedora.sh run finished: $(date "+%Y-%m-%d %H:%M:%S") ==="' EXIT
 
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
