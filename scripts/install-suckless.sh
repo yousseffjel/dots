@@ -16,13 +16,15 @@ SUCKLESS_DIR="$DOTS_DIR/suckless"
 PROGRAMS=(dwm st dmenu dwmblocks slock)
 
 SKIP_DEPS=0
+DRY_RUN=0
 for arg in "$@"; do
     case "$arg" in
         --skip-deps) SKIP_DEPS=1 ;;
+        --dry-run) DRY_RUN=1 ;;
         -h|--help)
             sed -n '2,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             echo
-            echo "usage: install-suckless.sh [--skip-deps]"
+            echo "usage: install-suckless.sh [--skip-deps] [--dry-run]"
             exit 0
             ;;
         *) echo "unknown argument: $arg" >&2; exit 1 ;;
@@ -79,6 +81,8 @@ install_deps() {
 
 if [[ $SKIP_DEPS -eq 1 ]]; then
     yellow "skipping dependency install (--skip-deps)"
+elif [[ $DRY_RUN -eq 1 ]]; then
+    blue "  (dry-run) would install build deps"
 else
     install_deps
 fi
@@ -88,6 +92,10 @@ for prog in "${PROGRAMS[@]}"; do
     dir="$SUCKLESS_DIR/$prog"
     if [[ ! -f "$dir/Makefile" ]]; then
         yellow "skip    $prog (no Makefile at $dir)"
+        continue
+    fi
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would build and install $prog"
         continue
     fi
     blue "==> building $prog"
@@ -108,9 +116,13 @@ done
 # Block scripts belong to the user, not to PREFIX — blocks.def.h points at
 # ~/.local/bin by absolute path, so this must not run under sudo.
 if [[ -f "$SUCKLESS_DIR/dwmblocks/Makefile" ]]; then
-    blue "==> installing dwmblocks block scripts"
-    make -C "$SUCKLESS_DIR/dwmblocks" install-scripts
-    green "installed block scripts -> $HOME/.local/bin"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would install dwmblocks block scripts -> $HOME/.local/bin"
+    else
+        blue "==> installing dwmblocks block scripts"
+        make -C "$SUCKLESS_DIR/dwmblocks" install-scripts
+        green "installed block scripts -> $HOME/.local/bin"
+    fi
 fi
 
 # --- autostart ---------------------------------------------------------------
@@ -119,7 +131,7 @@ fi
 # installed but never actually launched, and the bar stays empty.
 AUTOSTART_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/dwm"
 AUTOSTART="$AUTOSTART_DIR/autostart.sh"
-mkdir -p "$AUTOSTART_DIR"
+[[ $DRY_RUN -eq 1 ]] || mkdir -p "$AUTOSTART_DIR"
 
 if [[ -e "$AUTOSTART" ]]; then
     if grep -q 'dwmblocks' "$AUTOSTART"; then
@@ -134,6 +146,8 @@ if [[ -e "$AUTOSTART" ]]; then
         yellow "kept    $AUTOSTART (exists, does not mention clipmenud)"
         yellow "        add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &"
     fi
+elif [[ $DRY_RUN -eq 1 ]]; then
+    blue "  (dry-run) would write $AUTOSTART (dwmblocks + clipmenud autostart)"
 else
     cat > "$AUTOSTART" <<'EOF'
 #!/bin/sh
@@ -163,6 +177,8 @@ fi
 XINITRC="$HOME/.xinitrc"
 if [[ -e "$XINITRC" ]]; then
     green "ok      ~/.xinitrc exists (left untouched)"
+elif [[ $DRY_RUN -eq 1 ]]; then
+    blue "  (dry-run) would write ~/.xinitrc (exec dwm)"
 else
     cat > "$XINITRC" <<'EOF'
 #!/bin/sh

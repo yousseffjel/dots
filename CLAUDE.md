@@ -34,8 +34,12 @@ dots/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
 │   └── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu (on $PATH via 20-path.zsh)
 ├── scripts/
-│   ├── install-fedora.sh       # THE installer: dnf + Xorg + suckless + ly + fonts/theming — works on Fedora Server or Workstation
-│   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock + autostart hook
+│   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
+│   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
+│   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
+│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + zinit/TPM bootstrap clones
+│   ├── install-services.sh     # stage: chsh to zsh + enable ly.service
+│   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock + autostart hook (called by the install stage unless --skip-suckless)
 │   └── symlinks.sh             # symlinks config/zsh, config/tmux and config/dwm into ~/.config, backs up conflicts
 ├── packages/
 │   ├── core.lst         # required dnf packages — install-fedora.sh hard-fails if any is missing
@@ -52,10 +56,13 @@ dots/
 
 **Entry points**: `scripts/install-fedora.sh` is the single supported
 installer — run it on a fresh Fedora Server or Fedora Workstation box to get
-the full desktop (zsh/tmux + X11 + dwm/st/dmenu/dwmblocks/slock + ly).
-`scripts/install-suckless.sh` (re)builds just the suckless programs
-standalone; `scripts/symlinks.sh` (re)links shell config without touching
-packages.
+the full desktop (zsh/tmux + X11 + dwm/st/dmenu/dwmblocks/slock + ly). It's a
+thin orchestrator over four idempotent, independently-runnable stages (pre ->
+install -> restore -> services — `scripts/install-{pre,pkg,restore,services}.sh`);
+`--only-<stage>` runs a single stage, `--dry-run` threads through every
+stage without mutating anything. `scripts/install-suckless.sh` (re)builds
+just the suckless programs standalone (also `--dry-run`-aware); `scripts/symlinks.sh`
+(re)links shell config without touching packages (also `--dry-run`-aware).
 
 ---
 

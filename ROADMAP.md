@@ -198,7 +198,7 @@ picom                     # compositor
 dunst                     # notifications
 # launcher/powermenu: dmenu (vendored), already have. clipboard: clipmenu +
 # clipnotify, COPR-only (skidnik/clipmenu), enabled below — see §4.3
-# see suckless/dmenu/ and install-fedora.sh's package list
+# see suckless/dmenu/ and packages/*.lst (installed by scripts/install-pkg.sh)
 feh                       # wallpaper + image viewer
 maim                      # screenshots
 slop                      # region select
