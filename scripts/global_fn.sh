@@ -13,10 +13,10 @@
 # usage (from a script that has already resolved SCRIPT_DIR):
 #   source "$SCRIPT_DIR/global_fn.sh"
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 # ~/.local/state/dots/manifest — a single tab-separated file, one row per
 # line, first field is the row type (META/CONFIG/SUCKLESS/PACKAGE/SERVICE).
@@ -56,8 +56,8 @@ manifest_set_meta() {
     touch "$MANIFEST_FILE"
     local tmp
     tmp="$(mktemp)"
-    awk -F'\t' -v k="$key" 'BEGIN{OFS="\t"} !($1=="META" && $2==k)' "$MANIFEST_FILE" > "$tmp"
-    printf 'META\t%s\t%s\n' "$key" "$value" >> "$tmp"
+    awk -F'\t' -v k="$key" 'BEGIN{OFS="\t"} !($1=="META" && $2==k)' "$MANIFEST_FILE" >"$tmp"
+    printf 'META\t%s\t%s\n' "$key" "$value" >>"$tmp"
     mv "$tmp" "$MANIFEST_FILE"
 }
 
@@ -90,7 +90,7 @@ manifest_append_row() {
     mkdir -p "$MANIFEST_DIR"
     touch "$MANIFEST_FILE"
     if ! grep -qxF "$line" "$MANIFEST_FILE"; then
-        printf '%s\n' "$line" >> "$MANIFEST_FILE"
+        printf '%s\n' "$line" >>"$MANIFEST_FILE"
     fi
 }
 
@@ -107,8 +107,8 @@ manifest_upsert_row() {
     local tmp
     tmp="$(mktemp)"
     awk -F'\t' -v c="$category" -v k1="$key1" -v k2="$key2" \
-        '!($1==c && $2==k1 && $3==k2)' "$MANIFEST_FILE" > "$tmp"
-    printf '%s\t%s\t%s\t%s\n' "$category" "$key1" "$key2" "$value" >> "$tmp"
+        '!($1==c && $2==k1 && $3==k2)' "$MANIFEST_FILE" >"$tmp"
+    printf '%s\t%s\t%s\t%s\n' "$category" "$key1" "$key2" "$value" >>"$tmp"
     mv "$tmp" "$MANIFEST_FILE"
 }
 

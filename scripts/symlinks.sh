@@ -33,10 +33,10 @@ LINKS=(
     "$CONFIG_DIR/dwm:$HOME/.config/dwm"
 )
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 DRY_RUN=0
 MODE="link"
@@ -44,7 +44,10 @@ RESTORE_TS=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --dry-run) DRY_RUN=1; shift ;;
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
         --list-links)
             MODE="list"
             shift
@@ -57,11 +60,14 @@ while [[ $# -gt 0 ]]; do
                 shift
             fi
             ;;
-        -h|--help)
+        -h | --help)
             sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
-        *) red "unknown argument: $1"; exit 1 ;;
+        *)
+            red "unknown argument: $1"
+            exit 1
+            ;;
     esac
 done
 
@@ -69,7 +75,7 @@ link() {
     local src="$1" dst="$2"
 
     if [[ ! -e "$src" ]]; then
-        red   "missing source: $src"
+        red "missing source: $src"
         return 1
     fi
 

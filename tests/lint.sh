@@ -12,15 +12,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 for arg in "$@"; do
     case "$arg" in
-        -h|--help) echo "usage: tests/lint.sh"; exit 0 ;;
-        *) red "unknown argument: $arg"; exit 1 ;;
+        -h | --help)
+            echo "usage: tests/lint.sh"
+            exit 0
+            ;;
+        *)
+            red "unknown argument: $arg"
+            exit 1
+            ;;
     esac
 done
 

@@ -64,15 +64,15 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # ARE logged too (deliberate, not skipped) — a dry-run's stage plan is
 # exactly the kind of thing worth comparing against a later real run.
 LOG_FILE="$DOTS_DIR/install.log"
-exec > >(tee >(sed -u 's/\x1b\[[0-9;]*m//g' >> "$LOG_FILE")) 2>&1
+exec > >(tee >(sed -u 's/\x1b\[[0-9;]*m//g' >>"$LOG_FILE")) 2>&1
 
 echo "=== install-fedora.sh run started: $(date '+%Y-%m-%d %H:%M:%S') (args: $*) ==="
 trap 'echo "=== install-fedora.sh run finished: $(date "+%Y-%m-%d %H:%M:%S") ==="' EXIT
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 RUN_PRE=0
 RUN_INSTALL=0
@@ -84,17 +84,32 @@ DRY_RUN=0
 
 for arg in "$@"; do
     case "$arg" in
-        --only-pre)      RUN_PRE=1;      ANY_ONLY=1 ;;
-        --only-install)  RUN_INSTALL=1;  ANY_ONLY=1 ;;
-        --only-restore)  RUN_RESTORE=1;  ANY_ONLY=1 ;;
-        --only-services) RUN_SERVICES=1; ANY_ONLY=1 ;;
+        --only-pre)
+            RUN_PRE=1
+            ANY_ONLY=1
+            ;;
+        --only-install)
+            RUN_INSTALL=1
+            ANY_ONLY=1
+            ;;
+        --only-restore)
+            RUN_RESTORE=1
+            ANY_ONLY=1
+            ;;
+        --only-services)
+            RUN_SERVICES=1
+            ANY_ONLY=1
+            ;;
         --skip-suckless) SKIP_SUCKLESS=1 ;;
-        --dry-run)       DRY_RUN=1 ;;
-        -h|--help)
+        --dry-run) DRY_RUN=1 ;;
+        -h | --help)
             sed -n '2,50p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
-        *) red "unknown argument: $arg"; exit 1 ;;
+        *)
+            red "unknown argument: $arg"
+            exit 1
+            ;;
     esac
 done
 

@@ -12,15 +12,18 @@ set -euo pipefail
 for arg in "$@"; do
     case "$arg" in
         --dry-run) ;; # nothing in this stage mutates state — accepted for interface consistency with the other stages
-        -h|--help)
+        -h | --help)
             echo "usage: install-pre.sh [--dry-run]"
             exit 0
             ;;
-        *) echo "unknown argument: $arg" >&2; exit 1 ;;
+        *)
+            echo "unknown argument: $arg" >&2
+            exit 1
+            ;;
     esac
 done
 
-red()   { printf '\033[31m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 
 if ! command -v dnf >/dev/null 2>&1; then
