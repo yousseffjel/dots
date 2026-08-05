@@ -16,15 +16,15 @@ template engine -> live targets (dwm/st/dmenu/slock/dwmblocks/dunst/
 picom/gtk) -> atomic reload. Dark mode only, no light/mode-switching.
 
 Scope file: `.claude/tasks/scope-a-theming-engine.md`
-Status: user approved "chain all 7 autonomously". Sub-tasks 1-5/7 done and
-merged to main. Sub-task 6/7 (user commands + keybinds) up next.
+Status: user approved "chain all 7 autonomously". Sub-tasks 1-6/7 done and
+merged to main. Sub-task 7/7 (static theme + packaging + docs) up next.
 
 - [x] 1. xresources patches (dwm/st/dmenu/slock) — merged, commit `1f43276`
 - [x] 2. colorgen.sh (ImageMagick dark-mode dcol extraction) — merged, commit `b98dde8`
 - [x] 3. apply-templates.sh (template engine) — merged, commit `1d57148`
 - [x] 4. templates + base dunstrc/picom.conf — merged, commit `27b2e40`
 - [x] 5. reload.sh (atomic ordered reload) — merged, commit `5e79ceb`
-- [ ] 6. wallpaper.sh / theme-apply.sh + keybinds
+- [x] 6. wallpaper.sh / theme-apply.sh + keybinds — merged, commit `f85bb8a`
 - [ ] 7. static dark theme + packaging + docs
 
 ---

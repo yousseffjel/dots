@@ -202,3 +202,26 @@ directory for the running history.
   by `pidof -s dwmblocks` for statuscmd click routing — `getstatusbarpid()`
   self-revalidates, so a stale pid is harmless.
 - See `.claude/changes/2026-08-05-theming-reload.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 6: user commands + keybinds
+- Added `scripts/theme/wallpaper.sh [path|--random|--select]` (dmenu
+  picker, feh, then the full colorgen -> templates -> reload pipeline) and
+  `scripts/theme/theme-apply.sh <name|--wallbash|--list>` (static theme or
+  wallpaper-derived, processes both template groups). Plus
+  `config/dwm/bin/dwm-wallpaper` / `dwm-theme` wrappers and a new
+  `KEYBINDINGS.md` covering all bindings.
+- dwm keybinds ship **commented out** in `config.def.h` — enabling them
+  changes behavior and needs a rebuild, so it stays the user's choice.
+- **Removed the hardcoded `-nb/-nf/-sb/-sf` from `dmenucmd`,
+  `dwm-powermenu` and `dwm-clipmenu`.** dmenu CLI colour flags override X
+  resources (a deliberate precedence decision in sub-task 1), so those
+  three would have kept their compiled-in colours forever — the engine
+  would have looked broken exactly where a user looks first. They now
+  follow the theme and fall back to compiled defaults when unthemed.
+  A stale comment in `suckless/dmenu/config.def.h` asserting the old
+  behaviour was also corrected (reviewer catch).
+- Verified live with an isolated HOME and a stub dmenu: all three
+  wallpaper modes, `--wallbash`, static theme, `--list`/`--help`, and six
+  error paths with correct exit codes. dwm and dmenu both still build.
+- Reviewer verdict: WARN (the stale comment), fixed. Otherwise READY.
+- See `.claude/changes/2026-08-05-theming-user-commands.md` for detail.
