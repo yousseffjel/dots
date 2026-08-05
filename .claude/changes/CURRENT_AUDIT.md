@@ -171,3 +171,34 @@ directory for the running history.
   `resources[]` arrays in the sub-task 1 C patches exactly.
 - Reviewer verdict: READY (independently re-verified all of the above).
 - See `.claude/changes/2026-08-05-theming-templates.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 5: reload.sh
+- Added `scripts/theme/reload.sh [--quiet]`, the single reload entry
+  point: `xrdb -merge` alone and first (everything downstream re-reads
+  the X resource database, so merging after signalling would apply the
+  previous palette), then six concurrent guarded reloads (dwm SIGHUP via
+  restartsig, st SIGUSR1 in-place, dwmblocks restart, dunst kill for
+  D-Bus reactivation, picom SIGUSR1, `~/.fehbg` re-run).
+- Serialized on a `flock` because it is hotkey-bound; `xrdb` and
+  `~/.fehbg` bounded by a 10s `timeout`.
+- **Three review passes (WARN -> BLOCK -> WARN) found five real bugs**,
+  all fixed and re-verified live. The BLOCK is the one worth remembering:
+  the first `flock` fix used `exec flock ... "$0" "$@"`, which leaks the
+  lock fd into every descendant — including the detached long-lived
+  `setsid dwmblocks` daemon, which then held the lock for its whole
+  lifetime. First reload worked; every later one blocked 30s and silently
+  failed. That regression was strictly worse than the TOCTOU it replaced
+  and only manifests on the *second* invocation, so it would not have
+  been caught without an independent pass. Now held on an explicit fd
+  closed in that spawn via `{LOCKFD}>&-`, verified by `/proc/<pid>/fd`
+  and `lslocks`.
+- Also fixed: unbounded `wait` (a hung `~/.fehbg` blocked forever), the
+  dwmblocks TOCTOU, `mkdir -p` hard-aborting under `set -e` on an
+  uncreatable cache dir, and a bash redirection-order leak where
+  `: >>"$lock" 2>/dev/null` let the error escape to real stderr because
+  redirections apply left to right.
+- Reviewer also settled a race noted but unresolved in-thread: dwm
+  re-execs while dwmblocks restarts concurrently, and dwm finds dwmblocks
+  by `pidof -s dwmblocks` for statuscmd click routing — `getstatusbarpid()`
+  self-revalidates, so a stale pid is harmless.
+- See `.claude/changes/2026-08-05-theming-reload.md` for full detail.
