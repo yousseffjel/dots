@@ -98,10 +98,42 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
+/* No -nb/-nf/-sb/-sf here on purpose: dmenu's xresources patch reads
+ * dmenu.background/foreground/selbackground/selforeground, but explicit
+ * CLI colour flags override them. Passing them would pin the launcher to
+ * these compiled-in colours and it would never follow the theme. With
+ * them omitted dmenu uses the themed values when the theming engine has
+ * run, and the config.def.h defaults otherwise. */
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
 static const char *termcmd[]  = { "st", NULL };
 static const char *powermenucmd[] = { "dwm-powermenu", NULL };
 static const char *clipmenucmd[]  = { "dwm-clipmenu", NULL };
+
+/* --- theming engine keybinds (optional) -------------------------------
+ * Uncomment these two arrays and the matching lines in keys[] below to
+ * bind the theming engine. They are commented out by default because
+ * enabling them changes behaviour and requires a dwm rebuild
+ * (scripts/install-suckless.sh --skip-deps), which should be your choice
+ * rather than a side effect of installing this feature.
+ *
+ * Both commands are bare names on purpose: config/dwm/bin is symlinked to
+ * ~/.config/dwm/bin and added to PATH by 20-path.zsh, matching how
+ * dwm-powermenu and dwm-clipmenu are already spawned. dwm uses execvp,
+ * so an absolute path with $HOME would not expand here.
+ *
+ *   static const char *wallselcmd[]  = { "dwm-wallpaper", "--select", NULL };
+ *   static const char *wallrandcmd[] = { "dwm-wallpaper", "--random", NULL };
+ *   static const char *thememenucmd[] = { "dwm-theme", NULL };
+ *
+ * ...and in keys[]:
+ *
+ *   { MODKEY,             XK_w, spawn, {.v = wallselcmd } },
+ *   { MODKEY|ShiftMask,   XK_w, spawn, {.v = wallrandcmd } },
+ *   { MODKEY|ControlMask, XK_w, spawn, {.v = thememenucmd } },
+ *
+ * See KEYBINDINGS.md for the full table, and docs/THEMING.md (sub-task 7)
+ * for how the pipeline fits together.
+ * --------------------------------------------------------------------- */
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */

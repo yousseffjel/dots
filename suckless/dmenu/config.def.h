@@ -31,8 +31,13 @@ static const char *fonts[] = {
 };
 static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
 
-/* Palette mirrors suckless/dwm/config.def.h so the two agree when dmenu is
- * launched standalone. dwm's dmenucmd overrides -nb/-nf/-sb/-sf anyway. */
+/* Compiled-in fallback palette, mirroring suckless/dwm/config.def.h so the
+ * two agree before the theming engine has ever run. Once it has, these are
+ * superseded at startup by the dmenu.background/foreground/selbackground/
+ * selforeground X resources (see patches/PATCHES.md). Nothing passes
+ * -nb/-nf/-sb/-sf any more — dwm's dmenucmd, dwm-powermenu and dwm-clipmenu
+ * all deliberately omit them, because those flags would override the
+ * resources and pin the menu to these values forever. */
 static const char *colors[SchemeLast][2] = {
 	/*     fg         bg       */
 	[SchemeNorm] = { "#bbbbbb", "#222222" },

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# dwm-theme — keybind-friendly front end for scripts/theme/theme-apply.sh.
+#
+# With no arguments it opens a dmenu list of available themes (plus a
+# "wallbash" entry for wallpaper-derived colours), so it can be bound to a
+# single key. Any arguments are passed straight through to theme-apply.sh.
+#
+# See dwm-wallpaper for why this wrapper exists at all.
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+DOTS_DIR="$(cd "$BIN_DIR/../../.." && pwd)"
+THEME_APPLY="$DOTS_DIR/scripts/theme/theme-apply.sh"
+
+if [[ $# -gt 0 ]]; then
+    exec "$THEME_APPLY" "$@"
+fi
+
+if ! command -v dmenu >/dev/null 2>&1; then
+    printf '\033[31m%s\033[0m\n' "dmenu not installed — pass a theme name instead" >&2
+    exit 1
+fi
+
+# wallbash first: it is the common case on a wallpaper-driven setup.
+choice="$( (
+    echo wallbash
+    "$THEME_APPLY" --list
+) | dmenu -i -l 10 -p "theme>")" || exit 0
+[[ -z "$choice" ]] && exit 0
+
+if [[ "$choice" == "wallbash" ]]; then
+    exec "$THEME_APPLY" --wallbash
+fi
+exec "$THEME_APPLY" "$choice"

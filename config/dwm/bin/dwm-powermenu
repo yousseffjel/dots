@@ -3,9 +3,12 @@
 # Colors/font mirror suckless/dwm/config.def.h's dmenucmd theme.
 set -euo pipefail
 
+# Colours are deliberately NOT passed: dmenu reads them from the X
+# resource database (dmenu.background/foreground/selbackground/
+# selforeground), and explicit -nb/-nf/-sb/-sf flags would override the
+# theme. Falls back to dmenu's compiled defaults when unthemed.
 FONT="monospace:size=10"
-NB="#222222"; NF="#bbbbbb"; SB="#005577"; SF="#eeeeee"
-DMENU_OPTS=(-i -fn "$FONT" -nb "$NB" -nf "$NF" -sb "$SB" -sf "$SF")
+DMENU_OPTS=(-i -fn "$FONT")
 
 confirm() {
     local answer

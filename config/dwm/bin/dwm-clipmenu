@@ -7,6 +7,7 @@
 set -euo pipefail
 
 FONT="monospace:size=10"
-NB="#222222"; NF="#bbbbbb"; SB="#005577"; SF="#eeeeee"
+# Colours come from the X resource database (see dwm-powermenu) so the
+# clipboard menu follows the active theme.
 
-exec clipmenu -i -fn "$FONT" -nb "$NB" -nf "$NF" -sb "$SB" -sf "$SF"
+exec clipmenu -i -fn "$FONT"
