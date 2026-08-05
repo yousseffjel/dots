@@ -1,0 +1,19 @@
+# `theme/` template group
+
+Templates here are processed **only on a theme switch**
+(`scripts/theme/theme-apply.sh`), not on every wallpaper change.
+
+It is intentionally empty right now. All five templates this engine ships
+(`xresources`, `dunst`, `picom`, `gtk`, `statusbar`) are purely
+color-driven, so they belong in `always/` — they need to re-render every
+time the wallpaper changes, not just when a named theme is selected.
+
+Put a template here when it depends on something a *theme* defines but a
+*wallpaper* does not — e.g. a GTK theme name, icon theme, cursor theme or
+font from `themes/<name>/theme.conf`. Such a template would produce the
+same output for every wallpaper, so re-rendering it on each wallpaper
+change would be wasted work.
+
+Format is identical to `always/`: line 1 is
+`target_path|optional_post_command`, the body uses `<wallbash_NAME>`
+placeholders. See `docs/THEMING.md` for the full contract.

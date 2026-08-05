@@ -159,6 +159,10 @@ apply_one() {
 
     WORK_TMP="$(mktemp)"
     tail -n +2 "$template" | sed -f "$SED_SCRIPT_FILE" >"$WORK_TMP"
+    # mktemp creates 0600 and mv preserves it, which would leave every
+    # generated config user-only-readable — surprising for ordinary config
+    # files. Re-apply the umask-derived default instead.
+    chmod "$(printf '%o' $((0666 & ~$(umask))))" "$WORK_TMP"
     mv "$WORK_TMP" "$target"
     WORK_TMP=""
     WRITTEN=$((WRITTEN + 1))
