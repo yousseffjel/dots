@@ -1,0 +1,7 @@
+# Pre-existing / out-of-scope content, grandfathered rather than rewritten
+# for lint compliance (see TESTING.md "Markdown linting" for why):
+.claude/
+suckless/
+HyDE/
+CLAUDE.md
+ROADMAP.md

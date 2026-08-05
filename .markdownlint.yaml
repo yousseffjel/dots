@@ -1,0 +1,15 @@
+# markdownlint config — see https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+# All rules on by default; relax the two that fight this repo's writing style.
+default: true
+
+# line-length — dated change logs and README prose regularly wrap past 80
+# columns; only flag genuinely runaway lines, and don't lint code blocks or
+# tables (long install commands, package-list snippets).
+MD013:
+  line_length: 120
+  code_blocks: false
+  tables: false
+
+# no-inline-html — README/TESTING badges and the odd <details> block are
+# intentional.
+MD033: false

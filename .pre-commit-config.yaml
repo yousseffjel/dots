@@ -1,0 +1,35 @@
+# Pre-commit hooks for dots — install with:
+#   pip install pre-commit && pre-commit install
+# Run against the whole repo once after installing: pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-executables-have-shebangs
+
+  # shellcheck-py ships a prebuilt shellcheck binary as a Python wheel, so
+  # this hook needs no Docker daemon — just the `pip`-installed pre-commit
+  # environment. Picks up .shellcheckrc from the repo root automatically.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  # Matches this repo's chosen style: 4-space indent, indent switch/case
+  # arms, binary ops (&&/||) placed before a line break. See TESTING.md.
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
+    hooks:
+      - id: shfmt
+        args: ["-i", "4", "-ci", "-bn", "-w"]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.49.1
+    hooks:
+      - id: markdownlint
+        args: ["--config", ".markdownlint.yaml"]
+        # Grandfathered pre-existing content — see .markdownlintignore and
+        # TESTING.md "Markdown linting" for why these aren't rewritten.
+        exclude: ^(\.claude/|suckless/|HyDE/|CLAUDE\.md|ROADMAP\.md)
