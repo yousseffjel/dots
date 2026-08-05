@@ -1,0 +1,94 @@
+# Best-effort packages — install-fedora.sh installs these one at a time; a
+# single missing/renamed package is skipped with a warning instead of
+# aborting the run. See packages/core.lst for the small required subset this
+# installer hard-depends on.
+#
+# Format: one package name per line. '#' starts a comment (whole-line or
+# trailing). Blank lines ignored.
+
+# core system & display server
+xorg-x11-server-Xorg
+xorg-x11-xinit
+xrandr
+xsetroot
+xset
+xrdb
+xinput
+libX11-devel
+libXft-devel
+libXinerama-devel
+freetype-devel
+fontconfig-devel
+NetworkManager
+network-manager-applet
+dnf-plugins-core
+pipewire
+pipewire-pulseaudio
+pipewire-alsa
+pipewire-jack-audio-connection-kit
+wireplumber
+polkit-gnome
+opendoas
+fuse
+
+# interface foundation
+sxhkd
+kitty
+
+# fonts & theming
+jetbrains-mono-fonts-all
+google-noto-emoji-fonts
+google-noto-sans-fonts
+papirus-icon-theme
+adwaita-icon-theme
+
+# desktop utilities, clipboard & file management
+picom
+dunst
+libnotify
+feh
+xclip
+xsel
+brightnessctl
+playerctl
+pamixer
+pavucontrol
+alsa-utils
+thunar
+thunar-archive-plugin
+tumbler
+file-roller
+gvfs
+lxappearance
+xdg-user-dirs
+unzip
+p7zip
+p7zip-plugins
+zip
+tar
+
+# development stack (Node.js is handled by nvm, not dnf — see install-fedora.sh header)
+neovim
+vim
+tmux
+rust
+cargo
+python3-pip
+fzf
+bat
+eza
+htop
+tree
+pv
+jq
+figlet
+trash-cli
+ripgrep
+fd-find
+curl
+wget
+binutils
+coreutils
+
+# display manager
+ly

@@ -1,0 +1,16 @@
+# Required packages — install-fedora.sh hard-fails if any of these can't be
+# installed, because later steps in the same script depend on them
+# unconditionally: git (zinit/TPM bootstrap clones), zsh (chsh default-shell
+# step), make/gcc/patch/pkgconf-pkg-config (suckless build — patch applies
+# the vendored .diff files per CLAUDE.md rule 5, pkgconf-pkg-config resolves
+# freetype/fontconfig for the dwm/st Makefiles).
+#
+# Format: one package name per line. '#' starts a comment (whole-line or
+# trailing). Blank lines ignored.
+
+git
+zsh
+make
+gcc
+patch
+pkgconf-pkg-config

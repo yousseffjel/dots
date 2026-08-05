@@ -68,35 +68,14 @@ if [[ $EUID -ne 0 ]]; then
     SUDO="sudo"
 fi
 
-# Core system, display server, shell/interface, fonts/theming, desktop
-# utilities, and the dev stack — the user's curated Fedora manifest,
-# deduplicated (git, make, gcc appear in more than one source section).
-PACKAGES=(
-    # core system & display server
-    xorg-x11-server-Xorg xorg-x11-xinit xrandr xsetroot xset xrdb xinput
-    libX11-devel libXft-devel libXinerama-devel freetype-devel fontconfig-devel
-    NetworkManager network-manager-applet dnf-plugins-core
-    pipewire pipewire-pulseaudio pipewire-alsa pipewire-jack-audio-connection-kit
-    wireplumber polkit-gnome opendoas fuse
-    # shell & interface foundation
-    make gcc git patch pkgconf-pkg-config sxhkd zsh kitty
-    # fonts & theming
-    jetbrains-mono-fonts-all google-noto-emoji-fonts google-noto-sans-fonts
-    papirus-icon-theme adwaita-icon-theme
-    # desktop utilities, clipboard & file management
-    picom dunst libnotify feh xclip xsel
-    brightnessctl playerctl pamixer pavucontrol alsa-utils
-    thunar thunar-archive-plugin tumbler file-roller gvfs
-    lxappearance xdg-user-dirs
-    unzip p7zip p7zip-plugins zip tar
-    # development stack (Node.js is handled by nvm, not dnf — see header)
-    neovim vim tmux
-    rust cargo python3-pip
-    fzf bat eza htop tree pv jq figlet trash-cli ripgrep fd-find
-    curl wget binutils coreutils
-    # display manager
-    ly
-)
+# packages/core.lst and packages/extra.lst hold the actual package names —
+# see those files for what's required vs best-effort and why.
+PACKAGES_DIR="$DOTS_DIR/packages"
+
+# Strips '#' comments (whole-line or trailing) and blank lines from a .lst file.
+read_pkg_list() {
+    sed 's/#.*//' "$1" | tr -s '[:space:]' '\n' | grep -v '^$'
+}
 
 blue "==> installing C Development Tools and Libraries (group)"
 if ! $SUDO dnf group install -y "C Development Tools and Libraries" 2>/dev/null; then
@@ -105,14 +84,24 @@ if ! $SUDO dnf group install -y "C Development Tools and Libraries" 2>/dev/null;
     fi
 fi
 
+blue "==> installing required packages (hard-fail — later steps in this script depend on them)"
+while IFS= read -r pkg; do
+    if $SUDO dnf install -y "$pkg" >/dev/null 2>&1; then
+        green "  installed: $pkg"
+    else
+        red "required package failed to install: $pkg"
+        exit 1
+    fi
+done < <(read_pkg_list "$PACKAGES_DIR/core.lst")
+
 blue "==> installing packages (best-effort, one at a time so a single renamed/missing package doesn't abort the rest)"
-for pkg in "${PACKAGES[@]}"; do
+while IFS= read -r pkg; do
     if $SUDO dnf install -y "$pkg" >/dev/null 2>&1; then
         green "  installed: $pkg"
     else
         yellow "  skipped (not found in enabled repos): $pkg"
     fi
-done
+done < <(read_pkg_list "$PACKAGES_DIR/extra.lst")
 
 # clipmenu + clipnotify back dwm-clipmenu (Super+v) and aren't in Fedora's
 # official repos — enabling this COPR is a deliberate exception to this
@@ -198,7 +187,7 @@ fi
 if [[ $SKIP_SUCKLESS -eq 0 ]]; then
     blue "==> building suckless programs"
     # No --skip-deps: install-suckless.sh's dnf branch covers libXext/libXrandr/
-    # libxcrypt/ncurses, which slock and st need but PACKAGES above doesn't list.
+    # libxcrypt/ncurses, which slock and st need but packages/*.lst don't list.
     "$SCRIPT_DIR/install-suckless.sh"
 else
     yellow "  --skip-suckless passed — run scripts/install-suckless.sh later to build dwm/st/dmenu/dwmblocks/slock"
