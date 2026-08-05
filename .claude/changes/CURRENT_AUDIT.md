@@ -1,16 +1,32 @@
 # dots — Current Audit State
 
 ## Current Scope
-Personal Fedora-only dotfiles + dwm/X11 desktop bootstrap repo. Two
-threads active as of 2026-08-05: this session's CI/tooling setup
-(shellcheck/shfmt/markdownlint/pre-commit/GitHub Actions/tests), and a
-concurrent session building install-manifest/versioning/uninstall
-tooling (`scripts/global_fn.sh`, `VERSION`, `scripts/version.sh`,
-`scripts/uninstall.sh`) — still uncommitted as of this writing. See
-recent dated logs in this directory for the running history.
+Personal Fedora-only dotfiles + dwm/X11 desktop bootstrap repo. The
+uninstall/versioning/migrations subsystem (below) and the CI/tooling setup
+both landed 2026-08-05, concurrently, in the same working tree — see each
+thread's dated log for the full collision account (mutually surfaced and
+handled without data loss on either side). See recent dated logs in this
+directory for the running history.
 
 ## History Sources
 - `.claude/changes/YYYY-MM-DD-*.md` — authoritative dated logs
+
+## 2026-08-05 — uninstall + versioning + migrations subsystem
+- Added `VERSION` + `scripts/version.sh` (repo/installed version, commit,
+  Fedora version, dwm version, `--json`), `scripts/global_fn.sh` (shared
+  confirm()/refuse_root()/manifest_* helpers — a deliberate, disclosed
+  reversal of this repo's "no shared logging file" convention for this
+  one file), manifest tracking wired into every install-*.sh stage,
+  `scripts/uninstall.sh`, and a `scripts/migrations/` + `scripts/
+  migrate.sh` framework auto-run by `install-fedora.sh`. Plus
+  `docs/UNINSTALL.md` and a README Versioning policy section.
+- Landed as 5 commits (f46fcc2, 0068a70, 829a96e, 8baf8a0, 6c8717c).
+  Reviewer + hands-on sandboxed `$HOME` testing caught and fixed 3 real
+  bugs pre-commit (two `set -e` traps in uninstall.sh, one in migrate.sh's
+  version-chain summary) plus 2 reviewer WARNs (version.sh's JSON `null`,
+  migrate.sh's ambiguous-migration-match guard).
+- See `.claude/changes/2026-08-05-uninstall-versioning-migrations.md` for
+  full detail. Reviewer verdict: READY (all 5 diffs).
 
 ## 2026-08-05 — install-fedora.sh run logging
 - Added append-mode `install.log` capture (stdout+stderr, ANSI-stripped)
