@@ -118,3 +118,32 @@ directory for the running history.
   to a concise summary (design rationale moved to the dated log, no
   logic change), landing at 235 lines; second pass returned READY.
 - See `.claude/changes/2026-08-05-theming-colorgen.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 3: apply-templates.sh
+- Added `scripts/theme/apply-templates.sh [--palette PATH] <always|theme|all>`
+  — the template engine. Reads a dcol palette, then for each `*.dcol`
+  under `config/theme/templates/{always,theme}/` parses line 1 as
+  `target_path|post_command`, expands `${confDir}`/`${cacheDir}`,
+  substitutes `<wallbash_NAME>` placeholders, writes atomically, runs the
+  post-command. Missing target dir or failing post-command are non-fatal
+  skips/warnings.
+- **Three deliberate hardening divergences from HyDE's `fn_wallbash`**,
+  all recorded under Key Technical Decisions in the dated log: parse the
+  palette rather than `source` it; enforce a positive character allowlist
+  on values; expand header paths by string substitution rather than
+  `eval`. The allowlist is the non-obvious one — refusing to *execute* a
+  palette isn't sufficient by itself, because sub-task 4's
+  `statusbar-colors.sh` target is designed to be sourced by dwmblocks, so
+  a literal `$(...)` written into it would execute one step downstream.
+- Reviewer subagent ran 3 passes and drove two real fixes: the `source`
+  injection surface (pass 1 WARN) and an `ARG_MAX` ceiling that made
+  large palettes die with "Argument list too long" (pass 2 WARN, fixed by
+  `sed -f scriptfile`). Pass 3 was interrupted before reporting; its
+  scoped check (temp-file cleanup on all exit paths) was completed
+  in-thread and surfaced a third fix — an un-trapped per-template temp
+  file, now cleaned up via `trap ... EXIT INT TERM HUP`.
+- Verified live end-to-end (`colorgen.sh` -> `colors.dcol` ->
+  `apply-templates.sh` -> rendered target), plus hostile-palette,
+  1.5 MB/60k-rule palette, placeholder-prefix-collision, graceful-skip,
+  and error-path cases. shellcheck + shfmt clean, 201 lines.
+- See `.claude/changes/2026-08-05-theming-apply-templates.md` for full detail.
