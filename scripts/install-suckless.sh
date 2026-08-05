@@ -32,20 +32,23 @@ for arg in "$@"; do
     case "$arg" in
         --skip-deps) SKIP_DEPS=1 ;;
         --dry-run) DRY_RUN=1 ;;
-        -h|--help)
+        -h | --help)
             sed -n '2,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             echo
             echo "usage: install-suckless.sh [--skip-deps] [--dry-run]"
             exit 0
             ;;
-        *) echo "unknown argument: $arg" >&2; exit 1 ;;
+        *)
+            echo "unknown argument: $arg" >&2
+            exit 1
+            ;;
     esac
 done
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 if [[ ! -d "$SUCKLESS_DIR" ]]; then
     red "no suckless/ directory at $SUCKLESS_DIR"
@@ -54,7 +57,7 @@ fi
 
 if [[ $DRY_RUN -eq 0 ]]; then
     manifest_init \
-        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
         "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 fi
 
@@ -127,7 +130,7 @@ for prog in "${PROGRAMS[@]}"; do
     if [[ ${#SUDO[@]} -gt 0 ]]; then
         "${SUDO[@]}" chown -R "$(id -u):$(id -g)" "$dir"
     fi
-    read -ra bins <<< "${PROGRAM_BINS[$prog]}"
+    read -ra bins <<<"${PROGRAM_BINS[$prog]}"
     for bin in "${bins[@]}"; do
         manifest_append_row SUCKLESS "$prog" "/usr/local/bin/$bin"
     done
@@ -142,6 +145,12 @@ if [[ -f "$SUCKLESS_DIR/dwmblocks/Makefile" ]]; then
     else
         blue "==> installing dwmblocks block scripts"
         make -C "$SUCKLESS_DIR/dwmblocks" install-scripts
+        # Globbed from the same scripts/dwm-* the Makefile installs from, so
+        # a future scripts/dwm-foo needs no edit here either — mirrors the
+        # Makefile's own "Globbed rather than listed" comment.
+        for script in "$SUCKLESS_DIR"/dwmblocks/scripts/dwm-*; do
+            manifest_append_row SCRIPT dwmblocks "$HOME/.local/bin/$(basename "$script")"
+        done
         green "installed block scripts -> $HOME/.local/bin"
     fi
 fi
@@ -170,7 +179,7 @@ if [[ -e "$AUTOSTART" ]]; then
 elif [[ $DRY_RUN -eq 1 ]]; then
     blue "  (dry-run) would write $AUTOSTART (dwmblocks + clipmenud autostart)"
 else
-    cat > "$AUTOSTART" <<'EOF'
+    cat >"$AUTOSTART" <<'EOF'
 #!/bin/sh
 # Run by dwm's autostart patch at startup — see runautostart() in dwm.c.
 # dwm backgrounds this whole script, so anything long-running below must be
@@ -201,7 +210,7 @@ if [[ -e "$XINITRC" ]]; then
 elif [[ $DRY_RUN -eq 1 ]]; then
     blue "  (dry-run) would write ~/.xinitrc (exec dwm)"
 else
-    cat > "$XINITRC" <<'EOF'
+    cat >"$XINITRC" <<'EOF'
 #!/bin/sh
 # Started by startx. dwm runs in the foreground; when it exits, X exits.
 

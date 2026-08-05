@@ -11,23 +11,29 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/global_fn.sh"
 
-red()    { printf '\033[31m%s\033[0m\n' "$*"; }
-green()  { printf '\033[32m%s\033[0m\n' "$*"; }
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
-blue()   { printf '\033[34m%s\033[0m\n' "$*"; }
+blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 DRY_RUN=0
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
-        -h|--help) echo "usage: install-services.sh [--dry-run]"; exit 0 ;;
-        *) red "unknown argument: $arg"; exit 1 ;;
+        -h | --help)
+            echo "usage: install-services.sh [--dry-run]"
+            exit 0
+            ;;
+        *)
+            red "unknown argument: $arg"
+            exit 1
+            ;;
     esac
 done
 
 if [[ $DRY_RUN -eq 0 ]]; then
     manifest_init \
-        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
         "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 fi
 
@@ -58,6 +64,10 @@ if [[ -n "$ZSH_BIN" ]]; then
         if [[ $DRY_RUN -eq 1 ]]; then
             blue "  (dry-run) would chsh -s $ZSH_BIN"
         elif chsh -s "$ZSH_BIN" 2>/dev/null; then
+            # Recorded only on the one run that actually changes the shell —
+            # once it's zsh, this branch is never re-entered, so a re-run
+            # never clobbers the real previous shell with "zsh".
+            manifest_append_row SHELL "$CURRENT_SHELL" "$ZSH_BIN"
             green "default shell -> $ZSH_BIN"
         else
             yellow "could not chsh non-interactively — run manually:  chsh -s $ZSH_BIN"

@@ -34,15 +34,22 @@ partial uninstall is a normal, supported outcome, not an error.
    directory the installer actually built (dwm, st, dmenu, dwmblocks,
    slock — whichever are recorded in the manifest), removing their
    binaries and man pages from `/usr/local/bin` / `/usr/local/share/man`.
-3. **Packages.** Runs `dnf remove` on the packages list shown before you
+3. **dwmblocks block scripts.** `dwm-cpu`/`dwm-mem`/`dwm-clock`/
+   `dwm-colors` are deployed to `~/.local/bin` by a separate
+   `make install-scripts` target (not `make install`), so the previous
+   step never touches them — removed here from their own manifest rows.
+4. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
    `install-fedora.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
-4. **Services.** Disables `ly.service` if (and only if) the installer was
+5. **Services.** Disables `ly.service` if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
    packages.
-5. **State.** Finally offers to remove `~/.local/state/dots/` itself (the
+6. **Login shell.** Offers to `chsh` back to whatever your login shell was
+   before the installer switched it to zsh — only if the installer
+   actually changed it (recorded in the manifest at that moment).
+7. **State.** Finally offers to remove `~/.local/state/dots/` itself (the
    manifest plus `uninstall.log`). Before that happens you're offered the
    chance to save a copy of the log elsewhere first — useful if you want a
    record of exactly what was removed after the state dir is gone.
