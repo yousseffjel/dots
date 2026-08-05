@@ -2,4 +2,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-08-05-theming-templates.md
+Last log: .claude/changes/2026-08-05-theming-reload.md
