@@ -94,6 +94,24 @@ manifest_append_row() {
     fi
 }
 
+# Like manifest_append_row, but for a row whose last field can change
+# between runs (CONFIG's backup path: a real path the first time a
+# conflicting file gets backed up, "-" on every idempotent re-run after
+# that) — replaces any existing row sharing the same category + first two
+# fields instead of appending a second, stale copy that plain exact-line
+# dedup can't catch.
+manifest_upsert_row() {
+    local category="$1" key1="$2" key2="$3" value="$4"
+    mkdir -p "$MANIFEST_DIR"
+    touch "$MANIFEST_FILE"
+    local tmp
+    tmp="$(mktemp)"
+    awk -F'\t' -v c="$category" -v k1="$key1" -v k2="$key2" \
+        '!($1==c && $2==k1 && $3==k2)' "$MANIFEST_FILE" > "$tmp"
+    printf '%s\t%s\t%s\t%s\n' "$category" "$key1" "$key2" "$value" >> "$tmp"
+    mv "$tmp" "$MANIFEST_FILE"
+}
+
 # Prints every row of $1 (tab-separated, category column included).
 manifest_rows() {
     local category="$1"

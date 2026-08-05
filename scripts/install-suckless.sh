@@ -14,6 +14,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
 PROGRAMS=(dwm st dmenu dwmblocks slock)
+source "$SCRIPT_DIR/global_fn.sh"
+
+# Every binary each program's `make install` copies to PREFIX/bin (all
+# suckless Makefiles here default PREFIX=/usr/local) — dmenu ships four.
+declare -A PROGRAM_BINS=(
+    [dwm]="dwm"
+    [st]="st"
+    [dmenu]="dmenu dmenu_path dmenu_run stest"
+    [dwmblocks]="dwmblocks"
+    [slock]="slock"
+)
 
 SKIP_DEPS=0
 DRY_RUN=0
@@ -41,13 +52,19 @@ if [[ ! -d "$SUCKLESS_DIR" ]]; then
     exit 1
 fi
 
-SUDO=""
+if [[ $DRY_RUN -eq 0 ]]; then
+    manifest_init \
+        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+fi
+
+SUDO=()
 if [[ $EUID -ne 0 ]]; then
     if ! command -v sudo >/dev/null 2>&1; then
         red "sudo not found and not running as root — cannot 'make install'."
         exit 1
     fi
-    SUDO="sudo"
+    SUDO=(sudo)
 fi
 
 # --- build dependencies ------------------------------------------------------
@@ -56,20 +73,20 @@ fi
 install_deps() {
     if command -v pacman >/dev/null 2>&1; then
         blue "==> installing build deps (pacman)"
-        $SUDO pacman -S --needed --noconfirm \
+        "${SUDO[@]}" pacman -S --needed --noconfirm \
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
             freetype2 fontconfig ncurses
     elif command -v dnf >/dev/null 2>&1; then
         blue "==> installing build deps (dnf)"
-        $SUDO dnf install -y gcc make pkgconf-pkg-config \
+        "${SUDO[@]}" dnf install -y gcc make pkgconf-pkg-config \
             libX11-devel libXft-devel libXinerama-devel libXext-devel \
             libXrandr-devel libxcrypt-devel freetype-devel fontconfig-devel \
             ncurses
     elif command -v apt-get >/dev/null 2>&1; then
         blue "==> installing build deps (apt)"
         export DEBIAN_FRONTEND=noninteractive
-        $SUDO apt-get update -y
-        $SUDO apt-get install -y build-essential libx11-dev libxft-dev \
+        "${SUDO[@]}" apt-get update -y
+        "${SUDO[@]}" apt-get install -y build-essential libx11-dev libxft-dev \
             libxinerama-dev libxext-dev libxrandr-dev libcrypt-dev \
             libfontconfig1-dev libfreetype6-dev ncurses-bin
     else
@@ -103,13 +120,17 @@ for prog in "${PROGRAMS[@]}"; do
     # toolchain, and suckless Makefiles do not track header deps.
     make -C "$dir" clean >/dev/null
     make -C "$dir"
-    $SUDO make -C "$dir" install
+    "${SUDO[@]}" make -C "$dir" install
     # `make install` re-checks the build rules as root. If anything looked out
     # of date it would leave root-owned objects behind and every later
     # non-sudo build in this tree would fail on permissions.
-    if [[ -n "$SUDO" ]]; then
-        $SUDO chown -R "$(id -u):$(id -g)" "$dir"
+    if [[ ${#SUDO[@]} -gt 0 ]]; then
+        "${SUDO[@]}" chown -R "$(id -u):$(id -g)" "$dir"
     fi
+    read -ra bins <<< "${PROGRAM_BINS[$prog]}"
+    for bin in "${bins[@]}"; do
+        manifest_append_row SUCKLESS "$prog" "/usr/local/bin/$bin"
+    done
     green "installed $prog"
 done
 

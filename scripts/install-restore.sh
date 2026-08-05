@@ -8,6 +8,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Must match symlinks.sh's own BACKUP_ROOT — used below only to detect
+# whether that script created a fresh backup dir during this run.
+BACKUP_ROOT="$HOME/.dotfiles-backup"
+source "$SCRIPT_DIR/global_fn.sh"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -21,6 +26,12 @@ for arg in "$@"; do
         *) red "unknown argument: $arg"; exit 1 ;;
     esac
 done
+
+if [[ $DRY_RUN -eq 0 ]]; then
+    manifest_init \
+        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+fi
 
 # ~/.zshenv must set ZDOTDIR before .zshrc loads — the configs key off it.
 ZSHENV="$HOME/.zshenv"
@@ -36,7 +47,37 @@ fi
 blue "==> linking dotfiles"
 symlinks_args=()
 [[ $DRY_RUN -eq 1 ]] && symlinks_args+=(--dry-run)
+
+# Snapshot BACKUP_ROOT before linking so any timestamp dir symlinks.sh
+# creates during this run (it uses one timestamp per invocation) can be
+# told apart from pre-existing backups, for the manifest's backup column.
+backups_before=""
+[[ -d "$BACKUP_ROOT" ]] && backups_before="$(ls -1 "$BACKUP_ROOT" 2>/dev/null)"
+
 "$SCRIPT_DIR/symlinks.sh" "${symlinks_args[@]}"
+
+if [[ $DRY_RUN -eq 0 ]]; then
+    run_backup_dir=""
+    if [[ -d "$BACKUP_ROOT" ]]; then
+        run_backup_dir="$(comm -13 <(printf '%s\n' "$backups_before" | sort) <(ls -1 "$BACKUP_ROOT" | sort) | head -1)"
+    fi
+    while IFS=$'\t' read -r src dst; do
+        [[ -L "$dst" && "$(readlink "$dst")" == "$src" ]] || continue
+        backup="-"
+        if [[ -n "$run_backup_dir" && -e "$BACKUP_ROOT/$run_backup_dir/$(basename "$dst")" ]]; then
+            backup="$BACKUP_ROOT/$run_backup_dir/$(basename "$dst")"
+        fi
+        # Only touch the row when this run made a real backup, or when no
+        # row exists yet (first-ever deploy, nothing to back up) — an
+        # idempotent re-run with backup="-" must never clobber a real
+        # backup path a previous run already recorded.
+        existing_row="$(awk -F'\t' -v s="$src" -v d="$dst" \
+            '$1=="CONFIG" && $2==s && $3==d {print; exit}' "$MANIFEST_FILE" 2>/dev/null || true)"
+        if [[ "$backup" != "-" || -z "$existing_row" ]]; then
+            manifest_upsert_row CONFIG "$src" "$dst" "$backup"
+        fi
+    done < <("$SCRIPT_DIR/symlinks.sh" --list-links)
+fi
 
 # Pre-clone plugin managers so first launch isn't blocked on a network round-trip.
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"

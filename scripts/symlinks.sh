@@ -4,6 +4,7 @@
 #
 # usage: symlinks.sh [--dry-run]
 #        symlinks.sh --restore [timestamp] [--dry-run]
+#        symlinks.sh --list-links
 #
 #   --restore [timestamp]   undo mode. With no timestamp, lists available
 #                           backups under ~/.dotfiles-backup/ and exits.
@@ -13,6 +14,10 @@
 #                           place. Never overwrites a target that isn't
 #                           currently one of this script's own symlinks —
 #                           such targets are skipped with a warning instead.
+#   --list-links            print this script's managed source<TAB>target
+#                           pairs, one per line, and exit. Lets other
+#                           scripts (install-restore.sh's manifest writer)
+#                           read the LINKS array without duplicating it.
 
 set -euo pipefail
 
@@ -40,6 +45,10 @@ RESTORE_TS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run) DRY_RUN=1; shift ;;
+        --list-links)
+            MODE="list"
+            shift
+            ;;
         --restore)
             MODE="restore"
             shift
@@ -160,6 +169,13 @@ restore_backup() {
         rmdir "$backup_dir" 2>/dev/null || true
     fi
 }
+
+if [[ "$MODE" == "list" ]]; then
+    for pair in "${LINKS[@]}"; do
+        printf '%s\t%s\n' "${pair%%:*}" "${pair#*:}"
+    done
+    exit 0
+fi
 
 if [[ "$MODE" == "restore" ]]; then
     if [[ -z "$RESTORE_TS" ]]; then

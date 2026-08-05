@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/global_fn.sh"
+
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -21,13 +25,19 @@ for arg in "$@"; do
     esac
 done
 
-SUDO=""
+if [[ $DRY_RUN -eq 0 ]]; then
+    manifest_init \
+        "$(tr -d '[:space:]' < "$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
+        "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+fi
+
+SUDO=()
 if [[ $EUID -ne 0 ]]; then
     if ! command -v sudo >/dev/null 2>&1; then
         red "sudo not found and not running as root."
         exit 1
     fi
-    SUDO="sudo"
+    SUDO=(sudo)
 fi
 
 # zsh is a required package (packages/core.lst) installed by the install
@@ -39,7 +49,7 @@ if [[ -n "$ZSH_BIN" ]]; then
         if [[ $DRY_RUN -eq 1 ]]; then
             blue "  (dry-run) would add $ZSH_BIN -> /etc/shells"
         else
-            echo "$ZSH_BIN" | $SUDO tee -a /etc/shells >/dev/null
+            echo "$ZSH_BIN" | "${SUDO[@]}" tee -a /etc/shells >/dev/null
             green "added   $ZSH_BIN -> /etc/shells"
         fi
     fi
@@ -64,8 +74,11 @@ fi
 if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would enable ly.service"
+    elif systemctl is-enabled ly.service >/dev/null 2>&1; then
+        green "ok      ly.service already enabled"
     else
-        $SUDO systemctl enable ly.service
+        "${SUDO[@]}" systemctl enable ly.service
+        manifest_append_row SERVICE ly.service
         green "enabled ly.service"
     fi
 fi
