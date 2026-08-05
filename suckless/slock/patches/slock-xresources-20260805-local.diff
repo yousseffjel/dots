@@ -1,0 +1,124 @@
+diff --git a/suckless/slock/config.def.h b/suckless/slock/config.def.h
+index 9855e21..9baab19 100644
+--- a/suckless/slock/config.def.h
++++ b/suckless/slock/config.def.h
+@@ -8,5 +8,15 @@ static const char *colorname[NUMCOLS] = {
+ 	[FAILED] = "#CC3333",   /* wrong password */
+ };
+ 
++/* X resources read once at launch (xresources patch) — slock exits and
++ * respawns per lock, so a fresh read at startup is the only reload path
++ * it needs. */
++static const ResourcePref resources[] = {
++	/* name          type     address */
++	{ "initcolor",  STRING,  &colorname[INIT] },
++	{ "inputcolor", STRING,  &colorname[INPUT] },
++	{ "failedcolor", STRING, &colorname[FAILED] },
++};
++
+ /* treat a cleared input like a wrong password (color) */
+ static const int failonclear = 1;
+diff --git a/suckless/slock/slock.c b/suckless/slock/slock.c
+index 3cede0f..5924117 100644
+--- a/suckless/slock/slock.c
++++ b/suckless/slock/slock.c
+@@ -19,6 +19,7 @@
+ #include <X11/keysym.h>
+ #include <X11/Xlib.h>
+ #include <X11/Xutil.h>
++#include <X11/Xresource.h>
+ 
+ #include "arg.h"
+ #include "util.h"
+@@ -45,6 +46,20 @@ struct xrandr {
+ 	int errbase;
+ };
+ 
++/* Xresources preferences — read once at launch (slock exits and respawns
++ * per invocation, so there is no live reload to wire up). */
++enum resource_type {
++	STRING,
++	INTEGER,
++	FLOAT
++};
++
++typedef struct {
++	const char *name;
++	enum resource_type type;
++	void *dst;
++} ResourcePref;
++
+ #include "config.h"
+ 
+ static void
+@@ -301,6 +316,51 @@ lockscreen(Display *dpy, struct xrandr *rr, int screen)
+ 	return NULL;
+ }
+ 
++static int
++resource_load(XrmDatabase db, const char *name, enum resource_type rtype, void *dst)
++{
++	char fullname[256], fullclass[256];
++	char *type;
++	XrmValue ret;
++
++	snprintf(fullname, sizeof(fullname), "slock.%s", name);
++	snprintf(fullclass, sizeof(fullclass), "Slock.%s", name);
++
++	XrmGetResource(db, fullname, fullclass, &type, &ret);
++	if (ret.addr == NULL || strncmp("String", type, 64))
++		return 1;
++
++	switch (rtype) {
++	case STRING:
++		*(char **)dst = ret.addr;
++		break;
++	case INTEGER:
++		*(int *)dst = strtoul(ret.addr, NULL, 10);
++		break;
++	case FLOAT:
++		*(float *)dst = strtof(ret.addr, NULL);
++		break;
++	}
++	return 0;
++}
++
++static void
++config_init(Display *dpy)
++{
++	char *resm;
++	XrmDatabase db;
++	const ResourcePref *p;
++
++	XrmInitialize();
++	resm = XResourceManagerString(dpy);
++	if (!resm)
++		return;
++
++	db = XrmGetStringDatabase(resm);
++	for (p = resources; p < resources + LEN(resources); p++)
++		resource_load(db, p->name, p->type, p->dst);
++}
++
+ static void
+ usage(void)
+ {
+@@ -359,6 +419,8 @@ main(int argc, char **argv) {
+ 	if (setuid(duid) < 0)
+ 		die("slock: setuid: %s\n", strerror(errno));
+ 
++	config_init(dpy);
++
+ 	/* check for Xrandr support */
+ 	rr.active = XRRQueryExtension(dpy, &rr.evbase, &rr.errbase);
+ 
+diff --git a/suckless/slock/util.h b/suckless/slock/util.h
+index 6f748b8..ccdcd39 100644
+--- a/suckless/slock/util.h
++++ b/suckless/slock/util.h
+@@ -1,2 +1,5 @@
++/* macros */
++#define LEN(a) (sizeof(a) / sizeof(a)[0])
++
+ #undef explicit_bzero
+ void explicit_bzero(void *, size_t);

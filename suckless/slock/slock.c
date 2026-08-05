@@ -19,6 +19,7 @@
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/Xresource.h>
 
 #include "arg.h"
 #include "util.h"
@@ -44,6 +45,20 @@ struct xrandr {
 	int evbase;
 	int errbase;
 };
+
+/* Xresources preferences — read once at launch (slock exits and respawns
+ * per invocation, so there is no live reload to wire up). */
+enum resource_type {
+	STRING,
+	INTEGER,
+	FLOAT
+};
+
+typedef struct {
+	const char *name;
+	enum resource_type type;
+	void *dst;
+} ResourcePref;
 
 #include "config.h"
 
@@ -301,6 +316,51 @@ lockscreen(Display *dpy, struct xrandr *rr, int screen)
 	return NULL;
 }
 
+static int
+resource_load(XrmDatabase db, const char *name, enum resource_type rtype, void *dst)
+{
+	char fullname[256], fullclass[256];
+	char *type;
+	XrmValue ret;
+
+	snprintf(fullname, sizeof(fullname), "slock.%s", name);
+	snprintf(fullclass, sizeof(fullclass), "Slock.%s", name);
+
+	XrmGetResource(db, fullname, fullclass, &type, &ret);
+	if (ret.addr == NULL || strncmp("String", type, 64))
+		return 1;
+
+	switch (rtype) {
+	case STRING:
+		*(char **)dst = ret.addr;
+		break;
+	case INTEGER:
+		*(int *)dst = strtoul(ret.addr, NULL, 10);
+		break;
+	case FLOAT:
+		*(float *)dst = strtof(ret.addr, NULL);
+		break;
+	}
+	return 0;
+}
+
+static void
+config_init(Display *dpy)
+{
+	char *resm;
+	XrmDatabase db;
+	const ResourcePref *p;
+
+	XrmInitialize();
+	resm = XResourceManagerString(dpy);
+	if (!resm)
+		return;
+
+	db = XrmGetStringDatabase(resm);
+	for (p = resources; p < resources + LEN(resources); p++)
+		resource_load(db, p->name, p->type, p->dst);
+}
+
 static void
 usage(void)
 {
@@ -358,6 +418,8 @@ main(int argc, char **argv) {
 		die("slock: setgid: %s\n", strerror(errno));
 	if (setuid(duid) < 0)
 		die("slock: setuid: %s\n", strerror(errno));
+
+	config_init(dpy);
 
 	/* check for Xrandr support */
 	rr.active = XRRQueryExtension(dpy, &rr.evbase, &rr.errbase);

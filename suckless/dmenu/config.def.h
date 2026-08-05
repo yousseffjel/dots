@@ -39,6 +39,17 @@ static const char *colors[SchemeLast][2] = {
 	[SchemeSel] = { "#eeeeee", "#005577" },
 	[SchemeOut] = { "#000000", "#00ffff" },
 };
+
+/* X resources read at startup (xresources patch) — dmenu is short-lived
+ * (one invocation per launch), so there is no live reload: each new dmenu
+ * process just re-reads the X resource database. */
+static const XResPref resources[] = {
+	/* name                  type     address */
+	{ "dmenu.background",    STRING,  &colors[SchemeNorm][ColBg] },
+	{ "dmenu.foreground",    STRING,  &colors[SchemeNorm][ColFg] },
+	{ "dmenu.selbackground", STRING,  &colors[SchemeSel][ColBg] },
+	{ "dmenu.selforeground", STRING,  &colors[SchemeSel][ColFg] },
+};
 /* -l option; if nonzero, dmenu uses vertical list with given number of lines.
  * A vertical list is what makes the centered box read as a box rather than a
  * stray single row; 10 rows fits a 1080p screen without dominating it. */
