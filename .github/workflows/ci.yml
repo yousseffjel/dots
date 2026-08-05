@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref so pushes don't queue stale CI.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SHFMT_VERSION: v3.13.1
+  MARKDOWNLINT_VERSION: 0.49.1
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # scripts/*.sh, tests/*.sh, and any *.sh directly at the repo root —
+      # never suckless/ (C sources) or the untracked HyDE/ reference clone.
+      - name: shellcheck
+        run: |
+          command -v shellcheck >/dev/null 2>&1 || {
+            sudo apt-get update -y
+            sudo apt-get install -y shellcheck
+          }
+          shellcheck --version
+          find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 shellcheck
+
+      - name: shfmt (format check)
+        run: |
+          go install "mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}"
+          find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 "$(go env GOPATH)/bin/shfmt" -i 4 -ci -bn -d
+
+      - name: markdownlint
+        run: |
+          npx --yes "markdownlint-cli@${MARKDOWNLINT_VERSION}" \
+            "**/*.md" --config .markdownlint.yaml --ignore-path .markdownlintignore
+
+  build-suckless:
+    name: build-suckless (${{ matrix.fedora }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora: ["fedora:latest", "fedora:41"]
+    container:
+      image: ${{ matrix.fedora }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # /var/cache/dnf is dnf4's cache path. Fedora releases that default to
+      # dnf5 (a different cache layout under /var/cache/libdnf5) simply get
+      # no cache hit here — harmless, just a slower cold run on that image.
+      - name: Cache dnf metadata + packages
+        uses: actions/cache@v6.1.0
+        with:
+          path: /var/cache/dnf
+          key: dnf-build-${{ matrix.fedora }}-${{ hashFiles('scripts/install-suckless.sh') }}
+          restore-keys: |
+            dnf-build-${{ matrix.fedora }}-
+
+      - name: Install build dependencies
+        run: |
+          # Matches the dnf branch of scripts/install-suckless.sh's install_deps()
+          # exactly, so this job proves what that script actually installs
+          # (dwm/st need X11+Xft+Xinerama; slock additionally needs Xext+Xrandr+
+          # libxcrypt; pkgconf-pkg-config resolves freetype/fontconfig for the
+          # Makefiles; ncurses provides tic(1) for st's terminfo).
+          dnf install -y gcc make pkgconf-pkg-config \
+            libX11-devel libXft-devel libXinerama-devel libXext-devel \
+            libXrandr-devel libxcrypt-devel freetype-devel fontconfig-devel \
+            ncurses
+
+      - name: Build each suckless program (make only, no install)
+        run: |
+          fail=0
+          for prog in dwm st dmenu dwmblocks slock; do
+            echo "::group::build $prog"
+            if make -C "suckless/$prog" clean && make -C "suckless/$prog"; then
+              echo "OK: $prog"
+            else
+              echo "::error::$prog failed to build"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$fail"
+
+  install-dry-run:
+    name: install-dry-run (${{ matrix.fedora }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora: ["fedora:latest", "fedora:41"]
+    container:
+      image: ${{ matrix.fedora }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # See the build-suckless job for the dnf4-vs-dnf5 cache-path caveat.
+      - name: Cache dnf metadata
+        uses: actions/cache@v6.1.0
+        with:
+          path: /var/cache/dnf
+          key: dnf-pkglist-${{ matrix.fedora }}-${{ hashFiles('packages/*.lst') }}
+          restore-keys: |
+            dnf-pkglist-${{ matrix.fedora }}-
+
+      - name: Validate packages/*.lst against enabled repos
+        run: |
+          # Same comment/blank-line stripping as read_pkg_list() in
+          # scripts/install-pkg.sh, so this validates exactly what the
+          # installer will try to install.
+          fail=0
+          for list in packages/core.lst packages/extra.lst; do
+            echo "::group::$list"
+            while IFS= read -r pkg; do
+              if dnf list --available "$pkg" >/dev/null 2>&1; then
+                echo "OK: $pkg"
+              else
+                echo "::error file=$list::unknown package: $pkg"
+                fail=1
+              fi
+            done < <(sed 's/#.*//' "$list" | tr -s '[:space:]' '\n' | grep -v '^$')
+            echo "::endgroup::"
+          done
+          exit "$fail"
