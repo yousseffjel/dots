@@ -1,0 +1,103 @@
+# starship prompt — dark, dwm/X11, Fedora.
+#
+# NO NERD FONT GLYPHS. packages/extra.lst ships jetbrains-mono-fonts-all and
+# google-noto-*, none of which carry Nerd Font symbols, so every marker below
+# is ASCII or plain text that JetBrains Mono renders. (Note that `eza --icons`
+# in conf.d/60-aliases.zsh does assume a Nerd Font — that gap belongs to the
+# roster Epic's package sub-task, not here.)
+#
+# Colours come from the [palettes.dots] table at the bottom. Sub-task 9 renders
+# a wallpaper-derived copy of this file into $XDG_CACHE_HOME and points
+# $STARSHIP_CONFIG at it, replacing only that table — keep the palette keys
+# stable when editing.
+
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Listing modules explicitly is the main performance lever: starship renders
+# only what appears here, instead of probing every language module it knows.
+format = """
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$nodejs$python$rust$golang\
+$cmd_duration\
+$line_break\
+$character"""
+
+add_newline = true
+palette = 'dots'
+
+# A slow module must never hold the prompt hostage. Generous for git in a large
+# repo, imperceptible when it does not trigger.
+command_timeout = 500
+
+[directory]
+style = 'bold blue'
+truncation_length = 3
+truncate_to_repo = true
+read_only = ' [ro]'
+read_only_style = 'red'
+
+[git_branch]
+symbol = ''
+format = 'on [$branch]($style) '
+style = 'bold purple'
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = 'bold yellow'
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+style = 'bold red'
+conflicted = '='
+ahead = '>${count}'
+behind = '<${count}'
+diverged = '<>${ahead_count}/${behind_count}'
+untracked = '?${count}'
+stashed = '$${count}'
+modified = '!${count}'
+staged = '+${count}'
+renamed = '»${count}'
+deleted = 'x${count}'
+
+[cmd_duration]
+min_time = 2000
+format = 'took [$duration]($style) '
+style = 'bold yellow'
+
+[character]
+success_symbol = '[❯](bold green)'
+error_symbol = '[❯](bold red)'
+vicmd_symbol = '[❮](bold green)'
+
+[nodejs]
+symbol = 'node '
+style = 'bold green'
+format = 'via [$symbol($version )]($style)'
+
+[python]
+symbol = 'py '
+style = 'bold yellow'
+format = 'via [$symbol($version )(\($virtualenv\) )]($style)'
+
+[rust]
+symbol = 'rs '
+style = 'bold red'
+format = 'via [$symbol($version )]($style)'
+
+[golang]
+symbol = 'go '
+style = 'bold cyan'
+format = 'via [$symbol($version )]($style)'
+
+# Seeded from themes/dark/ (Catppuccin Mocha lineage). Sub-task 9 replaces the
+# values here with wallpaper-derived ones; the key names are the contract.
+[palettes.dots]
+blue = '#89b4fa'
+purple = '#cba6f7'
+red = '#f38ba8'
+green = '#a6e3a1'
+yellow = '#f9e2af'
+cyan = '#94e2d5'

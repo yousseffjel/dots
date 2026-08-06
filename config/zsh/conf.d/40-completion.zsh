@@ -33,6 +33,9 @@ zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompcach
 zstyle ':completion:*' verbose true
 zstyle ':completion:*' completer _expand _complete _ignored _approximate
 
+# Tab-complete dotfiles without having to type the leading dot
+_comp_options+=(globdots)
+
 # fzf-tab: previews and styling
 if (( $+commands[fzf] )); then
   zstyle ':fzf-tab:*' fzf-flags --height=60% --layout=reverse --border --info=inline
@@ -40,8 +43,9 @@ if (( $+commands[fzf] )); then
   zstyle ':fzf-tab:*' use-fzf-default-opts no
 
   if (( $+commands[eza] )); then
+    # No `z` entry: zoxide is initialised with --cmd cd, so `cd` is the only
+    # jump command there is (see 80-tools.zsh).
     zstyle ':fzf-tab:complete:cd:*'    fzf-preview 'eza -1 --color=always --icons --group-directories-first $realpath'
-    zstyle ':fzf-tab:complete:z:*'     fzf-preview 'eza -1 --color=always --icons --group-directories-first $realpath'
     zstyle ':fzf-tab:complete:ls:*'    fzf-preview 'eza -1 --color=always --icons --group-directories-first $realpath'
   fi
   if (( $+commands[bat] )); then

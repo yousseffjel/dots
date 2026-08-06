@@ -9,21 +9,31 @@ alias sys='nvim "$ZDOTDIR/.zshrc"'
 # eza replaces ls
 if (( $+commands[eza] )); then
   alias ls='eza --icons --group-directories-first'
+  alias l='eza -lh --icons --group-directories-first'
   alias ll='eza -lh --icons --group-directories-first --git'
   alias la='eza -lah --icons --group-directories-first --git'
+  alias ld='eza -lhD --icons --group-directories-first'   # directories only
   alias lt='eza --tree --icons --group-directories-first --level=2'
   alias lst='eza -lh --no-time --no-user --git --octal-permissions --tree --level=2'
 fi
 
 # bat replaces cat (paging off so it doesn't hijack one-shot use)
-(( $+commands[bat] )) && alias cat='bat --paging=never --style=plain'
-
-# zoxide jumping
-if (( $+commands[zoxide] )); then
-  alias ..='z ..'
-  alias ...='z ../..'
-  alias ....='z ../../..'
+if (( $+commands[bat] )); then
+  alias cat='bat --paging=never --style=plain'
+  # Global alias: any `cmd --help` gets syntax-highlighted. Global rather than
+  # ordinary so it expands mid-command. Deliberately not applied to `-h`,
+  # which collides with the POSIX test operator.
+  alias -g -- --help='--help 2>&1 | bat --language=help --style=plain --paging=never --color always'
 fi
+
+# Parent-directory hops. Plain `cd` on purpose — 80-tools.zsh points zoxide at
+# `cd` (--cmd cd), so `z` no longer exists, and zoxide passes real paths like
+# `..` straight through to the builtin. Unguarded because builtin `cd` handles
+# these with or without zoxide installed.
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
 
 # git
 alias g='git'

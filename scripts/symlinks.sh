@@ -27,10 +27,16 @@ BACKUP_ROOT="$HOME/.dotfiles-backup"
 BACKUP_DIR="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
 
 # source:target pairs
+#
+# Only categories the theming engine does not rewrite belong here. config/dunst
+# and config/picom are deliberately absent — apply-templates.sh regenerates
+# those whole files, and a symlink would make it write into this repo. The
+# installer copies them instead.
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
     "$CONFIG_DIR/dwm:$HOME/.config/dwm"
+    "$CONFIG_DIR/starship:$HOME/.config/starship"
 )
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }

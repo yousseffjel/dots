@@ -60,3 +60,36 @@ fh() {
   cmd=$(fc -ln 1 | fzf --tac --no-sort) || return
   print -z -- "$cmd"
 }
+
+# Fuzzy-pick a file by NAME and open it in $EDITOR: fe [query]
+fe() {
+  (( $+commands[fzf] )) || { print -u2 "fe: fzf not installed"; return 1; }
+  local file preview='[[ -f {} ]] && (bat --color=always --style=numbers --line-range=:200 {} 2>/dev/null || cat {})'
+  # Explicit branches rather than splitting $FZF_DEFAULT_COMMAND — same shape as
+  # fcd above, and word-splitting a command string breaks on paths with spaces.
+  if (( $+commands[fd] )); then
+    file=$(fd --type f --hidden --exclude .git | fzf +m --query="${1:-}" --preview="$preview") || return
+  else
+    file=$(find . -type f -not -path '*/\.git/*' 2>/dev/null | fzf +m --query="${1:-}" --preview="$preview") || return
+  fi
+  [[ -n "$file" ]] || return 1
+  "${EDITOR:-vi}" -- "$file"
+}
+
+# Fuzzy-pick a file by CONTENT and open it in $EDITOR: fec <pattern>
+fec() {
+  (( $+commands[fzf] )) || { print -u2 "fec: fzf not installed"; return 1; }
+  if (( $# == 0 )); then
+    print -u2 "usage: fec <pattern>"
+    return 1
+  fi
+  local file
+  # rg respects .gitignore and skips binaries; grep -rIl is the fallback.
+  if (( $+commands[rg] )); then
+    file=$(rg --files-with-matches --hidden --glob '!.git' -- "$1" 2>/dev/null | fzf +m) || return
+  else
+    file=$(grep -rIl --exclude-dir=.git -- "$1" . 2>/dev/null | fzf +m) || return
+  fi
+  [[ -n "$file" ]] || { print -u2 "fec: no file matched '$1'"; return 1; }
+  "${EDITOR:-vi}" -- "$file"
+}

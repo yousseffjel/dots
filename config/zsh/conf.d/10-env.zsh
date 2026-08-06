@@ -1,15 +1,12 @@
 # Environment variables for interactive shells.
-# Truly-everywhere env (login, scripts) belongs in ~/.zshenv instead.
+# Truly-everywhere env (login, scripts) belongs in $ZDOTDIR/.zshenv instead —
+# that is where XDG_* and PATH now live, so they are set for non-interactive
+# shells too.
 
 export EDITOR="${EDITOR:-nvim}"
 export VISUAL="${VISUAL:-$EDITOR}"
 export PAGER="${PAGER:-less}"
 export LESS="${LESS:--R}"
-
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
 # Use bat as MANPAGER when available
 if (( $+commands[bat] )); then

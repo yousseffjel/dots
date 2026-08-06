@@ -1,7 +1,13 @@
 # External-tool integrations. All guarded by `command -v` checks.
 
-# zoxide — provides `z` and `zi`
-(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+# zoxide — replaces `cd` outright, so plain `cd foo` learns and jumps.
+# `cdi` is the interactive picker. Real paths still work: zoxide falls through
+# to the builtin for anything that resolves, so `cd ..`, `cd -` and `cd /abs`
+# behave normally.
+#
+# The guard is load-bearing, not cosmetic: without zoxide installed nothing is
+# defined and builtin `cd` is left untouched.
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh --cmd cd)"
 
 # fzf shell integration (zsh keybindings + completion)
 if (( $+commands[fzf] )); then
