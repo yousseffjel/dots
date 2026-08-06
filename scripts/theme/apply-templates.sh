@@ -23,6 +23,16 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 confDir="${XDG_CONFIG_HOME:-$HOME/.config}"
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
+
+# The engine owns $cacheDir, so create it up front. Without this, a
+# template targeting ${cacheDir} on a machine where nothing has generated
+# a palette yet (a static theme applied on a fresh install) hits the
+# missing-parent-directory check below and is silently skipped as though
+# the app were not installed — which would drop xresources and
+# statusbar-colors.sh, i.e. every suckless tool's colours, while still
+# reporting success. A missing $confDir subdirectory really does mean
+# "not installed"; a missing $cacheDir never does.
+mkdir -p "$cacheDir" 2>/dev/null || true
 PALETTE="$cacheDir/colors.dcol"
 
 usage() {

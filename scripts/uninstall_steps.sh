@@ -96,6 +96,45 @@ uninstall_scripts() {
     fi
 }
 
+# Theme files are COPIES, not symlinks (config/dunst and config/picom are
+# deliberately not symlinked — the theming engine rewrites those targets on
+# every wallpaper change, and a symlink would make it write into the repo).
+# So they cannot go through uninstall_configs, which verifies readlink and
+# skips anything that is not our own symlink. Generated cache files under
+# ~/.cache/dots are removed too: they are wholly derived, nothing there is
+# user data.
+uninstall_theme() {
+    blue "=== theme files ==="
+    mapfile -t theme_paths < <(manifest_rows THEME | cut -f3)
+    if [[ ${#theme_paths[@]} -eq 0 ]]; then
+        blue "  no THEME rows in manifest — nothing to remove"
+    elif confirm "Remove ${#theme_paths[@]} deployed theme file(s) and the generated theme cache?"; then
+        for path in "${theme_paths[@]}"; do
+            if [[ $DRY_RUN -eq 1 ]]; then
+                blue "  (dry-run) would remove $path"
+                continue
+            fi
+            if [[ ! -e "$path" ]]; then
+                yellow "  skip    $path (already gone)"
+                continue
+            fi
+            if rm -rf "$path"; then
+                green "  removed  $path"
+            else
+                red "  failed to remove $path"
+            fi
+        done
+        theme_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
+        if [[ $DRY_RUN -eq 1 ]]; then
+            blue "  (dry-run) would remove generated cache $theme_cache"
+        elif [[ -d "$theme_cache" ]]; then
+            rm -rf "$theme_cache" && green "  removed  $theme_cache"
+        fi
+    else
+        yellow "  skipped theme files"
+    fi
+}
+
 uninstall_packages() {
     blue "=== packages ==="
     mapfile -t pkgs < <(manifest_rows PACKAGE | cut -f2 | sort -u)

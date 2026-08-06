@@ -32,21 +32,27 @@ dots/
 ├── config/
 │   ├── zsh/            # zsh config: .zshrc, .zshenv, conf.d/, functions/, completions/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   └── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu (on $PATH via 20-path.zsh)
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme (on $PATH via 20-path.zsh)
+│   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
+│   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
 ├── scripts/
 │   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
-│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + zinit/TPM bootstrap clones
+│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + theme deploy + zinit/TPM bootstrap clones
+│   ├── install-restore-theme.sh # sourced by install-restore.sh: theme base-config deploy + manifest + backup
 │   ├── install-services.sh     # stage: chsh to zsh + enable ly.service
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock + autostart hook (called by the install stage unless --skip-suckless)
-│   └── symlinks.sh             # symlinks config/zsh, config/tmux and config/dwm into ~/.config, backs up conflicts (--restore [timestamp] to undo)
+│   ├── symlinks.sh             # symlinks config/zsh, config/tmux and config/dwm into ~/.config, backs up conflicts (--restore [timestamp] to undo)
+│   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, theme-apply.sh
 ├── packages/
 │   ├── core.lst         # required dnf packages — install-fedora.sh hard-fails if any is missing
 │   └── extra.lst        # best-effort dnf packages — skipped with a warning if missing/renamed
 ├── suckless/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
 │   └── */patches/      # vendored .diff files per program, applied at build time
+├── themes/              # static themes (themes/dark/) + CREDITS.md
+├── docs/                # THEMING.md, UNINSTALL.md
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
 ├── ROADMAP.md           # comparison doc vs. HyDE; see Roadmap status below
 └── .claude/
@@ -80,11 +86,18 @@ for current state.
 - Launcher, powermenu, and clipboard manager are done via dmenu (not rofi) — `Mod+p` (`dmenu_run`), `Super+Shift+x` (`config/dwm/bin/dwm-powermenu`), `Super+v` (`config/dwm/bin/dwm-clipmenu`, a thin wrapper around `clipmenu`/`clipnotify`). ROADMAP.md's comparison table and package list have been updated to match — dmenu was chosen over rofi to keep a single menu tool. clipmenu is COPR-only (`skidnik/clipmenu`); `install-fedora.sh` auto-enables that COPR as a deliberate, explicitly-approved exception to the "COPR is opt-in" default in rule 4 below, since the feature backs a core keybind.
 
 **Still genuinely pending (ROADMAP is accurate here):**
-- No compositor, notification daemon, wallpaper tool, screenshot tool, or lock/idle wiring yet (picom, dunst, feh, maim, xss-lock — ROADMAP §3).
-- No theming engine / pywal-wallust integration, no `.Xresources`, no `themes/` directory.
-- No `KEYBINDINGS.md`, no uninstaller, no `VERSION`/migrations.
+- No screenshot tool or lock/idle wiring yet (maim, xss-lock — ROADMAP §3). picom, dunst and feh are now packaged *and* configured by the theming engine (below); a compositor/notification config is no longer missing.
+- No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.
+- No `VERSION`/migrations gaps remain; `KEYBINDINGS.md` and the uninstaller now exist.
 - README.md is still a 7-byte stub.
 - `install-fedora.sh` has not been run end-to-end on real hardware (per `.claude/changes/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested.
+
+**Theming engine (added 2026-08-05, 7 sub-tasks — see `docs/THEMING.md`):**
+- Dark-mode-only wallbash-style engine: wallpaper -> ImageMagick colour extraction (`scripts/theme/colorgen.sh`) -> `.dcol` palette -> template engine (`scripts/theme/apply-templates.sh`) -> live targets -> ordered reload (`scripts/theme/reload.sh`).
+- dwm, st, dmenu and slock all read colours from the X resource database at runtime (xresources patches — see each tool's `patches/PATCHES.md`).
+- User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; dwm keybinds ship commented out in `config.def.h`.
+- `themes/dark/` is the one shipped static theme. `config/theme/templates/` holds the `.dcol` templates.
+- **`config/dunst` and `config/picom` must never be added to `symlinks.sh`** — the engine rewrites those whole files on every wallpaper change, and a symlink would make it write into this repo. The installer copies them instead.
 
 When picking up ROADMAP.md work, re-check the relevant section against the
 actual repo state first — don't assume an item is undone just because it's

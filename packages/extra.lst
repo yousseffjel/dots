@@ -41,6 +41,14 @@ google-noto-emoji-fonts
 google-noto-sans-fonts
 papirus-icon-theme
 adwaita-icon-theme
+# ImageMagick drives the theming engine's colour extraction
+# (scripts/theme/colorgen.sh) — without it wallpaper.sh/theme-apply.sh
+# cannot generate a palette.
+#
+# Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
+# and themes/dark/theme.conf selects Adwaita-dark — a GTK3 built-in that
+# never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
+ImageMagick
 
 # desktop utilities, clipboard & file management
 picom

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # "restore" stage: deploys this repo's config into place. Sets ZDOTDIR,
-# symlinks config/ via symlinks.sh, and pre-clones the zinit/TPM plugin
+# symlinks config/ via symlinks.sh, deploys the theming engine's base
+# configs (install-restore-theme.sh), and pre-clones the zinit/TPM plugin
 # managers so first shell/tmux launch isn't blocked on a network round-trip.
 #
 # usage: install-restore.sh [--dry-run]
@@ -94,6 +95,9 @@ if [[ $DRY_RUN -eq 0 ]]; then
         fi
     done < <("$SCRIPT_DIR/symlinks.sh" --list-links)
 fi
+
+source "$SCRIPT_DIR/install-restore-theme.sh"
+restore_theme
 
 # Pre-clone plugin managers so first launch isn't blocked on a network round-trip.
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"

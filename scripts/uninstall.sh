@@ -108,6 +108,7 @@ source "$SCRIPT_DIR/uninstall_steps.sh"
 uninstall_configs
 uninstall_suckless
 uninstall_scripts
+uninstall_theme
 uninstall_packages
 uninstall_services
 uninstall_shell
