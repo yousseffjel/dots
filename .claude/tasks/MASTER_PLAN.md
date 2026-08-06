@@ -11,7 +11,7 @@ when slots run concurrently.
   per slot. Scope file: `.claude/tasks/scope-b-app-roster-finalization.md`
   (locked decisions live there — do not re-litigate them).
   - [x] 1. zsh: purge HyDE leftovers, retarget at dwm/X11 (+ starship.toml, zoxide) — `97b41b9`
-  - [ ] 2. `packages/*.lst` final roster (+ Fedora name verification)
+  - [x] 2. `packages/*.lst` final roster + starship adoption + Nerd Font — `1129cf9`
   - [ ] 3. alacritty as main terminal (st retained as fallback)
   - [ ] 4. sxhkd keybind split with dwm
   - [ ] 5. screenshot — maim + slop + dmenu mode menu

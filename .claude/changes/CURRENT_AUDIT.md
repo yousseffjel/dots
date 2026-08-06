@@ -333,3 +333,46 @@ directory for the running history.
   installer step runs.
 - See `.claude/changes/2026-08-06-zsh-dehyde-x11.md`. Audit: READY.
   Reviewer: READY. Tests: `tests/lint.sh` + `tests/pkglist.sh` pass.
+
+## 2026-08-06 — roster Epic, sub-task 2/10: package roster + starship + Nerd Font
+- Closes the second of the two sub-tasks that unblock the rest of Scope B.
+  `packages/extra.lst` gains alacritty, firefox, cascadia-code-nf-fonts, maim,
+  slop, xss-lock, bluez, blueman, thunar-volman, ffmpegthumbnailer, unar,
+  catfish, zoxide, fastfetch; `kitty` dropped. A "NOT LISTED HERE" header
+  documents five deliberate exclusions with the command to get each anyway.
+- **16 names verified against packages.fedoraproject.org** (no `dnf` on the
+  Arch dev host, so rule 8 meant real lookups). Two failed:
+  - **`starship` is not in Fedora at all** — dropped around F37, now COPR-only
+    (`atim/starship`). Not cosmetic: sub-task 1 had already made it *the*
+    prompt, so a fresh Fedora box would fall back to `prompt adam1` with the
+    adopted config unused. The user chose the upstream install script over the
+    COPR; `install-pkg.sh` now runs it idempotently, dry-run-aware and
+    best-effort, with hardened curl flags.
+  - **No JetBrains Mono Nerd Font exists in Fedora.** Cascadia is the only
+    `-nf-fonts` family packaged, so it supplies the glyphs and
+    `jetbrains-mono-fonts-all` stays for plain UI surfaces.
+- **A bug the audit caught before it shipped:** the first draft recorded
+  starship as a `PACKAGE` manifest row. `uninstall_packages()` pipes every
+  PACKAGE value into a *single* `dnf remove`, so one un-removable name would
+  have failed that call and left every other package installed. Row dropped;
+  manual removal documented instead.
+- **Reviewer BLOCK, and it was right.** The user's adopted `starship.toml` was
+  420 lines against the 250-line hard cap, and the audit loop self-granted an
+  exception rather than surfacing it — the user had been asked about trimming
+  for *performance*, never about the rule. Escalating beat both instincts:
+  `split-oversized-file` could not apply (starship has no include directive, so
+  the choice was adopt-vs-don't), and the user chose to drop `[section]` blocks
+  for toolchains the repo neither declares nor installs. 44 of 59 removed,
+  420 -> 151 lines, **byte-identical right-prompt output** verified against the
+  original in a directory carrying markers for every kept language.
+- **A planning-stage worry retracted, not deferred:** trimming `right_format`
+  buys ~1.9 ms/prompt, while `git_status` alone costs ~4.7 ms — about 2.5x what
+  all sixty language modules cost together. Measured, not assumed.
+- **Open follow-up worth carrying into sub-tasks 3 and 7:** installing the Nerd
+  Font does not point the terminals at it. `dwm`/`dmenu` use `monospace`
+  (DejaVu Sans Mono here) and `st` uses `Liberation Mono`, so glyphs render via
+  fontconfig per-glyph fallback — functional, but with mismatched metrics.
+  Also: `uninstall.sh` cannot remove starship without a new `BIN` manifest
+  category.
+- See `.claude/changes/2026-08-06-packages-roster-fonts.md`. Audit: READY.
+  Reviewer: BLOCK -> fixed -> READY. Tests: lint + pkglist pass.
