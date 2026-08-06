@@ -1,103 +1,151 @@
-# starship prompt — dark, dwm/X11, Fedora.
+# starship prompt for the dots desktop.
 #
-# NO NERD FONT GLYPHS. packages/extra.lst ships jetbrains-mono-fonts-all and
-# google-noto-*, none of which carry Nerd Font symbols, so every marker below
-# is ASCII or plain text that JetBrains Mono renders. (Note that `eza --icons`
-# in conf.d/60-aliases.zsh does assume a Nerd Font — that gap belongs to the
-# roster Epic's package sub-task, not here.)
+# Adopted verbatim from the user's own ~/.config/starship/starship.toml, with
+# the distro logo changed — see below. Deployed by scripts/symlinks.sh, which
+# links config/starship/ to ~/.config/starship/; conf.d/99-prompt.zsh points
+# $STARSHIP_CONFIG at it, because starship's own default is the bare path
+# $XDG_CONFIG_HOME/starship.toml and symlinks.sh links directories, not files.
 #
-# Colours come from the [palettes.dots] table at the bottom. Sub-task 9 renders
-# a wallpaper-derived copy of this file into $XDG_CACHE_HOME and points
-# $STARSHIP_CONFIG at it, replacing only that table — keep the palette keys
-# stable when editing.
+# REQUIRES A NERD FONT. The glyphs below (distro mark, git branch, per-language
+# symbols) come from cascadia-code-nf-fonts in packages/extra.lst. Without it
+# they render as tofu boxes.
+#
+# Colours are hardcoded hex rather than a [palettes] table, so the roster
+# Epic's sub-task 9 will have to rewrite these literals to theme the prompt
+# from the wallpaper.
+#
+# TRIMMED FROM THE ORIGINAL 405 LINES. 44 [section] blocks for toolchains this
+# repo neither declares nor installs (cobol, daml, vlang, raku, purescript,
+# terraform, the cloud providers, …) were removed, along with their entries in
+# right_format — leaving them there would have let starship fall back to its
+# default glyph-heavy rendering if such a toolchain ever appeared. Verified
+# byte-identical right-prompt output against the original in a directory
+# carrying markers for every kept language. starship has no include directive,
+# so this is the only way to satisfy the 250-line cap in
+# rules/foundations/file-architecture.md. To restore one, re-add its [section]
+# block and its $module line in right_format.
+# "$schema" = 'https://starship.rs/config-schema.json'
+add_newline = false
+format = """\
+   \
+  $directory\
+  $git_branch$git_commit$git_state $git_status\
+  $character\n
+"""
+right_format = """
+$c\
+$golang\
+$java\
+$lua\
+$nodejs\
+$perl\
+$python\
+$rust\
+$memory_usage\
+$cpp\
+$php\
+$time"""
 
-"$schema" = 'https://starship.rs/config-schema.json'
+continuation_prompt = '▶▶ '
 
-# Listing modules explicitly is the main performance lever: starship renders
-# only what appears here, instead of probing every language module it knows.
-format = """
-$directory\
-$git_branch\
-$git_state\
-$git_status\
-$nodejs$python$rust$golang\
-$cmd_duration\
-$line_break\
-$character"""
 
-add_newline = true
-palette = 'dots'
+# style_choices:
+# bold
+# italic
+# underline
+# dimmed
+# inverted
+# blink
+# hidden
+# strikethrough
+# bg:<color>
+# fg:<color>
+# <color>
+# none
 
-# A slow module must never hold the prompt hostage. Generous for git in a large
-# repo, imperceptible when it does not trigger.
-command_timeout = 500
+#NOTE: you can customize the symbols, e.g:
+# [character]
+# success_symbol = "[  ]($bold fg:#f8f8f2)"
+# error_symbol = "[ ➤ ]($bold fg:#fb4934)"
 
 [directory]
-style = 'bold blue'
-truncation_length = 3
-truncate_to_repo = true
-read_only = ' [ro]'
-read_only_style = 'red'
+disabled = false
+format = "[$path](bold fg:#8be9fd)"
+truncate_to_repo = false
+# home_symbol = "" 
 
 [git_branch]
-symbol = ''
-format = 'on [$branch]($style) '
-style = 'bold purple'
-
-[git_state]
-format = '\([$state( $progress_current/$progress_total)]($style)\) '
-style = 'bold yellow'
+format = " [  $branch](fg:#9198a1)"
 
 [git_status]
-format = '([$all_status$ahead_behind]($style) )'
-style = 'bold red'
-conflicted = '='
-ahead = '>${count}'
-behind = '<${count}'
-diverged = '<>${ahead_count}/${behind_count}'
-untracked = '?${count}'
-stashed = '$${count}'
-modified = '!${count}'
-staged = '+${count}'
-renamed = '»${count}'
-deleted = 'x${count}'
+ahead = '⇡${count}'
+behind = '⇣${count}'
+diverged = '⇕⇡${ahead_count}⇣${behind_count}'
+format = '[[( $all_status$ahead_behind )](fg:#769ff0)]($style)'
+style = "bg:#394260"
 
-[cmd_duration]
-min_time = 2000
-format = 'took [$duration]($style) '
-style = 'bold yellow'
 
-[character]
-success_symbol = '[❯](bold green)'
-error_symbol = '[❯](bold red)'
-vicmd_symbol = '[❮](bold green)'
+[time]
+disabled = false
+format = '[[  $time ](fg:#a0a9cb )]($style)'
+time_format = "%R"                            # Hour:Minute Format
+
+[lua]
+format = " [lua](italic) [${symbol}]($style)"
+style = "bold bright-yellow"
+symbol = "⨀ "
+version_format = "${raw}"
 
 [nodejs]
-symbol = 'node '
-style = 'bold green'
-format = 'via [$symbol($version )]($style)'
+detect_extensions = []
+detect_files = ["package-lock.json", "yarn.lock"]
+detect_folders = ["node_modules"]
+format = "[ ](bold bright-green)"
+version_format = "${raw}"
 
 [python]
-symbol = 'py '
-style = 'bold yellow'
-format = 'via [$symbol($version )(\($virtualenv\) )]($style)'
+format = "[${symbol}(${virtualenv}) ${version}]($style)"
+style = "bold bright-yellow"
+symbol = "[ ](bold bright-blue)"
+version_format = "${raw}"
 
 [rust]
-symbol = 'rs '
-style = 'bold red'
-format = 'via [$symbol($version )]($style)'
+style = "bold bright-red"
+format = " rs(italic) $symbol($style)"
+symbol = " "
+
+[c]
+style = "bold bright-cyan"
+format = " [$symbol(-$name)]($style)"
+symbol = "ℂ "
+
+[cpp]
+style = "bold bright-cyan"
+format = " [cpp](italic) [$symbol]($style)"
+symbol = " "
+
+[perl]
+format = " [perl](italic) [$symbol]($style)"
+style = "bold bright-cyan"
+symbol = " "
+
+[php]
+format = " [php](italic) [$symbol]($style)"
+style = "bold bright-red"
+symbol = " "
 
 [golang]
-symbol = 'go '
-style = 'bold cyan'
-format = 'via [$symbol($version )]($style)'
+style = "bold bright-blue"
+format = " go [$symbol]($style)"
+symbol = "∩ "
 
-# Seeded from themes/dark/ (Catppuccin Mocha lineage). Sub-task 9 replaces the
-# values here with wallpaper-derived ones; the key names are the contract.
-[palettes.dots]
-blue = '#89b4fa'
-purple = '#cba6f7'
-red = '#f38ba8'
-green = '#a6e3a1'
-yellow = '#f9e2af'
-cyan = '#94e2d5'
+[java]
+style = "bold bright-red"
+format = " java [${symbol}]($style)"
+symbol = " "
+
+[memory_usage]
+style = "bold bright-cyan"
+format = " mem [${ram}( ${swap})]($style)"
+symbol = "▪▫▪ "
+

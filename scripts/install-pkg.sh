@@ -129,6 +129,47 @@ else
     yellow "  could not enable skidnik/clipmenu — dwm-clipmenu (Super+v) needs clipmenu+clipnotify installed manually"
 fi
 
+# starship is the prompt (config/zsh/conf.d/99-prompt.zsh reads
+# config/starship/starship.toml) but Fedora does not package it — it was
+# dropped around F37, verified 2026-08-06 against packages.fedoraproject.org.
+# Installing from the upstream script is a deliberate, user-approved choice
+# over the atim/starship COPR. Two consequences worth knowing:
+#
+#   1. dnf neither upgrades nor removes it. Re-run `starship upgrade`, or the
+#      command below, yourself.
+#   2. No manifest row is written, so `uninstall.sh` will NOT remove it. A
+#      PACKAGE row would be actively harmful — uninstall_packages() passes
+#      every PACKAGE value to a single `dnf remove`, and one un-removable name
+#      makes that call fail, taking every other package down with it. A SCRIPT
+#      row would delete correctly but files starship under a prompt that reads
+#      "dwmblocks block scripts". Remove it by hand:
+#        rm -f ~/.local/bin/starship
+#
+# Best-effort: on failure 99-prompt.zsh falls back to its built-in prompt,
+# which is degraded but perfectly usable, so this never aborts the run.
+STARSHIP_BIN="$HOME/.local/bin"
+blue "==> installing starship (upstream script — not in Fedora repos)"
+if command -v starship >/dev/null 2>&1; then
+    green "  already installed: starship ($(command -v starship))"
+elif [[ $DRY_RUN -eq 1 ]]; then
+    blue "  (dry-run) would install starship to $STARSHIP_BIN via https://starship.rs/install.sh"
+elif ! command -v curl >/dev/null 2>&1; then
+    yellow "  skipped — curl not available; install starship manually or use: dnf copr enable atim/starship"
+else
+    mkdir -p "$STARSHIP_BIN"
+    # --proto '=https' --tlsv1.2 refuse plaintext and downgraded transports;
+    # -f makes curl exit non-zero on an HTTP error instead of piping an error
+    # page into sh.
+    if curl --proto '=https' --tlsv1.2 -sSf https://starship.rs/install.sh \
+        | sh -s -- --yes --bin-dir "$STARSHIP_BIN" >/dev/null 2>&1; then
+        green "  installed: starship -> $STARSHIP_BIN/starship"
+        yellow "  note: not dnf-managed — uninstall.sh will not remove it (rm -f $STARSHIP_BIN/starship)"
+    else
+        yellow "  could not install starship — the shell falls back to its built-in prompt."
+        yellow "  retry manually, or let dnf own it: dnf copr enable atim/starship && dnf install starship"
+    fi
+fi
+
 # Fedora's fd-find package ships its binary as `fdfind` (name clash with
 # another package, same as Debian/Ubuntu) — shim it under ~/.local/bin so
 # the configs' `command -v fd` checks succeed.

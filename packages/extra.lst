@@ -5,6 +5,27 @@
 #
 # Format: one package name per line. '#' starts a comment (whole-line or
 # trailing). Blank lines ignored.
+#
+# NOT LISTED HERE, deliberately:
+#
+#   starship — not in Fedora's repos at all (dropped around F37; verified
+#     2026-08-06, zero results across F43/44/Rawhide/EPEL). It is the prompt
+#     (config/zsh/conf.d/99-prompt.zsh + config/starship/starship.toml), so
+#     install-pkg.sh installs it from the upstream script instead. The COPR
+#     alternative, if you prefer dnf to own it:
+#       dnf copr enable atim/starship && dnf install starship
+#
+#   JetBrains Mono Nerd Font — Fedora packages no such variant. The
+#     jetbrains-mono-fonts source produces only -all and -nl, neither with
+#     nerd glyphs; cascadia-code-nf-fonts below is the glyph font.
+#
+#   ddcutil / i2c-dev — brightness is xrandr gamma on this desktop target,
+#     not DDC/CI. See the roster Epic's locked decision 10.
+#
+#   power-profiles-daemon — desktop, not laptop. Locked decision 9.
+#
+#   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
+#     repos, so no third-party repo is needed. Locked decision 8.
 
 # core system & display server
 xorg-x11-server-Xorg
@@ -32,10 +53,23 @@ opendoas
 fuse
 
 # interface foundation
+# sxhkd owns every keybind except dwm's own window management, which stays
+# compiled into suckless/dwm/config.def.h (roster Epic sub-task 4).
 sxhkd
-kitty
+# alacritty is the terminal (dwm's termcmd, thunar's, and the statusbar click
+# actions'). st stays vendored and built as the no-GPU fallback.
+alacritty
+
+# applications
+firefox
 
 # fonts & theming
+# cascadia-code-nf-fonts is the Nerd Font: Cascadia Code is what the Nerd
+# Fonts project ships as "CaskaydiaCove", and it is the only -nf-fonts family
+# Fedora packages. It supplies every glyph the prompt (starship), the eza
+# --icons aliases and fastfetch rely on — without it those render as tofu.
+# jetbrains-mono-fonts-all stays for plain UI surfaces, which need no glyphs.
+cascadia-code-nf-fonts
 jetbrains-mono-fonts-all
 google-noto-emoji-fonts
 google-noto-sans-fonts
@@ -57,6 +91,17 @@ libnotify
 feh
 xclip
 xsel
+# maim + slop back config/dwm/bin/dwm-screenshot (roster Epic sub-task 5):
+# maim captures, slop draws the region selector, xclip puts it on the clipboard.
+maim
+slop
+# xss-lock bridges X's screensaver timer and systemd-logind, so slock also
+# fires on suspend — which xautolock structurally cannot do (sub-task 6).
+xss-lock
+# bluetooth: bluez is the stack, blueman the GTK manager the statusbar
+# block's click action opens (sub-task 7).
+bluez
+blueman
 brightnessctl
 playerctl
 pamixer
@@ -64,8 +109,12 @@ pavucontrol
 alsa-utils
 thunar
 thunar-archive-plugin
+thunar-volman
 tumbler
+ffmpegthumbnailer
 file-roller
+unar
+catfish
 gvfs
 lxappearance
 xdg-user-dirs
@@ -85,6 +134,8 @@ python3-pip
 fzf
 bat
 eza
+zoxide
+fastfetch
 htop
 tree
 pv
