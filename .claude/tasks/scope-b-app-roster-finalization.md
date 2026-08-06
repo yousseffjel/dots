@@ -50,6 +50,18 @@ directives given in-chat; the decisions they settled are recorded under
    GPU-accelerated path where one exists (alacritty is already that
    choice) and keep recurring background work off the CPU — see
    sub-task 7's interval discipline.
+13. **The user's own 405-line `starship.toml` is adopted into the repo**,
+   replacing the 103-line ASCII placeholder sub-task 1 shipped. Discovered
+   post-merge: `~/.config/starship/` was a real directory holding a
+   hand-tuned config, and `symlinks.sh` would have displaced it (backed up,
+   not destroyed, per rule 7 — but still a downgrade). The repo should
+   reproduce what the user actually runs.
+14. **Both `CaskaydiaCove` and `JetBrainsMono` Nerd Fonts get packaged.**
+   `fc-list` shows 135 Nerd Font matches on the user's machine and the
+   adopted starship config depends on those glyphs (`󰣇`, ``, per-language
+   icons), as does `60-aliases.zsh`'s pre-existing `eza --icons`. Without a
+   packaged Nerd Font a fresh Fedora install renders tofu. Caskaydia drives
+   the prompt/terminal, JetBrains Mono stays for UI surfaces.
 11. **zoxide replaces `cd` outright** (`zoxide init zsh --cmd cd`). `cdi`
    becomes the interactive picker. Must degrade safely: `80-tools.zsh`
    already guards on `(( $+commands[zoxide] ))`, so a missing binary
@@ -93,14 +105,28 @@ directives given in-chat; the decisions they settled are recorded under
   `hyde` references anywhere under `config/`.
 - Est. sessions: 1.
 
-## Sub-task 2 — packages/*.lst: the final roster
+## Sub-task 2 — packages/*.lst: the final roster (+ starship adoption)
 
-- Scope: `packages/core.lst`, `packages/extra.lst`.
+- Scope: `packages/core.lst`, `packages/extra.lst`,
+  `config/starship/starship.toml`.
 - Add: `alacritty`, `starship`, `zoxide`, `fastfetch`, `firefox`, `maim`,
   `slop`, `xss-lock`, `unar`, `thunar-volman`, `ffmpegthumbnailer`,
-  `catfish`, `bluez`, `blueman`.
+  `catfish`, `bluez`, `blueman`, plus the two Nerd Fonts from locked
+  decision 14.
 - **Not** added: `ddcutil` / `i2c-dev` (locked decision 10 — brightness
   is xrandr gamma), `power-profiles-daemon` (locked decision 9 — desktop).
+- **Adopt the user's `~/.config/starship/starship.toml`** (locked decision
+  13) over the placeholder. Two edits on adoption, neither cosmetic:
+  the `󰣇` Arch logo in `format` is wrong for a Fedora target, and the
+  `right_format` block lists ~60 language modules — starship runs detection
+  for each on every prompt, which is the one part of the config in tension
+  with the "max performance" constraint. Measure the prompt's render time
+  before and after any trim rather than assuming; surface the numbers and
+  let the user decide how far to cut.
+- Note for sub-task 9: the adopted config hardcodes hex colours in ~10
+  places (`#8be9fd`, `#769ff0`, `#394260`, `#a0a9cb`, `#9198a1`). Theming it
+  means the `.dcol` template rewrites those literals — there is no
+  `[palettes]` table to swap, unlike the placeholder it replaces.
 - Remove: `kitty`.
 - Keep: `sxhkd` (now genuinely used — sub-task 4).
 - **Every added name must be verified against
