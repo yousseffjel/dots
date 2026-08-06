@@ -225,3 +225,76 @@ directory for the running history.
   error paths with correct exit codes. dwm and dmenu both still build.
 - Reviewer verdict: WARN (the stale comment), fixed. Otherwise READY.
 - See `.claude/changes/2026-08-05-theming-user-commands.md` for detail.
+
+## 2026-08-06 — theming engine epic, sub-task 7/7: static theme + packaging + docs
+- Closes the Epic. Adds `themes/dark/` (Catppuccin-Mocha-seeded palette
+  produced by this repo's own `colorgen.sh`, plus `theme.conf` for what a
+  palette cannot express), `themes/CREDITS.md`, `ImageMagick` in
+  `extra.lst`, installer deployment of the dunst/picom/GTK base configs
+  with manifest tracking, an `uninstall_theme` teardown step, and
+  `docs/THEMING.md`.
+- **This work was already written but uncommitted and unreviewed** when
+  picked up — it had been left in `slot/theming-packaging` with a stub
+  plan file. Reconstructed the plan from the diff, then ran the full
+  audit + reviewer gate.
+- `install-restore.sh` had reached 263 lines (over the 250 cap), so the
+  theming block moved to a sourced `scripts/install-restore-theme.sh`,
+  mirroring the existing `uninstall.sh` -> `uninstall_steps.sh` precedent.
+- **Two real breakages found and fixed.** (1) A failed backup called
+  `exit 0`, ending the restore stage with a *success* code and silently
+  skipping the zinit/TPM bootstrap clones while `install-fedora.sh`
+  proceeded to the services stage. (2) Reviewer BLOCK: the only backup
+  step ran inside the `$DISPLAY` gate, so a headless install backed up
+  nothing — and when the user later ran `theme-apply.sh` by hand as
+  instructed, `apply-templates.sh` overwrote their pre-existing
+  `dunstrc`/`picom.conf` with no copy anywhere.
+- Also: `gtk-murrine-engine` dropped (GTK2-only engine; `theme.conf`
+  selects Adwaita-dark, a GTK3 built-in that never loads it), and
+  `CREDITS.md`'s claim that HyDE is MIT-licensed corrected — it is
+  GPL-3.0, which is precisely why the engine reimplements rather than
+  vendors it.
+- See `.claude/changes/2026-08-06-theming-packaging.md`. Reviewer: READY.
+
+## 2026-08-06 — theming engine: vim + cava app templates
+- Post-Epic follow-up. Extends the engine from desktop surfaces to two
+  applications: `config/theme/templates/always/{vim,cava}.dcol` plus an
+  `always/README.md` documenting the group's two target styles.
+- Selected from HyDE's six app templates after a survey of what remained
+  worth porting; the other four (chrome, discord, spotify, VS Code) theme
+  applications this desktop does not assume, and everything else in HyDE
+  is Wayland-specific. Reimplemented, not copied — verified mechanically
+  that the only lines shared with HyDE's equivalents are `endif`,
+  `let g:colors_name = 'wallbash'` and `[color]`, all syntax-mandated.
+- **Both render to `$cacheDir` and install via their post-command**,
+  rather than writing their real destination directly. The engine's
+  install-check is "does the target's parent directory exist", which is a
+  good signal for apps configured one level under `$confDir` and a bad
+  one here: vim creates neither `~/.config/vim` nor a `colors/` subdir
+  (reviewer BLOCK — the template would have skipped for every real user),
+  and cava's config is user-tuned, so it is spliced into below a marker
+  rather than overwritten.
+- **Path-driven quoting break fixed in both post-commands.**
+  `expand_path` substitutes `${confDir}`/`${cacheDir}` into the command
+  string before `bash -c` parses it, so a `$HOME` containing a single
+  quote broke out of the surrounding quoting — the same injection class
+  `apply-templates.sh` was hardened against for palette values in
+  sub-task 3. Both now derive their paths from XDG variables at run time.
+- Accepted reviewer WARN: that fix duplicates `apply-templates.sh`'s own
+  `cacheDir` definition. Failure mode is benign (post-command warns and
+  continues); recorded in `always/README.md`.
+- See `.claude/changes/2026-08-06-theming-app-templates.md`.
+  Reviewer: BLOCK -> fixed -> WARN (accepted).
+
+## 2026-08-06 — housekeeping
+- `~/.local/state/dots/manifest` held `THEME` rows pointing at the real
+  `~/.config/picom/picom.conf` and `gtk-3.0/gtk.css`, left by an earlier
+  session that ran the installer against the live `$HOME`. Since
+  `uninstall_theme` deletes every `THEME` row outright, `uninstall.sh`
+  would have removed configs the installer never created. Backed up to
+  `manifest.bak-20260806-114948` and pruned, with the user's approval.
+- **Testing note:** sandboxing installer runs requires overriding all four
+  XDG variables, not just `HOME` — `XDG_STATE_HOME` is set in the ambient
+  environment here, so the manifest write escapes an otherwise-isolated
+  test. Likewise always pass `DISPLAY=` when exercising
+  `apply-templates.sh`: `xresources.dcol`'s post-command is a bare,
+  unbounded `xrdb -merge` that will talk to the live X server.
