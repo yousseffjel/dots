@@ -7,17 +7,27 @@ when slots run concurrently.
 
 ## Active
 
-*(none — the theming-engine Epic closed 2026-08-06)*
+- **Epic: app / tool / package roster finalization.** 10 sub-tasks, one
+  per slot. Scope file: `.claude/tasks/scope-b-app-roster-finalization.md`
+  (locked decisions live there — do not re-litigate them).
+  - [x] 1. zsh: purge HyDE leftovers, retarget at dwm/X11 (+ starship.toml, zoxide) — `97b41b9`
+  - [ ] 2. `packages/*.lst` final roster (+ Fedora name verification)
+  - [ ] 3. alacritty as main terminal (st retained as fallback)
+  - [ ] 4. sxhkd keybind split with dwm
+  - [ ] 5. screenshot — maim + slop + dmenu mode menu
+  - [ ] 6. lock / idle — xss-lock + xset + slock
+  - [ ] 7. status bar blocks — Layout A, 10 blocks + tray (order locked)
+  - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)
+  - [ ] 9. fastfetch + starship theming + cava removal + docs
+  - [ ] 10. picom performance tuning (template + base config in lockstep)
+
+  Order: 1 and 2 first (independent, unblock the rest); 3 before 8;
+  4 before 5 and 6; 7 and 10 independent; 9 last.
 
 ---
 
 ## Queue
 
-- **`docs/THEMING.md`: document the vim + cava templates.** Deliberately
-  deferred out of `slot/theming-app-templates`, because `THEMING.md`
-  existed only in the then-unmerged `slot/theming-packaging` and editing
-  it from the other slot would have manufactured a merge conflict. Both
-  are merged now, so this is a straightforward `main`-side edit.
 - **Bound `xresources.dcol`'s `xrdb -merge` post-command.** It is
   unbounded, unlike `reload.sh`'s, which wraps its `xrdb` in
   `timeout 10`. A hung X server hangs the whole template run.

@@ -298,3 +298,38 @@ directory for the running history.
   test. Likewise always pass `DISPLAY=` when exercising
   `apply-templates.sh`: `xresources.dcol`'s post-command is a bare,
   unbounded `xrdb -merge` that will talk to the live X server.
+
+## 2026-08-06 — roster Epic, sub-task 1/10: zsh de-HyDE + X11 retarget
+- Opens Scope B (`.claude/tasks/scope-b-app-roster-finalization.md`), a
+  10-sub-task Epic reconciling this repo's app/tool/package roster against
+  HyDE's. Locked decisions live in that scope file.
+- Deleted 14 HyDE leftovers from `config/zsh/` and ported the genuine
+  keepers into their existing owner files (`60-aliases.zsh`,
+  `40-completion.zsh`, `70-functions.zsh`) rather than a catch-all.
+- **The headline was a live performance bug, not the de-branding.**
+  `config/zsh/.zshenv` was HyDE's and sourced all of `conf.d/*.zsh` itself,
+  while `.zshrc` ran the same loop behind an interactive guard `.zshenv`
+  lacked. Every file loaded twice interactively and once in *every*
+  non-interactive shell. Measured `zsh -c true` at **674 ms** against 1.8 ms
+  bare — ~570 ms burned per script invocation. `.zshenv` is now env-only
+  (XDG + PATH, absorbing the deleted `conf.d/20-path.zsh`), `.zshrc` owns the
+  conf.d loop alone. Result: **674 ms -> 4.6 ms** non-interactive,
+  **925 ms -> 392 ms** interactive, and the "No plugin system found" banner
+  that printed on every shell open is gone.
+- `config/zsh/functions/` and `completions/` turned out to be dead code —
+  reachable only from `terminal.zsh` branches this machine never hits. Proved
+  by running a shell (`eza alias: ABSENT`) rather than by reading; the
+  reviewer re-traced it independently.
+- zoxide now replaces `cd` outright (`--cmd cd`), so `z`/`zi` cease to exist;
+  the `..` aliases and a dead fzf-tab zstyle were updated to match.
+- Added `config/starship/starship.toml` (the repo shipped none — the prompt
+  ran on stock defaults) plus a `symlinks.sh` LINKS entry and a
+  `$STARSHIP_CONFIG` export, since starship reads
+  `$XDG_CONFIG_HOME/starship.toml` but `symlinks.sh` links directories.
+- **Post-merge discovery, not in the dated log:** the user already has a
+  405-line hand-tuned `~/.config/starship/starship.toml` and 135 Nerd Font
+  matches installed. The shipped ASCII config is worse than theirs, and
+  `symlinks.sh` would displace it. Resolved as its own follow-up before any
+  installer step runs.
+- See `.claude/changes/2026-08-06-zsh-dehyde-x11.md`. Audit: READY.
+  Reviewer: READY. Tests: `tests/lint.sh` + `tests/pkglist.sh` pass.
