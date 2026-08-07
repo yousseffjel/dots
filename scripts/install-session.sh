@@ -44,6 +44,18 @@ session_autostart_report() {
         yellow "        without it every binding in config/sxhkd/sxhkdrc is dead —"
         yellow "        media keys, volume, brightness, theming and app launchers."
     fi
+
+    if grep -q 'dwm-lock' "$autostart"; then
+        green "ok      $autostart already starts dwm-lock"
+    else
+        yellow "kept    $autostart (exists, does not mention dwm-lock)"
+        # Literal shell syntax to be pasted into autostart.sh, meant to expand
+        # at its own runtime, not here.
+        # shellcheck disable=SC2016
+        yellow '        add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &'
+        yellow "        without it the screen never locks on idle or on suspend."
+        yellow "        Super+l still works — it falls back to calling slock directly."
+    fi
 }
 
 install_session_autostart() {
@@ -61,7 +73,7 @@ install_session_autostart() {
     fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write $autostart (dwmblocks + clipmenud + sxhkd autostart)"
+        blue "  (dry-run) would write $autostart (dwmblocks + clipmenud + sxhkd + dwm-lock autostart)"
         return 0
     fi
 
@@ -92,6 +104,19 @@ fi
 if command -v sxhkd >/dev/null 2>&1 && ! pgrep -x sxhkd >/dev/null 2>&1; then
 	sxhkd &
 fi
+
+# Screen locking: arms X's idle timers, then execs `xss-lock -- slock` so the
+# screen locks on inactivity AND on suspend. One line rather than the xset
+# calls inline, deliberately — this file is yours the moment it exists and the
+# installer will never edit it again, so the policy (timings, locker, logind
+# routing) lives in the repo where it can still be changed. dwm-lock degrades
+# on its own if xss-lock or xset is missing.
+#
+# Spelled out in full rather than relying on PATH: ~/.config/dwm/bin is added
+# by config/zsh/.zshenv, which only runs if the display manager happens to
+# start this session through a login zsh. The three daemons above are system
+# binaries and need no such luck.
+"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &
 EOF
     chmod 755 "$autostart"
     green "wrote   $autostart"

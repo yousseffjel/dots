@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# dwm-lock — screen locking: the idle/suspend daemon, and the manual lock.
+#
+# Two modes in one file, because they have to agree on which locker runs:
+#
+#   dwm-lock --daemon   arm X's idle timers, then hand the screen to xss-lock.
+#                       The single line ~/.local/share/dwm/autostart.sh runs.
+#   dwm-lock            lock right now. Super+l in config/sxhkd/sxhkdrc, and
+#                       dwm-powermenu's Lock entry.
+#
+# WHY xss-lock AND NOT xautolock. xss-lock hooks both X's MIT-SCREEN-SAVER
+# extension and systemd-logind, so the screen also locks on suspend — which
+# xautolock structurally cannot do. The target is a desktop (roster Epic
+# locked decision 9): no lid to close, but it still suspends.
+#
+# WHY NOT --transfer-sleep-lock. That flag hands logind's delay-lock fd to the
+# locker, and xss-lock(1) is explicit that "the locker should close this file
+# descriptor to indicate it is ready". slock has never heard of
+# $XSS_SLEEP_LOCK_FD and so never closes it, which would pin the inhibitor for
+# the entire locked session; logind then waits InhibitDelayMaxSec (5s by
+# default) and suspends regardless. That is up to five seconds added to every
+# suspend in exchange for nothing — slock grabs the screen immediately, so
+# there is no readiness to wait on.
+#
+# slock needs no configuration here: it is vendored, built by
+# install-suckless.sh, and coloured from the X resource database.
+#
+# usage: dwm-lock [--daemon]
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
+
+# Seconds of inactivity before the screen locks, and before the monitor is
+# powered down. LOCK must come first: reversed, the display goes dark while
+# the session is still unlocked, and anyone who wiggles the mouse during the
+# gap lands on a live desktop.
+LOCK_SECS=600
+DPMS_OFF_SECS=660
+
+usage() {
+    echo "usage: dwm-lock [--daemon]"
+}
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+missing_slock() {
+    red "dwm-lock: slock is not installed — run scripts/install-suckless.sh"
+}
+
+# Arm X's screensaver and DPMS timers. Best-effort throughout: every failure
+# here costs the idle path only, and locking on suspend or on Super+l keeps
+# working, so none of it is worth aborting the session start for.
+arm_timers() {
+    if ! have xset; then
+        yellow "dwm-lock: xset not installed — idle timers not armed"
+        yellow "          (locking on suspend and on Super+l is unaffected)"
+        return 0
+    fi
+
+    # Second argument is the pattern-cycle period. It is irrelevant once the
+    # video blanks, but xset takes length and period as a pair.
+    if ! xset s "$LOCK_SECS" "$LOCK_SECS"; then
+        yellow "dwm-lock: xset s failed — is DISPLAY set and X running?"
+        return 0
+    fi
+
+    # standby and suspend are disabled (0), leaving the monitor exactly one
+    # power transition. Passing timeouts is enough to turn DPMS on — xset(1):
+    # "Setting these values implicitly enables the DPMS features" — so no
+    # separate +dpms call is needed.
+    if ! xset dpms 0 0 "$DPMS_OFF_SECS"; then
+        yellow "dwm-lock: xset dpms failed — the monitor may not support DPMS"
+    fi
+}
+
+start_daemon() {
+    arm_timers
+
+    # Re-running the autostart line must not leave two daemons racing to spawn
+    # lockers, so this stays a no-op past the timer re-arm.
+    if pgrep -x xss-lock >/dev/null 2>&1; then
+        yellow "dwm-lock: xss-lock already running — timers re-armed, not restarted"
+        return 0
+    fi
+
+    if ! have xss-lock; then
+        red "dwm-lock: xss-lock is not installed — nothing will lock on idle or suspend"
+        red "          it is best-effort in packages/extra.lst: dnf install xss-lock"
+        return 1
+    fi
+    if ! have slock; then
+        missing_slock
+        return 1
+    fi
+
+    # exec, so the daemon replaces this shell instead of leaving it parked as
+    # a useless parent for the life of the session.
+    exec xss-lock -- slock
+}
+
+lock_now() {
+    # Route through logind while the daemon is up: it keeps the session's
+    # Locked state truthful and makes idle, suspend and this key all end in
+    # the same locker. The fallback is the point, though — a bare loginctl
+    # call would be a silent no-op the moment xss-lock died.
+    if pgrep -x xss-lock >/dev/null 2>&1 && have loginctl; then
+        if loginctl lock-session; then
+            return 0
+        fi
+        yellow "dwm-lock: loginctl lock-session failed — locking directly instead"
+    fi
+
+    if ! have slock; then
+        missing_slock
+        return 1
+    fi
+    exec slock
+}
+
+# Reject extras rather than examining $1 and dropping the rest: the header
+# above explains why --transfer-sleep-lock is deliberately absent, so someone
+# appending it to the daemon line is a realistic mistake, and silently locking
+# the screen anyway would hide it.
+if (($# > 1)); then
+    red "dwm-lock: takes at most one argument, got $#"
+    usage >&2
+    exit 1
+fi
+
+case "${1:-}" in
+    "") lock_now ;;
+    --daemon) start_daemon ;;
+    -h | --help) usage ;;
+    *)
+        red "dwm-lock: unknown argument '$1'"
+        usage >&2
+        exit 1
+        ;;
+esac

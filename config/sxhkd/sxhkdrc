@@ -124,10 +124,15 @@ Print
 shift + Print
 	dwm-screenshot --region --clipboard
 
-# --- pending: lock (roster Epic sub-task 6) ----------------------------
-# slock is already built and themed, so this binding works today — it is
-# held back only so the lock keybinding and the xss-lock/xset idle wiring
-# land together and get documented as one feature.
+# --- lock --------------------------------------------------------------
+# dwm-lock rather than slock directly. While the xss-lock daemon is running
+# this goes through `loginctl lock-session`, so logind's own record of the
+# session stays truthful and the idle timer, suspend and this key all end in
+# the same locker. With no daemon it calls slock itself, so the key still
+# works on a box where xss-lock never installed.
 #
-#super + l
-#	slock
+# The daemon is started from ~/.local/share/dwm/autostart.sh, not from here —
+# see scripts/install-session.sh.
+
+super + l
+	dwm-lock

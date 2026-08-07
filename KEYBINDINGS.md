@@ -5,7 +5,7 @@ Two programs bind keys, and they own different halves of the keyboard:
 | Owner | Source | Covers | Changing it costs |
 | --- | --- | --- | --- |
 | **dwm** | `suckless/dwm/config.def.h` | Window management — tags, layouts, focus, monitors, scratchpads, session — plus the terminal, dmenu, power menu and clipboard | A recompile |
-| **sxhkd** | `config/sxhkd/sxhkdrc` | Media, volume, mic, brightness, theming, screenshots, app launchers | `Super` + `Ctrl` + `r` |
+| **sxhkd** | `config/sxhkd/sxhkdrc` | Media, volume, mic, brightness, theming, screenshots, screen lock, app launchers | `Super` + `Ctrl` + `r` |
 
 Neither file is generated from the other, so an edit in one needs a matching
 edit here — nothing keeps them in sync automatically.
@@ -228,6 +228,50 @@ dwm-screenshot --region               # region, then ask where it goes
 dwm-screenshot --full --both          # no prompts at all
 ```
 
+### Lock and idle
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `l` | Lock the screen now |
+
+The screen also locks by itself:
+
+| After | What happens |
+| --- | --- |
+| 10 minutes idle | `slock` takes the screen |
+| 11 minutes idle | The monitor powers down (already locked) |
+| Any suspend | `slock` takes the screen before the machine sleeps |
+
+**The order is the point.** Locking is set to land a minute *before* DPMS
+blanks the display, so the screen is never dark-but-unlocked — a state where
+wiggling the mouse would drop you straight onto a live desktop.
+
+All of it is `config/dwm/bin/dwm-lock`, which the power menu's `lock` entry
+also calls. It runs in two modes:
+
+```sh
+dwm-lock                              # lock now
+dwm-lock --daemon                     # arm the timers, then run the daemon
+```
+
+`--daemon` sets `xset s 600 600` and `xset dpms 0 0 660`, then execs
+`xss-lock -- slock`. It is started once per session from
+`~/.local/share/dwm/autostart.sh`. To change the timings, edit `LOCK_SECS` and
+`DPMS_OFF_SECS` at the top of the script — not `autostart.sh`, which only
+holds the one launch line.
+
+**Why `xss-lock` and not `xautolock`:** it hooks systemd-logind as well as X's
+screensaver, so it also locks on suspend, which xautolock structurally cannot
+do. That is also why `Super` + `l` goes through `loginctl lock-session` when
+the daemon is up — logind's own record of whether the session is locked stays
+truthful, and every trigger ends in the same locker. With no daemon running it
+calls `slock` directly instead, so the key never silently does nothing.
+
+> **If the screen never locks on its own, the daemon is not running.** Check
+> with `pgrep -x xss-lock`. As with sxhkd, `install-suckless.sh` will not add
+> the launch line to an `autostart.sh` you already had — it prints the line
+> for you to paste. `Super` + `l` keeps working either way.
+
 ### Applications
 
 | Keys | Action |
@@ -255,18 +299,6 @@ and cost a reload to change.
 | Keys | Action |
 | --- | --- |
 | `Super` + `Ctrl` + `r` | Reload `sxhkdrc` in place (`pkill -USR1 -x sxhkd`) |
-
-### Not yet bound
-
-`sxhkdrc` ships these commented out, each annotated with the task that
-activates it. They are one uncomment plus a reload away.
-
-| Keys | Action | Waiting on |
-| --- | --- | --- |
-| `Super` + `l` | Lock the screen | the `xss-lock` / `xset` idle wiring |
-
-`slock` is already built and themed, so the lock binding would work today —
-it is held back only so the key and the idle/suspend wiring ship together.
 
 ### Theming from a shell
 

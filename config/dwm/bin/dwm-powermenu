@@ -20,7 +20,10 @@ choice=$(printf '%s\n' lock logout suspend reboot shutdown \
     | dmenu "${DMENU_OPTS[@]}" -l 5 -p "power>") || exit 0
 
 case "$choice" in
-    lock)     exec slock ;;
+    # dwm-lock, not slock directly: it routes through logind while the
+    # xss-lock daemon is up, and falls back to slock when it is not. Super+l
+    # takes the same path.
+    lock)     exec dwm-lock ;;
     logout)   pkill -TERM -x dwm ;;
     suspend)  systemctl suspend ;;
     reboot)   confirm "reboot"   && systemctl reboot ;;
