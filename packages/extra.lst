@@ -100,8 +100,17 @@ xclip
 xsel
 # maim + slop back config/dwm/bin/dwm-screenshot (roster Epic sub-task 5):
 # maim captures, slop draws the region selector, xclip puts it on the clipboard.
+#
+# xprop is there for the active-window mode alone. It reads the window id out
+# of the root window's _NET_ACTIVE_WINDOW property, which maim then takes
+# verbatim — maim parses the 0x-prefixed form xprop prints. xdotool would do
+# the same job in one call with no parsing, but it drags in a whole
+# input-simulation stack (libxdo) that nothing else in this roster wants.
+# Missing xprop degrades to a diagnostic on the window mode only; full-screen
+# and region capture keep working.
 maim
 slop
+xprop
 # xss-lock bridges X's screensaver timer and systemd-logind, so slock also
 # fires on suspend — which xautolock structurally cannot do (sub-task 6).
 xss-lock

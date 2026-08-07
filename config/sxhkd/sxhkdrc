@@ -10,10 +10,10 @@
 #         Mod+p (dmenu), Mod+Shift+Return (terminal), Super+Shift+x
 #         (powermenu) and Super+v (clipmenu).
 #   sxhkd (this file, reloadable) — everything else: media, volume, mic,
-#         brightness, theming, app launchers.
+#         brightness, theming, screenshots, app launchers.
 #
-# Every binding here is either an XF86* media key or lives in the Super
-# space, avoiding the two Super chords dwm already owns. Before adding a
+# Every binding here is an XF86* media key, or Print, or lives in the Super
+# space avoiding the two Super chords dwm already owns. Before adding a
 # binding, check it against keys[] in config.def.h.
 #
 # Changing dwm's bindings needs a recompile; changing this file needs only
@@ -108,16 +108,21 @@ super + e
 super + ctrl + r
 	pkill -USR1 -x sxhkd
 
-# --- pending: screenshot (roster Epic sub-task 5) -----------------------
-# Uncomment once config/dwm/bin/dwm-screenshot exists. It will be a dmenu
-# mode menu (full / active window / region, each to clipboard / file /
-# both) built on maim + slop, both already packaged.
+# --- screenshot --------------------------------------------------------
+# Print opens the full two-level menu: mode (full / window / region), then
+# destination (clipboard / file / both). Shift+Print is the fast path — drag
+# a region, straight to the clipboard, no prompts.
 #
-#Print
-#	dwm-screenshot
-#
-#shift + Print
-#	dwm-screenshot --region
+# The fast path deliberately does not also write a file. Region grabs are
+# overwhelmingly paste-once, and a keybind that silently fills
+# ~/Pictures/screenshots is a keybind you end up cleaning up after. Press
+# Print instead when you want it kept.
+
+Print
+	dwm-screenshot
+
+shift + Print
+	dwm-screenshot --region --clipboard
 
 # --- pending: lock (roster Epic sub-task 6) ----------------------------
 # slock is already built and themed, so this binding works today — it is

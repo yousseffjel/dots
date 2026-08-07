@@ -5,7 +5,7 @@ Two programs bind keys, and they own different halves of the keyboard:
 | Owner | Source | Covers | Changing it costs |
 | --- | --- | --- | --- |
 | **dwm** | `suckless/dwm/config.def.h` | Window management — tags, layouts, focus, monitors, scratchpads, session — plus the terminal, dmenu, power menu and clipboard | A recompile |
-| **sxhkd** | `config/sxhkd/sxhkdrc` | Media, volume, mic, brightness, theming, app launchers | `Super` + `Ctrl` + `r` |
+| **sxhkd** | `config/sxhkd/sxhkdrc` | Media, volume, mic, brightness, theming, screenshots, app launchers | `Super` + `Ctrl` + `r` |
 
 Neither file is generated from the other, so an edit in one needs a matching
 edit here — nothing keeps them in sync automatically.
@@ -183,6 +183,51 @@ dwm-brightness up|down
 dwm-brightness set 70
 ```
 
+### Screenshot
+
+| Keys | Action |
+| --- | --- |
+| `Print` | Screenshot menu — pick a mode, then a destination |
+| `Shift` + `Print` | Drag a region straight to the clipboard, no prompts |
+
+`Print` opens two dmenu prompts in sequence:
+
+```text
+screenshot>          dest>
+  full                 clipboard
+  window               file
+  region               both
+```
+
+Escape at either prompt aborts and captures nothing. `file` and `both` write
+to `~/Pictures/screenshots`, overridable with `DOTS_SCREENSHOT_DIR`, named
+`dots-screenshot-YYYYmmdd-HHMMSS.png`.
+
+`Shift` + `Print` deliberately does **not** also keep a file. Region grabs are
+overwhelmingly paste-once, and a keybind that quietly fills a directory is one
+you end up cleaning up after — press `Print` when you want the shot kept.
+
+Both keys run `config/dwm/bin/dwm-screenshot`, which drives `maim` for the
+capture, `slop` for the region selector and `xclip` for the clipboard. The
+selector rectangle is drawn in `dwm.selbordercolor` read live from `xrdb`, so
+it matches the border dwm puts around the focused window and re-themes with
+the wallpaper. Unthemed, it falls back to slop's own grey.
+
+> **`window` means the *focused* window, not one you click.** It resolves
+> `_NET_ACTIVE_WINDOW` via `xprop`, so it needs no mouse — that is the only
+> thing it does that region mode cannot, since a plain click inside a region
+> selection already snaps to whatever window is under the pointer. maim
+> captures the window's screen rectangle, so anything stacked on top of it
+> appears in the image.
+
+From a shell, both prompts can be skipped:
+
+```sh
+dwm-screenshot                        # both prompts
+dwm-screenshot --region               # region, then ask where it goes
+dwm-screenshot --full --both          # no prompts at all
+```
+
 ### Applications
 
 | Keys | Action |
@@ -218,8 +263,6 @@ activates it. They are one uncomment plus a reload away.
 
 | Keys | Action | Waiting on |
 | --- | --- | --- |
-| `Print` | Screenshot menu | `config/dwm/bin/dwm-screenshot` |
-| `Shift` + `Print` | Region screenshot | `config/dwm/bin/dwm-screenshot` |
 | `Super` + `l` | Lock the screen | the `xss-lock` / `xset` idle wiring |
 
 `slock` is already built and themed, so the lock binding would work today —

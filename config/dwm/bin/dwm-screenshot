@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+# dwm-screenshot — dmenu-driven screenshots via maim + slop + xclip.
+#
+# Two prompts, mode then destination, mirroring dwm-powermenu's structure:
+#
+#   screenshot>  full | window | region
+#   dest>        clipboard | file | both
+#
+# Either prompt is skipped when the matching flag is passed, so a keybind can
+# jump straight to one combination. Escape at either prompt aborts silently.
+#
+#   dwm-screenshot                        both prompts
+#   dwm-screenshot --region               region, then ask where it goes
+#   dwm-screenshot --region --clipboard   no prompts at all
+#
+# Bound to Print / Shift+Print in config/sxhkd/sxhkdrc. Nothing here needs a
+# dwm rebuild: Print is not in dwm's keys[], so sxhkd may grab it freely.
+#
+# flameshot was rejected for this job because it is Qt, and the desktop is
+# GTK-only (roster Epic locked decision 3).
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+# Mirrors scripts/theme/wallpaper.sh's ~/Pictures/wallpapers convention.
+SHOT_DIR="${DOTS_SCREENSHOT_DIR:-$HOME/Pictures/screenshots}"
+NAME_FMT="dots-screenshot-%Y%m%d-%H%M%S.png"
+
+# Colours are deliberately NOT passed to dmenu: it reads them from the X
+# resource database, and explicit -nb/-nf/-sb/-sf would override the theme.
+# Same reasoning as dwm-powermenu.
+FONT="monospace:size=10"
+DMENU_OPTS=(-i -fn "$FONT")
+
+# The pointer is composited into the image by default. It is noise in every
+# mode here — in region mode it sits exactly where the drag ended. Drop the
+# flag from CAPTURE_OPTS to get it back.
+CAPTURE_OPTS=(--hidecursor)
+
+# slop's rectangle: 2px, and see selector_color below for the colour.
+SLOP_BORDER=2
+
+TMP=""
+cleanup() { if [[ -n "$TMP" ]]; then rm -f "$TMP"; fi; }
+trap cleanup EXIT
+
+usage() {
+    echo "usage: dwm-screenshot [--full|--window|--region] [--clipboard|--file|--both]"
+}
+
+# Notifications are a nicety, never a dependency — same contract as
+# scripts/theme/wallpaper.sh.
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a "dots-screenshot" -i camera-photo "$@" || true
+}
+
+require() {
+    command -v "$1" >/dev/null 2>&1 && return 0
+    red "dwm-screenshot: $1 is not installed ($2)"
+    return 1
+}
+
+# --- theming -----------------------------------------------------------
+# slop's --color wants float RGBA, so the palette hex needs converting.
+# $((16#..)) is plain bash arithmetic; awk's strtonum() would have been
+# shorter but it is a gawk extension and nothing else here assumes gawk.
+hex2rgba() {
+    local hex="${1#\#}" r g b
+    [[ "$hex" =~ ^[0-9A-Fa-f]{6}$ ]] || return 1
+    r=$((16#${hex:0:2}))
+    g=$((16#${hex:2:2}))
+    b=$((16#${hex:4:2}))
+    awk -v r="$r" -v g="$g" -v b="$b" \
+        'BEGIN { printf "%.3f,%.3f,%.3f,1\n", r / 255, g / 255, b / 255 }'
+}
+
+# dwm.selbordercolor is the border dwm draws around the focused window, so
+# reusing it means the region selector matches what "selected" already looks
+# like on this desktop. It comes from the live X resource database — the same
+# source every suckless tool here reads — so it re-themes with the wallpaper
+# for free. Prints nothing when unthemed; the caller falls back to slop's
+# own grey. No awk `exit`: that SIGPIPEs xrdb and trips pipefail.
+selector_color() {
+    local hex
+    command -v xrdb >/dev/null 2>&1 || return 0
+    hex="$(xrdb -query 2>/dev/null \
+        | awk '!f && $1 == "dwm.selbordercolor:" { print $2; f = 1 }' || true)"
+    [[ -n "$hex" ]] || return 0
+    hex2rgba "$hex" || return 0
+}
+
+# --- capture -----------------------------------------------------------
+# The active window id, as the 0x-prefixed string maim -i accepts verbatim.
+# dwm maintains _NET_ACTIVE_WINDOW, and sets it to 0x0 when nothing is
+# focused — which matches the hex pattern, so it needs rejecting by name.
+active_window() {
+    local id
+    id="$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | awk '{ print $NF }' || true)"
+    if [[ ! "$id" =~ ^0x[0-9A-Fa-f]+$ ]] || [[ "$id" == "0x0" ]]; then
+        red "dwm-screenshot: no active window (_NET_ACTIVE_WINDOW is unset or 0x0)"
+        return 1
+    fi
+    printf '%s\n' "$id"
+}
+
+# Writes a PNG to $2. Returns 1 on failure, 2 when the user cancelled a
+# selection — the caller treats those very differently.
+#
+# $1 is assumed valid: the sole call site validates it, and repeating the
+# mode list here would be a second place to forget when one is added. An
+# unknown mode falls through to the empty-capture check downstream.
+capture() {
+    local mode="$1" out="$2" id geom rgba slop_opts=()
+
+    case "$mode" in
+        full)
+            maim "${CAPTURE_OPTS[@]}" "$out"
+            ;;
+        window)
+            require xprop "needed only for --window; --full and --region still work" || return 1
+            id="$(active_window)" || return 1
+            # Captures the window's rectangle off the screen, so anything
+            # stacked on top of it appears in the shot. That is how X
+            # compositing works, not something this script can paper over.
+            maim "${CAPTURE_OPTS[@]}" --window "$id" "$out"
+            ;;
+        region)
+            require slop "region selection" || return 1
+            # slop is run directly rather than through maim --select, so the
+            # themed colour applies and the geometry is ours to inspect.
+            #
+            # An empty result is treated as a cancel because slop cannot tell
+            # the two apart: pressing Escape and failing to grab the pointer
+            # both exit 1 with nothing on stdout. Its stderr is deliberately
+            # NOT discarded — that is the only thing separating "the user
+            # changed their mind" from "another client holds a grab".
+            rgba="$(selector_color)"
+            slop_opts=(--bordersize "$SLOP_BORDER")
+            if [[ -n "$rgba" ]]; then slop_opts+=(--color "$rgba"); fi
+            geom="$(slop "${slop_opts[@]}" || true)"
+            if [[ -z "$geom" ]]; then return 2; fi
+            maim "${CAPTURE_OPTS[@]}" --geometry "$geom" "$out"
+            ;;
+    esac
+}
+
+# Checked here rather than up front: --file needs no clipboard at all, and
+# failing that combination on a missing xclip would be gratuitous.
+to_clipboard() {
+    require xclip "clipboard delivery" || return 1
+    xclip -selection clipboard -t image/png -i "$1"
+}
+
+# Consumes $TMP. For file/both the temp is moved into place rather than
+# copied, so the EXIT trap's rm finds nothing left to remove. As with
+# capture(), $1 is validated by the caller rather than re-checked here.
+deliver() {
+    local dest="$1" src="$2" target
+    case "$dest" in
+        clipboard)
+            to_clipboard "$src"
+            notify "Screenshot" "Copied to clipboard"
+            ;;
+        file | both)
+            mkdir -p "$SHOT_DIR"
+            target="$SHOT_DIR/$(date +"$NAME_FMT")"
+            mv "$src" "$target"
+            # The file is already safe on disk by this point, so a failing
+            # clipboard step must not take the whole run down with it — it
+            # downgrades the message instead.
+            if [[ "$dest" == "both" ]] && to_clipboard "$target"; then
+                notify "Screenshot" "Saved to $target and copied"
+            else
+                notify "Screenshot" "Saved to $target"
+            fi
+            ;;
+    esac
+}
+
+# --- argument parsing --------------------------------------------------
+MODE=""
+DEST=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --full | --window | --region) MODE="${1#--}" ;;
+        --clipboard | --file | --both) DEST="${1#--}" ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            red "dwm-screenshot: unknown option '$1'"
+            usage >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+require maim "the capture backend" || exit 1
+
+# An unset mode or destination is prompted for. dmenu exits non-zero on
+# Escape, which is an abort, not an error.
+if [[ -z "$MODE" ]]; then
+    MODE="$(printf '%s\n' full window region \
+        | dmenu "${DMENU_OPTS[@]}" -l 3 -p "screenshot>")" || exit 0
+fi
+if [[ -z "$DEST" ]]; then
+    DEST="$(printf '%s\n' clipboard file both \
+        | dmenu "${DMENU_OPTS[@]}" -l 3 -p "dest>")" || exit 0
+fi
+
+# Both values are validated before anything is captured. dmenu returns
+# whatever was typed when it matches no entry, and finding that out from
+# deliver() would mean a wasted capture — in region mode, a whole selection
+# drag performed for nothing.
+case "$MODE" in
+    full | window | region) ;;
+    *)
+        red "dwm-screenshot: unknown mode '$MODE'"
+        exit 1
+        ;;
+esac
+case "$DEST" in
+    clipboard | file | both) ;;
+    *)
+        red "dwm-screenshot: unknown destination '$DEST'"
+        exit 1
+        ;;
+esac
+
+TMP="$(mktemp -t dwm-screenshot.XXXXXX.png)"
+
+rc=0
+capture "$MODE" "$TMP" || rc=$?
+# 2 is "user pressed Escape in slop" — silent, successful exit.
+if ((rc == 2)); then exit 0; fi
+if ((rc != 0)); then exit "$rc"; fi
+
+if [[ ! -s "$TMP" ]]; then
+    red "dwm-screenshot: capture produced an empty file"
+    exit 1
+fi
+
+deliver "$DEST" "$TMP"
