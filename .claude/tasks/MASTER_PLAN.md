@@ -21,7 +21,7 @@ when slots run concurrently.
   - [x] 7. status bar blocks — Layout A, 10 blocks + tray (order locked) — `d2a2c57`
   - [x] 8. thunar finalization (archives, thumbnails, defaults, terminal) — `b11fd73`
   - [ ] 9. fastfetch + starship theming + cava removal + docs
-  - [ ] 10. picom performance tuning (template + base config in lockstep)
+  - [x] 10. picom performance tuning (template + base config in lockstep) — `f4a44aa`
   - [ ] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07)
 
   Order: 1 and 2 first (independent, unblock the rest); 3 before 8;
@@ -39,6 +39,15 @@ when slots run concurrently.
   every media/volume/theming/screenshot/lock key is inert, no `pgrep` means
   `dwm-lock --daemon` loses its duplicate-daemon guard. Needs one pass over
   the whole roster, not another follow-up line.
+- **Make CI invoke `tests/build.sh` and `tests/lint.sh` instead of
+  duplicating them.** Sub-task 10 added a `tests` job that runs `tests/*.sh`
+  by glob, but it skips those two — the first needs the X11 toolchain, the
+  second needs shellcheck/shfmt/markdownlint, and running them on a bare
+  ubuntu-latest runner would make the job red. The `build-suckless` and
+  `lint` jobs already provide exactly those environments, but they
+  re-implement the same checks inline rather than calling the scripts. So
+  both scripts could rot without CI noticing, and the inline copies can
+  drift from them. Have those two jobs call the scripts.
 - **Fix the `pipefail` SIGPIPE bug in `install-restore-theme.sh`.**
   `theme_is_ours` and `theme_backed_up` both pipe into `grep -qxF`; grep's
   early exit SIGPIPEs `cut`, and under `set -o pipefail` the pipeline

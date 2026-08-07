@@ -649,3 +649,58 @@ directory for the running history.
   `fef865a`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
   pkglist + build pass, plus 44 assertions across 9 scenarios, six mutants all
   caught, and 12 mime types resolved through real GIO.
+
+## 2026-08-07 — roster Epic, sub-task 10/11: picom performance tuning
+- **`config/picom/picom.conf` and `config/theme/templates/always/picom.dcol`
+  retuned identically**: `shadow = false` (retiring `shadow-radius`,
+  `-opacity`, `-offset-x`, `-offset-y`, `-color` and the whole
+  `shadow-exclude` list), `unredir-if-possible = true`, and the removal of
+  `detect-rounded-corners` and `detect-transient`. `wintypes` shrank to one
+  `tooltip` entry — every other block existed only to switch shadows off per
+  window type.
+- **Both this host and Fedora 43/44 ship picom v13**, and the user confirmed
+  this machine *is* the target, so every option was checked against the
+  installed v13 man page rather than inferred. All 23 options in the previous
+  config were still valid — nothing had bit-rotted.
+- **`unredir-if-possible` with no delay** (user choice of three). Upstream is
+  blunt that it is "known to cause flickering when redirecting/unredirecting
+  windows"; accepted deliberately — one frame entering or leaving fullscreen
+  against a saving on every frame in between. v13's WINDOW RULES `unredir` key
+  is the per-window escape hatch; `unredir-if-possible-exclude` is discouraged
+  upstream.
+- **`detect-transient` came out during the audit, not the plan.** It groups
+  windows via `WM_TRANSIENT_FOR` so a group counts as focused together, which
+  only changes rendering if focus does — and here it cannot: `inactive-opacity`
+  equals `active-opacity`, with no `inactive-dim` or `focus-exclude`. It read a
+  property per window to feed a decision with no output. Same reasoning that
+  had already removed `detect-rounded-corners`.
+- **`picom.dcol` now has zero `<wallbash_*>` placeholders** — `shadow-color`
+  was the only one. The user was offered deleting the template outright (which
+  would have removed the lockstep hazard the scope file calls this sub-task's
+  highest risk) and chose to keep it, so the two files must still be edited
+  together by hand.
+- **`tests/picom-lockstep.sh` (new)** runs the real template engine against the
+  static palette and diffs the output against `picom.conf`, so drift is a red
+  build rather than a silent revert. Six mutants, all caught.
+- **Testing the engine is itself hazardous, and that shaped the test.** Running
+  the whole `always` group fires every post-command, three of which act on the
+  live session: `pkill -x dunst`, `pkill -x dwmblocks`, `xrdb -merge`. `pkill`
+  matches by process name system-wide, so XDG/HOME sandboxing cannot contain
+  it. The test points the engine at a throwaway tree holding only `picom.dcol`,
+  with a fake `pkill` on `PATH`; dunst kept the same PID throughout.
+- **DEVIATION — `.github/workflows/ci.yml` moved into Allowed** (user-approved
+  mid-task). CI lints `tests/*.sh` but has never executed them, so the new test
+  would have been linted and never run. A `tests` job now runs them by glob.
+  `build.sh` and `lint.sh` are skipped by name with the reason printed — they
+  need the X11 toolchain and the three linters respectively — which also means
+  **those two have never run in CI and still do not**; the workflow's inline
+  reimplementations are what execute.
+- **Open:** picom has never parsed this config (not running here; launching it
+  would composite over the live session, and a dead `DISPLAY` makes it bail
+  before reading the file, with no Xvfb available); making the `lint` and
+  `build-suckless` jobs invoke the scripts instead of duplicating them is now
+  queued below.
+- See `.claude/changes/2026-08-07-picom-perf-tuning.md`. Commits `f4a44aa`,
+  `291dfb3`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + lockstep + build pass, six mutants caught, and the new CI job
+  verified to exit 1 on drift.
