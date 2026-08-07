@@ -18,7 +18,7 @@ when slots run concurrently.
   - [x] 4. sxhkd keybind split with dwm — `b8a17e0`
   - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
   - [x] 6. lock / idle — xss-lock + xset + slock — `4ebf84b`
-  - [ ] 7. status bar blocks — Layout A, 10 blocks + tray (order locked)
+  - [x] 7. status bar blocks — Layout A, 10 blocks + tray (order locked) — `d2a2c57`
   - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)
   - [ ] 9. fastfetch + starship theming + cava removal + docs
   - [ ] 10. picom performance tuning (template + base config in lockstep)

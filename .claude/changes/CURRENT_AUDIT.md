@@ -546,3 +546,51 @@ directory for the running history.
   `7dced3f`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
   pkglist + build pass, plus 64 assertions across 22 scenarios and four
   sandboxed installer runs.
+
+## 2026-08-07 — roster Epic, sub-task 7/11: status bar blocks (Layout A)
+- **Seven new block scripts** under `suckless/dwmblocks/scripts/` — `dwm-updates`,
+  `dwm-disk`, `dwm-temp`, `dwm-brightness-block`, `dwm-mic`, `dwm-vol`,
+  `dwm-bluetooth` — completing the locked ten-row order
+  `UPD DISK TEMP CPU MEM GAMMA MIC VOL BT clock`, systray still furthest right.
+  The three pre-existing blocks were renumbered (cpu 1->4, ram 2->5, clock
+  3->10) in lockstep with `blocks.def.h`.
+- **Blocks 6-8 run at interval 0 — signal-driven only, never polled.** That is
+  locked decision 9 applied to the three values that change only on a keypress;
+  sub-task 4's `pkill -RTMIN+6/7/8 dwmblocks` senders are what refresh them.
+  Verified mechanically that those three signals map to exactly those blocks.
+  Accepted cost: changing volume/mic/gamma from a shell leaves the bar stale
+  until the next keypress.
+- **DEVIATION — `suckless/dwm/config.def.h` moved from Forbidden into Scope**
+  (surfaced before writing `dwm-vol`, resolved by the user). The locked table
+  gives block 8 "scroll -> +/-5%", but dwm bound `ClkStatusText` for Button1/2/3
+  only, so scroll was discarded before any block saw it. Two rows in `buttons[]`
+  fix it for every block. **Consequence: this needs a dwm rebuild, not just a
+  dwmblocks one** — existing installs need `rm -f suckless/dwm/config.h` before
+  `install-suckless.sh --skip-deps`. Documented inline in `KEYBINDINGS.md`.
+- **`updates` is `dnf -C check-update`, cache-only** (user choice of three).
+  `-C` is load-bearing, not an optimisation: dwmblocks runs blocks
+  synchronously, so one network-bound block stalls the entire bar. Fedora's own
+  `dnf-makecache.timer` keeps metadata fresh, so no unit of ours is needed.
+  **Unverified — no dnf on this Arch host.**
+- **The brightness block is `dwm-brightness-block`, not `dwm-brightness`.**
+  Blocks install to `~/.local/bin`, which `.zshenv` puts *ahead* of
+  `~/.config/dwm/bin`, so the natural name would have shadowed the control
+  script it calls and sxhkd's `dwm-brightness up` would have invoked the status
+  block instead — silently. Only collision in the roster; found by checking.
+  Its label is `GAMMA` per locked decision 12, since `xrandr` scales the output
+  signal and saves no power.
+- **`dwm-temp` matches sensors by name, never by hwmon number**, and prints
+  `n/a` rather than falling back. This host proves the risk: its `hwmon0` *is*
+  the NVMe drive, so "first sensor with `temp1_input`" would report drive
+  temperature as CPU temperature.
+- **Two harness bugs found mid-run, both of which had produced a false pass:** a
+  `\-C` pattern bash never matches literally, and a `${FAKE_BRIGHT:-70}` whose
+  `:-` substituted the default for the deliberately-empty value, so the "xrandr
+  returned nothing" case had never run. Both folded into the testing memory.
+- **Open:** `tests/lint.sh`'s `-maxdepth 2 -name '*.sh'` glob excludes all ten
+  block scripts — third sub-task to raise it and now the most acute, this one
+  adding 452 lines CI never sees; `SC1090` fires on all ten; `dwm-updates` is
+  unverified against real `dnf5`; nothing has rendered in a real dwm bar.
+- See `.claude/changes/2026-08-07-statusbar-blocks.md`. Commits `d2a2c57`,
+  `b8a9dce`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
+  plus 53 assertions across 29 scenarios and five mutants, all caught.
