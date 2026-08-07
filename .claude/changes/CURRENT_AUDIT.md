@@ -594,3 +594,58 @@ directory for the running history.
 - See `.claude/changes/2026-08-07-statusbar-blocks.md`. Commits `d2a2c57`,
   `b8a9dce`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
   plus 53 assertions across 29 scenarios and five mutants, all caught.
+
+## 2026-08-07 — roster Epic, sub-task 8/11: thunar finalization
+- **Five new config files**, none of which existed before — `config/thunar/
+  {thunarrc,uca.xml}`, `config/xfce4/helpers.rc`, `config/mimeapps.list`,
+  `config/applications/dots-nvim.desktop` — deployed by a new
+  `scripts/install-restore-apps.sh` (sourced by `install-restore.sh`) and
+  removed by a new `scripts/uninstall-apps.sh` (its own file because
+  `uninstall_steps.sh` sits at 230 of the 250-line cap).
+- **All COPIED, never symlinked.** Thunar rewrites `uca.xml`,
+  xfce4-mime-settings rewrites `helpers.rc`, GIO rewrites `mimeapps.list` —
+  a symlink would send every one of those writes into this repo. Same rule
+  that keeps `config/dunst` and `config/picom` out of `symlinks.sh`, which
+  was accordingly in the plan's Forbidden list.
+- **`thunarrc` is a one-time migration file, not the live config.** Thunar
+  4.20 keeps preferences in the xfconf `thunar` channel; upstream
+  `thunar_preferences_init()` reads `thunarrc` only when xfconf has no
+  `/last-view` and skips any property xfconf already holds. This host proves
+  it — `thunar.xml` has `/last-view` and no `thunarrc` exists at all. So the
+  mechanism that actually applies preferences is a guarded `xfconf-query`
+  pass; `thunarrc` survives only for a fresh box that has never launched
+  Thunar *and* had no session D-Bus at install time. The pass **only sets a
+  property with no value yet**, so an installer re-run never reverts a choice
+  made in Thunar's own dialog.
+- **`exo-open --launch TerminalEmulator` no longer works unaided** (user
+  decision, re-asked). exo 4.15.1 moved the helper framework out
+  ("Removed binaries: exo-compose-mail, exo-helper-2") into xfce4-settings,
+  which ships `xfce4-mime-helper` and the `/usr/share/xfce4/helpers/*.desktop`
+  definitions. Proved by intercepting the call with a fake `xfce4-mime-helper`
+  on `PATH`. The user's first answer ("helpers.rc only, no package") rested on
+  the opposite premise, so it was surfaced with the evidence and re-asked
+  rather than shipped inert; `xfce4-settings` is now in `extra.lst` for that
+  one binary. `alacritty.desktop` ships upstream there, so no custom helper
+  file was needed.
+- **GIO silently drops any `.desktop` whose `Exec` binary is missing** — found
+  while verifying `mimeapps.list` against real GIO, where the archive entries
+  looked broken until the stub pointed at a binary that exists. Hence
+  `TryExec=alacritty` on `dots-nvim.desktop`, which degrades cleanly instead
+  of leaving `text/plain` on a launcher that cannot run.
+- **Audit caught a real shipped-code bug class:** `producer | grep -q` under
+  `set -o pipefail` returns 141 even when grep matched, because grep's early
+  exit SIGPIPEs the producer. Demonstrated 5/5 on a 200k-row manifest. Fixed
+  in the new `app_is_ours`; `install-restore.sh:72` already carried a `|| true`
+  for the same trap, and **`install-restore-theme.sh` still has it** in two
+  functions — left alone as it was outside this plan's Allowed list.
+- `docs/THUNAR.md` is new; `docs/UNINSTALL.md`'s category list gained both the
+  new **app configs** entry and the **theme files** entry it had been missing
+  since the theming Epic.
+- **Open:** `xfconf`/`desktop-file-utils` undeclared (transitive thunar deps,
+  both `command -v` guarded) — fifth sub-task feeding the core.lst pass; the
+  44-assertion harness is scratchpad-only, as sub-tasks 5-7's were; nothing has
+  been run against a real Fedora box or a launched Thunar.
+- See `.claude/changes/2026-08-07-thunar-finalization.md`. Commits `b11fd73`,
+  `fef865a`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + build pass, plus 44 assertions across 9 scenarios, six mutants all
+  caught, and 12 mime types resolved through real GIO.

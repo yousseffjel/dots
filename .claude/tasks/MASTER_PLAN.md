@@ -19,7 +19,7 @@ when slots run concurrently.
   - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
   - [x] 6. lock / idle — xss-lock + xset + slock — `4ebf84b`
   - [x] 7. status bar blocks — Layout A, 10 blocks + tray (order locked) — `d2a2c57`
-  - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)
+  - [x] 8. thunar finalization (archives, thumbnails, defaults, terminal) — `b11fd73`
   - [ ] 9. fastfetch + starship theming + cava removal + docs
   - [ ] 10. picom performance tuning (template + base config in lockstep)
   - [ ] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07)
@@ -39,6 +39,17 @@ when slots run concurrently.
   every media/volume/theming/screenshot/lock key is inert, no `pgrep` means
   `dwm-lock --daemon` loses its duplicate-daemon guard. Needs one pass over
   the whole roster, not another follow-up line.
+- **Fix the `pipefail` SIGPIPE bug in `install-restore-theme.sh`.**
+  `theme_is_ours` and `theme_backed_up` both pipe into `grep -qxF`; grep's
+  early exit SIGPIPEs `cut`, and under `set -o pipefail` the pipeline
+  returns 141 *even on a match*, so a file the installer deployed is
+  misreported as one to leave alone. Demonstrated 5/5 on a 200k-row
+  manifest during sub-task 8, which fixed the same bug in its own new
+  code. `install-restore.sh:72` already carries a `|| true` and a
+  five-line comment for the identical trap in a `comm | head`, so this is
+  the third site. Low urgency — the theme manifest is a handful of rows,
+  far from the scale that triggers it — but it is shipped code. Note
+  `|| true` is not the fix; it maps 141 to 0, the opposite wrong answer.
 - **Bound `xresources.dcol`'s `xrdb -merge` post-command.** It is
   unbounded, unlike `reload.sh`'s, which wraps its `xrdb` in
   `timeout 10`. A hung X server hangs the whole template run.
