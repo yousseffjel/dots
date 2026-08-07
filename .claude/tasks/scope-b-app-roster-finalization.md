@@ -62,6 +62,19 @@ directives given in-chat; the decisions they settled are recorded under
    icons), as does `60-aliases.zsh`'s pre-existing `eza --icons`. Without a
    packaged Nerd Font a fresh Fedora install renders tofu. Caskaydia drives
    the prompt/terminal, JetBrains Mono stays for UI surfaces.
+15. **The font family string is `Cascadia Code NF`, not `CaskaydiaCove
+   Nerd Font`.** Corrected 2026-08-07 during sub-task 3. Fedora's
+   `cascadia-code-nf-fonts` ships *Microsoft's* Nerd-Font release
+   (`CascadiaCodeNF-*.otf`, family `Cascadia Code NF`, declared in
+   `/usr/share/fontconfig/conf.avail/60-cascadia-code-nf-fonts.conf`), not
+   the ryanoasis/nerd-fonts patch that names the family `CaskaydiaCove`.
+   The dev machine has the nerd-fonts build under
+   `~/.local/share/fonts`, which is why `CaskaydiaCove` resolves there and
+   would render tofu on a fresh Fedora box. `extra.lst`'s comment at line
+   67 conflates the two — harmless, but do not derive a family name from
+   it. The ligature cut was chosen over `cascadia-mono-nf-fonts`; do not
+   install both, since each package's fontconfig rule claims the
+   `monospace` alias and the winner is load-order dependent.
 11. **zoxide replaces `cd` outright** (`zoxide init zsh --cmd cd`). `cdi`
    becomes the interactive picker. Must degrade safely: `80-tools.zsh`
    already guards on `(( $+commands[zoxide] ))`, so a missing binary
@@ -311,19 +324,51 @@ directives given in-chat; the decisions they settled are recorded under
 - Depends on: nothing. Independent of every other sub-task.
 - Est. sessions: 1.
 
+## Sub-task 11 — dynamic scratchpads (dwm patch swap)
+
+- Added 2026-08-07, mid sub-task 3. The user was asked whether the
+  existing scratchpads should switch from st to alacritty and answered
+  that they want a different model entirely: *"i who put which window of
+  what browser or terminal or anything so i need keybind to put the
+  selected window on scratchpads and key for show it and hide it and one
+  to drop window from scratchpads."*
+- That is **dynamic** assignment — take the focused window, whatever it
+  is, and stash it — not the current pre-declared "spawn this command as
+  scratchpad N" model.
+- Scope: `suckless/dwm/patches/` (vendor the `dynamicscratchpads` diff,
+  retire `dwm-scratchpads-20200414-728d397b.diff`),
+  `suckless/dwm/dwm.c`, `suckless/dwm/config.def.h`,
+  `suckless/dwm/patches/PATCHES.md`, `KEYBINDINGS.md`.
+- **This is the highest-risk sub-task in the Epic.** The two patches are
+  mutually exclusive: the vendored `scratchpads` patch is already baked
+  into `dwm.c` and carves scratchpad tags out of the tag bitmask via
+  `SPTAG()`. Un-baking it means editing `dwm.c` directly and re-capturing
+  a local diff, the same way `dwm-xresources-20260805-local.diff` was
+  produced (see `PATCHES.md`) — `patch -p1` will not apply cleanly against
+  an 11-patch-deep tree.
+- Must be checked against `pertag` and `hide_vacant_tags`, both of which
+  read the tag bitmask the current patch steals from.
+- Removes `spcmd1`/`spcmd2`/`spcmd3` and their `rules[]` entries, so it
+  also retires the `ranger` and `keepassxc` scratchpads — **neither is in
+  `packages/*.lst` today**, so both are currently dead keybinds anyway.
+- Depends on: sub-task 4 (owns the keybind map; the three new bindings
+  land there or here, not both).
+- Est. sessions: 1-2.
+
 ---
 
 ## Sequencing
 
 1 and 2 are independent and unblock everything else. 3 before 8. 4
-before 5 and 6. 7 and 10 are independent. 9 last — it documents the
+before 5, 6 and 11. 7 and 10 are independent. 9 last — it documents the
 final state.
 
 ```
 1 (zsh) ─┐
 2 (pkgs) ┼─> 3 (alacritty) ──> 8 (thunar) ──┐
          ├─> 4 (sxhkd) ─┬─> 5 (screenshot) ─┼─> 9 (docs)
-         │              └─> 6 (lock/idle) ──┤
+         │              ├─> 6 (lock/idle) ──┤
+         │              └─> 11 (scratchpad) ┤
          └─> 7 (statusbar) ─────────────────┤
 10 (picom) ───────────────────────────────── ┘
 ```

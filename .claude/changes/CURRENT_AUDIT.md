@@ -376,3 +376,34 @@ directory for the running history.
   category.
 - See `.claude/changes/2026-08-06-packages-roster-fonts.md`. Audit: READY.
   Reviewer: BLOCK -> fixed -> READY. Tests: lint + pkglist pass.
+
+## 2026-08-07 — roster Epic, sub-task 3/11: alacritty as main terminal
+- alacritty becomes dwm's `termcmd`; st stays vendored, patched and themed as
+  the no-GPU fallback (locked decision 1). Both terminals now agree slot-for-slot
+  on the 16 ANSI colours.
+- **The theming route is the reusable part.** `config/alacritty/` is symlinked,
+  so the engine must never write into it — the hazard that forced `config/dunst`
+  and `config/picom` to be *copied*. Alacritty's `general.import` sidesteps the
+  trade: colours render to `${cacheDir}/alacritty-colors.toml`, the config
+  imports that path, and the repo directory stays fully symlinkable. Recorded as
+  a third target style in `config/theme/templates/always/README.md`.
+- **Locked decision 15 — the font family is `Cascadia Code NF`, not
+  `CaskaydiaCove Nerd Font`.** Fedora's `cascadia-code-nf-fonts` ships
+  *Microsoft's* NF release, not the ryanoasis patch. The dev host carries the
+  ryanoasis build under `~/.local/share/fonts`, so the wrong spelling resolves
+  here and would have rendered tofu on a clean Fedora box. `fc-match` on a wrong
+  family returns DejaVu Sans — it degrades silently, never errors. This closed
+  the open follow-up from sub-task 2: dwm/dmenu asked for `monospace`, st for
+  `Liberation Mono`; all three now name the packaged font.
+- **One assumption ships unproven and is flagged as such at all three sites:**
+  that `live_config_reload` fires on a rewrite of the *imported* file. It is the
+  sole reason `reload.sh` gains no alacritty step. The reviewer returned WARN on
+  the first round precisely because the shipped comments asserted it as fact;
+  rewritten to separate verified from assumed, with the symptom and remedy named.
+- **New sub-task 11 — dynamic scratchpads.** Raised by the user mid-task: they
+  want to stash the *focused* window (any app) into a scratchpad, toggle it, and
+  drop it back out. That is the `dynamicscratchpads` dwm patch replacing the
+  vendored `scratchpads` one — recorded in the scope file as the Epic's
+  highest-risk item rather than folded into a terminal task.
+- See `.claude/changes/2026-08-07-alacritty-main-terminal.md`. Audit: READY.
+  Reviewer: WARN -> fixed -> READY. Tests: lint + pkglist + build pass.

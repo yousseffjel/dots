@@ -1,5 +1,7 @@
 # MASTER_PLAN — dots
 
+Last Updated: 2026-08-07
+
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
 
@@ -7,12 +9,12 @@ when slots run concurrently.
 
 ## Active
 
-- **Epic: app / tool / package roster finalization.** 10 sub-tasks, one
+- **Epic: app / tool / package roster finalization.** 11 sub-tasks, one
   per slot. Scope file: `.claude/tasks/scope-b-app-roster-finalization.md`
   (locked decisions live there — do not re-litigate them).
   - [x] 1. zsh: purge HyDE leftovers, retarget at dwm/X11 (+ starship.toml, zoxide) — `97b41b9`
   - [x] 2. `packages/*.lst` final roster + starship adoption + Nerd Font — `1129cf9`
-  - [ ] 3. alacritty as main terminal (st retained as fallback)
+  - [x] 3. alacritty as main terminal (st retained as fallback) — `f5f148a`
   - [ ] 4. sxhkd keybind split with dwm
   - [ ] 5. screenshot — maim + slop + dmenu mode menu
   - [ ] 6. lock / idle — xss-lock + xset + slock
@@ -20,9 +22,10 @@ when slots run concurrently.
   - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)
   - [ ] 9. fastfetch + starship theming + cava removal + docs
   - [ ] 10. picom performance tuning (template + base config in lockstep)
+  - [ ] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07)
 
   Order: 1 and 2 first (independent, unblock the rest); 3 before 8;
-  4 before 5 and 6; 7 and 10 independent; 9 last.
+  4 before 5, 6 and 11; 7 and 10 independent; 9 last.
 
 ---
 
