@@ -141,6 +141,21 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
   `config/picom` are deliberately absent from `symlinks.sh`: the engine
   rewrites those whole files, and a symlink would make every wallpaper
   change write into this git repo. The installer copies them instead.
+- **picom is a themed target in name only.** `picom.dcol` has no
+  `<wallbash_*>` placeholders left. It had exactly one — `shadow-color` —
+  and the performance pass dropped shadows entirely, which retired it. The
+  template is kept anyway so that every deployed config still has a
+  template behind it, but it now regenerates a file byte-identical to
+  `config/picom/picom.conf` on every wallpaper change. Deleting it was
+  weighed and declined.
+
+  The consequence is a maintenance trap: **`config/picom/picom.conf` and
+  `config/theme/templates/always/picom.dcol` must be edited together.** The
+  first is what a fresh install gets; the second is what every wallpaper
+  change writes over it. A setting changed in only one looks correct after
+  install and is silently reverted the first time the wallpaper changes.
+  `tests/picom-lockstep.sh` generates from the template and diffs the two,
+  so that drift fails a test instead of surfacing weeks later.
 
 ## How reload works, per tool
 
@@ -152,7 +167,7 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
 | slock | `slock.initcolor`, … | next invocation |
 | dwmblocks | `statusbar-colors.sh` | restart — block scripts read the palette at exec time, so there is nothing to signal |
 | dunst | its own generated `dunstrc` | killed; D-Bus reactivates it on the next notification |
-| picom | its own generated `picom.conf` | `pkill -USR1` reloads config in place |
+| picom | nothing — see below | `pkill -USR1` reloads config in place |
 | GTK 3 | generated `gtk.css` | none needed — GtkCssProvider watches the file |
 
 dmenu, powermenu and clipmenu pass **no** `-nb/-nf/-sb/-sf` flags on

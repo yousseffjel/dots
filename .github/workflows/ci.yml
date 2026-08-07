@@ -45,6 +45,46 @@ jobs:
           npx --yes "markdownlint-cli@${MARKDOWNLINT_VERSION}" \
             "**/*.md" --config .markdownlint.yaml --ignore-path .markdownlintignore
 
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Until this job existed, tests/*.sh was linted by the job above but
+      # never executed, so a test could fail indefinitely without anyone
+      # noticing. Runs every test that needs nothing beyond bash + coreutils,
+      # discovered by glob, so a test added later is picked up automatically.
+      #
+      # Two are skipped deliberately, each already covered by a job below that
+      # provides an environment this runner does not:
+      #   build.sh — needs the X11 build toolchain (see build-suckless, which
+      #              runs the same builds inside a Fedora container).
+      #   lint.sh  — needs shellcheck/shfmt/markdownlint (see the lint job,
+      #              which runs the same three checks).
+      - name: Run repo tests
+        run: |
+          skip="build.sh lint.sh"
+          fail=0
+          for t in tests/*.sh; do
+            name="$(basename "$t")"
+            case " $skip " in
+              *" $name "*)
+                echo "skip: $name (covered by a dedicated job)"
+                continue
+                ;;
+            esac
+            echo "::group::$name"
+            if bash "$t"; then
+              echo "OK: $name"
+            else
+              echo "::error file=$t::$name failed"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$fail"
+
   build-suckless:
     name: build-suckless (${{ matrix.fedora }})
     runs-on: ubuntu-latest
