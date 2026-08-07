@@ -5,7 +5,12 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+/* Same family and same point size as alacritty (config/alacritty/alacritty.toml).
+ * st is the no-GPU fallback terminal, so it should be visually indistinguishable
+ * from the primary one. Specified in points rather than the upstream default's
+ * pixelsize so both terminals scale identically with DPI — pixelsize=12 worked
+ * out roughly 9pt at 96dpi and would have left st visibly smaller. */
+static char *font = "Cascadia Code NF:size=11:antialias=true:autohint=true";
 static int borderpx = 2;
 
 /*

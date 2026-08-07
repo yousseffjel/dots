@@ -1,0 +1,102 @@
+# Alacritty — the primary terminal (st stays as the no-GPU fallback).
+#
+# This file is DEPLOYED AS A SYMLINK by scripts/symlinks.sh, so nothing may
+# ever write to it — an in-place rewrite would land inside the dots repo.
+# That is why no colours live here. The theming engine renders the palette
+# to a separate file under the cache directory and this config imports it;
+# see config/theme/templates/always/alacritty.dcol.
+#
+# Contrast with config/dunst and config/picom, which are COPIED rather than
+# symlinked precisely because the engine rewrites those whole files.
+#
+# Verified against alacritty 0.17.0, which is what Fedora 44 and rawhide
+# both ship — the `[general]` and `[terminal]` tables used below were
+# introduced in 0.14 and are not available on older releases.
+
+[general]
+# The import target is written by the theming engine and is deliberately
+# ALLOWED TO BE ABSENT: on a fresh install nothing has generated a palette
+# yet. Verified on 0.17.0 that a missing import is not fatal — alacritty
+# starts normally, exits 0, and logs the miss without touching stderr. Until
+# the first `scripts/theme/wallpaper.sh` run, the built-in default colours
+# apply.
+#
+# The path must be spelled with a literal `~`. Alacritty expands `~` to the
+# home directory but performs NO environment-variable expansion, so it
+# cannot follow $XDG_CACHE_HOME the way the engine does
+# (`${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme`). The two agree on every
+# default setup. If you genuinely relocate XDG_CACHE_HOME, edit this line to
+# the absolute path — there is no portable spelling that covers both.
+import = ["~/.cache/dots/theme/alacritty-colors.toml"]
+
+# Intended to pick the imported palette up without a restart, which is why
+# alacritty has no step in scripts/theme/reload.sh — every other themed app
+# needs an explicit signal there.
+#
+# Confidence, stated honestly: alacritty's own startup log lists imports
+# alongside the main file under "Configuration files loaded from", and that
+# set is what its config watcher watches — so this SHOULD hold. It was not
+# observed end to end, because a windowed reload could not be reproduced in
+# the environment this was developed in. If a wallpaper change ever leaves
+# an already-open terminal on the old palette, this assumption is the thing
+# that broke, and the fix is a `pkill -USR1`-style step in reload.sh.
+live_config_reload = true
+
+[window]
+padding = { x = 8, y = 8 }
+# Fixed padding, not dynamic: dynamic_padding redistributes leftover pixels
+# on every resize, and under a tiling WM windows resize constantly.
+dynamic_padding = false
+# dwm sets the window title from the client; letting the shell drive it
+# keeps the bar's title region meaningful.
+dynamic_title = true
+# Fully opaque, deliberately. Locked decision 9 tunes this desktop for
+# performance, and a transparent terminal forces picom to composite the
+# window contents on every frame instead of letting it stay unredirected.
+opacity = 1.0
+
+[scrolling]
+history = 10000
+multiplier = 3
+
+[font]
+# Cascadia Code NF is the family name Fedora's cascadia-code-nf-fonts
+# actually registers — it packages Microsoft's own Nerd Font release, NOT
+# the ryanoasis/nerd-fonts patch that names the same typeface
+# "CaskaydiaCove Nerd Font". Using the CaskaydiaCove spelling here would
+# silently fall through fontconfig to plain monospace on a clean Fedora box
+# and every glyph in the starship prompt would render as tofu.
+size = 11.0
+
+[font.normal]
+family = "Cascadia Code NF"
+style = "Regular"
+
+[font.bold]
+family = "Cascadia Code NF"
+style = "Bold"
+
+[font.italic]
+family = "Cascadia Code NF"
+style = "Italic"
+
+[font.bold_italic]
+family = "Cascadia Code NF"
+style = "Bold Italic"
+
+[cursor]
+# Block, not beam: it stays legible against a wallpaper-derived palette
+# whose contrast is not known ahead of time. Blinking is off because a
+# blinking cursor forces a redraw on a timer forever, even on an idle
+# terminal.
+style = { shape = "Block", blinking = "Off" }
+unfocused_hollow = true
+
+[selection]
+# Selecting does not clobber the clipboard — clipmenu (Super+v) records
+# every clipboard change, and auto-copy would fill its history with stray
+# mouse drags.
+save_to_clipboard = false
+
+[mouse]
+hide_when_typing = true

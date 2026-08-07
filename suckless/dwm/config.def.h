@@ -10,8 +10,15 @@ static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display 
 static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
+/* "Cascadia Code NF" is the family Fedora's cascadia-code-nf-fonts actually
+ * registers — it packages Microsoft's Nerd Font release, not the
+ * ryanoasis/nerd-fonts patch that calls the same typeface "CaskaydiaCove
+ * Nerd Font". The bar needs the Nerd glyph range for the status blocks, so
+ * a wrong family here falls through fontconfig to plain monospace and every
+ * icon renders as tofu. The second entry is the fallback dwm walks when a
+ * codepoint is missing from the first. */
+static const char *fonts[]          = { "Cascadia Code NF:size=10", "monospace:size=10" };
+static const char dmenufont[]       = "Cascadia Code NF:size=10";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
@@ -105,7 +112,11 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
  * them omitted dmenu uses the themed values when the theming engine has
  * run, and the config.def.h defaults otherwise. */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
-static const char *termcmd[]  = { "st", NULL };
+/* alacritty is the primary terminal (GPU-accelerated, themed via
+ * config/alacritty/alacritty.toml). st stays vendored, patched and
+ * xresources-themed as the fallback for a machine with no working GL —
+ * launch it by name from dmenu when that happens. */
+static const char *termcmd[]  = { "alacritty", NULL };
 static const char *powermenucmd[] = { "dwm-powermenu", NULL };
 static const char *clipmenucmd[]  = { "dwm-clipmenu", NULL };
 

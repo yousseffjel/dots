@@ -25,9 +25,13 @@ static unsigned int border_width = 2;
  * so this value is what a bare `dmenu` call on the terminal picks up.
  * Note: do not add a colour-emoji fallback here. Xft hands dmenu a colour
  * bitmap glyph it cannot render and the process dies with BadLength unless the
- * allow-color-font patch is applied on top. */
+ * allow-color-font patch is applied on top.
+ * Single entry on purpose: this must match dwm's `dmenufont` exactly. dwm's
+ * bar carries an extra "monospace" fallback because it renders the status
+ * blocks' Nerd glyphs; a launcher showing command names does not need one,
+ * and fontconfig already substitutes if the family is absent. */
 static const char *fonts[] = {
-	"monospace:size=10"
+	"Cascadia Code NF:size=10"
 };
 static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
 

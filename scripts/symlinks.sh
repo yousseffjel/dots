@@ -32,11 +32,16 @@ BACKUP_DIR="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
 # and config/picom are deliberately absent — apply-templates.sh regenerates
 # those whole files, and a symlink would make it write into this repo. The
 # installer copies them instead.
+#
+# config/alacritty IS safe to link even though alacritty is themed: the engine
+# writes only $XDG_CACHE_HOME/dots/theme/alacritty-colors.toml, which
+# alacritty.toml imports. Nothing ever rewrites alacritty.toml itself.
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
     "$CONFIG_DIR/dwm:$HOME/.config/dwm"
     "$CONFIG_DIR/starship:$HOME/.config/starship"
+    "$CONFIG_DIR/alacritty:$HOME/.config/alacritty"
 )
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }

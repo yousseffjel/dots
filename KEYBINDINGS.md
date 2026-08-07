@@ -10,16 +10,32 @@ Two modifiers are in play:
 
 Bindings that spawn a program run it with `execvp` and no shell, so they
 use bare command names resolved through `PATH`. `~/.config/dwm/bin` is on
-`PATH` via `config/zsh/conf.d/20-path.zsh`.
+`PATH` via `config/zsh/.zshenv`.
 
 ## Launching
 
 | Keys | Action |
 | --- | --- |
 | `Mod` + `p` | `dmenu_run` application launcher |
-| `Mod` + `Shift` + `Return` | Terminal (`st`) |
+| `Mod` + `Shift` + `Return` | Terminal (`alacritty`) |
 | `Super` + `Shift` + `x` | Power menu (`dwm-powermenu`) |
 | `Super` + `v` | Clipboard history (`dwm-clipmenu`) |
+
+**st is still installed** as the fallback terminal for a machine with no
+working GL — alacritty is GPU-accelerated and will refuse to start without
+it. There is no keybinding for st; run `st` from dmenu (`Mod` + `p`) if
+alacritty ever fails to launch. Both read the same wallpaper-derived
+palette, so they look alike.
+
+> **Changing the terminal or the fonts requires a rebuild, and one extra
+> step.** `suckless/*/config.h` is generated from `config.def.h` on the
+> first build and then left alone, so an existing install keeps its old
+> values. Delete the stale headers first:
+>
+> ```sh
+> rm -f suckless/{dwm,dmenu,st}/config.h
+> scripts/install-suckless.sh --skip-deps
+> ```
 
 ## Window focus and layout
 
