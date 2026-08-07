@@ -17,7 +17,7 @@ when slots run concurrently.
   - [x] 3. alacritty as main terminal (st retained as fallback) — `f5f148a`
   - [x] 4. sxhkd keybind split with dwm — `b8a17e0`
   - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
-  - [ ] 6. lock / idle — xss-lock + xset + slock
+  - [x] 6. lock / idle — xss-lock + xset + slock — `4ebf84b`
   - [ ] 7. status bar blocks — Layout A, 10 blocks + tray (order locked)
   - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)
   - [ ] 9. fastfetch + starship theming + cava removal + docs
@@ -31,6 +31,14 @@ when slots run concurrently.
 
 ## Queue
 
+- **Decide which roster packages are load-bearing enough for `core.lst`.**
+  Raised and deferred by four separate sub-tasks now — `alacritty` (3),
+  `sxhkd` (4), `maim`/`slop`/`xprop` (5), `procps-ng` (6) — each time into a
+  change log the next sub-task never reads. `extra.lst` is best-effort, so a
+  package that fails to install leaves keybinds silently dead: no sxhkd means
+  every media/volume/theming/screenshot/lock key is inert, no `pgrep` means
+  `dwm-lock --daemon` loses its duplicate-daemon guard. Needs one pass over
+  the whole roster, not another follow-up line.
 - **Bound `xresources.dcol`'s `xrdb -merge` post-command.** It is
   unbounded, unlike `reload.sh`'s, which wraps its `xrdb` in
   `timeout 10`. A hung X server hangs the whole template run.

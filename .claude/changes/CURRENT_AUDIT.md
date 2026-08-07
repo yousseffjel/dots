@@ -494,3 +494,55 @@ directory for the running history.
 - See `.claude/changes/2026-08-07-screenshot-maim-slop.md`. Commits `b2dcb13`,
   `68eed57`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
   plus 70 assertions across 25 scenarios against faked binaries.
+
+## 2026-08-07 — roster Epic, sub-task 6/11: lock / idle (xss-lock)
+- `config/dwm/bin/dwm-lock` (new, 140 lines) owns every path to a locked
+  screen. `--daemon` arms `xset s 600 600` + `xset dpms 0 0 660` then execs
+  `xss-lock -- slock`; bare `dwm-lock` locks now. `super + l` goes live —
+  it was `sxhkdrc`'s last pending binding, so every entry in that file is
+  now active. `dwm-powermenu`'s Lock entry routes through the same script.
+- **`--transfer-sleep-lock` is deliberately omitted, and this is the
+  non-obvious part.** xss-lock(1): the fd "will only be set if the reason for
+  locking is that the system is preparing to go to sleep. The locker should
+  close this file descriptor to indicate it is ready." slock has never heard
+  of `$XSS_SLEEP_LOCK_FD` and never closes it, so the delay inhibitor would be
+  pinned for the whole locked session; logind then waits `InhibitDelayMaxSec`
+  (5s default) and suspends anyway. Up to five seconds added to every suspend
+  for nothing — slock grabs instantly, so there is no readiness to wait on.
+- **Manual lock prefers logind with a fallback** (user decision, offered with
+  all three shapes): `loginctl lock-session` while xss-lock runs, else `slock`
+  directly. Keeps logind's `Locked` state truthful and gives one place to swap
+  the locker, without the silent no-op a bare `loginctl` would produce.
+- **Timings: lock at 10 min, monitor off at 11** (user choice from four
+  options). The ordering carries the reasoning — lock must precede blank or
+  the display goes dark while unlocked and a mouse wiggle lands on a live
+  desktop. Both are named constants at the top of the script.
+- **The autostart line spells the path out in full** rather than trusting
+  PATH, unlike the three system daemons above it. `~/.config/dwm/bin` reaches
+  PATH via `.zshenv`, which only runs if the display manager starts the session
+  through a login zsh. A powermenu that fails to spawn is noticed instantly; a
+  lock daemon that fails to start is noticed the first time the screen doesn't
+  lock. `autostart.sh` is user-owned on creation (rule 6), so that line can
+  never be corrected later — verified by md5 that a pre-existing file comes
+  out byte-identical, with the missing line printed instead.
+- **No rebuild.** `MODKEY` is `Mod1Mask`, so dwm's `XK_l` is `Alt+l`
+  (setmfact); dwm's only Super chords remain `Super+Shift+x` and `Super+v`.
+- **`dwm-lock` contains no command substitutions at all**, so the
+  `var="$(cmd)"`-aborts-silently-under-`set -e` class that produced two bugs in
+  sub-task 4 is structurally absent rather than merely avoided. The one audit
+  finding was different: extra arguments were silently ignored, so
+  `dwm-lock --daemon --transfer-sleep-lock` would have started the daemon and
+  dropped the flag — realistic, given the header explains why that flag is
+  absent. Now rejected by an arity check.
+- **Testing memory extended: mutation-test the harness before believing it.**
+  "64/64 passed" is a claim about the assertions as much as the code, so two
+  mutants (a wrong `LOCK_SECS`, a disabled logind route) were injected and each
+  confirmed to break a different set of assertions before the green run was
+  reported.
+- **Open:** `procps-ng`/`pgrep` is undeclared in `packages/*.lst` while
+  `autostart.sh` and now `dwm-lock` both depend on it — folded into the
+  extra.lst promotion item now queued below.
+- See `.claude/changes/2026-08-07-lock-idle-xss-lock.md`. Commits `4ebf84b`,
+  `7dced3f`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + build pass, plus 64 assertions across 22 scenarios and four
+  sandboxed installer runs.
