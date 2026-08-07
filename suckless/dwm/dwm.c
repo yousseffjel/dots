@@ -55,10 +55,7 @@
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
-#define NUMTAGS					(LENGTH(tags) + LENGTH(scratchpads))
-#define TAGMASK     			((1 << NUMTAGS) - 1)
-#define SPTAG(i) 				((1 << LENGTH(tags)) << (i))
-#define SPTAGMASK   			(((1 << LENGTH(scratchpads))-1) << LENGTH(tags))
+#define TAGMASK                 ((1 << LENGTH(tags)) - 1)
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 
 #define SYSTEM_TRAY_REQUEST_DOCK    0
@@ -237,6 +234,12 @@ static void restack(Monitor *m);
 static void run(void);
 static void runautostart(void);
 static void scan(void);
+static void scratchpad_hide(const Arg *arg);
+static int scratchpad_last_showed_is_killed(void);
+static void scratchpad_remove(const Arg *arg);
+static void scratchpad_show(const Arg *arg);
+static void scratchpad_show_client(Client *c);
+static void scratchpad_show_first(void);
 static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
 static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
@@ -258,7 +261,6 @@ static void tile(Monitor *m);
 static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscr(const Arg *arg);
-static void togglescratch(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -334,6 +336,14 @@ static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
 static XrmDatabase xrdb = NULL;
 
+/* dynamic scratchpads: one tag bit above the real tags marks a stashed
+ * window. Kept out of TAGMASK on purpose, so a scratchpad client is never
+ * shown by an ordinary view() and drawbar's `i < LENGTH(tags)` loop never
+ * draws it. scratchpad_last_showed tracks the cycle position for
+ * scratchpad_show(). */
+#define SCRATCHPAD_MASK         (1u << LENGTH(tags))
+static Client *scratchpad_last_showed = NULL;
+
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -347,7 +357,8 @@ struct Pertag {
 };
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
-struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
+/* 30, not 31: SCRATCHPAD_MASK claims the bit just above the real tags. */
+struct NumTags { char limitexceeded[LENGTH(tags) > 30 ? -1 : 1]; };
 
 /* function implementations */
 void
@@ -377,10 +388,6 @@ applyrules(Client *c)
 			
 			c->isfloating = r->isfloating;
 			c->tags |= r->tags;
-			if ((r->tags & SPTAGMASK) && r->isfloating) {
-				c->x = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
-				c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
-			}
 
 			for (m = mons; m && m->num != r->monitor; m = m->next);
 			if (m)
@@ -393,7 +400,11 @@ applyrules(Client *c)
 		XFree(ch.res_name);
 	if (isfullscreen)
 		setfullscreen(c, 1);
-	c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : (c->mon->tagset[c->mon->seltags] & ~SPTAGMASK);
+	/* A client already stashed in the scratchpad must keep SCRATCHPAD_MASK
+	 * as its whole tag set — falling through to the tagset below would
+	 * un-stash it the moment a rule matched. */
+	if (c->tags != SCRATCHPAD_MASK)
+		c->tags = c->tags & TAGMASK ? c->tags & TAGMASK : c->mon->tagset[c->mon->seltags];
 }
 
 int
@@ -1938,6 +1949,100 @@ scan(void)
 	}
 }
 
+/* Stash the focused window: its whole tag set becomes SCRATCHPAD_MASK, so
+ * no ordinary view shows it again until scratchpad_show() brings it back. */
+void
+scratchpad_hide(const Arg *arg)
+{
+	if (selmon->sel) {
+		selmon->sel->tags = SCRATCHPAD_MASK;
+		selmon->sel->isfloating = 1;
+		focus(NULL);
+		arrange(selmon);
+	}
+}
+
+/* The cycle cursor is a bare pointer, so it can dangle if the window it
+ * names was closed while stashed. unmanage() clears it for the normal
+ * path; this covers a stale pointer surviving by any other route. */
+int
+scratchpad_last_showed_is_killed(void)
+{
+	Client *c;
+
+	for (c = selmon->clients; c; c = c->next)
+		if (c == scratchpad_last_showed)
+			return 0;
+	return 1;
+}
+
+/* Drop the current window out of the scratchpad set permanently: it keeps
+ * whatever tags it is showing on and stops being part of the cycle. */
+void
+scratchpad_remove(const Arg *arg)
+{
+	if (selmon->sel && scratchpad_last_showed == selmon->sel)
+		scratchpad_last_showed = NULL;
+}
+
+/* Bring back a stashed window, cycling on repeat presses. */
+void
+scratchpad_show(const Arg *arg)
+{
+	Client *c;
+	int found_current = 0, found_next = 0;
+
+	if (!scratchpad_last_showed || scratchpad_last_showed_is_killed()) {
+		scratchpad_show_first();
+		return;
+	}
+	/* The cursor names a window that is currently showing, so this press
+	 * stashes it again — that is what makes the same key both show and
+	 * hide. Only once it is stashed does a further press advance. */
+	if (scratchpad_last_showed->tags != SCRATCHPAD_MASK) {
+		scratchpad_last_showed->tags = SCRATCHPAD_MASK;
+		focus(NULL);
+		arrange(selmon);
+		return;
+	}
+	/* Otherwise advance to the next stashed window after the cursor. */
+	for (c = selmon->clients; c; c = c->next) {
+		if (!found_current) {
+			if (c == scratchpad_last_showed)
+				found_current = 1;
+			continue;
+		}
+		if (c->tags == SCRATCHPAD_MASK) {
+			found_next = 1;
+			scratchpad_show_client(c);
+			break;
+		}
+	}
+	if (!found_next)
+		scratchpad_show_first();
+}
+
+void
+scratchpad_show_client(Client *c)
+{
+	scratchpad_last_showed = c;
+	c->tags = selmon->tagset[selmon->seltags];
+	focus(c);
+	arrange(selmon);
+}
+
+void
+scratchpad_show_first(void)
+{
+	Client *c;
+
+	for (c = selmon->clients; c; c = c->next)
+		if (c->tags == SCRATCHPAD_MASK) {
+			scratchpad_show_client(c);
+			break;
+		}
+}
+
 void
 sendmon(Client *c, Monitor *m)
 {
@@ -2177,10 +2282,6 @@ showhide(Client *c)
 	if (!c)
 		return;
 	if (ISVISIBLE(c)) {
-		if ((c->tags & SPTAGMASK) && c->isfloating) {
-			c->x = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
-			c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
-		}
 		/* show clients top down */
 		XMoveWindow(dpy, c->win, c->x, c->y);
 		if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
@@ -2331,32 +2432,6 @@ togglefullscr(const Arg *arg)
 }
 
 void
-togglescratch(const Arg *arg)
-{
-	Client *c;
-	unsigned int found = 0;
-	unsigned int scratchtag = SPTAG(arg->ui);
-	Arg sparg = {.v = scratchpads[arg->ui].cmd};
-
-	for (c = selmon->clients; c && !(found = c->tags & scratchtag); c = c->next);
-	if (found) {
-		unsigned int newtagset = selmon->tagset[selmon->seltags] ^ scratchtag;
-		if (newtagset) {
-			selmon->tagset[selmon->seltags] = newtagset;
-			focus(NULL);
-			arrange(selmon);
-		}
-		if (ISVISIBLE(c)) {
-			focus(c);
-			restack(selmon);
-		}
-	} else {
-		selmon->tagset[selmon->seltags] |= scratchtag;
-		spawn(&sparg);
-	}
-}
-
-void
 toggletag(const Arg *arg)
 {
 	unsigned int newtags;
@@ -2444,6 +2519,11 @@ unmanage(Client *c, int destroyed)
 		XSetErrorHandler(xerror);
 		XUngrabServer(dpy);
 	}
+	/* Must precede free(c): scratchpad_last_showed is a bare pointer into
+	 * the client list, so leaving it set here would leave the scratchpad
+	 * cycle pointing at freed memory. */
+	if (scratchpad_last_showed == c)
+		scratchpad_last_showed = NULL;
 	free(c);
 	focus(NULL);
 	updateclientlist();

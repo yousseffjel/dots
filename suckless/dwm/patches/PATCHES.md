@@ -7,6 +7,83 @@ restartsig) were already baked into `dwm.c`/`config.def.h` before this
 project started tracking merge notes — this file starts from the
 xresources patch onward.
 
+**Retired:** `dwm-scratchpads-20200414-728d397b.diff` was removed on
+2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
+are mutually exclusive — see that entry.
+
+## dwm-dynamicscratchpads-20260807-local.diff
+
+**Source**: adapted from the upstream dynamicscratchpads patch
+(`dwm.suckless.org/patches/dynamicscratchpads/`, diff
+`dwm-scratchpad-20200727-bb2e7222baeec7776930354d0e9f210cc2aaad5f.diff`, by
+Gaspar Vardanyan). Like the xresources entry below, this is **not** a verbatim
+`patch -p1` apply — hand-merged into the already-patched sources, then
+re-diffed against the pre-merge baseline. "local" flags that distinction.
+
+**Why it replaced the static scratchpads patch**: the user asked for dynamic
+assignment — stash whichever window is focused, whatever it is — rather than
+the old model of spawning pre-declared commands as scratchpad N. The two
+patches cannot coexist: the old one defined
+`SPTAG(i) ((1 << LENGTH(tags)) << (i))` and this one defines
+`SCRATCHPAD_MASK (1u << LENGTH(tags))`, i.e. both claim bit `LENGTH(tags)`
+of the tag bitmask. So the old patch had to be un-baked from `dwm.c` and
+`config.def.h` before this one went in; this diff contains both halves of
+that swap, which is why it removes as well as adds.
+
+**What was un-baked**: `NUMTAGS`, `SPTAG`, `SPTAGMASK` and the `TAGMASK`
+redefinition; `togglescratch()` and its three call sites in `applyrules()`
+and `showhide()`; and in `config.def.h` the `Sp` typedef, `spcmd1..3`,
+`scratchpads[]`, three `rules[]` entries and three keybinds. `TAGMASK` is back
+to vanilla `((1 << LENGTH(tags)) - 1)`.
+
+**Conflict points checked against the other 11 patches** (all clean):
+
+- `pertag` — **not affected**, despite sharing the tag bitmask. Its arrays are
+  sized `LENGTH(tags) + 1`, never `NUMTAGS`, so removing that macro touches
+  nothing there. Verified by reading `struct Pertag`, not assumed.
+- `hide_vacant_tags` — **not affected**. `drawbar()` loops
+  `i < LENGTH(tags)`, so bit `LENGTH(tags)` is never drawn regardless of
+  which patch owns it. Its `occ |= c->tags == TAGMASK ? 0 : c->tags` line
+  tests for "shown on all tags" and is indifferent to the scratchpad bit.
+- `actualfullscreen` — `applyrules()`'s `isfullscreen`/`setfullscreen(c, 1)`
+  block sits above the line this patch wraps; the wrap is the last statement
+  in the function, so the two do not interleave.
+- `statuscmd`/`status2d`/`systray`/`dragmfact`/`restartsig`/`autostart`/
+  `xresources` — none touch the tag bitmask, `applyrules()`, `showhide()` or
+  `unmanage()`'s tail.
+
+**Deviations from upstream, all deliberate**:
+
+1. **Function signatures.** Upstream declares `static void scratchpad_hide ()`
+   — an empty parameter list, meaning *unspecified* arguments in C. dwm's
+   `Key` struct requires `void (*func)(const Arg *)`, so these take
+   `(const Arg *arg)` here. Same behaviour, correct prototype, no reliance on
+   pre-C99 function-pointer compatibility rules under `-std=c99 -pedantic`.
+2. **`_Bool` → `int`.** `scratchpad_last_showed_is_killed()` returns `int`;
+   dwm uses `int` for booleans everywhere and never includes `stdbool.h`.
+3. **House style.** Reformatted from upstream's `selmon -> sel` /
+   `Client * c` spacing to dwm's `selmon->sel` / `Client *c`, tabs, and K&R
+   braces, so future patches' diff context matches the rest of the file.
+   Control flow is unchanged — `scratchpad_show()` keeps the same
+   early-return structure, just with guard clauses instead of nesting.
+4. **`SCRATCHPAD_MASK` spelled with `LENGTH(tags)`** rather than upstream's
+   `sizeof tags / sizeof * tags`. Identical expansion; `LENGTH` is already
+   the idiom in this file.
+
+**Tag arithmetic verified numerically** (not reasoned about): with 9 tags,
+`TAGMASK` is `0x1FF` and `SCRATCHPAD_MASK` is `0x200`, so
+`SCRATCHPAD_MASK & TAGMASK == 0` — the scratchpad bit sits cleanly outside
+the tag range, and `drawbar`'s loop stops one index short of it. The
+`NumTags` compile-time guard was moved from `> 31` to `> 30` to reserve that
+bit, matching upstream.
+
+**Round-trip verified**: applying this diff to the pre-merge baseline
+reproduces the current `dwm.c` and `config.def.h` byte-for-byte
+(`patch -p1` then `diff -q`, both clean).
+
+**Build verified**: `rm -f config.h && make clean && make` — clean compile,
+zero warnings, `dwm` binary links.
+
 ## dwm-xresources-20260805-local.diff
 
 **Source**: adapted from the upstream dwm xresources patch

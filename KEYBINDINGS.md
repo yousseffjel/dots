@@ -93,11 +93,63 @@ palette, so they look alike.
 
 ### Scratchpads
 
+Dynamic, i3-style: stash **whichever window is focused**, whatever it is —
+a terminal, a browser, anything. There is no pre-declared list of scratchpad
+applications.
+
 | Keys | Action |
 | --- | --- |
-| `Mod` + `y` | Terminal scratchpad (`st -n spterm`) |
-| `Mod` + `u` | File manager scratchpad (`ranger`) |
-| `Mod` + `x` | KeePassXC scratchpad |
+| `Mod` + `Shift` + `-` | Stash the focused window into the scratchpad |
+| `Mod` + `-` | Show / hide the current scratchpad window; keep pressing to cycle |
+| `Mod` + `=` | Drop the current window out of the scratchpad set |
+
+A stashed window is hidden from every tag — its whole tag set becomes a
+single reserved bit above the nine real tags, so no ordinary tag view brings
+it back and it is never drawn in the bar.
+
+`Mod` + `-` is a single show/hide key, which is why there is no separate hide
+binding. It works on one window at a time — the "current" one:
+
+1. First press restores a stashed window onto the current tag and remembers
+   it as the current one.
+2. Press again and that same window is stashed away again.
+3. Press a third time and the *next* stashed window is restored, wrapping
+   round to the first.
+
+So repeated presses go show → hide → show next → hide → …, and `Mod` + `-`
+alone is enough to both summon a window and dismiss it. `Mod` + `=` breaks
+the link instead — the window stays exactly where it is on screen and simply
+stops being part of the rotation.
+
+Two behaviours worth knowing, both inherited from the upstream patch:
+
+- **Stashing makes a window floating, and restoring does not undo that.**
+  `Mod` + `Shift` + `-` sets the window floating so it comes back as an
+  overlay rather than re-tiling. Nothing sets it back, so a window that was
+  tiled before you stashed it stays floating afterwards — `Mod` + `Shift` +
+  `space` re-tiles it.
+- **The cycle is per-monitor.** Stashed windows are looked up in the current
+  monitor's client list, so a window stashed on one monitor is not reachable
+  by `Mod` + `-` from another. Stash and restore on the same monitor.
+
+> **Changed 2026-08-07.** This replaces three fixed scratchpads that spawned
+> pre-declared commands: `Mod`+`y` (an `st` terminal), `Mod`+`u` (`ranger`)
+> and `Mod`+`x` (`keepassxc`). Only the terminal one actually worked —
+> neither `ranger` nor `keepassxc` is in `packages/*.lst`, so those two were
+> dead keys. To get the old terminal behaviour, spawn a terminal normally and
+> stash it with `Mod`+`Shift`+`-`. `Mod`+`y`, `Mod`+`u` and `Mod`+`x` are now
+> unbound and free to reuse.
+>
+> **This needs a dwm rebuild.** The bindings live in `config.def.h`, and
+> `config.h` is generated once and then left alone, so an existing install
+> must delete it first:
+>
+> ```sh
+> rm -f suckless/dwm/config.h
+> scripts/install-suckless.sh --skip-deps
+> ```
+>
+> A fresh install is unaffected.
 
 ### Session
 
