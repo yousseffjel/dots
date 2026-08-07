@@ -115,6 +115,62 @@ palette, so they look alike.
 | `Mod` + middle-click | Toggle floating |
 | Drag the layout split | Adjust master/stack ratio (dragmfact) |
 | Click a status block | Runs the block's click handler (statuscmd) |
+| Scroll over a status block | Same, with `$BUTTON` 4 (up) or 5 (down) |
+
+---
+
+## Status bar
+
+Ten blocks, left to right, then dwm's native systray furthest right. Each is a
+script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
+`make install-scripts` and listed in `suckless/dwmblocks/blocks.def.h`.
+
+| # | Block | Shows | Refreshes | Clicks |
+| --- | --- | --- | --- | --- |
+| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification |
+| 2 | `DISK` | Free space on `/` | 5 min | left → open `/` in thunar |
+| 3 | `TEMP` | CPU package temperature | 5 s | — |
+| 4 | `CPU` | CPU utilisation | 2 s | — |
+| 5 | `MEM` | Used / total RAM | 10 s | — |
+| 6 | `GAMMA` | Screen gamma level | **on change only** | — |
+| 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute |
+| 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5% |
+| 9 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
+| 10 | `` | Day, date and time | 60 s | left → this month's calendar |
+
+> **Scroll on the bar needs a dwm rebuild on an existing install.** dwm bound
+> `ClkStatusText` for Button1/2/3 only, so a scroll was discarded before any
+> block saw it; `buttons[]` gained Button4/5 for this. Everything else in the
+> table works after a dwmblocks rebuild alone. To pick up the scroll:
+>
+> ```sh
+> rm -f suckless/dwm/config.h
+> scripts/install-suckless.sh --skip-deps
+> ```
+
+**Blocks 6-8 are never polled.** They run once at startup and then only when
+something sends their signal — `config/sxhkd/sxhkdrc` fires
+`pkill -RTMIN+6/7/8 dwmblocks` after every gamma, mic and volume change. That
+is what keeps three of the ten blocks off the CPU entirely. The cost is that
+changing any of those values by some *other* route (`pamixer` straight from a
+shell, say) leaves the bar showing a stale figure until the next keypress.
+
+> **`GAMMA` is not a backlight.** This target is a desktop GPU with no
+> `/sys/class/backlight`, so `dwm-brightness` scales the output signal with
+> `xrandr --brightness` while the monitor keeps drawing full power. The block
+> is labelled `GAMMA` rather than `BRI` precisely so it does not promise the
+> power saving a laptop brightness applet implies.
+
+`TEMP` matches sensors **by name** (`coretemp`, `k10temp`, `zenpower`,
+`cpu_thermal`), never by hwmon number — that numbering is assigned in probe
+order and changes between boots. A machine whose CPU sensor is named something
+else shows `n/a` rather than silently reporting an NVMe drive or the
+motherboard; add the name to `CPU_SENSORS` in `dwm-temp` to fix it.
+
+`UPD` runs `dnf -C check-update` — cache-only, never the network, since
+dwmblocks runs blocks synchronously and one slow block stalls the whole bar.
+The count is therefore as fresh as Fedora's own `dnf-makecache.timer` and no
+fresher.
 
 ---
 

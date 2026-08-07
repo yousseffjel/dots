@@ -47,14 +47,19 @@ uninstall:
 
 # Globbed rather than listed, so adding scripts/dwm-foo needs no Makefile edit.
 # dwm-colors is sourced by the others, not executed, hence the 644.
+#
+# Both targets derive their file list from scripts/ rather than globbing
+# ${SCRIPTDIR}. That matters for uninstall-scripts: ${SCRIPTDIR} is ~/.local/bin,
+# so `rm -f ${SCRIPTDIR}/dwm-*` would take any dwm-* script the user wrote
+# themselves along with ours. Deriving from the source directory removes
+# exactly what install-scripts put there and nothing else.
 install-scripts:
 	mkdir -p ${SCRIPTDIR}
 	cp -f scripts/dwm-* ${SCRIPTDIR}
-	chmod 755 ${SCRIPTDIR}/dwm-cpu ${SCRIPTDIR}/dwm-mem ${SCRIPTDIR}/dwm-clock
+	@for f in scripts/dwm-*; do chmod 755 "${SCRIPTDIR}/`basename $$f`"; done
 	chmod 644 ${SCRIPTDIR}/dwm-colors
 
 uninstall-scripts:
-	rm -f ${SCRIPTDIR}/dwm-cpu ${SCRIPTDIR}/dwm-mem ${SCRIPTDIR}/dwm-clock \
-		${SCRIPTDIR}/dwm-colors
+	@for f in scripts/dwm-*; do rm -f "${SCRIPTDIR}/`basename $$f`"; done
 
 .PHONY: all options clean install uninstall install-scripts uninstall-scripts

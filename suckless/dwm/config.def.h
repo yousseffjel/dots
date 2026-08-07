@@ -195,6 +195,13 @@ static const Button buttons[] = {
 	{ ClkStatusText,        0,              Button1,        sigstatusbar,   {.i = 1} },
 	{ ClkStatusText,        0,              Button2,        sigstatusbar,   {.i = 2} },
 	{ ClkStatusText,        0,              Button3,        sigstatusbar,   {.i = 3} },
+	/* Scroll over the status bar. .i is the button number the statuscmd patch
+	 * exports as $BUTTON to the clicked block; the block's own signal is
+	 * supplied by the patch, so nothing here is per-block. Without these two
+	 * rows a scroll on the bar is discarded before any block sees it --
+	 * dwm-vol's 5% steps are the first user (roster Epic sub-task 7). */
+	{ ClkStatusText,        0,              Button4,        sigstatusbar,   {.i = 4} },
+	{ ClkStatusText,        0,              Button5,        sigstatusbar,   {.i = 5} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
