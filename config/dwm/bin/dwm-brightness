@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# dwm-brightness — screen brightness for a desktop GPU, via xrandr gamma.
+#
+# THIS IS NOT A BACKLIGHT CONTROL. The target machine is a desktop with no
+# /sys/class/backlight (roster Epic locked decision 12), so there is no lamp
+# to dim. xrandr's --brightness scales the output signal instead: the panel
+# keeps drawing full power and the image gets darker. That is the accepted
+# trade-off, not an oversight — brightnessctl and ddcutil were both
+# considered and rejected, the latter on cost (~100-300ms per DDC/CI call
+# plus an i2c-dev udev rule).
+#
+# Bound to XF86MonBrightnessUp/Down in config/sxhkd/sxhkdrc, which fires
+# `pkill -RTMIN+6 dwmblocks` afterwards. `get` is the read side for that
+# status block (roster Epic sub-task 7), which polls at interval 0.
+#
+# usage: dwm-brightness get|up|down|set <10-100>
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+STEP=10
+# Never allow 0: an all-black screen has to be undone from a terminal you
+# can no longer see. 10% is dim enough to be useful and still readable.
+MIN=10
+MAX=100
+
+usage() {
+    echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>"
+}
+
+# Every connected output. Matching $2 exactly avoids the "disconnected"
+# trap that a bare /connected/ pattern walks into.
+outputs() {
+    xrandr 2>/dev/null | awk '$2 == "connected" { print $1 }'
+}
+
+# Brightness of the first connected output, as an integer percent.
+#
+# Read per-output rather than by grabbing the first "Brightness:" line in
+# the file: outputs can and do disagree (a dev box here sat at 0.45 and 0.0
+# simultaneously), and disconnected ones carry the property too. Tracking
+# the current output header and only trusting connected ones is what makes
+# the answer meaningful. No awk `exit` — that would SIGPIPE the producer
+# and trip pipefail.
+current() {
+    local raw val
+    # `|| true` is deliberate: under `set -e` a failing command substitution
+    # in an assignment aborts the script with no message at all, so a dead X
+    # server would make this exit 1 silently. Capture, then diagnose.
+    raw="$(xrandr --verbose 2>/dev/null || true)"
+    if [[ -z "$raw" ]]; then
+        red "dwm-brightness: xrandr returned nothing — is DISPLAY set and X running?"
+        return 1
+    fi
+    val="$(printf '%s\n' "$raw" | awk '
+        /^[^[:space:]]/ { conn = ($2 == "connected") }
+        conn && !found && /^[[:space:]]*Brightness:/ { val = $2; found = 1 }
+        END { if (found) print val; else print "1.0" }
+    ')"
+    awk -v v="$val" 'BEGIN { printf "%d\n", (v * 100) + 0.5 }'
+}
+
+# Set every connected output to one value, converging displays that have
+# drifted apart. Clamping is done here so `set` gets it too, not just the
+# keybound up/down.
+apply() {
+    local pct="$1" out val found=0 failed=0
+    if ((pct < MIN)); then pct=$MIN; fi
+    if ((pct > MAX)); then pct=$MAX; fi
+    val="$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')"
+
+    while read -r out; do
+        found=1
+        if ! xrandr --output "$out" --brightness "$val" 2>/dev/null; then
+            red "dwm-brightness: failed to set $out to $val"
+            failed=1
+        fi
+    done < <(outputs)
+
+    if ((found == 0)); then
+        red "dwm-brightness: no connected outputs (or xrandr is unavailable)"
+        return 1
+    fi
+    printf '%d\n' "$pct"
+    return "$failed"
+}
+
+# Relative change. Reading the current value has to succeed before anything is
+# written: inlining `apply "$(($(current) + STEP))"` would carry on with an
+# empty reading and clamp the display to MIN when only the read had failed.
+adjust() {
+    local cur
+    cur="$(current)" || return 1
+    apply "$((cur + $1))"
+}
+
+case "${1:-}" in
+    get) current ;;
+    up) adjust "$STEP" ;;
+    down) adjust "-$STEP" ;;
+    set)
+        if [[ -z "${2:-}" || ! "$2" =~ ^[0-9]+$ ]]; then
+            red "dwm-brightness: set needs an integer percent"
+            usage >&2
+            exit 1
+        fi
+        apply "$2"
+        ;;
+    -h | --help)
+        usage
+        ;;
+    *)
+        red "dwm-brightness: unknown command '${1:-}'"
+        usage >&2
+        exit 1
+        ;;
+esac

@@ -4,8 +4,8 @@
 # dwm spawns commands with execvp (no shell), so a keybind cannot expand
 # $HOME or a relative repo path. This wrapper exists for the same reason
 # dwm-powermenu does: it sits in config/dwm/bin, which symlinks.sh links
-# to ~/.config/dwm/bin and 20-path.zsh puts on PATH, so config.def.h can
-# spawn a bare name.
+# to ~/.config/dwm/bin and config/zsh/.zshenv puts on PATH, so config.def.h
+# and config/sxhkd/sxhkdrc can spawn a bare name.
 #
 # readlink -f resolves back through that symlink into the repo, so the
 # wrapper finds scripts/theme/ wherever the repo actually lives.

@@ -95,7 +95,7 @@ for current state.
 **Theming engine (added 2026-08-05, 7 sub-tasks — see `docs/THEMING.md`):**
 - Dark-mode-only wallbash-style engine: wallpaper -> ImageMagick colour extraction (`scripts/theme/colorgen.sh`) -> `.dcol` palette -> template engine (`scripts/theme/apply-templates.sh`) -> live targets -> ordered reload (`scripts/theme/reload.sh`).
 - dwm, st, dmenu and slock all read colours from the X resource database at runtime (xresources patches — see each tool's `patches/PATCHES.md`).
-- User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; dwm keybinds ship commented out in `config.def.h`.
+- User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; the keybinds (`Super+w`, `Super+Shift+w`, `Super+Ctrl+w`) live in `config/sxhkd/sxhkdrc`, needing no dwm rebuild but depending on sxhkd being installed (it is best-effort, in `extra.lst`) and running. They moved out of `config.def.h` in roster sub-task 4 and must not be re-added there — dwm and sxhkd both `XGrabKey`, and a doubly-bound key silently dies.
 - `themes/dark/` is the one shipped static theme. `config/theme/templates/` holds the `.dcol` templates.
 - **`config/dunst` and `config/picom` must never be added to `symlinks.sh`** — the engine rewrites those whole files on every wallpaper change, and a symlink would make it write into this repo. The installer copies them instead.
 

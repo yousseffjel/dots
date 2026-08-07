@@ -120,30 +120,25 @@ static const char *termcmd[]  = { "alacritty", NULL };
 static const char *powermenucmd[] = { "dwm-powermenu", NULL };
 static const char *clipmenucmd[]  = { "dwm-clipmenu", NULL };
 
-/* --- theming engine keybinds (optional) -------------------------------
- * Uncomment these two arrays and the matching lines in keys[] below to
- * bind the theming engine. They are commented out by default because
- * enabling them changes behaviour and requires a dwm rebuild
- * (scripts/install-suckless.sh --skip-deps), which should be your choice
- * rather than a side effect of installing this feature.
+/* --- keybinds that are NOT here ---------------------------------------
+ * Media, volume, mic, brightness, the theming engine (wallpaper select /
+ * random / theme menu) and the app launchers live in config/sxhkd/sxhkdrc,
+ * not in keys[] below. sxhkd is started from the dwm autostart hook.
  *
- * Both commands are bare names on purpose: config/dwm/bin is symlinked to
- * ~/.config/dwm/bin and added to PATH by 20-path.zsh, matching how
- * dwm-powermenu and dwm-clipmenu are already spawned. dwm uses execvp,
- * so an absolute path with $HOME would not expand here.
+ * Do not re-add any of them here. dwm and sxhkd both call XGrabKey() on the
+ * root window, and a keysym+modifier claimed by both goes to whichever
+ * grabbed it first — the loser silently gets nothing, with no error to
+ * point at. The two key sets are deliberately disjoint: dwm owns window
+ * management plus Mod+p, Mod+Shift+Return, Super+Shift+x and Super+v;
+ * sxhkd owns the XF86* keys and the rest of the Super space.
  *
- *   static const char *wallselcmd[]  = { "dwm-wallpaper", "--select", NULL };
- *   static const char *wallrandcmd[] = { "dwm-wallpaper", "--random", NULL };
- *   static const char *thememenucmd[] = { "dwm-theme", NULL };
+ * The theming binds used to sit here commented out, needing a recompile to
+ * enable. As sxhkd bindings they are simply live, and editing them costs
+ * Super+Ctrl+r instead of a rebuild — which is the whole point of the
+ * split. They moved from Mod+w to Super+w in the process.
  *
- * ...and in keys[]:
- *
- *   { MODKEY,             XK_w, spawn, {.v = wallselcmd } },
- *   { MODKEY|ShiftMask,   XK_w, spawn, {.v = wallrandcmd } },
- *   { MODKEY|ControlMask, XK_w, spawn, {.v = thememenucmd } },
- *
- * See KEYBINDINGS.md for the full table, and docs/THEMING.md (sub-task 7)
- * for how the pipeline fits together.
+ * See KEYBINDINGS.md for the full table across both owners, and
+ * docs/THEMING.md for what the theming commands drive.
  * --------------------------------------------------------------------- */
 
 static const Key keys[] = {

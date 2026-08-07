@@ -1,0 +1,128 @@
+# sxhkdrc — hotkeys that dwm does not handle.
+#
+# OWNERSHIP. dwm and sxhkd both call XGrabKey() on the root window, and a
+# keysym+modifier claimed by both goes to whichever grabbed it first — the
+# loser silently gets nothing, with no error anywhere. So the two sets must
+# stay disjoint:
+#
+#   dwm   (suckless/dwm/config.def.h, compiled in) — window management:
+#         tags, layouts, focus, monitors, scratchpads, quit/restart, plus
+#         Mod+p (dmenu), Mod+Shift+Return (terminal), Super+Shift+x
+#         (powermenu) and Super+v (clipmenu).
+#   sxhkd (this file, reloadable) — everything else: media, volume, mic,
+#         brightness, theming, app launchers.
+#
+# Every binding here is either an XF86* media key or lives in the Super
+# space, avoiding the two Super chords dwm already owns. Before adding a
+# binding, check it against keys[] in config.def.h.
+#
+# Changing dwm's bindings needs a recompile; changing this file needs only
+# Super+Ctrl+r. That asymmetry is the reason the split exists.
+#
+# Commands run through $SXHKD_SHELL (falling back to $SHELL) with -c, so
+# shell operators like && work. dwm-* helpers resolve through PATH:
+# ~/.config/dwm/bin is added by config/zsh/.zshenv.
+
+# --- media -------------------------------------------------------------
+# playerctl talks MPRIS over D-Bus, so these reach any compliant player
+# (firefox, mpv with the script, spotify) with no per-app configuration.
+# They no-op quietly when nothing is playing.
+
+XF86AudioPlay
+	playerctl play-pause
+
+XF86AudioNext
+	playerctl next
+
+XF86AudioPrev
+	playerctl previous
+
+XF86AudioStop
+	playerctl stop
+
+# --- volume and microphone ---------------------------------------------
+# The trailing pkill is load-bearing, not a refresh nicety. The vol and mic
+# status blocks run at interval 0 — signal-driven only, never polled, which
+# is what keeps them off the CPU (roster Epic sub-task 7). Without the
+# signal the bar simply never updates. Signals: mic RTMIN+7, vol RTMIN+8.
+#
+# Raising the volume also unmutes, matching what a hardware volume key does
+# on every other desktop. Lowering deliberately does not — turning a muted
+# system down should not make it audible.
+
+XF86AudioRaiseVolume
+	pamixer --unmute --increase 5 && pkill -RTMIN+8 dwmblocks
+
+XF86AudioLowerVolume
+	pamixer --decrease 5 && pkill -RTMIN+8 dwmblocks
+
+XF86AudioMute
+	pamixer --toggle-mute && pkill -RTMIN+8 dwmblocks
+
+XF86AudioMicMute
+	pamixer --default-source --toggle-mute && pkill -RTMIN+7 dwmblocks
+
+# --- brightness --------------------------------------------------------
+# Software gamma via xrandr, NOT a hardware backlight — this target is a
+# desktop GPU with no /sys/class/backlight (roster Epic locked decision
+# 12). It dims the output signal; the monitor's lamp stays at full power.
+# dwm-brightness owns the clamping and the multi-output walk; sub-task 7's
+# status block reads the same value back with `dwm-brightness get`.
+
+XF86MonBrightnessUp
+	dwm-brightness up && pkill -RTMIN+6 dwmblocks
+
+XF86MonBrightnessDown
+	dwm-brightness down && pkill -RTMIN+6 dwmblocks
+
+# --- theming -----------------------------------------------------------
+# These live here rather than in dwm on purpose: config.def.h shipped them
+# commented out because enabling them meant a rebuild. As sxhkd bindings
+# they are simply active, and editing them costs a reload instead of a
+# recompile. See docs/THEMING.md for what each one drives.
+
+super + w
+	dwm-wallpaper --select
+
+super + shift + w
+	dwm-wallpaper --random
+
+super + ctrl + w
+	dwm-theme
+
+# --- applications ------------------------------------------------------
+# Only the two daily drivers get a dedicated key. Everything else is one
+# Mod+p away through dmenu, and a launcher key per application is how a
+# keymap becomes unmemorable.
+
+super + b
+	firefox
+
+super + e
+	thunar
+
+# --- sxhkd itself ------------------------------------------------------
+# Reload the config in place. USR1 makes the running daemon re-read this
+# file without dropping its grabs or losing the process.
+
+super + ctrl + r
+	pkill -USR1 -x sxhkd
+
+# --- pending: screenshot (roster Epic sub-task 5) -----------------------
+# Uncomment once config/dwm/bin/dwm-screenshot exists. It will be a dmenu
+# mode menu (full / active window / region, each to clipboard / file /
+# both) built on maim + slop, both already packaged.
+#
+#Print
+#	dwm-screenshot
+#
+#shift + Print
+#	dwm-screenshot --region
+
+# --- pending: lock (roster Epic sub-task 6) ----------------------------
+# slock is already built and themed, so this binding works today — it is
+# held back only so the lock keybinding and the xss-lock/xset idle wiring
+# land together and get documented as one feature.
+#
+#super + l
+#	slock

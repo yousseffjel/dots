@@ -22,6 +22,13 @@
 #   ddcutil / i2c-dev — brightness is xrandr gamma on this desktop target,
 #     not DDC/CI. See the roster Epic's locked decision 10.
 #
+#   brightnessctl — same reason, and it was listed here by mistake until
+#     2026-08-07. It drives /sys/class/backlight, which a desktop GPU does
+#     not expose, so it could never have worked on this target. Brightness
+#     is config/dwm/bin/dwm-brightness (xrandr gamma), locked decision 12.
+#     On a laptop target, `dnf install brightnessctl` and teach that script
+#     to prefer it.
+#
 #   power-profiles-daemon — desktop, not laptop. Locked decision 9.
 #
 #   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
@@ -102,7 +109,9 @@ xss-lock
 # block's click action opens (sub-task 7).
 bluez
 blueman
-brightnessctl
+# playerctl drives the XF86Audio{Play,Next,Prev,Stop} keys over MPRIS and
+# pamixer the volume/mic keys — both bound in config/sxhkd/sxhkdrc, which
+# also signals the matching dwmblocks blocks.
 playerctl
 pamixer
 pavucontrol

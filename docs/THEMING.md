@@ -82,8 +82,14 @@ scripts/theme/reload.sh                    # re-signal everything, no regen
 Wallpapers come from `~/Pictures/wallpapers`; override with
 `DOTS_WALLPAPER_DIR`.
 
-Keybinds ship **commented out** in `suckless/dwm/config.def.h` — see
-`KEYBINDINGS.md`. Enabling them needs a dwm rebuild.
+Keybinds (`Super` + `w`, `Super` + `Shift` + `w`, `Super` + `Ctrl` + `w`) live
+in `config/sxhkd/sxhkdrc` — see `KEYBINDINGS.md`. No dwm rebuild is needed;
+they work as soon as sxhkd is installed and running.
+
+> They used to ship commented out in `suckless/dwm/config.def.h` under `Mod` +
+> `w`. **Do not re-add them there.** dwm and sxhkd both `XGrabKey()` on the root
+> window, so a key claimed by both goes to whichever grabbed it first and the
+> other silently gets nothing — no error, no log line.
 
 ## Writing a new `.dcol` template
 

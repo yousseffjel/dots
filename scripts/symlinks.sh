@@ -36,12 +36,17 @@ BACKUP_DIR="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
 # config/alacritty IS safe to link even though alacritty is themed: the engine
 # writes only $XDG_CACHE_HOME/dots/theme/alacritty-colors.toml, which
 # alacritty.toml imports. Nothing ever rewrites alacritty.toml itself.
+#
+# config/sxhkd is safe for the simpler reason that nothing generates it — the
+# theming engine has no sxhkd target. Linking it is what makes Super+Ctrl+r
+# (reload sxhkd) pick up an edit made in this repo without a reinstall.
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
     "$CONFIG_DIR/dwm:$HOME/.config/dwm"
     "$CONFIG_DIR/starship:$HOME/.config/starship"
     "$CONFIG_DIR/alacritty:$HOME/.config/alacritty"
+    "$CONFIG_DIR/sxhkd:$HOME/.config/sxhkd"
 )
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }

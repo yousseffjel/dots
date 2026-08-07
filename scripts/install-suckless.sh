@@ -155,78 +155,13 @@ if [[ -f "$SUCKLESS_DIR/dwmblocks/Makefile" ]]; then
     fi
 fi
 
-# --- autostart ---------------------------------------------------------------
-# dwm's autostart patch runs $XDG_DATA_HOME/dwm/autostart.sh (falling back to
-# ~/.local/share/dwm) at startup. Without this, dwmblocks is built and
-# installed but never actually launched, and the bar stays empty.
-AUTOSTART_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/dwm"
-AUTOSTART="$AUTOSTART_DIR/autostart.sh"
-[[ $DRY_RUN -eq 1 ]] || mkdir -p "$AUTOSTART_DIR"
-
-if [[ -e "$AUTOSTART" ]]; then
-    if grep -q 'dwmblocks' "$AUTOSTART"; then
-        green "ok      $AUTOSTART already starts dwmblocks"
-    else
-        yellow "kept    $AUTOSTART (exists, does not mention dwmblocks)"
-        yellow "        add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &"
-    fi
-    if grep -q 'clipmenud' "$AUTOSTART"; then
-        green "ok      $AUTOSTART already starts clipmenud"
-    else
-        yellow "kept    $AUTOSTART (exists, does not mention clipmenud)"
-        yellow "        add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &"
-    fi
-elif [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would write $AUTOSTART (dwmblocks + clipmenud autostart)"
-else
-    cat >"$AUTOSTART" <<'EOF'
-#!/bin/sh
-# Run by dwm's autostart patch at startup — see runautostart() in dwm.c.
-# dwm backgrounds this whole script, so anything long-running below must be
-# backgrounded individually and the script must exit.
-
-# Exactly one status feeder: dwm locates it by name (`pidof -s dwmblocks`, see
-# STATUSBAR in config.def.h), so a second copy would make click routing
-# ambiguous.
-if ! pgrep -x dwmblocks >/dev/null 2>&1; then
-	dwmblocks &
-fi
-
-# Clipboard history for dwm-clipmenu (Super+v) — only present if clipmenu's
-# COPR was enabled (Fedora, via install-fedora.sh). Silently skipped
-# elsewhere so this line is harmless on distros without it wired up yet.
-if command -v clipmenud >/dev/null 2>&1 && ! pgrep -x clipmenud >/dev/null 2>&1; then
-	clipmenud &
-fi
-EOF
-    chmod 755 "$AUTOSTART"
-    green "wrote   $AUTOSTART"
-fi
-
-# --- xinitrc -----------------------------------------------------------------
-XINITRC="$HOME/.xinitrc"
-if [[ -e "$XINITRC" ]]; then
-    green "ok      ~/.xinitrc exists (left untouched)"
-elif [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would write ~/.xinitrc (exec dwm)"
-else
-    cat >"$XINITRC" <<'EOF'
-#!/bin/sh
-# Started by startx. dwm runs in the foreground; when it exits, X exits.
-
-# Merge the distro's xinit fragments (keyboard layout, dbus, ssh-agent, ...).
-if [ -d /etc/X11/xinit/xinitrc.d ]; then
-	for f in /etc/X11/xinit/xinitrc.d/?*.sh; do
-		[ -x "$f" ] && . "$f"
-	done
-	unset f
-fi
-
-exec dwm
-EOF
-    chmod 755 "$XINITRC"
-    green "wrote   ~/.xinitrc (exec dwm)"
-fi
+# --- session wiring ----------------------------------------------------------
+# The autostart hook and ~/.xinitrc live in their own file: separate concern
+# from building, and keeping both here put this script over the 250-line cap.
+# Both targets are user-owned once they exist (CLAUDE.md rule 6).
+# shellcheck source=install-session.sh
+source "$SCRIPT_DIR/install-session.sh"
+install_session
 
 green "✓ suckless install complete"
 yellow "  - start the session with:  startx"
