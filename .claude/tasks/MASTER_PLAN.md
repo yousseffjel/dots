@@ -16,7 +16,7 @@ when slots run concurrently.
   - [x] 2. `packages/*.lst` final roster + starship adoption + Nerd Font — `1129cf9`
   - [x] 3. alacritty as main terminal (st retained as fallback) — `f5f148a`
   - [x] 4. sxhkd keybind split with dwm — `b8a17e0`
-  - [ ] 5. screenshot — maim + slop + dmenu mode menu
+  - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
   - [ ] 6. lock / idle — xss-lock + xset + slock
   - [ ] 7. status bar blocks — Layout A, 10 blocks + tray (order locked)
   - [ ] 8. thunar finalization (archives, thumbnails, defaults, terminal)

@@ -451,3 +451,46 @@ directory for the running history.
   outside CI. Grab-disjointness is unverified on real hardware (`xev`).
 - See `.claude/changes/2026-08-07-sxhkd-keybind-split.md`. Commits `b8a17e0`,
   `eaff715`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass.
+
+## 2026-08-07 — roster Epic, sub-task 5/11: screenshot (maim + slop)
+- `config/dwm/bin/dwm-screenshot` (new, 246 lines) wraps maim + slop + xclip
+  behind two sequential dmenu prompts — mode (`full`/`window`/`region`), then
+  destination (`clipboard`/`file`/`both`). Either prompt is skipped when the
+  matching flag is passed, so a keybind jumps straight to one combination.
+  `Print` opens the menu; `shift + Print` is region -> clipboard directly.
+- **The slop selector is themed off `dwm.selbordercolor`**, read live from
+  `xrdb -query` and converted to the float RGBA `slop --color` wants (hex is
+  rejected). The selection rectangle therefore matches the border dwm draws
+  around the focused window and re-themes with the wallpaper at no template
+  cost. Unthemed it falls back to slop's grey rather than failing.
+- **`xprop` chosen over `xdotool`** for the active-window id (user decision,
+  offered with the trade-off). `xprop -root _NET_ACTIVE_WINDOW` plus one `awk`
+  yields the `0x`-prefixed form and `maim -i` parses it verbatim — confirmed by
+  invocation, not assumed. xdotool would need no parsing but drags in libxdo
+  for a single lookup.
+- **`Print` is absent from dwm's `keys[]`**, so sxhkd may grab it and
+  `config.def.h` is untouched — no rebuild, same as sub-task 4.
+- **`window` mode overlaps `region` mode more than the scope file implies.**
+  slop's default `--tolerance` of 2 means a plain click inside a region
+  selection already snaps to the window under the pointer. Window mode's only
+  real advantage is being mouse-free. Kept, but documented as not an
+  independent capability.
+- **Three live bugs came out of the audit loop, none from the plan:** `xclip`
+  was required at startup though `--file` never touches it; slop's stderr was
+  discarded, making a failed pointer grab both silent and indistinguishable
+  from a cancel (slop exits 1 with empty stdout for *both*); and the
+  destination was validated only inside `deliver()` — after the capture, i.e.
+  in region mode after a whole selection drag performed for nothing.
+- **Testing memory updated, twice, from false passes.** Leaving `/usr/bin` on
+  the harness `PATH` made all three "binary not installed" cases exercise the
+  real binaries; and once `PATH` really was isolated, the fake `dmenu` broke
+  because it called `cat`. `PATH` must be the fake dir and nothing else, with
+  the handful of real tools symlinked in explicitly.
+- **Open:** `maim`, `slop` and `xprop` all sit in `extra.lst` (best-effort) —
+  third sub-task running to raise this; `dwm-screenshot` is at 246/250 lines,
+  so the next edit crosses the cap (seam: the two theming helpers, which
+  sub-task 6 may want anyway); `tests/lint.sh` still globs `-maxdepth 2`, so
+  all six `config/dwm/bin/*` scripts are outside CI.
+- See `.claude/changes/2026-08-07-screenshot-maim-slop.md`. Commits `b2dcb13`,
+  `68eed57`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
+  plus 70 assertions across 25 scenarios against faked binaries.
