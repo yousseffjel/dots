@@ -1,6 +1,6 @@
 <!-- STUB: managed by /plan and /commit. Do not edit by hand. -->
 
-Phase: committing
-Task: alacritty-main-terminal
-Task folder: .claude/tasks/alacritty-main-terminal/
-Last log: .claude/changes/2026-08-06-packages-roster-fonts.md
+Phase: idle
+Task: _(none)_
+Task folder: _(none)_
+Last log: .claude/changes/2026-08-07-alacritty-main-terminal.md
