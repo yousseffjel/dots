@@ -407,3 +407,47 @@ directory for the running history.
   highest-risk item rather than folded into a terminal task.
 - See `.claude/changes/2026-08-07-alacritty-main-terminal.md`. Audit: READY.
   Reviewer: WARN -> fixed -> READY. Tests: lint + pkglist + build pass.
+
+## 2026-08-07 — roster Epic, sub-task 4/11: sxhkd keybind split
+- `config/sxhkd/sxhkdrc` is new and is now the second keybinding authority.
+  sxhkd had been packaged since sub-task 2 but the repo shipped no config, so
+  the installer pulled in a daemon that never started. It takes media
+  (`playerctl`/MPRIS), volume + mic (`pamixer`), brightness, the theming
+  engine and two app launchers; screenshot and lock ship commented out.
+- **The split rule is structural, not stylistic.** dwm and sxhkd both
+  `XGrabKey()` on the root window; a keysym+modifier claimed by both goes to
+  whichever grabbed first and **the loser silently gets nothing** — no error,
+  no log line. Every sxhkd binding is therefore an `XF86*` key or in the
+  `Super` space, avoiding the only two Super chords dwm owns
+  (`Super+Shift+x`, `Super+v`). Check `keys[]` before adding to either file.
+- **The user chose the most conservative split — dwm keeps every binding it
+  already has.** Consequence worth recording: `config.def.h`'s diff came out
+  **comment-only** (verified mechanically), so existing installs get the whole
+  sxhkd layer with **no rebuild** and none of the `rm -f config.h` staleness
+  dance sub-task 3 needed. The theming binds are the one thing that moved
+  (`Mod+w` → `Super+w`); they had shipped commented out *because* enabling
+  them cost a recompile, and that objection is gone.
+- `config/dwm/bin/dwm-brightness` (new) implements locked decision 12 —
+  `xrandr --brightness` software gamma, clamped 10–100%, every connected
+  output. `get` is the read side for sub-task 7's interval-0 status block.
+  Two `set -e` bugs were caught in audit and are now a memory entry: under
+  `set -euo pipefail` a failing `var="$(cmd)"` exits the script **printing
+  nothing at all**, and inlining `apply "$(($(current) + STEP))"` continues
+  past a failed read with the empty string treated as 0.
+- **DEVIATION — `scripts/install-session.sh` extracted.** The sxhkd autostart
+  branch pushed `install-suckless.sh` to 253 lines, past the 250-line hard
+  stop. Escalated to the user rather than self-granted as an exception; the
+  split was chosen. Same arrangement `install-restore.sh` already has with
+  `install-restore-theme.sh`. Proven behaviour-preserving by diffing the
+  generated `autostart.sh` against HEAD's.
+- `docs/THEMING.md` and `CLAUDE.md` both told the reader to uncomment the
+  theming binds in `config.def.h` — not merely stale but actively harmful,
+  since following them now collides with `Super+w` and the loser fails
+  silently. Fixed in scope-extension after `/test`, with approval.
+- **Open:** `sxhkd` sits in `extra.lst` (best-effort), so a failed install
+  leaves every binding here dead — same shape as sub-task 3's `alacritty`
+  follow-up; consider promoting both to `core.lst`. `tests/lint.sh` globs
+  `-maxdepth 2 -name '*.sh'`, so all five `config/dwm/bin/*` scripts are
+  outside CI. Grab-disjointness is unverified on real hardware (`xev`).
+- See `.claude/changes/2026-08-07-sxhkd-keybind-split.md`. Commits `b8a17e0`,
+  `eaff715`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass.
