@@ -1,0 +1,37 @@
+${cacheDir}/starship-palette.toml|c="${XDG_CONFIG_HOME:-$HOME/.config}/starship/starship.toml"; [ -f "$c" ] || exit 0; grep -q '^# ### dots-theme palette ###$' "$c" || exit 0; d="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"; { sed '/^# ### dots-theme palette ###$/,$d' "$c"; cat "$d/starship-palette.toml"; } >"$d/starship.toml.new" && mv -f "$d/starship.toml.new" "$d/starship.toml"
+# Written by scripts/theme/apply-templates.sh on every wallpaper change.
+# Source: config/theme/templates/always/starship.dcol.
+#
+# starship has no include directive, so a palette cannot be spliced into the
+# live config the way alacritty imports a second file. Instead the post-command
+# above builds a whole themed COPY in the cache dir: everything in the repo
+# config above its marker line, plus the table below. conf.d/99-prompt.zsh
+# points $STARSHIP_CONFIG at that copy when it is newer than the repo one.
+#
+# Only this table is duplicated between the two files — the prompt's actual
+# structure lives once, in config/starship/starship.toml. Adding a colour means
+# editing both: a `c_*` entry here and its default under the marker there.
+#
+# Guards, in order: the config must exist (starship may not be installed, or
+# symlinks.sh may not have run), and it must carry our marker line. Without the
+# second guard, a hand-replaced starship.toml would get this table appended to
+# it wholesale — and if the user's own config already declared
+# [palettes.dots], the result is a duplicate-table TOML parse error.
+#
+# The write is via a .new file and mv so a prompt rendering mid-apply never
+# reads a half-written config. Paths are re-derived from the XDG variables
+# rather than the engine's ${cacheDir} token, per the maintainer note in
+# README.md — the token is substituted before `bash -c` parses the command, so
+# a home directory containing a quote would break the quoting.
+
+# ### dots-theme palette ###
+[palettes.dots]
+# Mapped to the same roles the other templates use, so the prompt reads as one
+# theme with the bar and the terminal: 1xa5 is statusbar.dcol's MUTED, 1xa7 its
+# ACCENT1, and 1xa8 / 3xa8 / 1xa2 are alacritty.dcol's bright blue, bright cyan
+# and selection background.
+c_dir = '#<wallbash_3xa8>'
+c_git_branch = '#<wallbash_1xa5>'
+c_git_status = '#<wallbash_1xa8>'
+c_git_status_bg = '#<wallbash_1xa2>'
+c_time = '#<wallbash_1xa7>'

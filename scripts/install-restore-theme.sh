@@ -97,6 +97,40 @@ EOF
     manifest_append_row THEME theme "$gtk_ini"
 }
 
+# fastfetch has no static config in this repo at all — fastfetch.dcol is the
+# only authored copy and writes ~/.config/fastfetch/config.jsonc directly. Two
+# consequences the installer has to cover, both of which gtk.css already shows:
+#
+#   1. apply_one() skips any template whose target's PARENT directory is
+#      missing, treating that as "app not installed". Nothing else creates
+#      ~/.config/fastfetch, so without this mkdir the template is silently
+#      skipped forever and fastfetch is simply never themed.
+#   2. The file must still come back out on uninstall, so it needs a THEME row
+#      even though the installer never writes its contents.
+#
+# Deliberately unconditional on whether fastfetch is installed: the directory
+# is three bytes of inode and creating it means a fastfetch installed later
+# picks up the theme on the next wallpaper change instead of needing a
+# re-install. The no-clobber rule still applies to the file itself.
+theme_claim_fastfetch() {
+    [[ $DRY_RUN -eq 0 ]] || {
+        blue "  (dry-run) would create $CONF_HOME/fastfetch and claim config.jsonc"
+        return 0
+    }
+    local ff_conf="$CONF_HOME/fastfetch/config.jsonc"
+    mkdir -p "$(dirname "$ff_conf")"
+    if [[ -e "$ff_conf" ]]; then
+        if theme_is_ours "$ff_conf"; then
+            green "ok      $ff_conf already deployed by us"
+        else
+            green "ok      $ff_conf exists (left untouched, not tracked for removal)"
+            PREEXISTING_TARGETS+=("$ff_conf")
+        fi
+    else
+        manifest_append_row THEME theme "$ff_conf"
+    fi
+}
+
 # gtk.css is written by the gtk.dcol template rather than deployed here,
 # but it still lands in ~/.config and must come back out on uninstall.
 # Registering it now (rather than at apply time) keeps all manifest writes
@@ -178,6 +212,7 @@ restore_theme() {
     deploy_theme_file "$DOTS_DIR/config/picom/picom.conf" "$CONF_HOME/picom/picom.conf"
     theme_write_gtk_ini
     theme_claim_gtk_css
+    theme_claim_fastfetch
     # Must precede the apply, and must run even when no apply happens —
     # see theme_backup_preexisting's header. A failure here means we could
     # not preserve a file the engine is about to rewrite, so no apply runs

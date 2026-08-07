@@ -144,25 +144,35 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 
 | Role | HyDE (Wayland) | My equivalent (X11) | Status |
 |---|---|---|---|
+> **Status column reconciled 2026-08-07**, at the close of the roster Epic.
+> Most of what this table listed as `❌ add` has since landed. Verified against
+> `packages/*.lst`, `config/` and `suckless/*/patches/` rather than from memory.
+
+| Role | HyDE (Wayland) | My equivalent (X11) | Status |
+|---|---|---|---|
 | Window manager | Hyprland | dwm | ✅ have |
-| Compositor | (built into Hyprland) | **picom** (transparency, shadows, vsync, no tearing) | ❌ add |
-| Status bar | Waybar | **slstatus** or **dwmblocks** + status scripts | ❌ add |
+| Compositor | (built into Hyprland) | **picom** (vsync, glx, no tearing; shadows deliberately off) | ⚠️ partial — packaged, configured, themed and perf-tuned, but **nothing autostarts it**: it is absent from `autostart.sh`, `.xinitrc` and sxhkd, and `reload.sh` only signals it if already running |
+| Status bar | Waybar | **dwmblocks** + status scripts (slstatus rejected) | ✅ have — 10 blocks + systray |
 | Launcher | Rofi | **dmenu** (vendored, patched, themed) | ✅ have |
-| Notifications | Dunst / swaync | **dunst** (themed, with `dunstctl`) | ❌ add |
-| Wallpaper | swww | **feh** (`~/.fehbg`) or nitrogen | ❌ add |
-| Lock screen | hyprlock | **slock** (suckless) or i3lock | ❌ add |
-| Idle / auto-lock | hypridle | **xss-lock** + `xset dpms`, or xautolock | ❌ add |
+| Notifications | Dunst / swaync | **dunst** (themed, with `dunstctl`) | ✅ have — `config/dunst/`; not autostarted, but D-Bus activates it on the first notification, which is also why `reload.sh` can just kill it |
+| Wallpaper | swww | **feh** (`~/.fehbg`) | ✅ have — `scripts/theme/wallpaper.sh` |
+| Lock screen | hyprlock | **slock** (suckless, xresources-themed) | ✅ have |
+| Idle / auto-lock | hypridle | **xss-lock** + `xset dpms` (xautolock rejected: it cannot lock on suspend) | ✅ have — `config/dwm/bin/dwm-lock` |
 | Logout menu | wlogout | **dmenu powermenu script** (`config/dwm/bin/dwm-powermenu`: lock/logout/suspend/reboot/shutdown) | ✅ have |
-| Screenshots | grim + slurp + satty | **maim + slop + xclip** (or flameshot) | ❌ add |
-| Clipboard manager | cliphist + wl-clip-persist | **clipmenu** + **clipnotify** (Fedora: `skidnik/clipmenu` COPR, auto-enabled by `install-fedora.sh`), themed dmenu wrapper at `config/dwm/bin/dwm-clipmenu` | ✅ have on Fedora — Arch not wired yet |
-| Color picker | hyprpicker | **xcolor** or gpick | ❌ add |
-| Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add |
-| Display manager | SDDM | **startx + `.xinitrc`** (minimal, recommended) or ly/lightdm | ❌ add |
-| Monitor management | nwg-displays | **xrandr** + arandr (GUI) + autorandr (profiles) | ❌ add |
-| Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ❌ add |
-| XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ add |
-| Auth agent | hyprpolkitagent | polkit-gnome / lxpolkit | ❌ add |
-| System tray | Waybar tray | dwm **systray patch** or stalonetray | ❌ add |
+| Screenshots | grim + slurp + satty | **maim + slop + xclip** (flameshot rejected — Qt) | ✅ have — `config/dwm/bin/dwm-screenshot`, dmenu mode menu |
+| Clipboard manager | cliphist + wl-clip-persist | **clipmenu** + **clipnotify** (Fedora: `skidnik/clipmenu` COPR, auto-enabled by `install-fedora.sh`), themed dmenu wrapper at `config/dwm/bin/dwm-clipmenu` | ✅ have |
+| Fetch tool | — | **fastfetch** (wallpaper-themed, template-only config) | ✅ have |
+| Prompt | — | **starship** (wallpaper-themed via a spliced palette) | ✅ have |
+| Terminal | kitty | **alacritty** primary, **st** as the no-GPU fallback; both themed | ✅ have |
+| File manager | dolphin | **thunar** + volman/tumbler/file-roller, mime defaults wired | ✅ have |
+| Color picker | hyprpicker | **xcolor** or gpick | ❌ add — not packaged |
+| Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add — not packaged |
+| Display manager | SDDM | **ly** (`install-services.sh` enables `ly.service`) | ✅ have |
+| Monitor management | nwg-displays | **xrandr** + arandr (GUI) + autorandr (profiles) | ⚠️ partial — xrandr is used (brightness); arandr/autorandr not packaged |
+| Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
+| XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ add — not packaged |
+| Auth agent | hyprpolkitagent | polkit-gnome / lxpolkit | ⚠️ partial — `polkit-gnome` is in `extra.lst`, but nothing autostarts it |
+| System tray | Waybar tray | dwm **systray patch** | ✅ have — `dwm-systray` + `status2d-systray` vendored |
 
 ---
 
@@ -282,15 +292,18 @@ mpv                       # media player
 | `picom/picom.conf` | Compositor | vsync on, shadows, fade, opacity rules |
 | `dunst/dunstrc` | Notifications | themed colors, urgency levels, keybind actions |
 | `dwm/bin/` (dmenu scripts) | Launcher/menus/clipboard | dmenu theming lives in `suckless/dwm/config.def.h` (compile-time); `dwm-powermenu`/`dwm-clipmenu` scripts | ✅ have |
-| `gtk-3.0/settings.ini` | GTK theming | theme, icons, cursor, fonts |
-| `.gtkrc-2.0` | GTK2 apps | match GTK3 |
-| `qt5ct` / `qt6ct` / Kvantum | Qt theming | match GTK |
-| `alacritty/` or st `config.h` | Terminal | colors from Xresources/pywal |
-| `zsh/` (expand) | Shell | plugins, aliases, starship init | ✅ partial |
+| `gtk-3.0/settings.ini` | GTK theming | theme, icons, cursor, fonts | ✅ have — written by `install-restore-theme.sh` from `themes/dark/theme.conf` |
+| `gtk-3.0/gtk.css` | GTK accent colours | ✅ have — written **only** by `gtk.dcol`; no static copy in the repo |
+| `.gtkrc-2.0` | GTK2 apps | match GTK3 | ❌ add |
+| `qt5ct` / `qt6ct` / Kvantum | Qt theming | **deliberately rejected** — the roster is GTK-only (locked decision 3); revisit only if a Qt app enters it |
+| `alacritty/` | Terminal | ✅ have — `alacritty.toml` imports the engine's cached palette; st keeps its xresources patch as the fallback |
+| `sxhkd/sxhkdrc` | Hotkey daemon | ✅ have — media/volume/brightness/screenshot/lock/theme keys |
+| `zsh/` (expand) | Shell | ✅ have — conf.d/, functions/, completions/, zinit, zoxide, starship init |
 | `tmux/` | Multiplexer | | ✅ have |
-| `vim/` or `nvim/` | Editor | |
-| `fastfetch/` | Fetch tool | custom logo/layout |
-| `starship.toml` | Prompt | |
+| `vim/` or `nvim/` | Editor | ⚠️ no config shipped, but `vim.dcol` themes vim if you have it |
+| `fastfetch/` | Fetch tool | ✅ have — Fedora logo + desktop module set, written **only** by `fastfetch.dcol`; no `config/fastfetch/` in the repo |
+| `starship/starship.toml` | Prompt | ✅ have — adopted from the user's own config, themed by splicing a `[palettes.dots]` table |
+| `thunar/`, `xfce4/`, `mimeapps.list` | File manager + defaults | ✅ have — copied, never symlinked (the apps rewrite them) |
 
 ---
 

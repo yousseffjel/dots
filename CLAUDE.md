@@ -20,7 +20,8 @@ right vs. what's already stale.
 - **Shell**: bash (`scripts/*.sh`, `set -euo pipefail`, all re-runnable/idempotent), zsh (user shell config in `config/zsh/`)
 - **C**: vendored suckless sources (dwm, st, dmenu, dwmblocks, slock), built with `make`
 - **Config**: tmux (`config/tmux/`), zsh (`config/zsh/`), dwm runtime scripts (`config/dwm/bin/`) — deployed via symlinks, not copies
-- **No CI, no linter config, no test suite.** Verification is manual: `bash -n` on edited scripts, live package-manager checks (`dnf`/packages.fedoraproject.org lookups) when available, `make` build success for suckless programs.
+- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / build-suckless / install-dry-run / tests jobs on a `fedora:latest` + `fedora:41` matrix, backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh` and `fastfetch-template.sh`. Caveat: the `lint` and `build-suckless` jobs **reimplement** `tests/lint.sh` and `tests/build.sh` inline rather than calling them, so those two scripts are linted but never executed in CI — the `tests` job skips them by name because they need the three linters and the X11 toolchain respectively.
+- **Beyond CI, verification is still manual and hands-on**: `bash -n`/`shellcheck` on edited scripts, package names checked against packages.fedoraproject.org (there is no `dnf` on the dev host — it is Arch), and sandboxed `$HOME` runs for anything touching the installer. Nothing has been run end-to-end on a real Fedora box.
 - **Package declarations**: `packages/*.lst` — plain-text, one package per line, `#` comments, no parser dependency beyond `sed`/`tr`/`grep` (already used everywhere else in `scripts/`).
 
 ---
@@ -30,33 +31,49 @@ right vs. what's already stale.
 ```
 dots/
 ├── config/
-│   ├── zsh/            # zsh config: .zshrc, .zshenv, conf.d/, functions/, completions/
+│   ├── zsh/             # zsh config: .zshrc, .zshenv, conf.d/, functions/, completions/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme (on $PATH via 20-path.zsh)
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness (on $PATH via 20-path.zsh)
+│   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
+│   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
+│   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table
+│   ├── thunar/, xfce4/  # thunarrc + uca.xml, helpers.rc — COPIED, never symlinked (the apps rewrite them)
+│   ├── applications/    # dots-nvim.desktop
+│   ├── mimeapps.list    # xdg default/added associations — COPIED (GIO rewrites it)
 │   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
+│                        # NOTE: there is deliberately no config/fastfetch/ or config/gtk-3.0/ —
+│                        # those two configs are written ONLY by their templates (see docs/THEMING.md)
 ├── scripts/
 │   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
-│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + theme deploy + zinit/TPM bootstrap clones
+│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + theme deploy + app configs + zinit/TPM bootstrap clones
 │   ├── install-restore-theme.sh # sourced by install-restore.sh: theme base-config deploy + manifest + backup
+│   ├── install-restore-apps.sh  # sourced by install-restore.sh: thunar/xfce4/mimeapps deploy + guarded xfconf pass
 │   ├── install-services.sh     # stage: chsh to zsh + enable ly.service
-│   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock + autostart hook (called by the install stage unless --skip-suckless)
-│   ├── symlinks.sh             # symlinks config/zsh, config/tmux and config/dwm into ~/.config, backs up conflicts (--restore [timestamp] to undo)
+│   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
+│   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
+│   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
+│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh — manifest-driven removal
+│   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, theme-apply.sh
 ├── packages/
 │   ├── core.lst         # required dnf packages — install-fedora.sh hard-fails if any is missing
 │   └── extra.lst        # best-effort dnf packages — skipped with a warning if missing/renamed
 ├── suckless/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
-│   └── */patches/      # vendored .diff files per program, applied at build time
+│   └── */patches/      # vendored .diff files per program + PATCHES.md, applied at build time
 ├── themes/              # static themes (themes/dark/) + CREDITS.md
-├── docs/                # THEMING.md, UNINSTALL.md
+├── tests/               # lint.sh, build.sh, pkglist.sh, picom-lockstep.sh, starship-template.sh, fastfetch-template.sh
+├── .github/workflows/   # ci.yml — lint / build-suckless / install-dry-run / tests
+├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md
+├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
 ├── ROADMAP.md           # comparison doc vs. HyDE; see Roadmap status below
 └── .claude/
     ├── changes/         # dated change logs (session-protocol.md governs this)
+    ├── tasks/           # MASTER_PLAN.md + scope files + per-task folders
     └── state/
 ```
 
@@ -80,17 +97,21 @@ for current state.
 
 **Already done, ahead of what ROADMAP.md assumes:**
 - A single Fedora installer (`scripts/install-fedora.sh`) covers both Fedora Server and Fedora Workstation targets — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-fedora-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
-- dwm, st, dmenu, dwmblocks, and slock are all vendored *and* patched (pertag, statuscmd, systray, restartsig, actualfullscreen, hide_vacant_tags, dragmfact, scratchpads, status2d for dwm; border/center/fuzzymatch/lineheight/mouse/numbers/caseinsensitive for dmenu) — ROADMAP §2.5 lists this as a "to do" with only a subset of patches recommended.
+- dwm, st, dmenu, dwmblocks, and slock are all vendored *and* patched — ROADMAP §2.5 lists this as a "to do" with only a subset of patches recommended. The roster is 13 diffs for dwm (actualfullscreen, autostart, dragmfact, **dynamicscratchpads**, hide_vacant_tags, pertag, restartsig, status2d, status2d-systray, statuscmd, statuscmd-status2d, systray, xresources), 8 for dmenu (border, caseinsensitive, center, fuzzymatch, lineheight, mousesupport, numbers, xresources), and one each for st (xresources-signal-reload), dwmblocks (statuscmd) and slock (xresources). Each program's `patches/PATCHES.md` is the authoritative per-patch record; `ls suckless/*/patches/*.diff` is the source of truth for the list itself. The `*-local.diff` ones were captured against this tree rather than fetched from suckless.org, because they could not apply cleanly on top of the others.
+  - **`scratchpads` was replaced by `dynamicscratchpads` on 2026-08-07** and the two are mutually exclusive (both claim bit `LENGTH(tags)` of the tag bitmask). Scratchpads are now assigned dynamically from the focused window rather than pre-declared as commands.
 - `install-suckless.sh` is the rebuild/build entry point already, doing the job ROADMAP §6 assigns to a not-yet-written `rebuild.sh`.
 - Idempotent, re-runnable installers with colored logging and backup-on-conflict symlinking already exist — ROADMAP §2.1/§2.3 describe this as future infrastructure to add.
 - Launcher, powermenu, and clipboard manager are done via dmenu (not rofi) — `Mod+p` (`dmenu_run`), `Super+Shift+x` (`config/dwm/bin/dwm-powermenu`), `Super+v` (`config/dwm/bin/dwm-clipmenu`, a thin wrapper around `clipmenu`/`clipnotify`). ROADMAP.md's comparison table and package list have been updated to match — dmenu was chosen over rofi to keep a single menu tool. clipmenu is COPR-only (`skidnik/clipmenu`); `install-fedora.sh` auto-enables that COPR as a deliberate, explicitly-approved exception to the "COPR is opt-in" default in rule 4 below, since the feature backs a core keybind.
 
+**Also done, superseding earlier "pending" entries (roster Epic, 2026-08-06/07 — scope file `.claude/tasks/scope-b-app-roster-finalization.md`):**
+- **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
+- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 10 blocks plus the systray; picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
+- **README.md is no longer a stub** — it carries the CI badge and the pre-commit setup.
+
 **Still genuinely pending (ROADMAP is accurate here):**
-- No screenshot tool or lock/idle wiring yet (maim, xss-lock — ROADMAP §3). picom, dunst and feh are now packaged *and* configured by the theming engine (below); a compositor/notification config is no longer missing.
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.
-- No `VERSION`/migrations gaps remain; `KEYBINDINGS.md` and the uninstaller now exist.
-- README.md is still a 7-byte stub.
-- `install-fedora.sh` has not been run end-to-end on real hardware (per `.claude/changes/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested.
+- `install-fedora.sh` has not been run end-to-end on real hardware (per `.claude/changes/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested. **Nothing in the roster Epic changes this**: every sub-task was verified in sandboxed `$HOME` trees and against local binaries, never on a Fedora box. Treat "the installer works" as unproven.
+- The `core.lst` vs `extra.lst` split has never been reviewed as a whole. Several roster packages that back keybinds sit in best-effort `extra.lst`, so a failed install leaves keys silently dead — see the `## Queue` item in `.claude/tasks/MASTER_PLAN.md`.
 
 **Theming engine (added 2026-08-05, 7 sub-tasks — see `docs/THEMING.md`):**
 - Dark-mode-only wallbash-style engine: wallpaper -> ImageMagick colour extraction (`scripts/theme/colorgen.sh`) -> `.dcol` palette -> template engine (`scripts/theme/apply-templates.sh`) -> live targets -> ordered reload (`scripts/theme/reload.sh`).
@@ -98,6 +119,9 @@ for current state.
 - User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; the keybinds (`Super+w`, `Super+Shift+w`, `Super+Ctrl+w`) live in `config/sxhkd/sxhkdrc`, needing no dwm rebuild but depending on sxhkd being installed (it is best-effort, in `extra.lst`) and running. They moved out of `config.def.h` in roster sub-task 4 and must not be re-added there — dwm and sxhkd both `XGrabKey`, and a doubly-bound key silently dies.
 - `themes/dark/` is the one shipped static theme. `config/theme/templates/` holds the `.dcol` templates.
 - **`config/dunst` and `config/picom` must never be added to `symlinks.sh`** — the engine rewrites those whole files on every wallpaper change, and a symlink would make it write into this repo. The installer copies them instead.
+- **Templates as of sub-task 9** (`always/`): `xresources`, `dunst`, `picom`, `gtk`, `statusbar`, `alacritty`, `starship`, `fastfetch`, `vim`. `cava.dcol` was **deleted** — it themed a program the installer never installs. Adding a template means reading `config/theme/templates/always/README.md` first: it documents the three target styles and, more importantly, which one is safe for a config that `symlinks.sh` links.
+- **`gtk.css` and `fastfetch/config.jsonc` have no static copy under `config/` at all** — the `.dcol` is the sole authored version. That avoids the two-files-in-lockstep hazard `picom` has (where `config/picom/picom.conf` and `picom.dcol` must be hand-edited together or the first wallpaper change reverts the tuning), at the cost of two obligations on `install-restore-theme.sh`: create the parent directory, or the engine's install-check skips the template forever; and claim the path in the manifest, or uninstall cannot remove it. **Do not add a `config/fastfetch/` directory** — it would reintroduce exactly the lockstep problem.
+- **starship is themed by splicing, not by regenerating.** `config/starship/starship.toml` is the authored config and stays symlinked; `starship.dcol` renders only its `[palettes.dots]` table, and the post-command writes a combined copy to the cache that `conf.d/99-prompt.zsh` prefers while it is newer. The marker line `# ### dots-theme palette ###` in `starship.toml` is load-bearing — it is where the splice cuts, and the template refuses to touch a config that lacks it.
 
 When picking up ROADMAP.md work, re-check the relevant section against the
 actual repo state first — don't assume an item is undone just because it's

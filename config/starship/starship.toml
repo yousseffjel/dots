@@ -2,17 +2,26 @@
 #
 # Adopted verbatim from the user's own ~/.config/starship/starship.toml, with
 # the distro logo changed — see below. Deployed by scripts/symlinks.sh, which
-# links config/starship/ to ~/.config/starship/; conf.d/99-prompt.zsh points
-# $STARSHIP_CONFIG at it, because starship's own default is the bare path
-# $XDG_CONFIG_HOME/starship.toml and symlinks.sh links directories, not files.
+# links config/starship/ to ~/.config/starship/. starship's own default path is
+# the bare $XDG_CONFIG_HOME/starship.toml and symlinks.sh links directories,
+# not files, so conf.d/99-prompt.zsh has to set $STARSHIP_CONFIG either way.
 #
 # REQUIRES A NERD FONT. The glyphs below (distro mark, git branch, per-language
 # symbols) come from cascadia-code-nf-fonts in packages/extra.lst. Without it
 # they render as tofu boxes.
 #
-# Colours are hardcoded hex rather than a [palettes] table, so the roster
-# Epic's sub-task 9 will have to rewrite these literals to theme the prompt
-# from the wallpaper.
+# THEMED FROM THE WALLPAPER. The five colours this config actually paints now
+# live in the [palettes.dots] table at the bottom of this file, below a marker
+# line. config/theme/templates/always/starship.dcol regenerates that block from
+# the current palette and splices it onto a COPY of this file in the cache dir;
+# conf.d/99-prompt.zsh points $STARSHIP_CONFIG at that copy when it is newer.
+# Nothing ever writes back into this repo. Edit anything you like ABOVE the
+# marker; everything below it is replaced on the next wallpaper change.
+#
+# The language modules deliberately keep their `bold bright-cyan`-style ANSI
+# names rather than palette entries: those resolve against the terminal's own
+# 16-colour palette, which the engine already themes through xresources and
+# alacritty-colors.toml. Converting them would theme them twice.
 #
 # TRIMMED FROM THE ORIGINAL 405 LINES. 44 [section] blocks for toolchains this
 # repo neither declares nor installs (cobol, daml, vlang, raku, purescript,
@@ -48,6 +57,15 @@ $time"""
 
 continuation_prompt = '▶▶ '
 
+# Names resolved from [palettes.dots] at the bottom of this file. A `palette`
+# naming a table that does not exist is not a silent fallback: every module
+# using those names loses its colour, and starship writes
+#   [WARN] - (starship::config): Could not find color palette: dots
+# to stderr twice on the first prompt of each shell session — it dedupes via
+# $STARSHIP_CACHE/session_<key>.log, so it is not once per render, but it is
+# once per new terminal, which is worse to look at. Keep the table present.
+palette = 'dots'
+
 
 # style_choices:
 # bold
@@ -70,24 +88,28 @@ continuation_prompt = '▶▶ '
 
 [directory]
 disabled = false
-format = "[$path](bold fg:#8be9fd)"
+format = "[$path](bold fg:c_dir)"
 truncate_to_repo = false
 # home_symbol = "" 
 
 [git_branch]
-format = " [  $branch](fg:#9198a1)"
+format = " [  $branch](fg:c_git_branch)"
 
 [git_status]
 ahead = '⇡${count}'
 behind = '⇣${count}'
 diverged = '⇕⇡${ahead_count}⇣${behind_count}'
-format = '[[( $all_status$ahead_behind )](fg:#769ff0)]($style)'
-style = "bg:#394260"
+format = '[[( $all_status$ahead_behind )](fg:c_git_status)]($style)'
+# Currently paints nothing: the inner (fg:…) span covers the whole segment, so
+# the outer ($style) has no cells left to fill. Verified by swapping it for
+# bright red and getting byte-identical output. Kept and themed rather than
+# deleted, so the value is already right if the format ever grows a gap.
+style = "bg:c_git_status_bg"
 
 
 [time]
 disabled = false
-format = '[[  $time ](fg:#a0a9cb )]($style)'
+format = '[[  $time ](fg:c_time )]($style)'
 time_format = "%R"                            # Hour:Minute Format
 
 [lua]
@@ -148,4 +170,21 @@ symbol = " "
 style = "bold bright-cyan"
 format = " mem [${ram}( ${swap})]($style)"
 symbol = "▪▫▪ "
+
+# ### dots-theme palette ###
+# EVERYTHING BELOW THIS LINE IS REGENERATED. config/theme/templates/always/
+# starship.dcol renders this table from the current wallpaper palette and
+# splices it onto a copy of this file in $XDG_CACHE_HOME/dots/theme/. Put your
+# own settings ABOVE the marker; edits made here survive only until the next
+# wallpaper change. The values below are the static fallback used when no
+# theme has been applied yet — they are the original adopted colours.
+#
+# This table must exist even unthemed: `palette = 'dots'` with no matching
+# table drops the colours and greets every new terminal with a warning.
+[palettes.dots]
+c_dir = '#8be9fd'
+c_git_branch = '#9198a1'
+c_git_status = '#769ff0'
+c_git_status_bg = '#394260'
+c_time = '#a0a9cb'
 

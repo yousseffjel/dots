@@ -47,6 +47,10 @@ white wallpaper.
          v          v            v           v            v
    xresources    dunstrc    picom.conf    gtk.css   statusbar-colors.sh
          |          |            |           |            |
+         |   ... and the app templates, which need no reload step:
+         |     alacritty-colors.toml  starship.toml  wallbash.vim
+         |     fastfetch/config.jsonc           (see "App templates")
+         |          |            |           |            |
          v          v            v           v            v
   +-------------------------------------------------------------+
   |  reload.sh                                                    |
@@ -81,6 +85,85 @@ scripts/theme/reload.sh                    # re-signal everything, no regen
 
 Wallpapers come from `~/Pictures/wallpapers`; override with
 `DOTS_WALLPAPER_DIR`.
+
+## App templates
+
+Four templates theme ordinary applications rather than the desktop shell.
+None of them appears in `reload.sh`: each app re-reads its config on its own,
+so there is nothing to signal.
+
+| Template | Writes | Picked up |
+| --- | --- | --- |
+| `alacritty.dcol` | `~/.cache/dots/theme/alacritty-colors.toml` | `alacritty.toml` imports it; `live_config_reload` re-reads it |
+| `starship.dcol` | `~/.cache/dots/theme/starship.toml` | every prompt is a fresh `starship` process |
+| `fastfetch.dcol` | `~/.config/fastfetch/config.jsonc` | read on each run |
+| `vim.dcol` | `~/.vim/colors/wallbash.vim` and/or `~/.config/vim/colors/` | `:colorscheme wallbash` |
+
+### starship
+
+starship has **no include directive**, so a palette cannot be spliced into
+the live config the way alacritty imports a second file. Instead:
+
+- `config/starship/starship.toml` — the authored config, symlinked to
+  `~/.config/starship/`. It ends with the marker line
+  `# ### dots-theme palette ###` followed by a default `[palettes.dots]`
+  table, and its five themed colours are referenced by name (`c_dir`,
+  `c_git_branch`, `c_git_status`, `c_git_status_bg`, `c_time`).
+- `starship.dcol` renders **only** that palette table, then its post-command
+  writes a whole themed copy to `~/.cache/dots/theme/starship.toml`:
+  everything above the marker in the repo config, plus the fresh table.
+- `conf.d/99-prompt.zsh` points `$STARSHIP_CONFIG` at the themed copy **when
+  it is newer than the repo config**, and at the repo config otherwise.
+
+Editing the prompt therefore takes effect immediately (the repo file becomes
+newer, so it wins) at the cost of dropping the wallpaper colours until the
+next wallpaper change or `theme-apply.sh` run. That is the safe direction:
+you lose the theme, never the edit.
+
+Only the palette table is duplicated between the two files — the prompt's
+structure lives once. Adding a themed colour means two edits: a `c_*` entry
+in `starship.dcol`, and its default under the marker in `starship.toml`.
+
+The `[palettes.dots]` table must exist in the repo config even unthemed. A
+`palette` naming a table that is not there does not fall back silently: the
+modules lose their colour and starship writes
+`Could not find color palette: dots` to stderr twice on the first prompt of
+each shell session — once per new terminal, not once per render, because it
+dedupes through `$STARSHIP_CACHE/session_<key>.log`.
+
+### fastfetch
+
+There is **no `config/fastfetch/` in this repo**. `fastfetch.dcol` is the
+only authored copy and it writes `~/.config/fastfetch/config.jsonc` whole,
+the same arrangement `gtk.css` uses. `scripts/install-restore-theme.sh` has
+to cover two things a copied base config would give for free — creating
+`~/.config/fastfetch` (or the engine's install-check skips the template as
+"app not installed"), and claiming the path in the install manifest so
+`uninstall_theme` removes it. Both live in `theme_claim_fastfetch`.
+
+Consequence: until a theme has been applied, fastfetch runs on its own
+built-in defaults. On the documented headless fresh-server path that means
+running `scripts/theme/theme-apply.sh dark` after the first `startx`.
+
+Two colours are themed — `display.color.keys` and `display.color.title`. The
+`colors` module at the bottom of the output prints the terminal's own
+16-colour palette, which `xresources.dcol` and `alacritty.dcol` theme
+separately, so it doubles as a visual check that the whole engine ran.
+
+**A typo in a module name is silent.** fastfetch rejects malformed JSON and
+rejects an unsubstituted `<wallbash_*>` left in a colour ("invalid RGB color
+code found"), but an unknown module `type` is ignored with exit status 0 and
+the module simply vanishes from the output. `tests/fastfetch-template.sh`
+therefore asserts on the rendered module names, not just the exit code.
+
+### vim
+
+`vim.dcol` renders to the cache and copies into `~/.vim/colors/` and
+`~/.config/vim/colors/` for whichever of those directories exists, because
+vim creates neither on its own and the engine's install-check would skip a
+template pointed straight at them. Nothing is written if neither exists.
+Neither `vim` nor a colourscheme loader is added to `packages/*.lst` — the
+template themes vim if you have it and does nothing if you do not.
 
 Keybinds (`Super` + `w`, `Super` + `Shift` + `w`, `Super` + `Ctrl` + `w`) live
 in `config/sxhkd/sxhkdrc` — see `KEYBINDINGS.md`. No dwm rebuild is needed;
@@ -209,7 +292,22 @@ before the rebuild keep the old binary.
 `reload.sh` reports whether it found a running instance.
 
 **A template was skipped.** Its target's parent directory does not exist,
-meaning the app is not installed. Install it and re-run.
+meaning the app is not installed. Install it and re-run. The one case where
+that inference is wrong is `fastfetch`, whose directory is created by
+`scripts/install-restore-theme.sh` rather than by fastfetch itself — if it
+is skipped, run `scripts/install-fedora.sh --only-restore`, or just
+`mkdir -p ~/.config/fastfetch` and re-apply.
+
+**The prompt is not themed.** `conf.d/99-prompt.zsh` only prefers the themed
+copy while it is newer than `~/.config/starship/starship.toml`, so any edit
+or `git pull` touching the repo config hands the prompt back to it. Re-apply
+the theme, then open a new shell — the choice is made once per shell, at
+startup. `echo $STARSHIP_CONFIG` tells you which one you got.
+
+**The prompt lost its colours and warns about a palette.** The
+`[palettes.dots]` table at the bottom of `starship.toml` was removed, or the
+`# ### dots-theme palette ###` marker above it was. The marker is also what
+`starship.dcol` cuts at, so without it the theming silently stops too.
 
 **Everything is stale after editing a template.** Templates are read at
 apply time, so re-run `wallpaper.sh`/`theme-apply.sh`. `colorgen.sh` is
@@ -222,3 +320,14 @@ itself.
 manifest as `THEME` rows) and the whole generated `~/.cache/dots/theme`
 cache. `~/.fehbg` is left alone — it records the user's wallpaper choice
 and is normally feh's own file.
+
+`gtk.css` and `fastfetch/config.jsonc` are removed too even though the
+installer never wrote their contents: both are claimed as `THEME` rows at
+install time precisely so uninstall can reach them. A file that already
+existed at either path when the installer ran is deliberately *not* claimed,
+and so is left behind — `uninstall_theme` deletes every `THEME` row outright,
+and leaving a stray file is recoverable where deleting someone else's config
+is not.
+
+Removing the theme cache also removes `starship.toml` from it, at which point
+`conf.d/99-prompt.zsh` falls back to the repo config on the next shell.
