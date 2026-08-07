@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Thunar custom actions (right-click menu).
+
+  Thunar rewrites this file whenever custom actions are edited in the GUI
+  (Edit -> Configure custom actions), which is why config/thunar is COPIED
+  by the installer and never symlinked — a symlink would make Thunar write
+  into this repo. Same rule as config/dunst and config/picom.
+
+  <command> is parsed with g_shell_parse_argv and spawned directly: there
+  is NO shell, so $HOME and ~ do not expand. Anything needing a path under
+  $HOME is wrapped in `sh -c` explicitly. Bare binary names (alacritty)
+  resolve through the session PATH and need no wrapper.
+
+  <unique-id> only has to be unique within this file; Thunar generates
+  timestamp-based ones, these are hand-written and deliberately readable.
+-->
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>dots-open-terminal-here</unique-id>
+	<command>alacritty --working-directory %f</command>
+	<description>Open alacritty in this directory</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>preferences-desktop-wallpaper</icon>
+	<name>Set as Wallpaper</name>
+	<submenu></submenu>
+	<unique-id>dots-set-as-wallpaper</unique-id>
+	<command>sh -c &apos;exec &quot;${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-wallpaper&quot; &quot;$1&quot;&apos; _ %f</command>
+	<description>Set this image as the wallpaper and re-theme the desktop from it</description>
+	<range>1</range>
+	<patterns>*.jpg;*.jpeg;*.png;*.webp;*.bmp;*.tif;*.tiff</patterns>
+	<image-files/>
+</action>
+</actions>

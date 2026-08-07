@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # "restore" stage: deploys this repo's config into place. Sets ZDOTDIR,
 # symlinks config/ via symlinks.sh, deploys the theming engine's base
-# configs (install-restore-theme.sh), and pre-clones the zinit/TPM plugin
-# managers so first shell/tmux launch isn't blocked on a network round-trip.
+# configs (install-restore-theme.sh), deploys the Thunar / Xfce helper /
+# xdg mime configs (install-restore-apps.sh), and pre-clones the zinit/TPM
+# plugin managers so first shell/tmux launch isn't blocked on a network
+# round-trip.
 #
 # usage: install-restore.sh [--dry-run]
 
@@ -98,6 +100,13 @@ fi
 
 source "$SCRIPT_DIR/install-restore-theme.sh"
 restore_theme
+
+# Thunar / Xfce helper defaults / xdg mime defaults. After restore_theme so
+# that a failed theme backup (which aborts the apply) still leaves the app
+# configs deployed — the two are independent, and neither writes the other's
+# files.
+source "$SCRIPT_DIR/install-restore-apps.sh"
+restore_apps
 
 # Pre-clone plugin managers so first launch isn't blocked on a network round-trip.
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"

@@ -125,6 +125,11 @@ playerctl
 pamixer
 pavucontrol
 alsa-utils
+# file manager (roster Epic sub-task 8). thunar-archive-plugin + file-roller
+# handle archives (unar covers RAR from Fedora proper — locked decision 8,
+# unrar is RPM Fusion nonfree); thunar-volman + gvfs auto-mount removable
+# media; tumbler + ffmpegthumbnailer produce video/PDF thumbnails; catfish
+# is the search front end.
 thunar
 thunar-archive-plugin
 thunar-volman
@@ -134,6 +139,16 @@ file-roller
 unar
 catfish
 gvfs
+# xfce4-settings is here for ONE binary: /usr/bin/xfce4-mime-helper. Thunar
+# hardcodes `exo-open --launch TerminalEmulator` for its built-in "Open
+# Terminal Here", and exo 4.15.1 moved the helper framework out of exo
+# ("Removed binaries: exo-compose-mail, exo-helper-2") into this package,
+# which also ships the /usr/share/xfce4/helpers/ definitions that
+# config/xfce4/helpers.rc names — alacritty.desktop among them. Without it
+# helpers.rc is inert and that menu entry falls back to xfce4-terminal,
+# which this roster does not install. Nothing starts xfsettingsd; the rest
+# of the package is inert on a dwm session.
+xfce4-settings
 lxappearance
 xdg-user-dirs
 unzip

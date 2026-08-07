@@ -1,0 +1,26 @@
+[Desktop Entry]
+# Neovim wrapped in alacritty, so text files opened from Thunar land in a
+# real terminal window.
+#
+# The neovim package already ships nvim.desktop, but it is Terminal=true —
+# which hands the job of finding a terminal to GLib, and GLib picks from a
+# compiled-in list of terminal names. Relying on that means relying on
+# alacritty being in whatever list the installed GLib happens to carry.
+# This entry spells the terminal out instead, so the behaviour does not
+# change with the GLib version.
+#
+# Deployed to $XDG_DATA_HOME/applications by scripts/install-restore-apps.sh.
+# The MimeType list mirrors nvim.desktop's, minus the duplicates.
+Type=Application
+Version=1.0
+Name=Neovim
+GenericName=Text Editor
+Comment=Edit text files in Neovim, in an alacritty window
+Exec=alacritty --title nvim -e nvim %F
+TryExec=alacritty
+Icon=nvim
+Terminal=false
+StartupNotify=false
+Categories=Utility;TextEditor;
+Keywords=Text;Editor;vim;
+MimeType=text/plain;text/english;text/x-makefile;text/x-c;text/x-c++;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;text/markdown;text/csv;application/x-shellscript;application/json;application/toml;application/x-yaml;

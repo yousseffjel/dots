@@ -38,18 +38,34 @@ partial uninstall is a normal, supported outcome, not an error.
    `dwm-colors` are deployed to `~/.local/bin` by a separate
    `make install-scripts` target (not `make install`), so the previous
    step never touches them — removed here from their own manifest rows.
-4. **Packages.** Runs `dnf remove` on the packages list shown before you
+4. **Theme files.** The base configs the installer *copied* rather than
+   symlinked (`~/.config/dunst/dunstrc`, `~/.config/picom/picom.conf`, the
+   GTK `settings.ini`/`gtk.css`), plus the wholly generated
+   `~/.cache/dots/theme/`. Copies can't be identified by a readlink check
+   the way symlinks can, so these are removed by manifest row instead — and
+   a file that already existed when the installer ran was never given a row,
+   so it is not touched.
+5. **App configs.** What `install-restore-apps.sh` deployed for the file
+   manager: `~/.config/Thunar/{thunarrc,uca.xml}`, `~/.config/xfce4/
+   helpers.rc`, `~/.config/mimeapps.list`, and
+   `~/.local/share/applications/dots-nvim.desktop`. Same copied-file,
+   manifest-row rule as the theme category above. **Thunar's preferences
+   are not reverted** — they live in your xfconf `thunar` channel next to
+   settings Thunar wrote itself, nothing records what they were before, and
+   resetting them could not be told apart from discarding choices you made
+   in Thunar's own preferences dialog afterwards.
+6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
    `install-fedora.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
-5. **Services.** Disables `ly.service` if (and only if) the installer was
+7. **Services.** Disables `ly.service` if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
    packages.
-6. **Login shell.** Offers to `chsh` back to whatever your login shell was
+8. **Login shell.** Offers to `chsh` back to whatever your login shell was
    before the installer switched it to zsh — only if the installer
    actually changed it (recorded in the manifest at that moment).
-7. **State.** Finally offers to remove `~/.local/state/dots/` itself (the
+9. **State.** Finally offers to remove `~/.local/state/dots/` itself (the
    manifest plus `uninstall.log`). Before that happens you're offered the
    chance to save a copy of the log elsewhere first — useful if you want a
    record of exactly what was removed after the state dir is gone.

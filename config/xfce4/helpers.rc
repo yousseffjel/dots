@@ -1,0 +1,27 @@
+# Xfce "preferred applications" — what exo-open --launch <TYPE> resolves to.
+#
+# Thunar hardcodes `exo-open --launch TerminalEmulator` for its built-in
+# "Open Terminal Here", so without this file that menu entry falls back to
+# libexo's compiled-in default (xfce4-terminal.desktop), which this roster
+# does not install.
+#
+# REQUIRES the xfce4-settings package. exo 4.15.1 moved the helper
+# framework out of exo ("Removed binaries: exo-compose-mail, exo-helper-2")
+# and into xfce4-settings, which now ships /usr/bin/xfce4-mime-helper plus
+# the helper definitions under /usr/share/xfce4/helpers/. libexo still
+# reads this file, but it delegates the actual launch to that binary — so
+# on a box without xfce4-settings this file is inert. Fedora 43/44 ship
+# exo 4.20.0 and xfce4-settings 4.20.2, both past that split.
+#
+# Values are the basenames of /usr/share/xfce4/helpers/*.desktop. All three
+# below ship upstream in xfce4-settings, so no custom helper is needed.
+# The system-wide default this overrides is /etc/xdg/xfce4/helpers.rc.
+#
+# xfce4-mime-settings rewrites this file when preferred apps are changed in
+# its GUI, which is why config/xfce4 is COPIED by the installer, never
+# symlinked.
+
+[Default]
+TerminalEmulator=alacritty
+WebBrowser=firefox
+FileManager=thunar

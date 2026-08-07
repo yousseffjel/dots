@@ -1,0 +1,109 @@
+# Default applications, per the XDG mimeapps spec.
+#
+# Deployed to $XDG_CONFIG_HOME/mimeapps.list by
+# scripts/install-restore-apps.sh. COPIED, never symlinked: `xdg-mime
+# default`, GIO and Thunar's own "Open With -> Set Default" all rewrite
+# this file in place, and a symlink would send those writes into this repo.
+#
+# Every .desktop named here comes from a package in packages/extra.lst,
+# except dots-nvim.desktop which this repo ships in config/applications/.
+# A name pointing at an app that is not installed is ignored, not an error.
+#
+# [Added Associations] is listed alongside [Default Applications] on
+# purpose: the default only takes effect for a type the application is
+# actually associated with, and neither feh nor file-roller declares every
+# type below in its own MimeType line.
+
+[Default Applications]
+inode/directory=thunar.desktop
+
+# Web + documents -> firefox (the only browser and the only PDF reader in
+# the roster; there is no dedicated PDF viewer).
+text/html=firefox.desktop
+application/xhtml+xml=firefox.desktop
+application/pdf=firefox.desktop
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+x-scheme-handler/about=firefox.desktop
+x-scheme-handler/unknown=firefox.desktop
+
+# Images -> feh. Its own Exec is `feh --start-at %u`, so opening one image
+# from a directory lets you page through the rest.
+image/bmp=feh.desktop
+image/gif=feh.desktop
+image/jpeg=feh.desktop
+image/png=feh.desktop
+image/tiff=feh.desktop
+image/webp=feh.desktop
+image/x-bmp=feh.desktop
+image/x-portable-pixmap=feh.desktop
+image/x-xbitmap=feh.desktop
+image/heic=feh.desktop
+image/avif=feh.desktop
+
+# SVG goes to firefox, not feh: feh rasterises through imlib2 and renders
+# most SVGs badly or not at all.
+image/svg+xml=firefox.desktop
+
+# Archives -> file-roller, which shells out to unar for RAR (locked
+# decision 8: unar is in Fedora proper, unrar is RPM Fusion nonfree).
+application/zip=org.gnome.FileRoller.desktop
+application/x-7z-compressed=org.gnome.FileRoller.desktop
+application/vnd.rar=org.gnome.FileRoller.desktop
+application/x-rar-compressed=org.gnome.FileRoller.desktop
+application/x-tar=org.gnome.FileRoller.desktop
+application/x-compressed-tar=org.gnome.FileRoller.desktop
+application/x-bzip-compressed-tar=org.gnome.FileRoller.desktop
+application/x-xz-compressed-tar=org.gnome.FileRoller.desktop
+application/gzip=org.gnome.FileRoller.desktop
+application/x-bzip=org.gnome.FileRoller.desktop
+application/x-xz=org.gnome.FileRoller.desktop
+application/zstd=org.gnome.FileRoller.desktop
+
+# Text and code -> neovim in alacritty (see config/applications/).
+text/plain=dots-nvim.desktop
+text/markdown=dots-nvim.desktop
+text/csv=dots-nvim.desktop
+text/x-makefile=dots-nvim.desktop
+text/x-c=dots-nvim.desktop
+text/x-c++=dots-nvim.desktop
+text/x-csrc=dots-nvim.desktop
+text/x-chdr=dots-nvim.desktop
+text/x-c++src=dots-nvim.desktop
+text/x-c++hdr=dots-nvim.desktop
+text/x-java=dots-nvim.desktop
+text/x-python=dots-nvim.desktop
+text/x-tex=dots-nvim.desktop
+application/x-shellscript=dots-nvim.desktop
+application/json=dots-nvim.desktop
+application/toml=dots-nvim.desktop
+application/x-yaml=dots-nvim.desktop
+application/xml=dots-nvim.desktop
+
+[Added Associations]
+inode/directory=thunar.desktop;
+image/bmp=feh.desktop;
+image/heic=feh.desktop;
+image/avif=feh.desktop;
+image/x-bmp=feh.desktop;
+image/x-portable-pixmap=feh.desktop;
+image/x-xbitmap=feh.desktop;
+application/zip=org.gnome.FileRoller.desktop;
+application/x-7z-compressed=org.gnome.FileRoller.desktop;
+application/vnd.rar=org.gnome.FileRoller.desktop;
+application/x-rar-compressed=org.gnome.FileRoller.desktop;
+application/x-tar=org.gnome.FileRoller.desktop;
+application/x-compressed-tar=org.gnome.FileRoller.desktop;
+application/x-bzip-compressed-tar=org.gnome.FileRoller.desktop;
+application/x-xz-compressed-tar=org.gnome.FileRoller.desktop;
+application/gzip=org.gnome.FileRoller.desktop;
+application/x-bzip=org.gnome.FileRoller.desktop;
+application/x-xz=org.gnome.FileRoller.desktop;
+application/zstd=org.gnome.FileRoller.desktop;
+text/markdown=dots-nvim.desktop;
+text/csv=dots-nvim.desktop;
+text/x-python=dots-nvim.desktop;
+application/toml=dots-nvim.desktop;
+application/x-yaml=dots-nvim.desktop;
+application/xml=dots-nvim.desktop;
+application/pdf=firefox.desktop;

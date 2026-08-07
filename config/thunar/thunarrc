@@ -1,0 +1,52 @@
+# Thunar preferences.
+#
+# READ THIS BEFORE EDITING — this file is NOT Thunar's live config.
+#
+# Thunar 4.20 keeps its preferences in the xfconf "thunar" channel
+# (~/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml). thunarrc is a
+# one-time migration source: thunar_preferences_init() only reads it when
+# xfconf has no "/last-view" property, and even then skips any property
+# xfconf already holds. So on any machine where Thunar has ever run, this
+# file is inert.
+#
+# It is shipped for exactly one case: a fresh install where Thunar has not
+# started yet AND the installer could not reach a D-Bus session to run its
+# xfconf pass (a headless server install). Everywhere else, the settings
+# below are applied by scripts/install-restore-apps.sh via xfconf-query,
+# which is authoritative and works on existing installs too.
+#
+# Keys here are the GParamSpec *nick* (CamelCase); the matching xfconf
+# property is the *name* (kebab-case) with a leading slash — e.g.
+# MiscFoldersFirst <-> /misc-folders-first. Keep the two lists in sync.
+# Enum values are the C identifier, matching what xfconf stores.
+
+[Configuration]
+# Details (list) view with a shortcuts sidebar — Thunar defaults to icon view.
+LastView=ThunarDetailsView
+LastSidePane=THUNAR_SIDEPANE_TYPE_SHORTCUTS
+
+# Double-click to open. Single-click makes drag-select fiddly and this is a
+# desktop with a real mouse (scope-b locked decision 9).
+MiscSingleClick=FALSE
+MiscFoldersFirst=TRUE
+
+# ISO dates sort lexicographically and are unambiguous.
+MiscDateStyle=THUNAR_DATE_STYLE_YYYYMMDD
+
+# Thumbnails for local files only. tumbler + ffmpegthumbnailer supply video
+# and PDF thumbnails; ONLY_LOCAL keeps Thunar from thumbnailing across a
+# gvfs mount, where every thumbnail is a network round-trip.
+MiscThumbnailMode=THUNAR_THUMBNAIL_MODE_ONLY_LOCAL
+
+# thunar-volman: auto-mount removable media.
+MiscVolumeManagement=TRUE
+
+# Never silently execute a shell script on double-click — opening a file
+# manager should not be a way to run code by accident.
+MiscExecShellScriptsByDefault=THUNAR_EXECUTE_SHELL_SCRIPT_NEVER
+
+# KiB/MiB rather than kB/MB.
+MiscFileSizeBinary=TRUE
+
+MiscConfirmMoveToTrash=TRUE
+MiscConfirmCloseMultipleTabs=TRUE

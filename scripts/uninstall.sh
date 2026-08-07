@@ -103,12 +103,16 @@ fi
 
 # One function per category, in the order they run — see uninstall_steps.sh.
 # Split out once this file crossed the 250-line cap (file-architecture.md).
+# uninstall-apps.sh is separate again for the same reason: uninstall_steps.sh
+# is itself at 230 of that cap.
 source "$SCRIPT_DIR/uninstall_steps.sh"
+source "$SCRIPT_DIR/uninstall-apps.sh"
 
 uninstall_configs
 uninstall_suckless
 uninstall_scripts
 uninstall_theme
+uninstall_apps
 uninstall_packages
 uninstall_services
 uninstall_shell
