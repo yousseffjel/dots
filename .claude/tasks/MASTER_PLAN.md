@@ -22,7 +22,7 @@ when slots run concurrently.
   - [x] 8. thunar finalization (archives, thumbnails, defaults, terminal) — `b11fd73`
   - [ ] 9. fastfetch + starship theming + cava removal + docs
   - [x] 10. picom performance tuning (template + base config in lockstep) — `f4a44aa`
-  - [ ] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07)
+  - [x] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07) — `9202bfb`
 
   Order: 1 and 2 first (independent, unblock the rest); 3 before 8;
   4 before 5, 6 and 11; 7 and 10 independent; 9 last.

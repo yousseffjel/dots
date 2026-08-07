@@ -704,3 +704,45 @@ directory for the running history.
   `291dfb3`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
   pkglist + lockstep + build pass, six mutants caught, and the new CI job
   verified to exit 1 on drift.
+
+## 2026-08-07 — roster Epic, sub-task 11/11: dynamic scratchpads (dwm patch swap)
+- **The static `scratchpads` patch was un-baked from `dwm.c` and
+  `config.def.h`, and `dynamicscratchpads` hand-merged in.** The two cannot
+  coexist: old `SPTAG(i) ((1 << LENGTH(tags)) << (i))` vs new
+  `SCRATCHPAD_MASK (1u << LENGTH(tags))` both claim bit `LENGTH(tags)`.
+  `TAGMASK` is back to vanilla. `dwm-scratchpads-20200414-728d397b.diff`
+  deleted; `dwm-dynamicscratchpads-20260807-local.diff` (292 lines) vendored
+  in its place, captured against a pre-edit baseline the same way
+  `dwm-xresources-20260805-local.diff` was.
+- **Dynamic, not pre-declared** — the user asked for *"keybind to put the
+  selected window on scratchpads and key for show it and hide it and one to
+  drop window from scratchpads"*. `Mod`+`Shift`+`-` stashes the focused
+  window, `Mod`+`-` shows/hides and cycles, `Mod`+`=` drops it out.
+- **Two of the scope file's three risk warnings did not hold**, and reading
+  the source rather than trusting them is what showed it: `pertag` sizes its
+  arrays `LENGTH(tags) + 1`, never `NUMTAGS`; `drawbar()` loops
+  `i < LENGTH(tags)`, so `hide_vacant_tags` never draws the scratchpad bit.
+  The third (that `patch -p1` would not apply against an 11-patch-deep tree)
+  was correct.
+- **Only one of the three retired scratchpads ever worked** — neither
+  `ranger` nor `keepassxc` is in `packages/*.lst`, so `Mod`+`y`'s `st`
+  terminal is the single real capability lost. `Mod`+`y`/`u`/`x` are now free.
+- **A green `make` would have proved nothing here.** `config.h` is generated
+  once from `config.def.h` and gitignored, so the build was re-run after
+  `rm -f suckless/dwm/config.h`, and `nm` on the linked binary confirmed the
+  five new symbols present and `togglescratch` absent — the swap reached the
+  artifact, not just the source.
+- **Audit caught two errors, both descriptions of correct code**: an inline
+  comment claiming a branch re-shows a window when it stashes one, and a
+  `KEYBINDINGS.md` line saying press-again cycles when it hides. Both fixed
+  and the vendored diff regenerated and round-trip re-verified.
+- **Open:** nothing has run in a live dwm — stash/show/hide/cycle/drop are
+  verified by construction, symbol presence and tag arithmetic only.
+  **Existing installs need a dwm rebuild** (`rm -f suckless/dwm/config.h` then
+  `scripts/install-suckless.sh --skip-deps`). Two upstream behaviours kept and
+  documented rather than fixed: a stashed tiled window returns floating, and
+  the cycle scans only the current monitor.
+- See `.claude/changes/2026-08-07-dynamic-scratchpads.md`. Commits `9202bfb`,
+  `2f4006a`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + lockstep +
+  build pass, plus a byte-for-byte diff round-trip and numeric tag-mask
+  verification.
