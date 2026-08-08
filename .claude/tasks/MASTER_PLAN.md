@@ -15,14 +15,23 @@ when slots run concurrently.
 
 ## Queue
 
-- **Decide which roster packages are load-bearing enough for `core.lst`.**
-  Raised and deferred by four separate sub-tasks now — `alacritty` (3),
-  `sxhkd` (4), `maim`/`slop`/`xprop` (5), `procps-ng` (6) — each time into a
-  change log the next sub-task never reads. `extra.lst` is best-effort, so a
-  package that fails to install leaves keybinds silently dead: no sxhkd means
-  every media/volume/theming/screenshot/lock key is inert, no `pgrep` means
-  `dwm-lock --daemon` loses its duplicate-daemon guard. Needs one pass over
-  the whole roster, not another follow-up line.
+- **Nothing autostarts `polkit-gnome`.** Third instance of the picom bug
+  shape: packaged (`extra.lst`), but absent from `autostart.sh`, `.xinitrc`
+  and sxhkd alike, so no polkit authentication agent ever runs — GUI
+  privilege prompts silently fail. Found 2026-08-08 while reconciling
+  ROADMAP §5 during `package-tiers`, which could not fix it
+  (`install-session.sh` was outside that plan's scope). Fix is one guarded
+  line in `session_autostart_template()` plus a matching branch in
+  `session_autostart_report()` — `tests/autostart-daemons.sh` will fail until
+  both exist, which is the point. Check whether it belongs in `desktop.lst`
+  at the same time.
+- **Decide whether keybound applications belong in `desktop.lst`.**
+  `package-tiers` put `thunar` and `firefox` in `extra.lst` on an
+  infrastructure-vs-application line: `sxhkd` failing kills every key at once
+  and says nothing, while a missing firefox is one obvious dead key. Both are
+  still named in the installer's closing summary. Asked twice during that
+  task and left unanswered; a one-line move plus a consequence note either
+  way.
 - **Make CI invoke `tests/build.sh` and `tests/lint.sh` instead of
   duplicating them.** Sub-task 10 added a `tests` job that runs `tests/*.sh`
   by glob, but it skips those two — the first needs the X11 toolchain, the
@@ -57,6 +66,17 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-08 — **package tiers** — `5a4e681`, `13b6902`. The `core.lst` vs
+  `extra.lst` review, five sub-tasks deep. Answer was not a promotion list:
+  the two-tier model could not express "serious but must not abort", so
+  everything load-bearing sat in best-effort `extra.lst`. Now four tiers
+  (`core` 2 / `build` 13 / `desktop` 26 / `extra` 61) plus a closing failure
+  summary that names each casualty and what it costs. `core.lst` *shrank* to
+  `git`+`zsh` — a hard-fail on a hand-checked name would turn a degraded
+  install into none. Six previously-undeclared packages now declared, the
+  rule 10 inline-array violation closed, and both `tests/pkglist.sh` and
+  `ci.yml` now glob the lists so a fifth tier needs no code change.
 
 - 2026-08-08 — **picom autostart** — `592abb3`. picom added to the
   `autostart.sh` template (first, before the other four daemons) plus a

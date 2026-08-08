@@ -847,3 +847,61 @@ directory for the running history.
   Tests: all seven `tests/*.sh` pass; five mutants all caught; sandboxed `$HOME`
   runs confirmed mode 755, POSIX-`sh` valid, shellcheck-clean, and byte-identical
   on re-run. picom itself was never launched — this dev host is Wayland.
+
+## 2026-08-08 — package tiers (queue item: the core.lst/extra.lst review, five sub-tasks deep)
+
+- **The answer was not a promotion list.** Five roster sub-tasks in a row —
+  alacritty (3), sxhkd (4), maim/slop/xprop (5), procps-ng (6), picom
+  (2026-08-08) — each deferred "should this be in `core.lst`?" into a log the
+  next sub-task never read. The real defect was that a two-tier model cannot
+  say *this failing is serious but must not abort the install*, so everything
+  load-bearing sat in best-effort `extra.lst` where a failure printed one
+  yellow line among ~110 green ones. That is exactly how picom shipped
+  packaged, configured, themed and tuned while nothing launched it.
+- **Four tiers now, each with a distinct failure mode:** `core.lst` (2 —
+  aborts the run), `build.lst` (13, new — `install-suckless.sh` only, aborts
+  the build stage), `desktop.lst` (26, new — never aborts, but every failure
+  is repeated in a red closing summary), `extra.lst` (61 — one yellow line).
+- **`core.lst` SHRANK, to `git` + `zsh`.** The obvious reading of the queue
+  item was "promote things into core"; rejected because `core.lst` hard-fails
+  and rule 8 means every name is hand-checked and never checked against a live
+  `dnf`. Each promotion would convert "one feature is dead" into "no desktop
+  at all". Promotions went to `desktop.lst`, which shouts without aborting.
+- **The consequence text lives in the `.lst` itself** — the trailing `#` on
+  each `desktop.lst` line is what breaks without that package, and
+  `load_consequences()` reads it back to build the summary. `read_pkg_list()`
+  already strips trailing comments, so the install path is untouched and the
+  fact sits on one line rather than drifting across two files.
+- **Six packages were declared nowhere.** Four (`libXext-devel`,
+  `libXrandr-devel`, `libxcrypt-devel`, `ncurses`) existed only in the inline
+  dnf array at `install-suckless.sh:84` — a CLAUDE.md rule 10 violation, and
+  invisible to CI. Plus `procps-ng` (`pgrep`/`pkill` are called **unguarded**
+  by `sxhkdrc`, `dwm-powermenu`, `dwm-lock` and two `.dcol` post-commands) and
+  `desktop-file-utils`. Also: `patch` was in `core.lst` but missing from
+  `install_deps()`, so a standalone `install-suckless.sh` failed at the first
+  vendored `.diff`.
+- **`dnf_install()` no longer discards stderr.** Every failure used to report
+  `skipped (not found in enabled repos)` whether the cause was a rename, a
+  network drop, a GPG error or a transaction conflict.
+- **Three false dependencies were caught by reading files instead of trusting
+  grep.** `lm_sensors` and `free` (twice) all matched comments explaining why
+  those tools are *not* used — `dwm-temp` reads sysfs precisely to avoid
+  lm_sensors. A well-commented file names the tool it avoids as often as the
+  one it calls.
+- **`install-pkg.sh` split at the 250-line cap** into `install-pkg-tiers.sh`
+  (117) + `install-pkg.sh` (181), following the `install-restore-theme.sh`
+  pattern. `tests/pkglist.sh` and `ci.yml` both GLOB `packages/*.lst` now, so
+  a fifth tier is covered for free — proved by a mutant that adds one.
+- **Open, and the third instance of the same bug shape: `polkit-gnome` is
+  packaged but nothing autostarts it.** Found while reconciling ROADMAP §5,
+  flagged in that table; `install-session.sh` was outside this plan's scope.
+- **Open:** whether keybound *applications* (`thunar`, `firefox`) belong in
+  `desktop.lst` rather than `extra.lst`. Asked twice, unanswered at commit;
+  shipped in `extra.lst` with the reasoning in its header. Both are still
+  named in the failure summary, just not flagged as a broken desktop.
+- See `.claude/changes/2026-08-08-package-tiers.md`. Commits `5a4e681`,
+  `13b6902`. Audit: READY (Medium+, 16 files). Reviewer: READY (clean first
+  round, probed all four named risks). Tests: 8/8; nine mutants all caught,
+  each confirmed applied; the CI step body extracted from the YAML and run
+  locally over 102 packages. Nothing ran against a real `dnf` — there is none
+  on this Arch host.
