@@ -22,6 +22,15 @@
 session_autostart_report() {
     local autostart="$1"
 
+    if grep -q 'picom' "$autostart"; then
+        green "ok      $autostart already starts picom"
+    else
+        yellow "kept    $autostart (exists, does not mention picom)"
+        yellow "        add this line yourself:  command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &"
+        yellow "        without it there is no compositor: no vsync, and the tuned"
+        yellow "        ~/.config/picom/picom.conf is never read by anything."
+    fi
+
     if grep -q 'dwmblocks' "$autostart"; then
         green "ok      $autostart already starts dwmblocks"
     else
@@ -73,15 +82,43 @@ install_session_autostart() {
     fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write $autostart (dwmblocks + clipmenud + sxhkd + dwm-lock autostart)"
+        blue "  (dry-run) would write $autostart (picom + dwmblocks + clipmenud + sxhkd + dwm-lock autostart)"
         return 0
     fi
 
-    cat >"$autostart" <<'EOF'
+    session_autostart_template >"$autostart"
+    chmod 755 "$autostart"
+    green "wrote   $autostart (picom + dwmblocks + clipmenud + sxhkd + dwm-lock)"
+}
+
+# The autostart.sh body, on stdout. Split out of install_session_autostart()
+# because the heredoc is most of that function's length and pushed it past the
+# 60-line cap in rules/foundations/file-architecture.md — it is a data blob,
+# not logic, and separating the two also gives tests/autostart-daemons.sh a
+# stable thing to extract.
+#
+# Every daemon added here needs a matching branch in
+# session_autostart_report() above, or existing installs are never told about
+# it. That test enforces the pairing.
+session_autostart_template() {
+    cat <<'EOF'
 #!/bin/sh
 # Run by dwm's autostart patch at startup — see runautostart() in dwm.c.
 # dwm backgrounds this whole script, so anything long-running below must be
 # backgrounded individually and the script must exit.
+
+# Compositor, first so windows are composited from the moment they appear
+# rather than popping in unredirected. Reads ~/.config/picom/picom.conf, which
+# the installer copies and the theming engine rewrites on every wallpaper
+# change — without this line that whole config is dead weight and picom never
+# runs at all.
+#
+# Backgrounded with & rather than picom's own -b: it keeps picom a child of
+# this script, matching the three daemons below, and dwm already backgrounds
+# autostart.sh as a whole.
+if command -v picom >/dev/null 2>&1 && ! pgrep -x picom >/dev/null 2>&1; then
+	picom &
+fi
 
 # Exactly one status feeder: dwm locates it by name (`pidof -s dwmblocks`, see
 # STATUSBAR in config.def.h), so a second copy would make click routing
@@ -118,8 +155,6 @@ fi
 # binaries and need no such luck.
 "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &
 EOF
-    chmod 755 "$autostart"
-    green "wrote   $autostart"
 }
 
 install_session_xinitrc() {

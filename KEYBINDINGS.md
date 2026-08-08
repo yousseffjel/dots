@@ -238,6 +238,15 @@ Edits take effect on `Super` + `Ctrl` + `r` — no rebuild, no logout.
 > `pgrep -x sxhkd`. `install-suckless.sh` will not add the launch line to an
 > `autostart.sh` you already had — it prints the line for you to paste
 > instead, because that file is treated as yours once it exists.
+>
+> The same applies to **picom**, added to the autostart template on
+> 2026-08-07. Until then nothing started the compositor at all, so an
+> `autostart.sh` written before that date has no picom line and you are
+> running with no compositing — check `pgrep -x picom`, and paste:
+>
+> ```sh
+> command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &
+> ```
 
 ### Media
 

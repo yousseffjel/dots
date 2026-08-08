@@ -291,6 +291,14 @@ before the rebuild keep the old binary.
 **The status bar kept its old colours.** dwmblocks must actually restart;
 `reload.sh` reports whether it found a running instance.
 
+**The compositor settings never seem to apply.** Check `pgrep -x picom`
+first. `~/.config/picom/picom.conf` is deployed by the installer and rewritten
+by `picom.dcol` on every wallpaper change, but neither of those *starts*
+picom — the autostart hook does, and `scripts/theme/reload.sh` only signals a
+picom that is already running. On an `autostart.sh` that predates 2026-08-07
+the launch line is absent, because that file is yours once it exists and the
+installer will not edit it; `install-suckless.sh` prints the line to paste.
+
 **A template was skipped.** Its target's parent directory does not exist,
 meaning the app is not installed. Install it and re-run. The one case where
 that inference is wrong is `fastfetch`, whose directory is created by
