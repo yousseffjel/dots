@@ -803,3 +803,47 @@ directory for the running history.
   Tests: all six `tests/*.sh` pass, 16 assertions across the two new tests,
   eight mutants all caught, and the starship refactor proved byte-identical
   across five prompt surfaces.
+
+## 2026-08-08 — picom autostart (queue item, opened by sub-task 9's audit)
+
+- **picom is now launched.** It was packaged, configured, themed and
+  performance-tuned across two roster sub-tasks and appeared in no autostart
+  path at all — so on a fresh install there was no compositor, no vsync, and
+  `~/.config/picom/picom.conf` was dead weight the theming engine kept
+  regenerating. Added to the `autostart.sh` template **first**, before
+  dwmblocks/clipmenud/sxhkd/dwm-lock, so windows are composited from the moment
+  they appear. Backgrounded with `&` rather than picom's own `-b`, matching the
+  three daemons already there.
+- **The real fix is the drift test.** `scripts/install-session.sh` describes the
+  daemon set **twice** — the heredoc fresh machines get, and
+  `session_autostart_report()` that existing installs are told about (rule 6
+  forbids editing a user's `autostart.sh`, so the installer can only print the
+  missing line). Nothing checked the two against each other, and nothing else in
+  `tests/` executes that file — it writes to `$HOME` and is sourced, not run.
+  That is exactly how picom went missing. `tests/autostart-daemons.sh` pairs the
+  two sets in both directions, same spirit as `tests/picom-lockstep.sh`.
+- **A pre-existing cap violation was fixed in passing.**
+  `install_session_autostart()` was **already** 65 lines against the 60-line cap
+  before this task; the picom block took it to 76. Extracted
+  `session_autostart_template()` — now 23 + 56, with the generated
+  `autostart.sh` proved byte-identical across the refactor (same sha256).
+- **My own test was worthless and passed anyway.** The first version grepped the
+  bare daemon name anywhere in each section — but both sections *discuss* their
+  daemons in prose, so deleting `picom &` outright still matched my own
+  explanatory comment. Only mutation testing exposed it; both sides now match on
+  canonical markers. Sibling bug in the same run: the mutant runner piped the
+  test's output through `sed`, making `$?` sed's status, so every mutant
+  reported NOT CAUGHT.
+- **The new test caught the refactor mid-task** — its "could not extract" guard
+  fired on a stranded `chmod`/`green` tail left inside the new function, which
+  validated the guard as well as finding the bug.
+- **Open:** existing installs — including the user's own — still need the line
+  pasted by hand; rule 6 means the installer will only report it. And `picom` is
+  in best-effort `extra.lst`, so the `command -v picom` guard falls through
+  silently on a failed install — that is the `core.lst`/`extra.lst` review still
+  queued below.
+- See `.claude/changes/2026-08-08-picom-autostart.md`. Commit `592abb3`.
+  Audit: READY (Medium+, 6 files, +210/-5). Reviewer: READY (clean first round).
+  Tests: all seven `tests/*.sh` pass; five mutants all caught; sandboxed `$HOME`
+  runs confirmed mode 755, POSIX-`sh` valid, shellcheck-clean, and byte-identical
+  on re-run. picom itself was never launched — this dev host is Wayland.

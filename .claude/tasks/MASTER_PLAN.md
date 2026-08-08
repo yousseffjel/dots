@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-07
+Last Updated: 2026-08-08
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -15,18 +15,6 @@ when slots run concurrently.
 
 ## Queue
 
-- **Nothing autostarts picom.** Found 2026-08-07 while reconciling ROADMAP §3
-  in sub-task 9. picom is packaged, configured, themed *and* performance-tuned
-  (sub-task 10), but it appears in no autostart path — not the `autostart.sh`
-  template in `scripts/install-session.sh`, not `~/.xinitrc`, not sxhkd — and
-  `scripts/theme/reload.sh` only signals it *if already running*. So sub-task
-  10's tuning has never taken effect on a real session, and neither has the
-  compositor. Fix is one guarded line in the `autostart.sh` heredoc, next to
-  the existing dwmblocks/clipmenud/sxhkd ones. **Note `autostart.sh` is
-  user-owned once it exists (CLAUDE.md rule 6)**, so existing installs need
-  the line added by hand — the same caveat sub-tasks 4 and 6 shipped, and it
-  needs a documented note, not just a template edit. `dunst` needs no such
-  line (D-Bus activates it, which is also why `reload.sh` can just kill it).
 - **Decide which roster packages are load-bearing enough for `core.lst`.**
   Raised and deferred by four separate sub-tasks now — `alacritty` (3),
   `sxhkd` (4), `maim`/`slop`/`xprop` (5), `procps-ng` (6) — each time into a
@@ -69,6 +57,15 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-08 — **picom autostart** — `592abb3`. picom added to the
+  `autostart.sh` template (first, before the other four daemons) plus a
+  matching branch in `session_autostart_report()`; `tests/autostart-daemons.sh`
+  now pairs the two daemon sets so the same drift cannot recur. Fixed a
+  pre-existing 60-line-cap violation in `install_session_autostart()` in
+  passing. **Existing installs still need the line pasted by hand** —
+  `autostart.sh` is user-owned (CLAUDE.md rule 6), so the installer only
+  reports it.
 
 - 2026-08-07 — **Epic: app / tool / package roster finalization**, all 11
   sub-tasks merged. Scope file:
