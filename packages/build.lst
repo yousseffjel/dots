@@ -1,0 +1,49 @@
+# Suckless build dependencies — the toolchain and headers needed to compile
+# dwm, st, dmenu, dwmblocks and slock from the vendored sources.
+#
+# CONSUMER: scripts/install-suckless.sh ONLY.
+#
+# install-pkg.sh does NOT read this list, and that is deliberate.
+# install-fedora.sh runs install-suckless.sh straight after install-pkg.sh
+# and without --skip-deps, so the build stage installs its own dependencies
+# immediately before it needs them. The useful consequence is that
+# --skip-suckless needs no special handling anywhere: skip the build and
+# these are never installed, which is exactly right.
+#
+# FAILURE MODE: hard-fail. install-suckless.sh cannot compile anything
+# without these, so there is no degraded mode worth continuing into. This is
+# the one list whose failure aborts a stage rather than a feature.
+#
+# Format: one package name per line. '#' starts a comment (whole-line or
+# trailing). Blank lines ignored. Fedora/dnf names — see the note in
+# install-suckless.sh's install_deps() about the pacman/apt fallbacks, which
+# cannot be expressed here.
+
+# toolchain
+# patch applies the vendored suckless/*/patches/*.diff files at build time
+# (CLAUDE.md rule 5). It was in core.lst and missing from install_deps()'s
+# own dnf list, so a standalone `install-suckless.sh` on a box without it
+# failed at the first patch. pkgconf-pkg-config resolves freetype/fontconfig
+# for the dwm and st Makefiles.
+gcc
+make
+patch
+pkgconf-pkg-config
+
+# X11 — dwm, st and dmenu
+libX11-devel
+libXft-devel
+libXinerama-devel
+
+# X11 — slock additionally needs Xext (DPMS), Xrandr (monitor enumeration)
+# and libcrypt (password hashing via crypt(3)).
+libXext-devel
+libXrandr-devel
+libxcrypt-devel
+
+# font rendering — Xft draws through both
+freetype-devel
+fontconfig-devel
+
+# tic(1), which st's Makefile runs to compile st.info into a terminfo entry
+ncurses

@@ -73,6 +73,25 @@ fi
 # --- build dependencies ------------------------------------------------------
 # X11 + Xft + Xinerama for dwm/st, Xext + Xrandr + libcrypt for slock, and
 # tic(1) from ncurses for st's terminfo.
+#
+# The dnf names live in packages/build.lst (CLAUDE.md rule 10) — this is the
+# Fedora path and the only one the repo supports. The pacman and apt-get
+# branches below keep inline arrays as a documented exception to that rule:
+# a .lst holds one distro's package names, and these two are different names
+# for the same libraries. They are vestigial fallbacks from when this repo
+# still shipped install-arch.sh and install.sh, kept because
+# install-suckless.sh is documented as standalone-runnable.
+
+# Strips '#' comments (whole-line or trailing) and blank lines from a .lst
+# file — same rule as read_pkg_list() in scripts/install-pkg-tiers.sh. Kept
+# as its own copy rather than sourced: this script runs standalone, and the
+# repo's convention (CLAUDE.md rule 2) is per-script helpers over a shared
+# sourced file. The copies are one identical line; anything more complex
+# should move into global_fn.sh instead of being duplicated again.
+read_pkg_list() {
+    sed 's/#.*//' "$1" | tr -s '[:space:]' '\n' | grep -v '^$'
+}
+
 install_deps() {
     if command -v pacman >/dev/null 2>&1; then
         blue "==> installing build deps (pacman)"
@@ -80,11 +99,19 @@ install_deps() {
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
             freetype2 fontconfig ncurses
     elif command -v dnf >/dev/null 2>&1; then
-        blue "==> installing build deps (dnf)"
-        "${SUDO[@]}" dnf install -y gcc make pkgconf-pkg-config \
-            libX11-devel libXft-devel libXinerama-devel libXext-devel \
-            libXrandr-devel libxcrypt-devel freetype-devel fontconfig-devel \
-            ncurses
+        local build_lst="$DOTS_DIR/packages/build.lst"
+        if [[ ! -f "$build_lst" ]]; then
+            red "missing $build_lst — cannot resolve the build dependencies"
+            exit 1
+        fi
+        blue "==> installing build deps (dnf, from packages/build.lst)"
+        local pkgs=()
+        mapfile -t pkgs < <(read_pkg_list "$build_lst")
+        if [[ ${#pkgs[@]} -eq 0 ]]; then
+            red "$build_lst declares no packages — refusing to build without a toolchain"
+            exit 1
+        fi
+        "${SUDO[@]}" dnf install -y "${pkgs[@]}"
     elif command -v apt-get >/dev/null 2>&1; then
         blue "==> installing build deps (apt)"
         export DEBIAN_FRONTEND=noninteractive

@@ -1,7 +1,17 @@
-# Best-effort packages — install-fedora.sh installs these one at a time; a
-# single missing/renamed package is skipped with a warning instead of
-# aborting the run. See packages/core.lst for the small required subset this
-# installer hard-depends on.
+# Best-effort packages — install-pkg.sh installs these one at a time; a
+# single missing or renamed package is skipped and the run carries on.
+#
+# THE CRITERION: applications and conveniences. Losing one costs you that
+# program and nothing else — no daemon stops starting, no keybind silently
+# stops working across the board, and the theming engine keeps running.
+# Anything whose absence quietly breaks a shipped feature belongs in
+# packages/desktop.lst instead; anything the installer's own next step needs
+# belongs in packages/core.lst.
+#
+# Failures here are still reported. install-pkg.sh names every skipped
+# package in its closing summary regardless of tier — an application whose
+# keybind is now dead (thunar, firefox) will be listed, just not flagged as a
+# broken desktop.
 #
 # Format: one package name per line. '#' starts a comment (whole-line or
 # trailing). Blank lines ignored.
@@ -17,7 +27,7 @@
 #
 #   JetBrains Mono Nerd Font — Fedora packages no such variant. The
 #     jetbrains-mono-fonts source produces only -all and -nl, neither with
-#     nerd glyphs; cascadia-code-nf-fonts below is the glyph font.
+#     nerd glyphs; cascadia-code-nf-fonts (desktop.lst) is the glyph font.
 #
 #   ddcutil / i2c-dev — brightness is xrandr gamma on this desktop target,
 #     not DDC/CI. See the roster Epic's locked decision 10.
@@ -33,98 +43,52 @@
 #
 #   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
 #     repos, so no third-party repo is needed. Locked decision 8.
+#
+#   The X11 and font -devel headers, plus gcc/make/patch/pkgconf-pkg-config —
+#     all moved to packages/build.lst, which install-suckless.sh installs
+#     itself immediately before it compiles.
 
 # core system & display server
-xorg-x11-server-Xorg
-xorg-x11-xinit
-xrandr
-xsetroot
-xset
-xrdb
+# xinput, xsetroot, opendoas and fuse are referenced by nothing in config/ or
+# scripts/ (verified 2026-08-08). Kept as the diagnostic and privilege tools
+# a bare Fedora Server install lacks, not because anything here calls them.
 xinput
-libX11-devel
-libXft-devel
-libXinerama-devel
-freetype-devel
-fontconfig-devel
+xsetroot
+xsel
 NetworkManager
 network-manager-applet
-dnf-plugins-core
-pipewire
-pipewire-pulseaudio
-pipewire-alsa
-pipewire-jack-audio-connection-kit
-wireplumber
-polkit-gnome
 opendoas
 fuse
-
-# interface foundation
-# sxhkd owns every keybind except dwm's own window management, which stays
-# compiled into suckless/dwm/config.def.h (roster Epic sub-task 4).
-sxhkd
-# alacritty is the terminal (dwm's termcmd, thunar's, and the statusbar click
-# actions'). st stays vendored and built as the no-GPU fallback.
-alacritty
+pipewire-alsa
+pipewire-jack-audio-connection-kit
+polkit-gnome
 
 # applications
 firefox
 
 # fonts & theming
-# cascadia-code-nf-fonts is the Nerd Font: Cascadia Code is what the Nerd
-# Fonts project ships as "CaskaydiaCove", and it is the only -nf-fonts family
-# Fedora packages. It supplies every glyph the prompt (starship), the eza
-# --icons aliases and fastfetch rely on — without it those render as tofu.
-# jetbrains-mono-fonts-all stays for plain UI surfaces, which need no glyphs.
-cascadia-code-nf-fonts
+# jetbrains-mono-fonts-all is for plain UI surfaces, which need no glyphs —
+# the Nerd Font itself (cascadia-code-nf-fonts) is in desktop.lst, since
+# without it the prompt, eza and fastfetch all render tofu.
+#
+# Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
+# and themes/dark/theme.conf selects Adwaita-dark — a GTK3 built-in that
+# never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
 jetbrains-mono-fonts-all
 google-noto-emoji-fonts
 google-noto-sans-fonts
 papirus-icon-theme
 adwaita-icon-theme
-# ImageMagick drives the theming engine's colour extraction
-# (scripts/theme/colorgen.sh) — without it wallpaper.sh/theme-apply.sh
-# cannot generate a palette.
-#
-# Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
-# and themes/dark/theme.conf selects Adwaita-dark — a GTK3 built-in that
-# never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
-ImageMagick
 
-# desktop utilities, clipboard & file management
-picom
-dunst
-libnotify
-feh
-xclip
-xsel
-# maim + slop back config/dwm/bin/dwm-screenshot (roster Epic sub-task 5):
-# maim captures, slop draws the region selector, xclip puts it on the clipboard.
-#
-# xprop is there for the active-window mode alone. It reads the window id out
-# of the root window's _NET_ACTIVE_WINDOW property, which maim then takes
-# verbatim — maim parses the 0x-prefixed form xprop prints. xdotool would do
-# the same job in one call with no parsing, but it drags in a whole
-# input-simulation stack (libxdo) that nothing else in this roster wants.
-# Missing xprop degrades to a diagnostic on the window mode only; full-screen
-# and region capture keep working.
-maim
-slop
-xprop
-# xss-lock bridges X's screensaver timer and systemd-logind, so slock also
-# fires on suspend — which xautolock structurally cannot do (sub-task 6).
-xss-lock
+# desktop utilities & file management
+# pavucontrol is the GUI mixer the volume block's click action opens; pamixer
+# (desktop.lst) is what the keys themselves drive.
+pavucontrol
+alsa-utils
 # bluetooth: bluez is the stack, blueman the GTK manager the statusbar
 # block's click action opens (sub-task 7).
 bluez
 blueman
-# playerctl drives the XF86Audio{Play,Next,Prev,Stop} keys over MPRIS and
-# pamixer the volume/mic keys — both bound in config/sxhkd/sxhkdrc, which
-# also signals the matching dwmblocks blocks.
-playerctl
-pamixer
-pavucontrol
-alsa-utils
 # file manager (roster Epic sub-task 8). thunar-archive-plugin + file-roller
 # handle archives (unar covers RAR from Fedora proper — locked decision 8,
 # unrar is RPM Fusion nonfree); thunar-volman + gvfs auto-mount removable
@@ -149,6 +113,10 @@ gvfs
 # which this roster does not install. Nothing starts xfsettingsd; the rest
 # of the package is inert on a dwm session.
 xfce4-settings
+# desktop-file-utils ships update-desktop-database, which install-restore-apps.sh
+# and uninstall-apps.sh both call — each behind a command -v guard with a
+# yellow fallback, so a miss is announced rather than silent.
+desktop-file-utils
 lxappearance
 xdg-user-dirs
 unzip
@@ -181,6 +149,3 @@ curl
 wget
 binutils
 coreutils
-
-# display manager
-ly

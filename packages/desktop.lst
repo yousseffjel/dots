@@ -1,0 +1,73 @@
+# Desktop-critical packages — install-pkg.sh installs these one at a time and
+# NEVER aborts on a failure, but every failure is repeated in a red block at
+# the end of the run together with the consequence spelled out below.
+#
+# THE CRITERION: without this package a shipped keybind, an autostart daemon,
+# or the theming engine silently does nothing. Silently is the operative word.
+# picom was packaged, configured, themed and performance-tuned for two months
+# while nothing launched it, and the installer reported a clean run throughout
+# (see .claude/changes/2026-08-08-picom-autostart.md). A package whose absence
+# announces itself does not need to be here.
+#
+# Not the same as core.lst. core.lst hard-fails because the installer's own
+# next step breaks; this list keeps going because a degraded desktop you can
+# log into and repair beats no desktop at all. That matters more than usual
+# here: CLAUDE.md rule 8 means these names are checked by hand against
+# packages.fedoraproject.org and never against a live dnf, so a rename must
+# not be able to brick an install.
+#
+# THE TRAILING COMMENT IS LOAD-BEARING. Everything after '#' on a package
+# line is that package's consequence text, and install-pkg.sh reads it back
+# out to build the failure summary. read_pkg_list() already strips trailing
+# comments, so the install path itself is unaffected and the fact lives in
+# exactly one place. tests/desktop-consequences.sh fails the build if any
+# entry here lacks one.
+#
+# Format: one package name per line, then '#' and the consequence. Whole-line
+# '#' comments and blank lines are ignored.
+
+# --- the X session itself ---
+xorg-x11-server-Xorg  # no X server at all: the desktop cannot start
+xorg-x11-xinit  # no startx: ~/.xinitrc is never read, so dwm never execs
+ly  # no graphical login: you must reach a TTY and run startx by hand
+
+# --- X tools the shipped scripts call by name ---
+xrdb  # theming engine cannot load colours; dwm, st, dmenu and slock stay at their compiled defaults
+xrandr  # the brightness keys do nothing — dwm-brightness drives gamma through it
+xset  # dwm-lock cannot arm X's idle timers, so the screen never locks on inactivity
+xclip  # screenshots are captured but never reach the clipboard
+
+# --- keys, and the signalling the status bar depends on ---
+sxhkd  # EVERY non-dwm keybind dies at once: media, volume, mic, brightness, screenshot, lock, theming and launchers
+procps-ng  # pgrep/pkill missing: the status bar never refreshes after a volume or brightness change, and powermenu logout dies
+
+# --- daemons autostart.sh launches ---
+picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is read by nothing
+dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
+libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
+xss-lock  # the screen never locks on idle or on suspend; only the manual Super+l keybind still works
+
+# --- theming engine ---
+ImageMagick  # no colour extraction: wallpaper.sh and theme-apply.sh cannot build a palette from the wallpaper
+feh  # wallpaper.sh exits early — no wallpaper can be set, so no theme can be generated
+
+# --- terminal and screenshot, both keybound ---
+alacritty  # the terminal keybind and thunar's "Open Terminal Here" fall back to the vendored st
+maim  # the screenshot keys capture nothing at all
+slop  # region and window screenshot modes die; full-screen capture still works
+xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen and region are unaffected
+
+# --- media and volume keys ---
+playerctl  # the XF86Audio play/next/prev/stop keys do nothing
+pamixer  # volume and mic keys do nothing, and both status blocks go blank
+
+# --- audio stack those keys drive ---
+pipewire  # no sound server for pamixer to talk to
+pipewire-pulseaudio  # no PulseAudio shim: pamixer and pavucontrol cannot connect
+wireplumber  # pipewire has no session manager, so devices are never linked
+
+# --- fonts ---
+cascadia-code-nf-fonts  # every Nerd Font glyph renders as tofu in the prompt, the eza --icons aliases and fastfetch
+
+# --- installer mechanism for a keybound feature ---
+dnf-plugins-core  # `dnf copr enable` fails, so clipmenu and clipnotify never install and the clipboard-history keybind dies

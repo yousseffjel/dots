@@ -20,7 +20,7 @@ right vs. what's already stale.
 - **Shell**: bash (`scripts/*.sh`, `set -euo pipefail`, all re-runnable/idempotent), zsh (user shell config in `config/zsh/`)
 - **C**: vendored suckless sources (dwm, st, dmenu, dwmblocks, slock), built with `make`
 - **Config**: tmux (`config/tmux/`), zsh (`config/zsh/`), dwm runtime scripts (`config/dwm/bin/`) — deployed via symlinks, not copies
-- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / build-suckless / install-dry-run / tests jobs on a `fedora:latest` + `fedora:41` matrix, backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh` and `fastfetch-template.sh`. Caveat: the `lint` and `build-suckless` jobs **reimplement** `tests/lint.sh` and `tests/build.sh` inline rather than calling them, so those two scripts are linted but never executed in CI — the `tests` job skips them by name because they need the three linters and the X11 toolchain respectively.
+- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / build-suckless / install-dry-run / tests jobs on a `fedora:latest` + `fedora:41` matrix, backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh`, `fastfetch-template.sh`, `autostart-daemons.sh` and `desktop-consequences.sh`. Caveat: the `lint` and `build-suckless` jobs **reimplement** `tests/lint.sh` and `tests/build.sh` inline rather than calling them, so those two scripts are linted but never executed in CI — the `tests` job skips them by name because they need the three linters and the X11 toolchain respectively.
 - **Beyond CI, verification is still manual and hands-on**: `bash -n`/`shellcheck` on edited scripts, package names checked against packages.fedoraproject.org (there is no `dnf` on the dev host — it is Arch), and sandboxed `$HOME` runs for anything touching the installer. Nothing has been run end-to-end on a real Fedora box.
 - **Package declarations**: `packages/*.lst` — plain-text, one package per line, `#` comments, no parser dependency beyond `sed`/`tr`/`grep` (already used everywhere else in `scripts/`).
 
@@ -58,14 +58,18 @@ dots/
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, theme-apply.sh
-├── packages/
-│   ├── core.lst         # required dnf packages — install-fedora.sh hard-fails if any is missing
-│   └── extra.lst        # best-effort dnf packages — skipped with a warning if missing/renamed
+├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
+│   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
+│   ├── build.lst        # suckless build deps — read by install-suckless.sh ONLY, not install-pkg.sh
+│   ├── desktop.lst      # never aborts, but each failure is repeated in a red closing summary;
+│   │                    # the trailing '#' on each line IS that package's consequence text
+│   └── extra.lst        # best-effort applications and conveniences
 ├── suckless/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
 │   └── */patches/      # vendored .diff files per program + PATCHES.md, applied at build time
 ├── themes/              # static themes (themes/dark/) + CREDITS.md
-├── tests/               # lint.sh, build.sh, pkglist.sh, picom-lockstep.sh, starship-template.sh, fastfetch-template.sh
+├── tests/               # lint.sh, build.sh, pkglist.sh, picom-lockstep.sh, starship-template.sh,
+│                        # fastfetch-template.sh, autostart-daemons.sh, desktop-consequences.sh
 ├── .github/workflows/   # ci.yml — lint / build-suckless / install-dry-run / tests
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
@@ -111,12 +115,12 @@ for current state.
 **Still genuinely pending (ROADMAP is accurate here):**
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.
 - `install-fedora.sh` has not been run end-to-end on real hardware (per `.claude/changes/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested. **Nothing in the roster Epic changes this**: every sub-task was verified in sandboxed `$HOME` trees and against local binaries, never on a Fedora box. Treat "the installer works" as unproven.
-- The `core.lst` vs `extra.lst` split has never been reviewed as a whole. Several roster packages that back keybinds sit in best-effort `extra.lst`, so a failed install leaves keys silently dead — see the `## Queue` item in `.claude/tasks/MASTER_PLAN.md`.
+- ~~The `core.lst` vs `extra.lst` split has never been reviewed as a whole.~~ **Done 2026-08-08** — reviewed as one pass and replaced with four tiers (see rule 10). The packages that back keybinds now sit in `desktop.lst`, whose failures are repeated in a red closing summary with what each one costs, so a failed install can no longer leave keys silently dead. Six packages that were declared nowhere are now declared: `libXext-devel`, `libXrandr-devel`, `libxcrypt-devel` and `ncurses` (they lived only in an inline array in `install-suckless.sh`), plus `procps-ng` and `desktop-file-utils`.
 
 **Theming engine (added 2026-08-05, 7 sub-tasks — see `docs/THEMING.md`):**
 - Dark-mode-only wallbash-style engine: wallpaper -> ImageMagick colour extraction (`scripts/theme/colorgen.sh`) -> `.dcol` palette -> template engine (`scripts/theme/apply-templates.sh`) -> live targets -> ordered reload (`scripts/theme/reload.sh`).
 - dwm, st, dmenu and slock all read colours from the X resource database at runtime (xresources patches — see each tool's `patches/PATCHES.md`).
-- User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; the keybinds (`Super+w`, `Super+Shift+w`, `Super+Ctrl+w`) live in `config/sxhkd/sxhkdrc`, needing no dwm rebuild but depending on sxhkd being installed (it is best-effort, in `extra.lst`) and running. They moved out of `config.def.h` in roster sub-task 4 and must not be re-added there — dwm and sxhkd both `XGrabKey`, and a doubly-bound key silently dies.
+- User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; the keybinds (`Super+w`, `Super+Shift+w`, `Super+Ctrl+w`) live in `config/sxhkd/sxhkdrc`, needing no dwm rebuild but depending on sxhkd being installed (it is in `desktop.lst`, so a failed install is reported loudly rather than silently) and running. They moved out of `config.def.h` in roster sub-task 4 and must not be re-added there — dwm and sxhkd both `XGrabKey`, and a doubly-bound key silently dies.
 - `themes/dark/` is the one shipped static theme. `config/theme/templates/` holds the `.dcol` templates.
 - **`config/dunst` and `config/picom` must never be added to `symlinks.sh`** — the engine rewrites those whole files on every wallpaper change, and a symlink would make it write into this repo. The installer copies them instead.
 - **Templates as of sub-task 9** (`always/`): `xresources`, `dunst`, `picom`, `gtk`, `statusbar`, `alacritty`, `starship`, `fastfetch`, `vim`. `cava.dcol` was **deleted** — it themed a program the installer never installs. Adding a template means reading `config/theme/templates/always/README.md` first: it documents the three target styles and, more importantly, which one is safe for a config that `symlinks.sh` links.
@@ -144,4 +148,17 @@ new pattern.
 7. **`symlinks.sh` links directories, not individual files**, and backs up pre-existing conflicting paths to `~/.dotfiles-backup/<timestamp>/` before linking — keep new config categories (e.g. a future `config/nvim/`) consistent with this backup-then-link behavior rather than a blind overwrite. `symlinks.sh --restore [timestamp]` reverses a backup: no timestamp lists what's available under `~/.dotfiles-backup/`, a timestamp removes the matching symlink(s) and moves the backed-up originals back — it never touches a target that isn't currently one of its own symlinks (skips with a warning instead of overwriting unknown state).
 8. **Verification is manual.** When editing package names in `packages/*.lst`, check them against packages.fedoraproject.org — don't assume a package name is correct just because it looks plausible. Record verification method in the change log (per `session-protocol.md`).
 9. **`HyDE/` is a local, untracked reference clone** (comparison source for `ROADMAP.md`) — it is not part of this project, must never be edited, symlinked into, or referenced by any script, and should not be assumed present on another machine.
-10. **Package names live in `packages/*.lst`, never as inline arrays in installer scripts.** `packages/core.lst` is required (installer hard-fails on any missing package — reserve this for things later steps unconditionally depend on, like `git`/`zsh` for the bootstrap clones or `make`/`gcc`/`patch`/`pkgconf-pkg-config` for the suckless build); `packages/extra.lst` is best-effort (skipped with a yellow warning, never aborts the run). Both are one-package-per-line, `#`-commented, parsed with `sed`/`tr`/`grep` — no new dependency. Keep category comments (`# core system & display server`, etc.) as section dividers when adding packages, matching the existing grouping.
+10. **Package names live in `packages/*.lst`, never as inline arrays in installer scripts.** Four tiers, each with a different failure mode — pick by asking *what breaks, and does it announce itself?*
+
+    | List | Consumer | On failure |
+    | ---- | -------- | ---------- |
+    | `core.lst` | `install-pkg.sh` | **Aborts the run.** Only for things the installer's own next step needs unconditionally — `git` for the zinit/TPM clones, `zsh` for the chsh step. Keep it tiny: rule 8 means these names are hand-checked, never checked against a live `dnf`, so a rename here turns a degraded install into no install. |
+    | `build.lst` | `install-suckless.sh` **only** | **Aborts the build stage.** The suckless toolchain and headers. `install-pkg.sh` deliberately does not read it — `install-fedora.sh` runs the build stage right after, without `--skip-deps`, so `--skip-suckless` needs no special handling anywhere. |
+    | `desktop.lst` | `install-pkg.sh` | **Never aborts**, but every failure is repeated in a red closing summary. For packages whose absence is otherwise **silent**: a dead keybind, a daemon that never starts, a theming engine that cannot run. |
+    | `extra.lst` | `install-pkg.sh` | **Never aborts.** Applications and conveniences; failures get one yellow line in the summary. |
+
+    **The trailing `#` comment on a `desktop.lst` line is load-bearing** — it is that package's consequence text, and `load_consequences()` in `install-pkg-tiers.sh` reads it back out to build the summary. `read_pkg_list()` already strips trailing comments, so the install path is unaffected and the fact lives in one place. `tests/desktop-consequences.sh` fails the build if an entry lacks one, and does it by extracting the *shipped* parser rather than reimplementing it.
+
+    **One documented exception:** `install_deps()` in `install-suckless.sh` keeps inline arrays for its `pacman` and `apt-get` branches. A `.lst` holds one distro's package names, and those two are different names for the same libraries; only the `dnf` branch reads `build.lst`. They are vestigial fallbacks from when this repo still shipped `install-arch.sh` and `install.sh`, kept because `install-suckless.sh` is documented as standalone-runnable. Don't add a third distro this way — extend the format instead, or drop them.
+
+    All four are one-package-per-line, `#`-commented, parsed with `sed`/`tr`/`grep` — no new dependency. Keep category comments (`# core system & display server`, etc.) as section dividers. **Never name the lists in a consumer** — `tests/pkglist.sh` and `ci.yml` both glob `packages/*.lst`, so a fifth tier is covered for free; a named loop silently stops covering whatever is added next.

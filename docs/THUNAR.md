@@ -88,9 +88,12 @@ session. The helper names in `helpers.rc` are basenames of
 no custom helper file is needed.
 
 `extra.lst` is best-effort, so if `xfce4-settings` fails to install nothing
-aborts. The consequence is contained: the **right-click** "Open Terminal
-Here" is a custom action in `uca.xml` that calls `alacritty` directly and
-keeps working regardless. Only Thunar's own File-menu entry goes quiet.
+aborts — it is named in the installer's closing summary and the run
+continues. It stays in `extra.lst` rather than `desktop.lst` because the
+consequence is contained: the **right-click** "Open Terminal Here" is a
+custom action in `uca.xml` that calls `alacritty` directly and keeps working
+regardless. Only Thunar's own File-menu entry goes quiet. `alacritty` itself
+*is* in `desktop.lst`, since losing it takes the terminal keybind with it.
 
 ## Custom actions
 

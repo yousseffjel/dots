@@ -141,8 +141,11 @@ if [[ $RUN_INSTALL -eq 1 ]]; then
     "$SCRIPT_DIR/install-pkg.sh" "${dry_run_args[@]}"
     if [[ $SKIP_SUCKLESS -eq 0 ]]; then
         blue "==> building suckless programs"
-        # No --skip-deps: install-suckless.sh's dnf branch covers libXext/libXrandr/
-        # libxcrypt/ncurses, which slock and st need but packages/*.lst don't list.
+        # No --skip-deps: install-suckless.sh installs packages/build.lst
+        # itself, immediately before it compiles. Keeping the build deps in
+        # that stage rather than in install-pkg.sh is what makes
+        # --skip-suckless need no special handling — skip the build and they
+        # are simply never installed.
         "$SCRIPT_DIR/install-suckless.sh" "${dry_run_args[@]}"
     else
         yellow "  --skip-suckless passed — run scripts/install-suckless.sh later to build dwm/st/dmenu/dwmblocks/slock"

@@ -15,7 +15,7 @@
 | WM / Compositor | Hyprland (Wayland) | dwm (X11) |
 | Display protocol | Wayland | X11 |
 | Installer framework | Full modular installer (`install.sh` → pre/pkg/aur/pst stages) | Basic `scripts/` dir |
-| Package management | Declarative lists (`pkg_core.lst`, `pkg_extra.lst`) | None |
+| Package management | Declarative lists (`pkg_core.lst`, `pkg_extra.lst`) | Declarative lists, four tiers (`packages/{core,build,desktop,extra}.lst`) |
 | Config restore | Manifest-driven (`restore_cfg.psv`, fonts, services, shell) | Manual `config/` dir (only zsh, tmux) |
 | Theming engine | Wallbash (wallpaper → colors → app themes), theme patcher | None |
 | Docs | README, KEYBINDINGS.md, CONTRIBUTING, TESTING, CHANGELOG | 7-byte README |
@@ -88,11 +88,23 @@ HyDE splits install into stages, orchestrated by `install.sh`, with a shared
 Plain-text `.lst` files, one package per line, `#` comments, so users customize
 without touching scripts.
 
-**To do:**
-- `pkgs/core.lst` — xorg, build deps, WM essentials (full list in §4).
-- `pkgs/extra.lst` — optional apps (browser, editor, media).
-- `pkgs/copr.lst` — packages needing COPR repos (format: `copr_repo|package`).
-- Installer skips already-installed packages and logs missing ones.
+**Status: done 2026-08-08, and it landed as four tiers rather than the two
+proposed here.** Read this section as the original sketch; `CLAUDE.md` rule 10
+is the source of truth.
+- ✅ `packages/core.lst` — hard-fail; only what the installer's own next step
+  needs (`git`, `zsh`). Deliberately *not* "xorg + build deps + WM
+  essentials" as sketched below: a hard-fail on an unverified package name
+  turns a degraded install into no install at all.
+- ✅ `packages/build.lst` — the build deps, split out and read by
+  `install-suckless.sh` alone.
+- ✅ `packages/desktop.lst` — xorg and the WM essentials. Never aborts, but
+  each failure is repeated in a red closing summary with what it costs.
+- ✅ `packages/extra.lst` — optional apps (browser, editor, media).
+- ❌ `pkgs/copr.lst` — not built. The one COPR (`skidnik/clipmenu`) is
+  handled inline in `install-pkg.sh`; a whole list format for a single entry
+  was not worth it. Revisit if a second COPR package ever appears.
+- ✅ Installer skips already-installed packages (`rpm -q`) and now reports
+  every missing one in a closing summary rather than one scrolling line.
 
 ### 2.3 Manifest-driven config restore with backups
 HyDE's `restore_cfg.psv` maps repo path → target path with flags
@@ -171,7 +183,7 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | Monitor management | nwg-displays | **xrandr** + arandr (GUI) + autorandr (profiles) | ⚠️ partial — xrandr is used (brightness); arandr/autorandr not packaged |
 | Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
 | XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ add — not packaged |
-| Auth agent | hyprpolkitagent | polkit-gnome / lxpolkit | ⚠️ partial — `polkit-gnome` is in `extra.lst`, but nothing autostarts it |
+| Auth agent | hyprpolkitagent | polkit-gnome / lxpolkit | ⚠️ partial — `polkit-gnome` is in `extra.lst`, but nothing autostarts it. Same shape as the picom gap closed on 2026-08-08: packaged but never launched. |
 | System tray | Waybar tray | dwm **systray patch** | ✅ have — `dwm-systray` + `status2d-systray` vendored |
 
 ---

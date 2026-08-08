@@ -1,16 +1,22 @@
-# Required packages — install-fedora.sh hard-fails if any of these can't be
-# installed, because later steps in the same script depend on them
-# unconditionally: git (zinit/TPM bootstrap clones), zsh (chsh default-shell
-# step), make/gcc/patch/pkgconf-pkg-config (suckless build — patch applies
-# the vendored .diff files per CLAUDE.md rule 5, pkgconf-pkg-config resolves
-# freetype/fontconfig for the dwm/st Makefiles).
+# Required packages — install-pkg.sh hard-fails if any of these can't be
+# installed, because a later step in the same run depends on them
+# unconditionally: git (the zinit and TPM bootstrap clones in
+# install-restore.sh) and zsh (the chsh default-shell step in
+# install-services.sh).
+#
+# Keep this list as small as it can honestly be. A hard-fail turns a wrong
+# or renamed package name into no install at all rather than a degraded one,
+# and CLAUDE.md rule 8 means these names are checked against
+# packages.fedoraproject.org by hand — never against a live dnf. Anything
+# that merely breaks a *feature* belongs in desktop.lst, which says so
+# loudly and carries on.
+#
+# The suckless build toolchain (gcc, make, patch, pkgconf-pkg-config) moved
+# to packages/build.lst, which install-suckless.sh installs itself right
+# before it builds.
 #
 # Format: one package name per line. '#' starts a comment (whole-line or
 # trailing). Blank lines ignored.
 
 git
 zsh
-make
-gcc
-patch
-pkgconf-pkg-config

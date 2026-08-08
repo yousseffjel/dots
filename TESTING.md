@@ -9,10 +9,11 @@ without risking your real machine.
 pip install pre-commit && pre-commit install   # once, see README.md
 tests/lint.sh                                  # shellcheck + shfmt + markdownlint
 tests/build.sh                                 # compiles dwm/st/dmenu/dwmblocks/slock
-tests/pkglist.sh                               # packages/*.lst syntax
+tests/pkglist.sh                               # packages/*.lst syntax, all tiers
+for t in tests/*.sh; do bash "$t"; done        # everything
 ```
 
-All three mirror a job in `.github/workflows/ci.yml`, so a clean local run
+The first three mirror a job in `.github/workflows/ci.yml`, so a clean local run
 is a strong signal CI will pass too — `tests/lint.sh` additionally skips
 (rather than fails) any tool that isn't installed locally, since CI is the
 one gate that always has the full toolchain.
@@ -51,9 +52,23 @@ for adding CI; new docs you add are linted normally.
   from `scripts/install-suckless.sh`'s `install_deps()` already installed
   — run that script, or use the toolbox/podman flow below.
 - **`tests/pkglist.sh`** — offline syntax check on `packages/*.lst`: valid
-  package-name characters, no duplicates within a file, no package listed
-  in both `core.lst` and `extra.lst`. Does not touch the network or `dnf`
-  — see `install-dry-run` in CI for live repo validation of package names.
+  package-name characters, no list that parses to zero packages, no
+  duplicates within a file, and no package appearing in two tiers (all
+  pairs, not just one). It **globs** the lists rather than naming them, so a
+  new tier is covered the moment the file exists. Does not touch the network
+  or `dnf` — see `install-dry-run` in CI for live repo validation of names.
+- **`tests/desktop-consequences.sh`** — every `packages/desktop.lst` entry
+  must carry a trailing `#` comment saying what breaks without it, because
+  `install-pkg.sh` reads exactly that text to build its closing failure
+  summary. Checks it by extracting `read_pkg_list()` and
+  `load_consequences()` from the shipped `scripts/install-pkg-tiers.sh`, so
+  a parser change that stops matching the notes fails here rather than
+  going unnoticed until an install.
+- **`tests/autostart-daemons.sh`** — the daemon set in
+  `scripts/install-session.sh` is stated twice (the `autostart.sh` heredoc
+  for fresh machines, `session_autostart_report()` for existing ones, which
+  rule 6 forbids the installer from editing). Asserts the two agree in both
+  directions.
 
 ## Testing a full install in a disposable Fedora environment
 

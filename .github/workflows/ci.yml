@@ -159,10 +159,23 @@ jobs:
       - name: Validate packages/*.lst against enabled repos
         run: |
           # Same comment/blank-line stripping as read_pkg_list() in
-          # scripts/install-pkg.sh, so this validates exactly what the
+          # scripts/install-pkg-tiers.sh, so this validates exactly what the
           # installer will try to install.
+          #
+          # Globs rather than naming the lists: the repo has four tiers
+          # (core, build, desktop, extra) and a named loop silently stops
+          # covering whichever one is added next. build.lst is included even
+          # though install-suckless.sh installs it rather than install-pkg.sh
+          # — a renamed -devel header breaks the build just as hard.
           fail=0
-          for list in packages/core.lst packages/extra.lst; do
+          shopt -s nullglob
+          lists=(packages/*.lst)
+          if [ ${#lists[@]} -eq 0 ]; then
+            echo "::error::no packages/*.lst found"
+            exit 1
+          fi
+          echo "validating ${#lists[@]} package lists"
+          for list in "${lists[@]}"; do
             echo "::group::$list"
             while IFS= read -r pkg; do
               if dnf list --available "$pkg" >/dev/null 2>&1; then

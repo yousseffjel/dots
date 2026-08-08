@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-# "install" stage, package half: installs the C toolchain group, required
-# and best-effort dnf packages from packages/core.lst and packages/extra.lst,
-# the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v), and the
-# fdfind -> fd shim. The suckless build (dwm/st/dmenu/dwmblocks/slock) is
-# the other half of the "install" stage — see install-suckless.sh.
+# "install" stage, package half: installs the C toolchain group, three tiers
+# of dnf packages, the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v),
+# and the fdfind -> fd shim. The suckless build (dwm/st/dmenu/dwmblocks/slock)
+# is the other half of the "install" stage — see install-suckless.sh, which
+# owns packages/build.lst and installs those deps itself.
 #
-# Re-runnable: every dnf install is idempotent. The required-packages loop
-# hard-fails (exit 1) since later stages (restore, services) and the
-# suckless build depend on git/zsh/make/gcc/patch/pkgconf-pkg-config
-# unconditionally — see packages/core.lst.
+# The three tiers this script reads, in install order:
+#
+#   core.lst    hard-fail. The installer's own next step breaks without it —
+#               git for the zinit/TPM clones, zsh for the chsh step.
+#   desktop.lst never aborts, but each failure is repeated in a red closing
+#               summary with the consequence taken from the package's own
+#               trailing comment. These are the ones whose absence would
+#               otherwise be SILENT: a dead keybind, a daemon that never
+#               starts, a theming engine that cannot run.
+#   extra.lst   never aborts. Applications and conveniences; failures are
+#               listed in the closing summary as a single yellow line.
+#
+# Re-runnable: every dnf install is idempotent.
 #
 # usage: install-pkg.sh [--dry-run]
 
@@ -59,19 +68,10 @@ if [[ $EUID -ne 0 ]]; then
     SUDO=(sudo)
 fi
 
-# Strips '#' comments (whole-line or trailing) and blank lines from a .lst file.
-read_pkg_list() {
-    sed 's/#.*//' "$1" | tr -s '[:space:]' '\n' | grep -v '^$'
-}
-
-dnf_install() {
-    local pkg="$1"
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would install: $pkg"
-        return 0
-    fi
-    "${SUDO[@]}" dnf install -y "$pkg" >/dev/null 2>&1
-}
+# Tier machinery: read_pkg_list, dnf_install, install_tier, install_summary
+# and the desktop.lst consequence map. Split out to stay under the 250-line
+# cap — see that file's header.
+source "$SCRIPT_DIR/install-pkg-tiers.sh"
 
 blue "==> installing C Development Tools and Libraries (group)"
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -82,30 +82,14 @@ elif ! "${SUDO[@]}" dnf group install -y "C Development Tools and Libraries" 2>/
     fi
 fi
 
-blue "==> installing required packages (hard-fail — later stages depend on them)"
-while IFS= read -r pkg; do
-    already=0
-    rpm -q "$pkg" >/dev/null 2>&1 && already=1
-    if dnf_install "$pkg"; then
-        green "  installed: $pkg"
-        [[ $DRY_RUN -eq 0 && $already -eq 0 ]] && manifest_append_row PACKAGE "$pkg"
-    else
-        red "required package failed to install: $pkg"
-        exit 1
-    fi
-done < <(read_pkg_list "$PACKAGES_DIR/core.lst")
+load_consequences
 
-blue "==> installing packages (best-effort, one at a time so a single renamed/missing package doesn't abort the rest)"
-while IFS= read -r pkg; do
-    already=0
-    rpm -q "$pkg" >/dev/null 2>&1 && already=1
-    if dnf_install "$pkg"; then
-        green "  installed: $pkg"
-        [[ $DRY_RUN -eq 0 && $already -eq 0 ]] && manifest_append_row PACKAGE "$pkg"
-    else
-        yellow "  skipped (not found in enabled repos): $pkg"
-    fi
-done < <(read_pkg_list "$PACKAGES_DIR/extra.lst")
+install_tier "installing required packages (hard-fail — later stages depend on them)" \
+    "$PACKAGES_DIR/core.lst" hard
+install_tier "installing desktop-critical packages (never aborts; failures are repeated at the end)" \
+    "$PACKAGES_DIR/desktop.lst" desktop
+install_tier "installing optional packages (best-effort)" \
+    "$PACKAGES_DIR/extra.lst" extra
 
 # clipmenu + clipnotify back dwm-clipmenu (Super+v) and aren't in Fedora's
 # official repos — enabling this COPR is a deliberate exception to this
@@ -115,18 +99,28 @@ blue "==> enabling skidnik/clipmenu COPR"
 if [[ $DRY_RUN -eq 1 ]]; then
     blue "  (dry-run) would enable COPR skidnik/clipmenu and install clipmenu, clipnotify"
 elif "${SUDO[@]}" dnf copr enable -y skidnik/clipmenu; then
+    # Not in desktop.lst — these two come from a COPR, not the official
+    # repos, so they cannot live in a list the dry-run validates against
+    # enabled repos. They get the same treatment by hand: a failure here is
+    # a silently dead keybind, which is the whole point of the red summary.
     for pkg in clipmenu clipnotify; do
         already=0
         rpm -q "$pkg" >/dev/null 2>&1 && already=1
         if "${SUDO[@]}" dnf install -y "$pkg" >/dev/null 2>&1; then
             green "  installed: $pkg"
-            [[ $already -eq 0 ]] && manifest_append_row PACKAGE "$pkg"
+            if [[ $already -eq 0 ]]; then
+                manifest_append_row PACKAGE "$pkg"
+            fi
         else
-            yellow "  skipped (not found in enabled repos): $pkg"
+            CONSEQUENCE["$pkg"]="clipboard history is dead: the dwm-clipmenu keybind (Super+v) opens nothing"
+            yellow "  FAILED: $pkg — ${CONSEQUENCE[$pkg]}"
+            FAILED_DESKTOP+=("$pkg")
         fi
     done
 else
-    yellow "  could not enable skidnik/clipmenu — dwm-clipmenu (Super+v) needs clipmenu+clipnotify installed manually"
+    CONSEQUENCE[clipmenu]="COPR skidnik/clipmenu could not be enabled: install clipmenu and clipnotify by hand or Super+v does nothing"
+    yellow "  FAILED: skidnik/clipmenu COPR — ${CONSEQUENCE[clipmenu]}"
+    FAILED_DESKTOP+=(clipmenu)
 fi
 
 # starship is the prompt (config/zsh/conf.d/99-prompt.zsh reads
@@ -183,4 +177,5 @@ else
     fi
 fi
 
+install_summary
 green "✓ package stage complete"
