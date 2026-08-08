@@ -746,3 +746,60 @@ directory for the running history.
   `2f4006a`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + lockstep +
   build pass, plus a byte-for-byte diff round-trip and numeric tag-mask
   verification.
+
+## 2026-08-07 — roster Epic, sub-task 9/11: fastfetch + starship theming, cava removal, docs
+- **The Epic closes here.** All 11 sub-tasks merged.
+- **starship is themed by splicing, not regeneration.** Neither starship nor
+  fastfetch has an include directive — verified, not assumed (Context7 plus the
+  starship.rs docs for one; `fastfetch --config a --config b` returning
+  `Error: only one config file can be loaded` for the other). So
+  `starship.dcol` renders only a `[palettes.dots]` table and its post-command
+  builds a themed copy in the cache from everything above a marker line in the
+  repo config; `99-prompt.zsh` prefers that copy while it is newer. Only ~8
+  lines are duplicated — a full-file render would have recreated the
+  `picom.conf`/`picom.dcol` lockstep hazard the scope file called sub-task 10's
+  highest risk.
+- **fastfetch is template-only**: no `config/fastfetch/` exists in the repo at
+  all, exactly as `gtk.css` already worked. The cost is two obligations on
+  `install-restore-theme.sh`, both in the new `theme_claim_fastfetch` — create
+  `~/.config/fastfetch` or the engine's install-check skips the template
+  forever, and claim the path in the manifest or uninstall cannot remove it.
+- **`cava.dcol` deleted** (locked decision 5 — it themed a program the
+  installer never installs).
+- **Three of my own written claims were wrong and were corrected by testing,
+  not review**, each having reached a shipped config comment first: starship
+  warns *twice on the first prompt of each shell session* (deduped via
+  `$STARSHIP_CACHE/session_<key>.log`), not on every render; **zsh's `-nt` is
+  false when the right operand is missing where bash's is true**, which would
+  have dropped the themed config on a box where `symlinks.sh` never ran; and
+  the first fastfetch skip assertion checked only that no file appeared, which
+  is equally true when the engine *errors*, so it passed with the engine's
+  install-check mutated to `if false`.
+- **A second false pass, found by shimming**: the starship assertion counted
+  warning lines but ignored exit status, so a `starship` replaced by
+  `exit 127` passed. Both now check status and output.
+- **The oversized test was split, not excepted.** `tests/theme-templates.sh`
+  hit 294 lines against the 250 cap and was the only shell script in the repo
+  over it, so there was no precedent for an exception — split into
+  `starship-template.sh` (202) and `fastfetch-template.sh` (203).
+- **Doc reconciliation was the bulk of the diff, and two `CLAUDE.md` claims
+  were flatly false rather than stale**: "No CI, no linter config, no test
+  suite" (all three since 2026-08-05) and "README.md is still a 7-byte stub"
+  (54 lines, CI badge). Also fixed: the dwm patch roster still named
+  `scratchpads`; the project map predated nine `config/` and six `scripts/`
+  entries; ROADMAP §3 listed eight landed components as `❌ add`. Every path
+  and function name written into the docs was checked to resolve first.
+- **Open / found here: picom is never launched.** It is packaged, configured,
+  themed and performance-tuned by sub-task 10, but appears in no autostart
+  path — not `autostart.sh`, not `.xinitrc`, not sxhkd — and `reload.sh` only
+  signals it *if already running*. So that tuning has never taken effect.
+  Outside this plan's Allowed list, so the ROADMAP row was corrected to
+  `⚠️ partial` and the fix queued below.
+- **Open:** nothing ran on real Fedora; the prompt and fetch output were
+  rendered on Arch, so fastfetch's `packages`/`wm` lines and the Fedora logo
+  path are inferred for the target.
+- See `.claude/changes/2026-08-07-fastfetch-starship-docs.md`. Commits
+  `d3fa7f1`, `eeb3b82`. Audit: READY. Reviewer: READY (clean first round).
+  Tests: all six `tests/*.sh` pass, 16 assertions across the two new tests,
+  eight mutants all caught, and the starship refactor proved byte-identical
+  across five prompt surfaces.

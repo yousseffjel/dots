@@ -9,28 +9,24 @@ when slots run concurrently.
 
 ## Active
 
-- **Epic: app / tool / package roster finalization.** 11 sub-tasks, one
-  per slot. Scope file: `.claude/tasks/scope-b-app-roster-finalization.md`
-  (locked decisions live there — do not re-litigate them).
-  - [x] 1. zsh: purge HyDE leftovers, retarget at dwm/X11 (+ starship.toml, zoxide) — `97b41b9`
-  - [x] 2. `packages/*.lst` final roster + starship adoption + Nerd Font — `1129cf9`
-  - [x] 3. alacritty as main terminal (st retained as fallback) — `f5f148a`
-  - [x] 4. sxhkd keybind split with dwm — `b8a17e0`
-  - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
-  - [x] 6. lock / idle — xss-lock + xset + slock — `4ebf84b`
-  - [x] 7. status bar blocks — Layout A, 10 blocks + tray (order locked) — `d2a2c57`
-  - [x] 8. thunar finalization (archives, thumbnails, defaults, terminal) — `b11fd73`
-  - [ ] 9. fastfetch + starship theming + cava removal + docs
-  - [x] 10. picom performance tuning (template + base config in lockstep) — `f4a44aa`
-  - [x] 11. dynamic scratchpads — dwm patch swap (added 2026-08-07) — `9202bfb`
-
-  Order: 1 and 2 first (independent, unblock the rest); 3 before 8;
-  4 before 5, 6 and 11; 7 and 10 independent; 9 last.
+*(none — the roster Epic closed 2026-08-07; see Recently Closed)*
 
 ---
 
 ## Queue
 
+- **Nothing autostarts picom.** Found 2026-08-07 while reconciling ROADMAP §3
+  in sub-task 9. picom is packaged, configured, themed *and* performance-tuned
+  (sub-task 10), but it appears in no autostart path — not the `autostart.sh`
+  template in `scripts/install-session.sh`, not `~/.xinitrc`, not sxhkd — and
+  `scripts/theme/reload.sh` only signals it *if already running*. So sub-task
+  10's tuning has never taken effect on a real session, and neither has the
+  compositor. Fix is one guarded line in the `autostart.sh` heredoc, next to
+  the existing dwmblocks/clipmenud/sxhkd ones. **Note `autostart.sh` is
+  user-owned once it exists (CLAUDE.md rule 6)**, so existing installs need
+  the line added by hand — the same caveat sub-tasks 4 and 6 shipped, and it
+  needs a documented note, not just a template edit. `dunst` needs no such
+  line (D-Bus activates it, which is also why `reload.sh` can just kill it).
 - **Decide which roster packages are load-bearing enough for `core.lst`.**
   Raised and deferred by four separate sub-tasks now — `alacritty` (3),
   `sxhkd` (4), `maim`/`slop`/`xprop` (5), `procps-ng` (6) — each time into a
@@ -66,12 +62,29 @@ when slots run concurrently.
   hardcoding `$HOME/.local/share` while `ZINIT_HOME` right above it
   honours the variable.
 - **Run `install-fedora.sh` end-to-end on real hardware.** Still never
-  done; package names are verified against upstream repos, not live.
-- **README.md is still a 7-byte stub.**
+  done; package names are verified against upstream repos, not live. The
+  whole roster Epic was verified in sandboxed `$HOME` trees and against
+  local binaries on an **Arch** dev host — never on a Fedora box.
 
 ---
 
 ## Recently Closed
+
+- 2026-08-07 — **Epic: app / tool / package roster finalization**, all 11
+  sub-tasks merged. Scope file:
+  `.claude/tasks/scope-b-app-roster-finalization.md` (locked decisions live
+  there — do not re-litigate them).
+  - [x] 1. zsh: purge HyDE leftovers, retarget at dwm/X11 (+ starship.toml, zoxide) — `97b41b9`
+  - [x] 2. `packages/*.lst` final roster + starship adoption + Nerd Font — `1129cf9`
+  - [x] 3. alacritty as main terminal (st retained as fallback) — `f5f148a`
+  - [x] 4. sxhkd keybind split with dwm — `b8a17e0`
+  - [x] 5. screenshot — maim + slop + dmenu mode menu — `b2dcb13`
+  - [x] 6. lock / idle — xss-lock + xset + slock — `4ebf84b`
+  - [x] 7. status bar blocks — Layout A, 10 blocks + tray (order locked) — `d2a2c57`
+  - [x] 8. thunar finalization (archives, thumbnails, defaults, terminal) — `b11fd73`
+  - [x] 9. fastfetch + starship theming + cava removal + docs — `d3fa7f1`
+  - [x] 10. picom performance tuning (template + base config in lockstep) — `f4a44aa`
+  - [x] 11. dynamic scratchpads — dwm patch swap — `9202bfb`
 
 - 2026-08-06 — **Epic: dark-mode-only theming engine (wallbash-for-X11)**,
   all 7 sub-tasks merged. Wallpaper -> ImageMagick colour extraction ->
