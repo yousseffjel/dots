@@ -92,8 +92,14 @@ aborts — it is named in the installer's closing summary and the run
 continues. It stays in `extra.lst` rather than `desktop.lst` because the
 consequence is contained: the **right-click** "Open Terminal Here" is a
 custom action in `uca.xml` that calls `alacritty` directly and keeps working
-regardless. Only Thunar's own File-menu entry goes quiet. `alacritty` itself
-*is* in `desktop.lst`, since losing it takes the terminal keybind with it.
+regardless. Only Thunar's own File-menu entry goes quiet.
+
+`thunar` and `alacritty` are both in `desktop.lst` themselves, because each
+backs a keybind — `super + e` and the terminal key — that does nothing and
+explains nothing when the package is missing. The add-ons around Thunar
+(`thunar-archive-plugin`, `thunar-volman`, `tumbler`, `catfish`, …) stay in
+`extra.lst`: losing one of those degrades Thunar, whereas losing Thunar takes
+the keybind with it. That difference is the whole tier boundary.
 
 ## Custom actions
 

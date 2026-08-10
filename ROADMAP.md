@@ -183,7 +183,7 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | Monitor management | nwg-displays | **xrandr** + arandr (GUI) + autorandr (profiles) | ⚠️ partial — xrandr is used (brightness); arandr/autorandr not packaged |
 | Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
 | XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ add — not packaged |
-| Auth agent | hyprpolkitagent | polkit-gnome / lxpolkit | ⚠️ partial — `polkit-gnome` is in `extra.lst`, but nothing autostarts it. Same shape as the picom gap closed on 2026-08-08: packaged but never launched. |
+| Auth agent | hyprpolkitagent | polkit-gnome | ✅ have — in `desktop.lst`, launched by `autostart.sh` (2026-08-08). Started by absolute path: the binary is not on `PATH`, and dwm has no session manager to run `/etc/xdg/autostart`. |
 | System tray | Waybar tray | dwm **systray patch** | ✅ have — `dwm-systray` + `status2d-systray` vendored |
 
 ---
@@ -300,7 +300,7 @@ mpv                       # media player
 | `x11/.xinitrc` | Session startup | `xrdb -merge`, autostart, `exec dwm` (loop for restart) |
 | `x11/.Xresources` | Colors, fonts, DPI | Read by dwm/st via xresources patch; pywal writes here |
 | `x11/.xprofile` | Env vars | `QT_QPA_PLATFORMTHEME=qt5ct`, locale, PATH |
-| `x11/autostart.sh` | Autostart daemons | picom, dunst, `~/.fehbg`, slstatus, clipmenud (✅ wired, see `install-suckless.sh`), nm-applet, udiskie, xss-lock, polkit agent, redshift |
+| `x11/autostart.sh` | Autostart daemons | ✅ wired, six of them, written by `scripts/install-session.sh`: picom, dwmblocks (not slstatus), clipmenud, sxhkd, the polkit agent and `dwm-lock` (which execs `xss-lock`). `dunst` needs no line — D-Bus activates it. Still unwired from this list: `~/.fehbg` (the theming engine sets the wallpaper instead), nm-applet, udiskie, redshift. |
 | `picom/picom.conf` | Compositor | vsync on, shadows, fade, opacity rules |
 | `dunst/dunstrc` | Notifications | themed colors, urgency levels, keybind actions |
 | `dwm/bin/` (dmenu scripts) | Launcher/menus/clipboard | dmenu theming lives in `suckless/dwm/config.def.h` (compile-time); `dwm-powermenu`/`dwm-clipmenu` scripts | ✅ have |

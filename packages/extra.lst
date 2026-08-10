@@ -8,10 +8,14 @@
 # packages/desktop.lst instead; anything the installer's own next step needs
 # belongs in packages/core.lst.
 #
-# Failures here are still reported. install-pkg.sh names every skipped
-# package in its closing summary regardless of tier — an application whose
-# keybind is now dead (thunar, firefox) will be listed, just not flagged as a
-# broken desktop.
+# Failures here are still reported: install-pkg.sh names every skipped package
+# in its closing summary regardless of tier. The tier decides how loudly, not
+# whether.
+#
+# Being an application is NOT on its own a reason to be here. `thunar` and
+# `firefox` are applications and live in desktop.lst, because each backs a
+# keybind that silently does nothing without them. The test is the criterion
+# above — does its absence stay quiet? — not what kind of program it is.
 #
 # Format: one package name per line. '#' starts a comment (whole-line or
 # trailing). Blank lines ignored.
@@ -61,10 +65,6 @@ opendoas
 fuse
 pipewire-alsa
 pipewire-jack-audio-connection-kit
-polkit-gnome
-
-# applications
-firefox
 
 # fonts & theming
 # jetbrains-mono-fonts-all is for plain UI surfaces, which need no glyphs —
@@ -89,12 +89,14 @@ alsa-utils
 # block's click action opens (sub-task 7).
 bluez
 blueman
-# file manager (roster Epic sub-task 8). thunar-archive-plugin + file-roller
+# File-manager add-ons (roster Epic sub-task 8). `thunar` itself is in
+# desktop.lst — it backs super + e and is the mime handler for directories —
+# and everything below only enriches it: thunar-archive-plugin + file-roller
 # handle archives (unar covers RAR from Fedora proper — locked decision 8,
 # unrar is RPM Fusion nonfree); thunar-volman + gvfs auto-mount removable
 # media; tumbler + ffmpegthumbnailer produce video/PDF thumbnails; catfish
-# is the search front end.
-thunar
+# is the search front end. Losing any one of these degrades Thunar; losing
+# Thunar takes the keybind with it, which is the tier difference.
 thunar-archive-plugin
 thunar-volman
 tumbler

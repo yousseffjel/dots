@@ -71,3 +71,16 @@ cascadia-code-nf-fonts  # every Nerd Font glyph renders as tofu in the prompt, t
 
 # --- installer mechanism for a keybound feature ---
 dnf-plugins-core  # `dnf copr enable` fails, so clipmenu and clipnotify never install and the clipboard-history keybind dies
+
+# --- privilege prompts ---
+# autostart.sh launches the agent by absolute path (see install-session.sh);
+# no desktop environment is running to start it from /etc/xdg/autostart.
+polkit-gnome  # no PolicyKit agent: any GUI action needing privileges is denied with no password prompt and often no error
+
+# --- applications behind a keybind ---
+# These two are applications rather than infrastructure, but they sit here on
+# the criterion at the top of this file rather than on that distinction: each
+# backs a key that does nothing at all when the package is missing, and says
+# nothing about why. See config/sxhkd/sxhkdrc.
+thunar  # the file-manager keybind (super + e) opens nothing, and Thunar is also the mime handler for directories
+firefox  # the browser keybind (super + b) opens nothing, and firefox is the default handler for http/https

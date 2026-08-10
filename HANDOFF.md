@@ -1,7 +1,8 @@
 # Handoff
 
-Written 2026-08-08, at commit `13b6902`. For whoever picks this repo up next —
-including a future session of me.
+Written 2026-08-08 at commit `13b6902`, revised the same day after
+`polkit-autostart-tiers`. For whoever picks this repo up next — including a
+future session of me.
 
 This is deliberately **not** a summary of the other docs. It is the set of
 things that are true, load-bearing, and not obvious from reading the code.
@@ -54,15 +55,24 @@ is simply absent, and the installer reports a clean run.
 2. **sxhkd** — same class, caught earlier: it owns every non-dwm keybind and
    sat in best-effort `extra.lst`, so a failed install killed every media,
    volume, brightness, screenshot, lock and theming key at once, silently.
-3. **`polkit-gnome`** — **still open.** Packaged in `extra.lst`, autostarted by
-   nothing, so no polkit agent runs and GUI privilege prompts fail silently.
-   Queued in `MASTER_PLAN.md`.
+3. **`polkit-gnome`** — packaged, autostarted by nothing, so no polkit agent
+   ran and every GUI privilege prompt failed silently. Fixed 2026-08-08. Its
+   own twist: the binary is **not on `PATH`** (it lives under `libexec`, and
+   Fedora and Arch disagree about where), so the obvious `command -v` guard
+   copied from the other daemons would have produced a line that never fires —
+   the same bug, reintroduced while fixing it. Both paths are tried.
 
 The structural defence is in place now: `scripts/install-session.sh` states the
-daemon set twice (the `autostart.sh` heredoc for fresh machines,
+daemon set twice (`session_autostart_template()` for fresh machines,
 `session_autostart_report()` for existing ones), and
 `tests/autostart-daemons.sh` fails if the two disagree. **Adding a daemon to
-only one of them is the mistake that test exists to catch.**
+only one of them is the mistake that test exists to catch.** That test *runs*
+both functions rather than parsing them, so restructuring either is safe.
+
+The pattern is not exhausted. `ROADMAP.md` §7 still lists `nm-applet`,
+`udiskie` and `redshift` as intended-but-unwired — none are packaged yet, so
+they are absent rather than silently broken, but that is the state picom was
+in one step before the bug.
 
 ---
 
@@ -144,8 +154,8 @@ Be precise about this rather than optimistic.
 | ---- | ------- | ---------- |
 | `core.lst` (2) | `install-pkg.sh` | aborts the run |
 | `build.lst` (13) | `install-suckless.sh` **only** | aborts the build stage |
-| `desktop.lst` (26) | `install-pkg.sh` | never aborts; red closing summary naming what broke |
-| `extra.lst` (61) | `install-pkg.sh` | never aborts; one yellow line |
+| `desktop.lst` (29) | `install-pkg.sh` | never aborts; red closing summary naming what broke |
+| `extra.lst` (58) | `install-pkg.sh` | never aborts; one yellow line |
 
 Two things that are easy to get wrong:
 
@@ -160,17 +170,17 @@ on a hand-checked package name converts a degraded install into no install.
 
 ---
 
-## Open decisions
+## Settled, and worth not re-litigating
 
-Neither blocks anything; both are cheap now and annoying later.
+**Keybound applications belong in `desktop.lst`.** `thunar` and `firefox` were
+briefly in `extra.lst` on an infrastructure-vs-application line. That line was
+never written down, and it contradicted the criterion that *is* written at the
+top of `desktop.lst` — *does its absence stay quiet?* Both back a key that does
+nothing and says nothing when the package is missing, so both moved
+(2026-08-08). The tier test is the failure mode, not the kind of program.
 
-1. **`polkit-gnome` autostart** — the third instance of the bug shape above.
-2. **Do keybound *applications* belong in `desktop.lst`?** `thunar` and
-   `firefox` are in `extra.lst` on an infrastructure-vs-application line. Both
-   are still named in the failure summary; the tier only decides whether they
-   are flagged as a broken desktop. One-line move either way.
-
-The rest of the queue is in `MASTER_PLAN.md`, roughly in priority order.
+The queue is in `MASTER_PLAN.md`, roughly in priority order. The largest
+remaining item by far is still booting the installer on real hardware.
 
 ---
 

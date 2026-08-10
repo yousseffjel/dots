@@ -16,55 +16,73 @@
 # one is already present it is never rewritten, patched or backed up; the
 # missing line is printed for the user to paste instead.
 
+# One daemon's entry in the report below. Green when $autostart already
+# mentions $name; otherwise a yellow "kept" header followed by each remaining
+# argument as an indented advice line.
+#
+# The daemon name is always the SECOND argument, and
+# tests/autostart-daemons.sh reads the reported set out of exactly that
+# position — so a call added here is seen, and one removed is caught.
+session_report_daemon() {
+    local autostart="$1" name="$2" line
+    shift 2
+
+    if grep -q "$name" "$autostart"; then
+        green "ok      $autostart already starts $name"
+        return 0
+    fi
+
+    yellow "kept    $autostart (exists, does not mention $name)"
+    for line in "$@"; do
+        yellow "        $line"
+    done
+}
+
 # Report on an autostart.sh the user already has, one daemon per check. Never
 # edits it — CLAUDE.md rule 6 makes that file theirs the moment it exists, so
 # the most we do is name the line that is missing.
+#
+# Advice strings are single-quoted throughout: shell syntax for the user to
+# paste, and prose to read — never code this script runs. Hence both literal
+# text warnings: SC2016 ($ that must not expand until autostart.sh runs) and
+# SC2088 (a ~ that names a path rather than resolving one).
+# shellcheck disable=SC2016,SC2088
 session_autostart_report() {
     local autostart="$1"
 
-    if grep -q 'picom' "$autostart"; then
-        green "ok      $autostart already starts picom"
-    else
-        yellow "kept    $autostart (exists, does not mention picom)"
-        yellow "        add this line yourself:  command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &"
-        yellow "        without it there is no compositor: no vsync, and the tuned"
-        yellow "        ~/.config/picom/picom.conf is never read by anything."
-    fi
+    session_report_daemon "$autostart" picom \
+        'add this line yourself:  command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &' \
+        'without it there is no compositor: no vsync, and the tuned' \
+        '~/.config/picom/picom.conf is never read by anything.'
 
-    if grep -q 'dwmblocks' "$autostart"; then
-        green "ok      $autostart already starts dwmblocks"
-    else
-        yellow "kept    $autostart (exists, does not mention dwmblocks)"
-        yellow "        add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &"
-    fi
+    session_report_daemon "$autostart" dwmblocks \
+        'add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &'
 
-    if grep -q 'clipmenud' "$autostart"; then
-        green "ok      $autostart already starts clipmenud"
-    else
-        yellow "kept    $autostart (exists, does not mention clipmenud)"
-        yellow "        add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &"
-    fi
+    session_report_daemon "$autostart" clipmenud \
+        'add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &'
 
-    if grep -q 'sxhkd' "$autostart"; then
-        green "ok      $autostart already starts sxhkd"
-    else
-        yellow "kept    $autostart (exists, does not mention sxhkd)"
-        yellow "        add this line yourself:  command -v sxhkd >/dev/null && ! pgrep -x sxhkd >/dev/null && sxhkd &"
-        yellow "        without it every binding in config/sxhkd/sxhkdrc is dead —"
-        yellow "        media keys, volume, brightness, theming and app launchers."
-    fi
+    session_report_daemon "$autostart" sxhkd \
+        'add this line yourself:  command -v sxhkd >/dev/null && ! pgrep -x sxhkd >/dev/null && sxhkd &' \
+        'without it every binding in config/sxhkd/sxhkdrc is dead —' \
+        'media keys, volume, brightness, theming and app launchers.'
 
-    if grep -q 'dwm-lock' "$autostart"; then
-        green "ok      $autostart already starts dwm-lock"
-    else
-        yellow "kept    $autostart (exists, does not mention dwm-lock)"
-        # Literal shell syntax to be pasted into autostart.sh, meant to expand
-        # at its own runtime, not here.
-        # shellcheck disable=SC2016
-        yellow '        add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &'
-        yellow "        without it the screen never locks on idle or on suspend."
-        yellow "        Super+l still works — it falls back to calling slock directly."
-    fi
+    session_report_daemon "$autostart" polkit-gnome \
+        'add these lines yourself:' \
+        '  if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then' \
+        '    if [ -x /usr/libexec/polkit-gnome-authentication-agent-1 ]; then' \
+        '      /usr/libexec/polkit-gnome-authentication-agent-1 &' \
+        '    elif [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then' \
+        '      /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &' \
+        '    fi' \
+        '  fi' \
+        'without it no PolicyKit agent runs, so any GUI action needing' \
+        'privileges (mounting a system disk, partition or package tools) is' \
+        'denied with no password prompt and often no error at all.'
+
+    session_report_daemon "$autostart" dwm-lock \
+        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
+        'without it the screen never locks on idle or on suspend.' \
+        'Super+l still works — it falls back to calling slock directly.'
 }
 
 install_session_autostart() {
@@ -82,25 +100,32 @@ install_session_autostart() {
     fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write $autostart (picom + dwmblocks + clipmenud + sxhkd + dwm-lock autostart)"
+        blue "  (dry-run) would write $autostart (picom + dwmblocks + clipmenud + sxhkd + polkit-gnome + dwm-lock autostart)"
         return 0
     fi
 
     session_autostart_template >"$autostart"
     chmod 755 "$autostart"
-    green "wrote   $autostart (picom + dwmblocks + clipmenud + sxhkd + dwm-lock)"
+    green "wrote   $autostart (picom + dwmblocks + clipmenud + sxhkd + polkit-gnome + dwm-lock)"
 }
 
-# The autostart.sh body, on stdout. Split out of install_session_autostart()
-# because the heredoc is most of that function's length and pushed it past the
-# 60-line cap in rules/foundations/file-architecture.md — it is a data blob,
-# not logic, and separating the two also gives tests/autostart-daemons.sh a
-# stable thing to extract.
+# The autostart.sh body, on stdout — two halves so neither exceeds the
+# 60-line function cap. The seam is the one the file's own comments already
+# draw: daemons found on PATH, then services named by absolute path.
 #
-# Every daemon added here needs a matching branch in
-# session_autostart_report() above, or existing installs are never told about
-# it. That test enforces the pairing.
+# Every daemon added here needs a matching session_report_daemon call above,
+# or existing installs are never told about it. tests/autostart-daemons.sh
+# enforces that pairing by RUNNING this function rather than parsing it, so
+# splitting it again later costs the test nothing.
 session_autostart_template() {
+    session_autostart_daemons
+    session_autostart_services
+}
+
+# First half: the compositor, status feeder, clipboard and hotkey daemons.
+# All four are plain binaries on PATH, so each is guarded with `command -v`
+# (except dwmblocks, which the build installs unconditionally).
+session_autostart_daemons() {
     cat <<'EOF'
 #!/bin/sh
 # Run by dwm's autostart patch at startup — see runautostart() in dwm.c.
@@ -140,6 +165,37 @@ fi
 # are disjoint — see the ownership note at the top of sxhkdrc.
 if command -v sxhkd >/dev/null 2>&1 && ! pgrep -x sxhkd >/dev/null 2>&1; then
 	sxhkd &
+fi
+
+EOF
+}
+
+# Second half: services NOT on PATH, spelled out in full. Grouped for that
+# reason as much as for the line cap — an absolute path is a portability
+# liability, so the ones to re-check on a new distro are all in one place.
+session_autostart_services() {
+    cat <<'EOF'
+
+# PolicyKit authentication agent — the dialog that asks for a password when a
+# GUI program needs privileges: mounting a system disk from thunar, a package
+# or partition tool, some NetworkManager operations. With no agent running
+# those requests are simply denied, usually with no prompt and no error, so
+# the feature looks broken rather than unauthorized.
+#
+# A desktop environment starts this from /etc/xdg/autostart. dwm has no
+# session manager and nothing here reads that directory, so on this setup the
+# line below is the only thing that ever launches it.
+#
+# Not guarded with `command -v` like the daemons above: the binary is not on
+# PATH. It lives under libexec, and distributions disagree about where —
+# Fedora uses /usr/libexec, Arch uses /usr/lib/polkit-gnome. Both are tried
+# rather than one being guessed at.
+if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then
+	if [ -x /usr/libexec/polkit-gnome-authentication-agent-1 ]; then
+		/usr/libexec/polkit-gnome-authentication-agent-1 &
+	elif [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
+		/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+	fi
 fi
 
 # Screen locking: arms X's idle timers, then execs `xss-lock -- slock` so the

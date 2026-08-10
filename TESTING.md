@@ -65,10 +65,14 @@ for adding CI; new docs you add are linted normally.
   a parser change that stops matching the notes fails here rather than
   going unnoticed until an install.
 - **`tests/autostart-daemons.sh`** — the daemon set in
-  `scripts/install-session.sh` is stated twice (the `autostart.sh` heredoc
-  for fresh machines, `session_autostart_report()` for existing ones, which
-  rule 6 forbids the installer from editing). Asserts the two agree in both
-  directions.
+  `scripts/install-session.sh` is stated twice: `session_autostart_template()`
+  writes it into a fresh machine's `autostart.sh`, and
+  `session_autostart_report()` names what is missing on an existing one, which
+  rule 6 forbids the installer from editing. Asserts the two agree in both
+  directions. It **runs** both functions rather than parsing them — the
+  template's stdout is the real generated file, and the report is executed
+  against a throwaway `autostart.sh` that mentions nothing — so splitting or
+  renaming either one does not silently blind the test.
 
 ## Testing a full install in a disposable Fedora environment
 
