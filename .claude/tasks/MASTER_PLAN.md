@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-08
+Last Updated: 2026-08-10
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -15,39 +15,34 @@ when slots run concurrently.
 
 ## Queue
 
-- **`scripts/install-session.sh` is at exactly 250 lines, the cap.** Adding a
-  seventh autostart daemon forces a *file* split, not just a function split —
-  `polkit-autostart-tiers` already spent both available function splits
-  (`session_report_daemon`, and `session_autostart_daemons`/`_services`). The
-  natural seam is a `install-session-report.sh` sibling, matching how
-  `install-restore.sh` sources `install-restore-theme.sh`. Do this *before*
-  wiring the next daemon, not during.
-- **Make CI invoke `tests/build.sh` and `tests/lint.sh` instead of
-  duplicating them.** Sub-task 10 added a `tests` job that runs `tests/*.sh`
-  by glob, but it skips those two — the first needs the X11 toolchain, the
-  second needs shellcheck/shfmt/markdownlint, and running them on a bare
-  ubuntu-latest runner would make the job red. The `build-suckless` and
-  `lint` jobs already provide exactly those environments, but they
-  re-implement the same checks inline rather than calling the scripts. So
-  both scripts could rot without CI noticing, and the inline copies can
-  drift from them. Have those two jobs call the scripts.
-- **Fix the `pipefail` SIGPIPE bug in `install-restore-theme.sh`.**
-  `theme_is_ours` and `theme_backed_up` both pipe into `grep -qxF`; grep's
-  early exit SIGPIPEs `cut`, and under `set -o pipefail` the pipeline
-  returns 141 *even on a match*, so a file the installer deployed is
-  misreported as one to leave alone. Demonstrated 5/5 on a 200k-row
-  manifest during sub-task 8, which fixed the same bug in its own new
-  code. `install-restore.sh:72` already carries a `|| true` and a
-  five-line comment for the identical trap in a `comm | head`, so this is
-  the third site. Low urgency — the theme manifest is a handful of rows,
-  far from the scale that triggers it — but it is shipped code. Note
-  `|| true` is not the fix; it maps 141 to 0, the opposite wrong answer.
-- **Bound `xresources.dcol`'s `xrdb -merge` post-command.** It is
-  unbounded, unlike `reload.sh`'s, which wraps its `xrdb` in
-  `timeout 10`. A hung X server hangs the whole template run.
-- **`TPM_DIR` in `install-restore.sh` ignores `$XDG_DATA_HOME`,**
-  hardcoding `$HOME/.local/share` while `ZINIT_HOME` right above it
-  honours the variable.
+- **Split `scripts/install-restore-theme.sh` — it is at 248 of 250 lines.**
+  The exact position `install-session.sh` was in before the 2026-08-10 sweep,
+  and it got there the same way: comments explaining a subtle bug. Both the
+  audit sweep and the reviewer flagged it independently. The seam is the
+  manifest predicates (`theme_is_ours`, `theme_backed_up`) versus the
+  deploy/claim/backup functions. Do this *before* the next edit to that file,
+  not during.
+- **Extract `manifest_has_path <TAG> <path>` into `scripts/global_fn.sh`.**
+  `theme_is_ours`, `theme_backed_up` (both in `install-restore-theme.sh`) and
+  `app_is_ours` (`install-restore-apps.sh`) are now three textually
+  near-identical read loops — the shape the pipefail fix converged them all
+  on. One helper replaces three. Deliberately not done in the sweep that
+  created the duplication: `global_fn.sh` is shared with `uninstall.sh` and
+  `version.sh`, so the blast radius deserves its own slot. Note this would
+  also shrink `install-restore-theme.sh` and may subsume the item above.
+- **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
+  `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
+  the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
+  is a `set -g @resurrect-dir` option string with no shell, so it needs the
+  same single-quoted `run-shell` treatment the TPM paths got — see the header
+  of that file for why double quotes reintroduce the bug.
+- **Watch the first CI run after 2026-08-10.** The `lint` and `build-suckless`
+  jobs were rewired to invoke `tests/lint.sh --strict` and `tests/build.sh`
+  without CI ever executing once. Two things are unproven: that
+  `npm install -g` works without sudo on a GitHub-hosted runner, and that
+  shfmt on `$GITHUB_PATH` is visible to `lint.sh`'s `command -v`. Both fail
+  loudly rather than silently (`--strict` is what guarantees that), but they
+  have not been observed.
 - **Run `install-fedora.sh` end-to-end on real hardware.** Still never
   done; package names are verified against upstream repos, not live. The
   whole roster Epic was verified in sandboxed `$HOME` trees and against
@@ -56,6 +51,19 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-10 — **queue items 1–5, closed in one sweep** — `6a0c123`,
+  `a47174d`. `install-session.sh` 250 → 192 via a new
+  `install-session-report.sh`; CI now *invokes* `tests/lint.sh --strict` and
+  `tests/build.sh` rather than reimplementing them; the third and last known
+  `pipefail`/SIGPIPE site fixed (old shape reproduced at 0/5, new at 5/5);
+  `xrdb -merge` bounded at 10s. The fifth item was **not** the one-line fix it
+  was written as — `30-plugins.conf` hardcoded the TPM path in four more
+  places, so fixing only the installer would have produced two plugin trees
+  instead of one wrong path. Both sides changed together, verified against a
+  real tmux 3.7b server, and `tests/tmux-tpm-lockstep.sh` now guards the
+  coupling (4 mutants, all caught). Suite 8 → 9. **The queue entry described a
+  symptom, not a specification** — worth remembering for the rest of this list.
 
 - 2026-08-08 — **polkit autostart + keybound apps re-tiered** — `51a728d`,
   `24f77fc`. Closed two queue items at once. The polkit agent is launched from

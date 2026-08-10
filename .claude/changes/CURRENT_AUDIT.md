@@ -964,3 +964,61 @@ directory for the running history.
   READY (clean first round). Tests: 8/8; `autostart-daemons` now pairs 6 daemons
   and `desktop-consequences` annotates 29. Nothing ran against a real `dnf`, a
   real Fedora box or a live X session; the agent was never actually started.
+
+## 2026-08-10 — queue sweep: items 1–5 closed in one pass
+
+- **`scripts/install-session.sh` was at exactly 250 lines** and could not grow.
+  `session_report_daemon()` + `session_autostart_report()` moved to a new
+  `scripts/install-session-report.sh` (92 lines); the parent is now **192**, so
+  the seventh daemon this blocked is unblocked. The sibling is resolved from
+  `BASH_SOURCE`, **not** the caller's `$SCRIPT_DIR` as `install-restore.sh`
+  does — `tests/autostart-daemons.sh` sources the parent with no `SCRIPT_DIR`
+  set at all. That test needed no change across the split, which is exactly the
+  property it was rebuilt for one task earlier.
+- **CI now invokes `tests/lint.sh --strict` and `tests/build.sh`** instead of
+  reimplementing both inline, so those two scripts are finally executed by
+  something. `--strict` is new and is the point: `lint.sh` skips a missing
+  linter by default (right locally, wrong in CI, where "not installed" can only
+  mean the install step silently failed and the job is about to go green having
+  checked nothing). markdownlint is now `npm install -g`'d rather than `npx`'d
+  so the **pinned** version is what `command -v` finds; shfmt goes on
+  `$GITHUB_PATH` for the same reason.
+- **Third and last known `pipefail`/SIGPIPE site closed.** `theme_is_ours` and
+  `theme_backed_up` in `install-restore-theme.sh` piped into `grep -qxF`, which
+  returns **141 even on a match**. Both are read loops now. Reproduced before
+  and after: 200k rows with the target first, old shape **0/5** found, new
+  **5/5**.
+- **`xresources.dcol`'s `xrdb -merge` post-command is bounded** at `timeout 10`,
+  matching `run_bounded` in `reload.sh` and degrading to a bare `xrdb` when
+  `timeout` is absent. Post-commands run in sequence, so an unbounded one on a
+  hung X server wedged every remaining template.
+- **TPM now honours `$XDG_DATA_HOME` — and this was not the one-line fix the
+  queue described.** `config/tmux/conf.d/30-plugins.conf` hardcoded the path in
+  four places, so fixing only `install-restore.sh` would have pre-cloned TPM
+  where tmux never looks and let TPM's own bootstrap fetch a second copy. Both
+  sides changed together. **`tmux.conf` is not a shell**: it has no
+  `${VAR:-default}`, so every path now lives in a *single-quoted* `run-shell`
+  body that `/bin/sh` expands; double quotes would let tmux expand first and
+  restore the bug. Verified against a real tmux 3.7b server, not by reading.
+- **New `tests/tmux-tpm-lockstep.sh`** guards that coupling — 4 mutants, all
+  caught, including one that keeps the correct *spelling* but points at a
+  different directory, which the grep checks alone would have missed. Suite is
+  now 9. `tests/lint.sh` also gained an empty-file-list guard.
+- **Open: `scripts/install-restore-theme.sh` is now 248 of 250 lines** — it
+  inherits precisely the position `install-session.sh` was in, and both the
+  audit sweep and the reviewer flagged it independently. The next edit to that
+  file should split it; the seam is the manifest predicates versus the
+  deploy/claim/backup functions.
+- **Open:** `theme_is_ours`, `theme_backed_up` and `app_is_ours` are now three
+  textually near-identical read loops. One `manifest_has_path` in
+  `scripts/global_fn.sh` replaces all three, but that file is shared with
+  `uninstall.sh`/`version.sh` and was out of scope here.
+- **Open:** `@resurrect-dir` in `30-plugins.conf` still ignores
+  `$XDG_STATE_HOME` — same class as the bug just fixed, different variable.
+- See `.claude/changes/2026-08-10-queue-sweep-1-5.md`. Commits `6a0c123`,
+  `a47174d`. Audit: READY (Medium+, 14 files, +230/-158; 4 findings, 2 fixed —
+  file modes and two scoped SC2016 disables — 2 recorded as follow-ups).
+  Reviewer: READY (clean first round; it ran its own isolated tmux session,
+  shellcheck and `bash -n` rather than reading only). Tests: 9/9, dunst held
+  PID 6788 throughout. **Nothing ran against a real `dnf`, a Fedora box, a live
+  X session, or GitHub Actions — the CI rewiring is unproven until a push.**
