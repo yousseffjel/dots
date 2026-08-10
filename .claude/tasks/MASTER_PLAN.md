@@ -15,23 +15,13 @@ when slots run concurrently.
 
 ## Queue
 
-- **Nothing autostarts `polkit-gnome`.** Third instance of the picom bug
-  shape: packaged (`extra.lst`), but absent from `autostart.sh`, `.xinitrc`
-  and sxhkd alike, so no polkit authentication agent ever runs — GUI
-  privilege prompts silently fail. Found 2026-08-08 while reconciling
-  ROADMAP §5 during `package-tiers`, which could not fix it
-  (`install-session.sh` was outside that plan's scope). Fix is one guarded
-  line in `session_autostart_template()` plus a matching branch in
-  `session_autostart_report()` — `tests/autostart-daemons.sh` will fail until
-  both exist, which is the point. Check whether it belongs in `desktop.lst`
-  at the same time.
-- **Decide whether keybound applications belong in `desktop.lst`.**
-  `package-tiers` put `thunar` and `firefox` in `extra.lst` on an
-  infrastructure-vs-application line: `sxhkd` failing kills every key at once
-  and says nothing, while a missing firefox is one obvious dead key. Both are
-  still named in the installer's closing summary. Asked twice during that
-  task and left unanswered; a one-line move plus a consequence note either
-  way.
+- **`scripts/install-session.sh` is at exactly 250 lines, the cap.** Adding a
+  seventh autostart daemon forces a *file* split, not just a function split —
+  `polkit-autostart-tiers` already spent both available function splits
+  (`session_report_daemon`, and `session_autostart_daemons`/`_services`). The
+  natural seam is a `install-session-report.sh` sibling, matching how
+  `install-restore.sh` sources `install-restore-theme.sh`. Do this *before*
+  wiring the next daemon, not during.
 - **Make CI invoke `tests/build.sh` and `tests/lint.sh` instead of
   duplicating them.** Sub-task 10 added a `tests` job that runs `tests/*.sh`
   by glob, but it skips those two — the first needs the X11 toolchain, the
@@ -66,6 +56,17 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-08 — **polkit autostart + keybound apps re-tiered** — `51a728d`,
+  `24f77fc`. Closed two queue items at once. The polkit agent is launched from
+  `autostart.sh` by absolute path (its binary is not on `PATH`, so the
+  `command -v` pattern the other five daemons use would have silently never
+  fired). `thunar` and `firefox` moved to `desktop.lst` — a **DECISION
+  REVERSAL** of `package-tiers`, decided on the criterion written in
+  `desktop.lst` rather than the unwritten one I had applied. Adding a sixth
+  daemon broke the 60-line cap twice, forcing two provably output-identical
+  refactors, and `tests/autostart-daemons.sh` was rewritten to RUN both
+  functions rather than parse them.
 
 - 2026-08-08 — **package tiers** — `5a4e681`, `13b6902`. The `core.lst` vs
   `extra.lst` review, five sub-tasks deep. Answer was not a promotion list:

@@ -905,3 +905,62 @@ directory for the running history.
   each confirmed applied; the CI step body extracted from the YAML and run
   locally over 102 packages. Nothing ran against a real `dnf` — there is none
   on this Arch host.
+
+## 2026-08-08 — polkit autostart + keybound apps re-tiered (queue items 1 and 2)
+
+- **The third packaged-but-never-launched instance is closed.** `polkit-gnome`
+  was packaged but started by nothing, so no PolicyKit agent ran and every GUI
+  action needing privileges — mounting a system disk from Thunar, partition or
+  package tools — was denied with no password prompt and usually no error. A
+  desktop environment starts the agent from `/etc/xdg/autostart`; dwm has no
+  session manager and nothing here reads that directory, so the `.desktop` file
+  the package ships was inert. Verified, not assumed: no `dex`, no
+  `fbautostart`, and `grep -rn polkit scripts/ config/` returned nothing.
+- **The obvious fix would have reintroduced the bug it fixes.** The agent
+  binary is **not on `PATH`** — it lives under `libexec`, and distributions
+  disagree about where. Copying the `command -v picom` guard from its five
+  neighbours would have produced a line that silently never fires. Two absolute
+  paths are tried instead (`/usr/libexec/...`, `/usr/lib/polkit-gnome/...`).
+  Fedora's real path could not be verified: three fetches against
+  packages.fedoraproject.org returned package metadata but never a file list.
+- **A near-miss worth recording.** That package's own page listed only *Fedora
+  EPEL 9*, which reads as retired; the search page shows it current in F43, F44
+  and Rawhide. Stopping at the first page would have meant reporting a queued
+  task unfixable.
+- **DECISION REVERSAL — `thunar` and `firefox` moved to `desktop.lst`,**
+  reversing the Type B assumption recorded in `2026-08-08-package-tiers.md` one
+  commit earlier. That decision rested on an infrastructure-vs-application line
+  I had never written down, and it contradicted the criterion written at the top
+  of `desktop.lst`: *does its absence stay quiet?* `super + e` and `super + b`
+  both die silently, so the written rule won. `desktop.lst` 26 -> 29,
+  `extra.lst` 61 -> 58, total unchanged at 102. Asked twice during
+  `package-tiers` and unanswered; the user then selected the queue item, which
+  settled it.
+- **Adding a sixth daemon broke the 60-line cap twice, forcing two refactors.**
+  `session_autostart_report()` became a `session_report_daemon()` helper plus
+  six data-shaped calls (37 + 14), deleting a six-way duplication that predates
+  this task; `session_autostart_template()` split into
+  `session_autostart_daemons()` + `session_autostart_services()` (4 + 44 + 39)
+  along the seam its own comments already drew — daemons on `PATH` versus
+  services named by absolute path. Both proved output-identical: the generated
+  `autostart.sh` and the report output each differ from the previous commit only
+  by the new polkit content.
+- **`tests/autostart-daemons.sh` now RUNS both functions instead of parsing
+  them** — it executes the template and scans the real generated file, and
+  executes the report against a throwaway `autostart.sh` mentioning nothing. The
+  old version sed-extracted function bodies and would have broken outright on
+  the refactor above. Six mutants, all caught, each confirmed applied first; one
+  needed two attempts to land and the applied-check caught that rather than
+  letting it read as "not caught".
+- **Open: `scripts/install-session.sh` is now at exactly 250 lines, the cap.**
+  A seventh daemon forces a *file* split, not just a function split. Not
+  pre-empted here.
+- **Open:** `ROADMAP.md` §7 still lists `nm-applet`, `udiskie` and `redshift` as
+  intended-but-unwired. None are packaged, so they are absent rather than
+  silently broken — the state picom was in one step before the bug.
+- See `.claude/changes/2026-08-08-polkit-autostart-tiers.md`. Commits `51a728d`,
+  `24f77fc`. Audit: READY (Medium+, 9 files, +281/-154, zero findings — both
+  structural problems were caught by the caps during implementation). Reviewer:
+  READY (clean first round). Tests: 8/8; `autostart-daemons` now pairs 6 daemons
+  and `desktop-consequences` annotates 29. Nothing ran against a real `dnf`, a
+  real Fedora box or a live X session; the agent was never actually started.
