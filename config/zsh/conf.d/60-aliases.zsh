@@ -59,6 +59,13 @@ alias tch='touch'
 alias py='python3'
 alias cls='clear'
 
+
+# Updated aliases pointing to the folder /usr/bin/
+alias yts="yt-dlp --ffmpeg-location /usr/bin/ -x --audio-format best --audio-quality 0 --embed-metadata --embed-thumbnail"
+
+alias yta="yt-dlp --ffmpeg-location /usr/bin/ -x --audio-format best --audio-quality 0 --embed-metadata --embed-thumbnail -o '%(artist)s - %(album)s/%(track_number)s - %(title)s.%(ext)s'"
+
+
 # Package-manager shortcuts (Arch / macOS-MacPorts)
 if [[ -f /etc/pacman.conf ]]; then
   alias paconf='sudo -E nvim /etc/pacman.conf'
