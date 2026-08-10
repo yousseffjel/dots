@@ -22,8 +22,22 @@
 # file left behind is recoverable; someone else's config removed is not.
 # A path already recorded as a THEME row is one we created on an earlier
 # run, so re-running the installer must not "back it up" over and over.
+#
+# Written as a read loop rather than `... | cut -f3 | grep -qxF "$1"`, and
+# that is not a style preference. grep -q exits on its first match, which
+# SIGPIPEs cut; under the `set -o pipefail` this file inherits, the pipeline
+# then reports 141 — a FAILURE — even though the path was found. The caller
+# reads "not ours" and backs up a file we wrote ourselves. Nothing here
+# inspects a producer's exit status, so the trap cannot fire.
+# (`|| true` is not the fix: it maps 141 to 0, which is the opposite wrong
+# answer. Same shape as app_is_ours in install-restore-apps.sh, and as the
+# `comm | head` at install-restore.sh:72.)
 theme_is_ours() {
-    manifest_rows THEME 2>/dev/null | cut -f3 | grep -qxF "$1"
+    local target="$1" row
+    while IFS= read -r row; do
+        [[ "$row" == "$target" ]] && return 0
+    done < <(manifest_rows THEME 2>/dev/null | cut -f3)
+    return 1
 }
 
 # A path we have already preserved once. Needed because a pre-existing
@@ -32,8 +46,15 @@ theme_is_ours() {
 # back it up again — the second time capturing our own generated content,
 # not theirs. THEMEBACKUP rows are informational; uninstall_theme only
 # reads THEME.
+# Read loop for the same pipefail/SIGPIPE reason as theme_is_ours above. A
+# false negative here re-backs-up a file on every install, the second time
+# capturing our own generated content instead of the user's original.
 theme_backed_up() {
-    manifest_rows THEMEBACKUP 2>/dev/null | cut -f3 | grep -qxF "$1"
+    local target="$1" row
+    while IFS= read -r row; do
+        [[ "$row" == "$target" ]] && return 0
+    done < <(manifest_rows THEMEBACKUP 2>/dev/null | cut -f3)
+    return 1
 }
 
 deploy_theme_file() {

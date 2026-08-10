@@ -122,7 +122,11 @@ else
     green "ok      zinit already cloned"
 fi
 
-TPM_DIR="$HOME/.local/share/tmux/plugins/tpm"
+# Must stay in step with config/tmux/conf.d/30-plugins.conf, which derives the
+# same path the same way. Clone somewhere tmux does not read and this pre-clone
+# is dead weight: TPM's own bootstrap in that file then fetches a second copy
+# on first launch, which is the network round-trip this step exists to avoid.
+TPM_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/plugins/tpm"
 if [[ ! -d "$TPM_DIR/.git" ]]; then
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would clone TPM -> $TPM_DIR"

@@ -16,74 +16,16 @@
 # one is already present it is never rewritten, patched or backed up; the
 # missing line is printed for the user to paste instead.
 
-# One daemon's entry in the report below. Green when $autostart already
-# mentions $name; otherwise a yellow "kept" header followed by each remaining
-# argument as an indented advice line.
+# The reporting half — session_autostart_report() and its helper — lives in a
+# sibling file, split off at the 250-line cap.
 #
-# The daemon name is always the SECOND argument, and
-# tests/autostart-daemons.sh reads the reported set out of exactly that
-# position — so a call added here is seen, and one removed is caught.
-session_report_daemon() {
-    local autostart="$1" name="$2" line
-    shift 2
-
-    if grep -q "$name" "$autostart"; then
-        green "ok      $autostart already starts $name"
-        return 0
-    fi
-
-    yellow "kept    $autostart (exists, does not mention $name)"
-    for line in "$@"; do
-        yellow "        $line"
-    done
-}
-
-# Report on an autostart.sh the user already has, one daemon per check. Never
-# edits it — CLAUDE.md rule 6 makes that file theirs the moment it exists, so
-# the most we do is name the line that is missing.
-#
-# Advice strings are single-quoted throughout: shell syntax for the user to
-# paste, and prose to read — never code this script runs. Hence both literal
-# text warnings: SC2016 ($ that must not expand until autostart.sh runs) and
-# SC2088 (a ~ that names a path rather than resolving one).
-# shellcheck disable=SC2016,SC2088
-session_autostart_report() {
-    local autostart="$1"
-
-    session_report_daemon "$autostart" picom \
-        'add this line yourself:  command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &' \
-        'without it there is no compositor: no vsync, and the tuned' \
-        '~/.config/picom/picom.conf is never read by anything.'
-
-    session_report_daemon "$autostart" dwmblocks \
-        'add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &'
-
-    session_report_daemon "$autostart" clipmenud \
-        'add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &'
-
-    session_report_daemon "$autostart" sxhkd \
-        'add this line yourself:  command -v sxhkd >/dev/null && ! pgrep -x sxhkd >/dev/null && sxhkd &' \
-        'without it every binding in config/sxhkd/sxhkdrc is dead —' \
-        'media keys, volume, brightness, theming and app launchers.'
-
-    session_report_daemon "$autostart" polkit-gnome \
-        'add these lines yourself:' \
-        '  if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then' \
-        '    if [ -x /usr/libexec/polkit-gnome-authentication-agent-1 ]; then' \
-        '      /usr/libexec/polkit-gnome-authentication-agent-1 &' \
-        '    elif [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then' \
-        '      /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &' \
-        '    fi' \
-        '  fi' \
-        'without it no PolicyKit agent runs, so any GUI action needing' \
-        'privileges (mounting a system disk, partition or package tools) is' \
-        'denied with no password prompt and often no error at all.'
-
-    session_report_daemon "$autostart" dwm-lock \
-        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
-        'without it the screen never locks on idle or on suspend.' \
-        'Super+l still works — it falls back to calling slock directly.'
-}
+# Resolved from BASH_SOURCE rather than the caller's $SCRIPT_DIR (rule 3, and
+# unlike install-restore.sh, which sources its sibling from a variable it set
+# itself): this file is SOURCED, by install-suckless.sh and independently by
+# tests/autostart-daemons.sh, and the latter sets no SCRIPT_DIR at all.
+SESSION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=install-session-report.sh
+source "$SESSION_DIR/install-session-report.sh"
 
 install_session_autostart() {
     # dwm's autostart patch runs $XDG_DATA_HOME/dwm/autostart.sh (falling back
@@ -113,10 +55,10 @@ install_session_autostart() {
 # 60-line function cap. The seam is the one the file's own comments already
 # draw: daemons found on PATH, then services named by absolute path.
 #
-# Every daemon added here needs a matching session_report_daemon call above,
-# or existing installs are never told about it. tests/autostart-daemons.sh
-# enforces that pairing by RUNNING this function rather than parsing it, so
-# splitting it again later costs the test nothing.
+# Every daemon added here needs a matching session_report_daemon call in
+# install-session-report.sh, or existing installs are never told about it.
+# tests/autostart-daemons.sh enforces that pairing by RUNNING both sides
+# rather than parsing them, so splitting either again costs the test nothing.
 session_autostart_template() {
     session_autostart_daemons
     session_autostart_services

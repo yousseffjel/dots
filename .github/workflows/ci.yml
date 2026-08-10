@@ -22,28 +22,34 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # scripts/*.sh, tests/*.sh, and any *.sh directly at the repo root —
-      # never suckless/ (C sources) or the untracked HyDE/ reference clone.
-      - name: shellcheck
+      # The three linters this job runs live in tests/lint.sh, which is what
+      # actually runs below. This step only provides them.
+      #
+      # shfmt goes onto $GITHUB_PATH rather than being called by absolute
+      # path: tests/lint.sh finds its tools with `command -v`, so a shfmt
+      # sitting in an unexported GOPATH/bin would be silently skipped —
+      # which under --strict is a failure, by design.
+      - name: Install linters
         run: |
           command -v shellcheck >/dev/null 2>&1 || {
             sudo apt-get update -y
             sudo apt-get install -y shellcheck
           }
-          shellcheck --version
-          find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 shellcheck
-
-      - name: shfmt (format check)
-        run: |
           go install "mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}"
-          find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 "$(go env GOPATH)/bin/shfmt" -i 4 -ci -bn -d
+          echo "$(go env GOPATH)/bin" >>"$GITHUB_PATH"
+          # Installed rather than npx'd so tests/lint.sh's `command -v
+          # markdownlint` branch takes the pinned version above; its npx
+          # fallback would silently resolve to latest.
+          npm install -g "markdownlint-cli@${MARKDOWNLINT_VERSION}"
 
-      - name: markdownlint
-        run: |
-          npx --yes "markdownlint-cli@${MARKDOWNLINT_VERSION}" \
-            "**/*.md" --config .markdownlint.yaml --ignore-path .markdownlintignore
+      # scripts/*.sh, tests/*.sh, and any *.sh directly at the repo root —
+      # never suckless/ (C sources) or the untracked HyDE/ reference clone.
+      #
+      # --strict because every tool was just installed above: a "skipped, not
+      # installed" line here means that install failed, and without the flag
+      # this job would go green having checked nothing.
+      - name: shellcheck + shfmt + markdownlint
+        run: bash tests/lint.sh --strict
 
   tests:
     name: tests
@@ -56,12 +62,13 @@ jobs:
       # noticing. Runs every test that needs nothing beyond bash + coreutils,
       # discovered by glob, so a test added later is picked up automatically.
       #
-      # Two are skipped deliberately, each already covered by a job below that
-      # provides an environment this runner does not:
-      #   build.sh — needs the X11 build toolchain (see build-suckless, which
-      #              runs the same builds inside a Fedora container).
-      #   lint.sh  — needs shellcheck/shfmt/markdownlint (see the lint job,
-      #              which runs the same three checks).
+      # Two are skipped deliberately. Each needs an environment this runner
+      # does not have, and each is INVOKED by the job that does have it — not
+      # reimplemented there, so neither can rot unnoticed:
+      #   build.sh — needs the X11 build toolchain; run by build-suckless
+      #              inside a Fedora container.
+      #   lint.sh  — needs shellcheck/shfmt/markdownlint; run by the lint job
+      #              as `tests/lint.sh --strict` once it has installed them.
       - name: Run repo tests
         run: |
           skip="build.sh lint.sh"
@@ -120,20 +127,11 @@ jobs:
             libXrandr-devel libxcrypt-devel freetype-devel fontconfig-devel \
             ncurses
 
+      # tests/build.sh owns the program list and the make invocation. It
+      # deliberately does not install build dependencies — that is the step
+      # above, and it is the only reason this job exists as a container.
       - name: Build each suckless program (make only, no install)
-        run: |
-          fail=0
-          for prog in dwm st dmenu dwmblocks slock; do
-            echo "::group::build $prog"
-            if make -C "suckless/$prog" clean && make -C "suckless/$prog"; then
-              echo "OK: $prog"
-            else
-              echo "::error::$prog failed to build"
-              fail=1
-            fi
-            echo "::endgroup::"
-          done
-          exit "$fail"
+        run: bash tests/build.sh
 
   install-dry-run:
     name: install-dry-run (${{ matrix.fedora }})

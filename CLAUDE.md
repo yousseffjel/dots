@@ -20,7 +20,7 @@ right vs. what's already stale.
 - **Shell**: bash (`scripts/*.sh`, `set -euo pipefail`, all re-runnable/idempotent), zsh (user shell config in `config/zsh/`)
 - **C**: vendored suckless sources (dwm, st, dmenu, dwmblocks, slock), built with `make`
 - **Config**: tmux (`config/tmux/`), zsh (`config/zsh/`), dwm runtime scripts (`config/dwm/bin/`) — deployed via symlinks, not copies
-- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / build-suckless / install-dry-run / tests jobs on a `fedora:latest` + `fedora:41` matrix, backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh`, `fastfetch-template.sh`, `autostart-daemons.sh` and `desktop-consequences.sh`. Caveat: the `lint` and `build-suckless` jobs **reimplement** `tests/lint.sh` and `tests/build.sh` inline rather than calling them, so those two scripts are linted but never executed in CI — the `tests` job skips them by name because they need the three linters and the X11 toolchain respectively.
+- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / build-suckless / install-dry-run / tests jobs on a `fedora:latest` + `fedora:41` matrix, backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh`, `fastfetch-template.sh`, `autostart-daemons.sh`, `desktop-consequences.sh` and `tmux-tpm-lockstep.sh`. **Every test script is executed by CI** (2026-08-10): the `tests` job runs everything that needs only bash + coreutils, and the two it skips are *invoked* by the job that has their environment — `lint` runs `tests/lint.sh --strict` after installing the three linters, `build-suckless` runs `tests/build.sh` inside the Fedora container. Neither job restates those checks inline any more, so the scripts cannot rot unnoticed and the two copies cannot drift. `--strict` exists for exactly that wiring: `tests/lint.sh` skips a missing linter by default (useful locally), which in CI would mean a green job that checked nothing.
 - **Beyond CI, verification is still manual and hands-on**: `bash -n`/`shellcheck` on edited scripts, package names checked against packages.fedoraproject.org (there is no `dnf` on the dev host — it is Arch), and sandboxed `$HOME` runs for anything touching the installer. Nothing has been run end-to-end on a real Fedora box.
 - **Package declarations**: `packages/*.lst` — plain-text, one package per line, `#` comments, no parser dependency beyond `sed`/`tr`/`grep` (already used everywhere else in `scripts/`).
 
@@ -54,6 +54,7 @@ dots/
 │   ├── install-services.sh     # stage: chsh to zsh + enable ly.service
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
+│   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
@@ -69,7 +70,8 @@ dots/
 │   └── */patches/      # vendored .diff files per program + PATCHES.md, applied at build time
 ├── themes/              # static themes (themes/dark/) + CREDITS.md
 ├── tests/               # lint.sh, build.sh, pkglist.sh, picom-lockstep.sh, starship-template.sh,
-│                        # fastfetch-template.sh, autostart-daemons.sh, desktop-consequences.sh
+│                        # fastfetch-template.sh, autostart-daemons.sh, desktop-consequences.sh,
+│                        # tmux-tpm-lockstep.sh
 ├── .github/workflows/   # ci.yml — lint / build-suckless / install-dry-run / tests
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding

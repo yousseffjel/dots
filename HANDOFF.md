@@ -62,12 +62,14 @@ is simply absent, and the installer reports a clean run.
    copied from the other daemons would have produced a line that never fires —
    the same bug, reintroduced while fixing it. Both paths are tried.
 
-The structural defence is in place now: `scripts/install-session.sh` states the
-daemon set twice (`session_autostart_template()` for fresh machines,
-`session_autostart_report()` for existing ones), and
-`tests/autostart-daemons.sh` fails if the two disagree. **Adding a daemon to
-only one of them is the mistake that test exists to catch.** That test *runs*
-both functions rather than parsing them, so restructuring either is safe.
+The structural defence is in place now: the daemon set is stated twice —
+`session_autostart_template()` in `scripts/install-session.sh` for fresh
+machines, `session_autostart_report()` in `scripts/install-session-report.sh`
+for existing ones — and `tests/autostart-daemons.sh` fails if the two
+disagree. **Adding a daemon to only one of them is the mistake that test
+exists to catch.** That test *runs* both functions rather than parsing them,
+so restructuring either is safe; the two moving into separate files
+(2026-08-10) needed no change to it.
 
 The pattern is not exhausted. `ROADMAP.md` §7 still lists `nm-applet`,
 `udiskie` and `redshift` as intended-but-unwired — none are packaged yet, so
@@ -102,6 +104,20 @@ Things that look safe and are not. Each was learned the hard way.
   and gitignored — `rm -f config.h` before rebuilding, then check the binary.
 - **`~/.config/zsh` points at the main worktree**, not at whatever slot you are
   in. Shell-config changes made in a slot are not what your shell is reading.
+- **The TPM plugin path is derived in two files and they must agree.**
+  `TPM_DIR` in `scripts/install-restore.sh` pre-clones it;
+  `config/tmux/conf.d/30-plugins.conf` tells tmux and TPM where to look. Let
+  them drift and nothing errors — the installer clones where tmux never looks,
+  TPM's own bootstrap fetches a second copy, and you get two plugin trees.
+  `tests/tmux-tpm-lockstep.sh` guards it.
+- **`tmux.conf` is not a shell.** It expands `$VAR` and `${VAR}` but has no
+  `${VAR:-default}`, so an unset variable silently collapses the path around
+  it. Every path in `30-plugins.conf` therefore lives inside a
+  **single-quoted** `run-shell` body, which tmux passes through untouched for
+  `/bin/sh` to expand. Double quotes let tmux expand first and put the bug
+  straight back. This is also why the bootstrap is one `run-shell` doing its
+  own `-d` check rather than `if-shell` wrapping a `run-shell`: the nested
+  form needs an inner quoting level, and there isn't a safe one.
 
 ---
 
@@ -137,11 +153,16 @@ Be precise about this rather than optimistic.
   session — `pkill dunst`, `xrdb -merge`, `feh`, `slock`. Shim the binary onto
   an isolated `PATH` and assert on the call log. Leaving `/usr/bin` on the end
   of that `PATH` defeats the whole exercise.
-- `tests/*.sh` is the suite; run all 8 with
-  `for t in tests/*.sh; do bash "$t"; done`. Four of them are *consistency*
+- `tests/*.sh` is the suite; run all 9 with
+  `for t in tests/*.sh; do bash "$t"; done`. Five of them are *consistency*
   tests — two places state the same fact and the test holds them together
-  (`picom-lockstep`, `autostart-daemons`, `desktop-consequences`, `pkglist`).
-  That shape has caught more real bugs here than any assertion about output.
+  (`picom-lockstep`, `autostart-daemons`, `desktop-consequences`, `pkglist`,
+  `tmux-tpm-lockstep`). That shape has caught more real bugs here than any
+  assertion about output.
+- **CI runs every one of them** as of 2026-08-10, and runs the *scripts*
+  rather than copies of their contents: `lint` calls `tests/lint.sh --strict`,
+  `build-suckless` calls `tests/build.sh`. Before that those two were
+  reimplemented inline and so were never executed by anything.
 
 ---
 
@@ -199,7 +220,13 @@ merging to `main` is a manual step, followed by folding the log into
 **main-side only** — writing them from inside a slot causes conflicts.
 
 Hard limits enforced by review: **250 lines per file, 60 per function.** Both
-have forced real splits (`install-pkg.sh` → `install-pkg-tiers.sh`, and a
-294-line `tests/theme-templates.sh` that no longer exists — it became
+have forced real splits (`install-pkg.sh` → `install-pkg-tiers.sh`;
+`install-session.sh` → `install-session-report.sh`; and a 294-line
+`tests/theme-templates.sh` that no longer exists — it became
 `tests/starship-template.sh` + `tests/fastfetch-template.sh`). Split rather
 than seek an exception; the repo has no precedent for one.
+
+One wrinkle worth knowing if you split a *sourced* file again:
+`install-session.sh` resolves its sibling from `BASH_SOURCE` rather than from
+the caller's `$SCRIPT_DIR`, unlike `install-restore.sh`. It has to —
+`tests/autostart-daemons.sh` sources it with no `SCRIPT_DIR` set at all.

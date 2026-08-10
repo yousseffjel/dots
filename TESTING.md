@@ -13,10 +13,16 @@ tests/pkglist.sh                               # packages/*.lst syntax, all tier
 for t in tests/*.sh; do bash "$t"; done        # everything
 ```
 
-The first three mirror a job in `.github/workflows/ci.yml`, so a clean local run
-is a strong signal CI will pass too — `tests/lint.sh` additionally skips
-(rather than fails) any tool that isn't installed locally, since CI is the
-one gate that always has the full toolchain.
+The first three are *the same scripts CI runs* — `.github/workflows/ci.yml`
+invokes `tests/lint.sh` and `tests/build.sh` directly rather than restating
+their checks, so a clean local run is a strong signal CI will pass too.
+
+`tests/lint.sh` skips (rather than fails) any tool that isn't installed
+locally, so it stays usable on a box with only some of them. CI passes
+`--strict`, which turns each such skip into a failure: there the tools were
+just installed by the preceding step, so "not installed" can only mean that
+install silently failed and the job is about to go green having checked
+nothing.
 
 ## Formatting style
 
@@ -44,9 +50,12 @@ for adding CI; new docs you add are linted normally.
 
 ## Individual test scripts
 
-- **`tests/lint.sh`** — shellcheck, `shfmt -d` (diff-only, never rewrites),
-  markdownlint. Run after editing any `scripts/*.sh`, `tests/*.sh`, or
-  `*.md`.
+- **`tests/lint.sh [--strict]`** — shellcheck, `shfmt -d` (diff-only, never
+  rewrites), markdownlint. Run after editing any `scripts/*.sh`,
+  `tests/*.sh`, or `*.md`. `--strict` (what CI passes) makes a missing linter
+  a failure instead of a skip. Either way an empty file list is a hard error
+  — the script is itself one of the files it must find, so finding none means
+  the `find` failed, not that there was nothing to check.
 - **`tests/build.sh`** — `make clean && make` (never `make install`) for
   each of `suckless/{dwm,st,dmenu,dwmblocks,slock}`. Needs the build deps
   from `scripts/install-suckless.sh`'s `install_deps()` already installed
@@ -64,15 +73,27 @@ for adding CI; new docs you add are linted normally.
   `load_consequences()` from the shipped `scripts/install-pkg-tiers.sh`, so
   a parser change that stops matching the notes fails here rather than
   going unnoticed until an install.
-- **`tests/autostart-daemons.sh`** — the daemon set in
-  `scripts/install-session.sh` is stated twice: `session_autostart_template()`
-  writes it into a fresh machine's `autostart.sh`, and
-  `session_autostart_report()` names what is missing on an existing one, which
-  rule 6 forbids the installer from editing. Asserts the two agree in both
-  directions. It **runs** both functions rather than parsing them — the
-  template's stdout is the real generated file, and the report is executed
+- **`tests/autostart-daemons.sh`** — the daemon set is stated twice:
+  `session_autostart_template()` in `scripts/install-session.sh` writes it
+  into a fresh machine's `autostart.sh`, and `session_autostart_report()` in
+  `scripts/install-session-report.sh` names what is missing on an existing
+  one, which rule 6 forbids the installer from editing. Asserts the two agree
+  in both directions. It **runs** both functions rather than parsing them —
+  the template's stdout is the real generated file, and the report is executed
   against a throwaway `autostart.sh` that mentions nothing — so splitting or
-  renaming either one does not silently blind the test.
+  renaming either one does not silently blind the test. (That is not
+  hypothetical: the two now live in different files and the test needed no
+  change.)
+- **`tests/tmux-tpm-lockstep.sh`** — the TPM plugin directory is derived in
+  two places, `TPM_DIR` in `scripts/install-restore.sh` (which pre-clones it)
+  and `config/tmux/conf.d/30-plugins.conf` (which tells tmux where to look).
+  Disagreement is silent: the installer clones somewhere tmux never reads and
+  TPM's own bootstrap fetches a second copy. Rejects the undefaulted
+  `$HOME/.local/share` spelling in either file, checks every *command-line*
+  path in the tmux config uses `${XDG_DATA_HOME:-$HOME/.local/share}`
+  (comments are excluded — the header discusses that path to explain the
+  quoting rule), and **evaluates** both sides under a controlled environment
+  so a difference in quoting or a trailing component cannot pass.
 
 ## Testing a full install in a disposable Fedora environment
 
