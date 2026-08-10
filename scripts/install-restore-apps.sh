@@ -2,7 +2,7 @@
 # App-config deployment for the "restore" stage — Thunar, the Xfce helper
 # defaults, and the xdg mime defaults. Sourced by install-restore.sh only,
 # never standalone: every function here assumes the caller has already
-# `set -euo pipefail`, sourced global_fn.sh (for manifest_rows() /
+# `set -euo pipefail`, sourced global_fn.sh (for manifest_has_path() /
 # manifest_append_row()), and set DOTS_DIR/DRY_RUN plus the red/green/
 # yellow/blue helpers.
 #
@@ -20,25 +20,11 @@
 # Note the capital T: Thunar reads $XDG_CONFIG_HOME/Thunar/, not thunar/.
 # The repo directory is lowercase to match every other config/ entry.
 
-# Only files this installer actually CREATES get a manifest row —
-# identical rule to install-restore-theme.sh's theme_is_ours(). A
-# pre-existing file we deliberately left alone must never be registered,
-# or uninstall would delete config we promised not to touch.
-# Deliberately a read loop rather than `... | cut -f3 | grep -qxF "$1"`:
-# grep -q exits on the first match, which can SIGPIPE cut, and under
-# `set -o pipefail` that turns the whole pipeline's status into 141 even
-# though the match succeeded — so a file we really did deploy would be
-# misreported as one we must not touch. Same trap as the comm|head
-# pipeline documented in install-restore.sh. Here the producer is a
-# process substitution whose exit status nothing inspects, so an early
-# return is harmless.
-app_is_ours() {
-    local target="$1" row
-    while IFS= read -r row; do
-        [[ "$row" == "$target" ]] && return 0
-    done < <(manifest_rows APP 2>/dev/null | cut -f3)
-    return 1
-}
+# `manifest_has_path APP <path>` answers "did we create this file?" — only
+# files this installer actually CREATES get a manifest row, so a pre-existing
+# file we deliberately left alone is never registered and uninstall never
+# deletes config we promised not to touch. See global_fn.sh for why the
+# lookup is a read loop and not a `grep -q` pipeline.
 
 # Unlike the theme files, nothing regenerates these later, so a
 # pre-existing target that we skip stays the user's own indefinitely — no
@@ -50,7 +36,7 @@ deploy_app_file() {
         return 0
     fi
     if [[ -e "$dst" ]]; then
-        if app_is_ours "$dst"; then
+        if manifest_has_path APP "$dst"; then
             green "ok      $dst already deployed by us"
         else
             green "ok      $dst exists (left untouched, not tracked for removal)"

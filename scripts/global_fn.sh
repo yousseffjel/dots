@@ -118,3 +118,31 @@ manifest_rows() {
     [[ -f "$MANIFEST_FILE" ]] || return 0
     awk -F'\t' -v c="$category" '$1==c' "$MANIFEST_FILE"
 }
+
+# True when $2 appears as the path field (field 3) of any $1 row.
+#
+# The callers use this to answer "did WE create this file?" — the rule being
+# that only files an installer actually creates get a manifest row, because
+# uninstall deletes every row of a category outright. Registering a
+# pre-existing file we deliberately left untouched would turn "we did not
+# clobber your config" into "we deleted your config on uninstall". A stray
+# file left behind is recoverable; someone else's config removed is not.
+#
+# Written as a read loop rather than `manifest_rows "$1" | cut -f3 |
+# grep -qxF "$2"`, and that is not a style preference. `grep -q` exits on its
+# first match, which SIGPIPEs `cut`; under the `set -o pipefail` every caller
+# inherits, the pipeline then reports 141 — a FAILURE — even though the path
+# was found. The caller reads "not ours" and does the destructive thing.
+# (`|| true` is not the fix: it maps 141 to 0, which is the opposite wrong
+# answer — every path becomes "ours", including the user's own files.)
+# Nothing here inspects the producer's exit status, so the early `return 0`
+# cannot trip an ERR trap. See tests/manifest-has-path.sh, which reproduces
+# the broken shape, and `comm | head` at install-restore.sh:72 for the third
+# instance of the same trap.
+manifest_has_path() {
+    local category="$1" target="$2" row
+    while IFS= read -r row; do
+        [[ "$row" == "$target" ]] && return 0
+    done < <(manifest_rows "$category" 2>/dev/null | cut -f3)
+    return 1
+}

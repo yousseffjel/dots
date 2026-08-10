@@ -3,7 +3,7 @@
 # install-restore.sh crossed the 250-line cap (file-architecture.md).
 # Sourced by install-restore.sh only, never standalone: every function
 # here assumes the caller has already `set -euo pipefail`, sourced
-# global_fn.sh (for manifest_rows()/manifest_append_row()), and set
+# global_fn.sh (for manifest_has_path()/manifest_append_row()), and set
 # DOTS_DIR/DRY_RUN.
 #
 # usage: source "$SCRIPT_DIR/install-restore-theme.sh"; restore_theme
@@ -15,47 +15,22 @@
 # left alone — they may be the user's own, or a previously themed copy
 # that is newer than this static fallback.
 
-# Only files this installer actually CREATES get a manifest row.
-# uninstall_theme deletes every THEME row outright, so registering a
-# pre-existing file we deliberately left untouched would turn "we did not
-# clobber your config" into "we deleted your config on uninstall". A stray
-# file left behind is recoverable; someone else's config removed is not.
-# A path already recorded as a THEME row is one we created on an earlier
-# run, so re-running the installer must not "back it up" over and over.
+# --- the two manifest categories this file writes -----------------------------
 #
-# Written as a read loop rather than `... | cut -f3 | grep -qxF "$1"`, and
-# that is not a style preference. grep -q exits on its first match, which
-# SIGPIPEs cut; under the `set -o pipefail` this file inherits, the pipeline
-# then reports 141 — a FAILURE — even though the path was found. The caller
-# reads "not ours" and backs up a file we wrote ourselves. Nothing here
-# inspects a producer's exit status, so the trap cannot fire.
-# (`|| true` is not the fix: it maps 141 to 0, which is the opposite wrong
-# answer. Same shape as app_is_ours in install-restore-apps.sh, and as the
-# `comm | head` at install-restore.sh:72.)
-theme_is_ours() {
-    local target="$1" row
-    while IFS= read -r row; do
-        [[ "$row" == "$target" ]] && return 0
-    done < <(manifest_rows THEME 2>/dev/null | cut -f3)
-    return 1
-}
-
-# A path we have already preserved once. Needed because a pre-existing
-# user config is deliberately never recorded as a THEME row (uninstall
-# must not delete it), so without a separate marker every re-install would
-# back it up again — the second time capturing our own generated content,
-# not theirs. THEMEBACKUP rows are informational; uninstall_theme only
-# reads THEME.
-# Read loop for the same pipefail/SIGPIPE reason as theme_is_ours above. A
-# false negative here re-backs-up a file on every install, the second time
-# capturing our own generated content instead of the user's original.
-theme_backed_up() {
-    local target="$1" row
-    while IFS= read -r row; do
-        [[ "$row" == "$target" ]] && return 0
-    done < <(manifest_rows THEMEBACKUP 2>/dev/null | cut -f3)
-    return 1
-}
+# `manifest_has_path THEME <path>` answers "did we create this file?" — see
+# global_fn.sh for why it is a read loop and not a `grep -q` pipeline. A path
+# already recorded as a THEME row is one we created on an earlier run, so
+# re-running the installer must not "back it up" over and over.
+#
+# THEMEBACKUP is a second, separate category and not a redundant one: a
+# pre-existing user config is deliberately never recorded as a THEME row
+# (uninstall_theme deletes every THEME row outright, and must not delete
+# config we promised to leave alone), so without its own marker every
+# re-install would back that file up again — the second time capturing our
+# own generated content rather than the user's original. THEMEBACKUP rows
+# are informational; uninstall_theme only reads THEME.
+#
+# ------------------------------------------------------------------------------
 
 deploy_theme_file() {
     local src="$1" dst="$2"
@@ -64,7 +39,7 @@ deploy_theme_file() {
         return 0
     fi
     if [[ -e "$dst" ]]; then
-        if theme_is_ours "$dst"; then
+        if manifest_has_path THEME "$dst"; then
             green "ok      $dst already deployed by us"
         else
             green "ok      $dst exists (left untouched, not tracked for removal)"
@@ -97,7 +72,7 @@ theme_write_gtk_ini() {
         # the manifest rather than assuming — on every re-run this file is
         # one we wrote ourselves on the first run, and reporting that as
         # "not tracked for removal" would contradict the manifest.
-        if theme_is_ours "$gtk_ini"; then
+        if manifest_has_path THEME "$gtk_ini"; then
             green "ok      $gtk_ini already deployed by us"
         else
             green "ok      $gtk_ini exists (left untouched, not tracked for removal)"
@@ -141,7 +116,7 @@ theme_claim_fastfetch() {
     local ff_conf="$CONF_HOME/fastfetch/config.jsonc"
     mkdir -p "$(dirname "$ff_conf")"
     if [[ -e "$ff_conf" ]]; then
-        if theme_is_ours "$ff_conf"; then
+        if manifest_has_path THEME "$ff_conf"; then
             green "ok      $ff_conf already deployed by us"
         else
             green "ok      $ff_conf exists (left untouched, not tracked for removal)"
@@ -163,7 +138,7 @@ theme_claim_gtk_css() {
     [[ $DRY_RUN -eq 0 ]] || return 0
     local gtk_css="$CONF_HOME/gtk-3.0/gtk.css"
     if [[ -e "$gtk_css" ]]; then
-        theme_is_ours "$gtk_css" \
+        manifest_has_path THEME "$gtk_css" \
             || PREEXISTING_TARGETS+=("$gtk_css")
     else
         manifest_append_row THEME theme "$gtk_css"
@@ -191,7 +166,7 @@ theme_backup_preexisting() {
     theme_backup="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$theme_backup"
     for pre in "${PREEXISTING_TARGETS[@]}"; do
-        theme_backed_up "$pre" && continue
+        manifest_has_path THEMEBACKUP "$pre" && continue
         if cp -a "$pre" "$theme_backup/$(basename "$pre")" 2>/dev/null; then
             manifest_append_row THEMEBACKUP theme "$pre"
             yellow "backup  $pre -> $theme_backup/$(basename "$pre")"
