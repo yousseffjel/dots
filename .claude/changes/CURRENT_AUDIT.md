@@ -1075,3 +1075,50 @@ directory for the running history.
   runner, plus `lint.sh --strict` separately; `uninstall.sh --dry-run` verified
   in a four-variable XDG sandbox with the real manifest untouched. **Nothing ran
   against a real `dnf`, a Fedora box, a live X session, or GitHub Actions.**
+
+## 2026-08-12 — xsettingsd integration (Epic scope-c, sub-task 2)
+
+- **An XSETTINGS daemon now serves GTK apps** the theme identity from
+  `themes/dark/theme.conf` plus `Xft/Antialias`, `Xft/Hinting`, `Xft/HintStyle`
+  and `Xft/RGBA` — keys that lived nowhere else in this repo, since
+  `xresources.dcol` carries colours only. Written by
+  `theme_write_xsettingsd_conf`, autostarted, and reloadable via `pkill -HUP`.
+- **The rationale first given for this was WRONG and is recorded as such**, in
+  both `scope-c-roster-gap-fill.md` locked decision 2 and `docs/THEMING.md`.
+  xsettingsd was pitched as making wallpaper re-theming live for running GTK
+  apps. It does not: the wallpaper-driven GTK surface is `gtk.css`, and
+  `gtk.dcol`'s own header already recorded that GTK 3 re-reads it via
+  `GtkCssProvider` — which is why that template has no post-command. XSETTINGS
+  has no CSS channel either. The user kept the tool knowing this; the accepted
+  case is Xft centralisation and future-theme proofing. **Do not re-derive the
+  original claim** — `docs/THEMING.md` carries an explicit "xsettingsd is not
+  the lever" note for exactly that reason.
+- **Deliberately NOT a `.dcol` template.** Content is `theme.conf`-derived, not
+  palette-derived, so a template would re-render an identical file on every
+  wallpaper change. `theme_write_gtk_ini` is the precedent.
+- **`Xft/DPI` deliberately omitted** — XSETTINGS wants 1024ths of an inch, and
+  hardcoding `96*1024` would override X's autodetection and break HiDPI.
+- **`install-restore-theme.sh` hit 286/250 and was split**: the `theme.conf`
+  renderers moved to `install-restore-theme-identity.sh` (193 + 121). The seam
+  is *rendering* vs *placement* — the parent still deploys, claims and backs up.
+- **The audit's best catch:** hoisting `theme_conf_get` out of
+  `theme_write_gtk_ini` would have promoted `sed … | head -1` into shared use —
+  a **fourth** instance of the SIGPIPE/pipefail trap already fixed three times
+  here. Rewritten pipe-free as `grep -m1`. A hoisted helper's pipelines get
+  re-examined, not just relocated.
+- **`tests/autostart-daemons.sh` caught the unpaired daemon by itself** before
+  its roster was updated, and a mutant reproduces that failure. Daemons 6 -> 7,
+  annotated packages 29 -> 30.
+- **Open for sub-task 3:** `session_autostart_daemons()` is at **57 of 60**
+  lines; udiskie + autorandr add two more daemons to that same function and
+  will breach the cap. Plan the split into that slot.
+- **Open, unverified but now load-bearing in two places:** `gtk.dcol`'s claim
+  that GTK 3 hot-reloads `gtk.css` is stated as fact and was never tested; it is
+  now repeated in `docs/THEMING.md`. Confirm on real hardware.
+- See `.claude/changes/2026-08-12-xsettingsd-theming.md`. Commits `92eb216`,
+  `ad3c872`. Audit: READY (Medium+, 14 files, +336/-46; 3 findings, all fixed).
+  Reviewer: READY (clean first round; re-ran the split's sandbox proof itself).
+  Tests: 10/10 + `--strict`. Config parsing proven against the real xsettingsd
+  1.0.2, including that a malformed value is rejected loudly. **Nothing ran
+  against a real `dnf`, a Fedora box, a live X session, or GitHub Actions —
+  xsettingsd has never actually served settings to a running GTK app here.**

@@ -14,8 +14,12 @@ when slots run concurrently.
   there 2026-08-12 — do not re-litigate). 4 sub-tasks, one slot each; 2 and 3
   both edit `install-session.sh` so they must not run concurrently.
   - [ ] 1. packages (folded into the sub-tasks that need them)
-  - [ ] 2. xsettingsd theming integration ← **starting here**
-  - [ ] 3. udiskie + autorandr
+  - [x] 2. xsettingsd integration — `92eb216`, `ad3c872`. Note the rationale
+        was corrected mid-flight; locked decision 2 in the scope file is the
+        authoritative version.
+  - [ ] 3. udiskie + autorandr ← **next.** `session_autostart_daemons()` is at
+        57 of 60 lines and this sub-task adds two more daemons to it — plan the
+        split in, do not discover it mid-implementation.
   - [ ] 4. dwm-colorpicker + dwm-display
 
 ---
@@ -52,6 +56,17 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **Epic scope-c sub-task 2: xsettingsd** — `92eb216`, `ad3c872`.
+  GTK apps now get the theme identity and the Xft rendering keys from one place;
+  `reload.sh` gained a 7th target and the daemon set went 6 → 7. Two things
+  worth carrying forward: the tool's original justification was **wrong** (the
+  "GTK apps keep a stale theme" hole does not exist — `gtk.dcol` already
+  documented that GTK re-reads `gtk.css` itself), corrected in the scope file
+  and `docs/THEMING.md` before building; and hoisting `theme_conf_get` nearly
+  promoted a **fourth** `sed | head -1` SIGPIPE site into shared use.
+  `install-restore-theme.sh` hit 286/250 and split into
+  `install-restore-theme-identity.sh` (193 + 121).
 
 - 2026-08-12 — **queue items 1 and 2, one closed by being subsumed** —
   `a48de6b`, `59d54d5`. `manifest_has_path <TAG> <path>` now lives in
