@@ -95,6 +95,36 @@ for adding CI; new docs you add are linted normally.
   quoting rule), and **evaluates** both sides under a controlled environment
   so a difference in quoting or a trailing component cannot pass.
 
+- **`tests/dwm-colorpicker.sh`** — the first test to cover anything in
+  `config/dwm/bin/`, which held nine scripts and none. It exists because on
+  2026-08-12 that gap let a total failure ship green: ImageMagick's
+  `%[hex:p{0,0}]` returns **eight** hex digits for maim's RGBA output, the
+  picker's strict six-digit check rejected it, and the script would have failed
+  on **every** invocation while the suite stayed green. Feeds the picker a
+  one-pixel image in each PNG format maim might emit — RGBA, RGB, 16-bit,
+  palette — and requires six digits from all of them; pins that `-alpha off`
+  *discards* the alpha rather than compositing (a composite returns a plausible
+  but wrong colour, worse than a loud failure); and checks all four failure
+  paths name themselves. **Needs real ImageMagick** — faking it would leave the
+  test asserting against its own fixture generator — so it skips loudly when
+  neither `magick` nor `convert` is present, which is what happens in CI's
+  `tests` job. `xclip` and `notify-send` are faked because otherwise the test
+  would overwrite your clipboard and post real notifications.
+- **`tests/dwm-display.sh`** — `dwm-display` derives its menu from `xrandr`
+  rather than hardcoding output names, so the failures worth catching are in
+  the derivation and every one of them leaves the script exit-0: a
+  *disconnected* output leaking into the menu, `only <output>` forgetting to
+  switch the others off (two enabled displays) or doing it in a second xrandr
+  call (a moment with none enabled), extend/mirror entries offered on a
+  single-monitor machine, or saved autorandr profiles buried under the
+  generated presets. Drives `--list`, which prints each label with the exact
+  command behind it and applies nothing. `xrandr`, `dmenu`, `autorandr` and
+  `notify-send` are all faked: a real `xrandr` would reconfigure your displays
+  and a real `dmenu` would block forever. Needs only bash + coreutils.
+
+Both were checked by mutation rather than assumed effective — see each file's
+header for what survived and why.
+
 ## Testing a full install in a disposable Fedora environment
 
 Never run `scripts/install-fedora.sh` on a machine you care about while
