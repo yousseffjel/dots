@@ -80,7 +80,9 @@ and `docs/` + `KEYBINDINGS.md` + `ROADMAP.md` (markdown).
 ## Fedora availability (verified 2026-08-12, rule 8)
 
 All against packages.fedoraproject.org; active branches are 43, 44 and
-Rawhide (41 and 42 are EOL — note `ci.yml` still pins `fedora:41`).
+Rawhide (41 and 42 are EOL). `ci.yml` pinned the dead `fedora:41` when this was
+written; that was its own queue item and was fixed on 2026-08-12 — the matrix
+now pins `fedora:43`, the oldest supported release.
 
 | Package | Version | Branches |
 | --- | --- | --- |
@@ -125,6 +127,6 @@ cleaner than resolving it.
 
 - ROADMAP §9's priority list (entirely closed) and §3's stale picom row —
   a separate documentation pass, already its own queue item.
-- The `fedora:41` EOL CI pin — own queue item.
+- The `fedora:41` EOL CI pin — was its own queue item; closed 2026-08-12.
 - Any Qt theming, per Scope B locked decision 3.
 - `thunar --daemon`, considered and rejected in favour of udiskie.

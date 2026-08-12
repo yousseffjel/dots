@@ -98,7 +98,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fedora: ["fedora:latest", "fedora:41"]
+        # Two images on purpose: `latest` catches "broken on the newest
+        # Fedora", the pinned one catches "only works on the newest Fedora".
+        # The pin must therefore track the OLDEST SUPPORTED release.
+        #
+        # An EOL pin does not fail by vanishing — Docker Hub still carries
+        # `fedora:41` long after 41 died. It fails because an EOL release's
+        # repos move to the archive mirrors, so every `dnf` call in these two
+        # jobs starts erroring while the image itself still pulls fine. That is
+        # the failure to expect here, and it is why `fedora:41` sat in this
+        # matrix through both 41 and 42 going EOL without anyone noticing.
+        # Bump this on each Fedora release; do not delete it.
+        fedora: ["fedora:latest", "fedora:43"]
     container:
       image: ${{ matrix.fedora }}
     steps:
@@ -139,7 +150,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fedora: ["fedora:latest", "fedora:41"]
+        # Two images on purpose: `latest` catches "broken on the newest
+        # Fedora", the pinned one catches "only works on the newest Fedora".
+        # The pin must therefore track the OLDEST SUPPORTED release.
+        #
+        # An EOL pin does not fail by vanishing — Docker Hub still carries
+        # `fedora:41` long after 41 died. It fails because an EOL release's
+        # repos move to the archive mirrors, so every `dnf` call in these two
+        # jobs starts erroring while the image itself still pulls fine. That is
+        # the failure to expect here, and it is why `fedora:41` sat in this
+        # matrix through both 41 and 42 going EOL without anyone noticing.
+        # Bump this on each Fedora release; do not delete it.
+        fedora: ["fedora:latest", "fedora:43"]
     container:
       image: ${{ matrix.fedora }}
     steps:

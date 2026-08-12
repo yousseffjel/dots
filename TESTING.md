@@ -148,7 +148,7 @@ Or, using `toolbox` on a Fedora host (keeps the container around as a
 named, reusable dev box instead of `--rm`-ing it):
 
 ```sh
-toolbox create -i registry.fedoraproject.org/fedora:41 dots-test
+toolbox create -i registry.fedoraproject.org/fedora:43 dots-test
 toolbox enter dots-test
 git clone https://github.com/<you>/dots.git ~/dots && cd ~/dots
 ./scripts/install-fedora.sh --dry-run
