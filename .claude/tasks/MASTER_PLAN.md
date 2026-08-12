@@ -9,26 +9,19 @@ when slots run concurrently.
 
 ## Active
 
-*(none — the roster Epic closed 2026-08-07; see Recently Closed)*
+- **Epic: roster gap-fill** — ROADMAP §3's last four `❌ add` rows. Scope file:
+  `.claude/tasks/scope-c-roster-gap-fill.md` (tool roster and rejections locked
+  there 2026-08-12 — do not re-litigate). 4 sub-tasks, one slot each; 2 and 3
+  both edit `install-session.sh` so they must not run concurrently.
+  - [ ] 1. packages (folded into the sub-tasks that need them)
+  - [ ] 2. xsettingsd theming integration ← **starting here**
+  - [ ] 3. udiskie + autorandr
+  - [ ] 4. dwm-colorpicker + dwm-display
 
 ---
 
 ## Queue
 
-- **Roster gap-fill — the last four `❌ add` rows of ROADMAP §3.** Tool choices
-  locked with the user 2026-08-12 after a comparison pass; do not re-litigate
-  them. **In:** `xsettingsd` (highest value — GTK apps currently keep the old
-  theme until restarted, because `settings.ini` is read only at startup; an
-  XSETTINGS daemon lets `reload.sh` SIGHUP them live, closing a real hole in
-  the engine), `udiskie` (the roster row is unmanned today: `thunar-volman`
-  only works while Thunar runs, and nothing daemonises it), `autorandr` (the
-  only option that reacts to hotplug), a `dwm-colorpicker` script + `xdotool`,
-  a `dwm-display` dmenu script, and `gpick` in `extra.lst`. **Out:** `arandr`
-  (autorandr + the script cover it) and `xdg-desktop-portal-gtk` (only earns
-  its place if Flatpak enters the picture). Unblocked by the 27 lines of
-  headroom now in `install-restore-theme.sh` — the xsettingsd template is an
-  engine-owned target with no static base config, so it needs a manifest claim
-  and a parent-directory mkdir there.
 - **`ROADMAP.md` §3 names `xcolor` as the colour picker; no such Fedora package
   exists.** Only `texlive-xcolor`, a LaTeX package. Verified against
   packages.fedoraproject.org 2026-08-12. While correcting that, two more stale
