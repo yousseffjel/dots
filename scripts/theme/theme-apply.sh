@@ -6,19 +6,38 @@
 #                               wallpaper instead of a static theme
 #   theme-apply.sh --list       list available themes
 #
-# Unlike wallpaper.sh this processes BOTH template groups: a theme switch
-# can change things (gtk/icon/cursor names, fonts) that a wallpaper change
-# cannot, and those live in the theme/ group.
+# Unlike wallpaper.sh this processes BOTH template groups, and additionally
+# renders the theme's *identity* — GTK theme name, icons, cursor, font — which
+# a wallpaper change cannot touch. That part is not a template: none of it is
+# palette-derived, so a .dcol would re-render an identical file on every
+# wallpaper change. See apply_identity below and the writers it calls in
+# scripts/install-restore-theme-identity.sh.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 THEMES_DIR="$DOTS_DIR/themes"
 
+# manifest_has_path / manifest_append_row for the identity writers below. Same
+# arrangement every install-*.sh stage uses, including the ordering: source
+# first, define the inline colour helpers after, so this file's definitions are
+# the live ones rather than dead code shadowed by global_fn.sh's identical pair
+# (see global_fn.sh's own header, and shellcheck SC2329).
+# shellcheck source=../global_fn.sh
+source "$DOTS_DIR/scripts/global_fn.sh"
+
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
+
+# The identity writers are shared with the installer rather than reimplemented:
+# one renderer, two entry points. Sourcing it here fixes THEME_CONF_REL at its
+# themes/dark default, which apply_identity overrides per switch.
+DRY_RUN=0
+CONF_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+# shellcheck source=../install-restore-theme-identity.sh
+source "$DOTS_DIR/scripts/install-restore-theme-identity.sh"
 
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 
@@ -34,6 +53,30 @@ notify() {
 list_themes() {
     [[ -d "$THEMES_DIR" ]] || return 0
     find "$THEMES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort
+}
+
+# Render the theme's non-colour half — GTK theme name, icons, cursor, font —
+# into settings.ini and xsettingsd.conf, before apply-templates/reload run so
+# the reload's `pkill -HUP xsettingsd` serves the new values.
+#
+# CLOBBER=1 is the only difference from the installer's call: an install must
+# not replace a file the user has since edited, whereas a theme switch is
+# precisely a request to replace it. The writers still refuse any path the
+# manifest does not claim as ours, so a hand-written settings.ini survives
+# either caller — it just gets a yellow line saying the identity did not apply.
+#
+# A theme with no theme.conf is legal: it themes colours only, and the identity
+# stays whatever the last theme (or the installer) left.
+apply_identity() {
+    local theme="$1"
+    if [[ ! -f "$THEMES_DIR/$theme/theme.conf" ]]; then
+        blue "    no theme.conf — colours only, identity unchanged"
+        return 0
+    fi
+    THEME_CONF_REL="themes/$theme/theme.conf"
+    THEME_IDENTITY_CLOBBER=1
+    theme_write_gtk_ini
+    theme_write_xsettingsd_conf
 }
 
 MODE=""
@@ -104,13 +147,8 @@ else
     blue "==> static theme: $THEME"
 
     # theme.conf carries the non-colour parts of a theme (gtk/icon/cursor
-    # theme names, font). Only reported here — templates in the theme/
-    # group are what actually consume it, and applying gtk-theme settings
-    # is sub-task 7's packaging work.
-    if [[ -f "$THEME_DIR/theme.conf" ]]; then
-        blue "    theme.conf:"
-        sed 's/^/      /' "$THEME_DIR/theme.conf" | grep -v '^\s*#' | grep -v '^\s*$' || true
-    fi
+    # theme names, font). Rendered, not just reported — see apply_identity.
+    apply_identity "$THEME"
 fi
 
 # Both groups: theme/ templates only re-render on a theme switch, which is

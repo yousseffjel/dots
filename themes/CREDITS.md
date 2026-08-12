@@ -40,15 +40,24 @@ shell code. See `.claude/changes/2026-08-05-theming-apply-templates.md`.
 
 Thanks to the HyDE authors for a genuinely good design.
 
-## Catppuccin — the static dark palette
+## The static palettes
 
-`themes/dark/colors.dcol` is seeded from the
-[Catppuccin](https://github.com/catppuccin/catppuccin) **Mocha** flavour
-(MIT licensed) — its base, blue, red and green anchor the four primaries.
-The committed file is the output of running this repo's own
-`scripts/theme/colorgen.sh` over those seed colours, so the accent ramps
-and text colours are this engine's, not Catppuccin's published values.
-It is Catppuccin-flavoured rather than a faithful Catppuccin port.
+Each `themes/<name>/colors.dcol` is seeded from four colours published by an
+upstream theme — a background plus three accents — and is then the **output of
+running this repo's own `scripts/theme/colorgen.sh` over those seeds**. Only
+the four `dcol_pry` values are upstream's; every accent ramp and text colour
+comes from this engine's dark curve. They are *flavoured by* these themes
+rather than faithful ports, and none of them vendors upstream code.
+
+| Theme | Seeded from | Upstream | Licence |
+| --- | --- | --- | --- |
+| `dark` | Catppuccin **Mocha** — base, red, blue, green | [catppuccin/catppuccin](https://github.com/catppuccin/catppuccin) | MIT |
+| `gruvbox` | dark0 + bright red / aqua / green | [morhetz/gruvbox](https://github.com/morhetz/gruvbox) | MIT/X11 |
+| `nord` | Polar Night nord0 + nord11 / nord8 / nord14 | [nordtheme/nord](https://github.com/nordtheme/nord) | MIT |
+| `tokyo-night` | night background + red / blue / green | [folke/tokyonight.nvim](https://github.com/folke/tokyonight.nvim) | Apache-2.0 |
+
+Licences verified against each repository's GitHub page on 2026-08-12. Each
+palette's own header records the exact seed hex, so it can be regenerated.
 
 ## suckless
 

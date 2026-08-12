@@ -293,13 +293,62 @@ not the lever.
 - `theme.conf` — gtk/icon/cursor theme names and font
 - `wallpapers/` — optional
 
-`themes/dark/` is the one shipped theme, seeded from Catppuccin Mocha.
-`install-restore.sh` writes `~/.config/gtk-3.0/settings.ini` from its
-`theme.conf` and applies it, if an X session is running.
+Four ship: `dark` (Catppuccin Mocha), `gruvbox`, `nord` and `tokyo-night`.
+Switch with `theme-apply.sh <name>`, or `Super+Ctrl+w` for the dmenu picker.
 
-To add one, copy `themes/dark/`, replace `colors.dcol` (generate it with
-`colorgen.sh` against a representative image, or hand-write it in the same
-format), and adjust `theme.conf`.
+### What a switch changes
+
+Both halves of the theme, which is why `theme-apply.sh` processes both template
+groups where `wallpaper.sh` processes only `always/`:
+
+- **Colours** — `colors.dcol` through the template engine, as for a wallpaper.
+- **Identity** — `theme.conf`'s GTK theme name, icons, cursor and font, rendered
+  into `~/.config/gtk-3.0/settings.ini` and `~/.config/xsettingsd/xsettingsd.conf`
+  by the writers in `scripts/install-restore-theme-identity.sh`. Not a template:
+  none of it is palette-derived, so a `.dcol` would re-render an identical file
+  on every wallpaper change (same reasoning as `xsettingsd.conf` itself).
+
+`theme.conf` is optional. A theme without one changes colours and leaves the
+identity as it was.
+
+### The no-clobber rule
+
+The identity writers refuse any `settings.ini` or `xsettingsd.conf` the manifest
+does not record as ours — a hand-written one survives a theme switch and gets a
+yellow line saying the identity was not applied there. The difference between
+the two callers is only what happens to a file we *did* write: the installer
+leaves it alone (you may have edited it since), a theme switch replaces it
+(that is the point of switching). Both are covered by `tests/theme-identity.sh`.
+
+### All four currently share one identity
+
+Every shipped `theme.conf` names `Adwaita-dark` + `Papirus-Dark`, because this
+repo declares exactly one dark GTK theme — Adwaita-dark is a GTK3 built-in and
+`packages/extra.lst` adds no other. The values are repeated per theme rather
+than inherited so that each theme *can* state its own; install another GTK theme
+and edit one line to see the switch apply it.
+
+### Adding a theme
+
+Copy `themes/dark/`, then replace `colors.dcol`. Generate rather than hand-write
+it — the engine guarantees the file parses and carries every key a template can
+reference, which hand-written hex does not:
+
+```sh
+# a seed image of four equal blocks: background, then three accents
+magick -size 256x256 xc:'#1a1b26' -size 256x256 xc:'#f7768e' \
+       -size 256x256 xc:'#7aa2f7' -size 256x256 xc:'#9ece6a' \
+       +append /tmp/seed.png
+scripts/theme/colorgen.sh /tmp/seed.png
+# then take ~/.cache/dots/theme/colors.dcol, drop its `# dcol_cache_key=` line,
+# and give it a header saying which colours seeded it
+```
+
+`colorgen.sh` k-means-clusters the image to four colours and sorts them by
+perceptual luminance, darkest first — so the darkest block becomes `dcol_pry1`
+(the background) and the accent order follows brightness, not the order you
+passed them. Each theme's committed header records its seed hex, so any of them
+can be regenerated exactly.
 
 ## Troubleshooting
 

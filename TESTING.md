@@ -122,8 +122,26 @@ for adding CI; new docs you add are linted normally.
   `notify-send` are all faked: a real `xrandr` would reconfigure your displays
   and a real `dmenu` would block forever. Needs only bash + coreutils.
 
-Both were checked by mutation rather than assumed effective — see each file's
-header for what survived and why.
+- **`tests/theme-identity.sh`** — the non-colour half of a theme (GTK theme
+  name, icons, cursor, font). The failure it exists for is silent: a switch
+  still re-colours everything, so a regression that froze the identity at
+  install-time values reads as "GTK being slow to notice". Covers the three
+  claims in the order they break — the *selected* theme's identity is what
+  lands, an installer re-run never clobbers, and a switch replaces only files
+  the manifest claims as ours. The first claim cannot be proved against shipped
+  data, since all four `theme.conf` files currently carry identical values, so
+  the test adds a sandbox-only fixture theme whose values match nothing shipped.
+  **Neither `apply-templates.sh` nor `reload.sh` is the real one** — both are
+  stubbed, because their post-commands `pkill` dunst and dwmblocks system-wide;
+  the stubs record their arguments, so the switch is still proved to have
+  reached the engine with the right palette. Needs only bash + coreutils.
+
+All three were checked by mutation rather than assumed effective — see each
+file's header for what survived and why. `theme-identity.sh` kills 9 of 9,
+and its one first-pass survivor is worth repeating: the test originally set
+the two new globals itself, while the installer sets neither and relies on the
+shipped defaults, so flipping a default stayed green. **A test that supplies a
+default never tests it.**
 
 ## Testing a full install in a disposable Fedora environment
 
