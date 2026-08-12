@@ -252,11 +252,38 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
 | dunst | its own generated `dunstrc` | killed; D-Bus reactivates it on the next notification |
 | picom | nothing — see below | `pkill -USR1` reloads config in place |
 | GTK 3 | generated `gtk.css` | none needed — GtkCssProvider watches the file |
+| xsettingsd | nothing — see below | `pkill -HUP` re-reads its config and pushes to every GTK client |
 
 dmenu, powermenu and clipmenu pass **no** `-nb/-nf/-sb/-sf` flags on
 purpose: dmenu's CLI colour flags override X resources, so passing them
 would pin the menus to compiled-in colours and they would never follow
 the theme.
+
+### xsettingsd is in the sweep but carries no palette
+
+`~/.config/xsettingsd/xsettingsd.conf` is written by
+`theme_write_xsettingsd_conf` in `scripts/install-restore-theme-identity.sh`,
+**not** by a `.dcol` template, and that is deliberate. Every template under
+`config/theme/templates/always/` re-renders on each wallpaper change because
+its content is palette-derived. xsettingsd's is not: it holds the GTK theme
+identity (theme name, icons, cursor, font) read from `themes/dark/theme.conf`,
+plus the Xft font-rendering keys — `Xft/Antialias`, `Xft/Hinting`,
+`Xft/HintStyle`, `Xft/RGBA` — which live nowhere else in this repo
+(`xresources.dcol` carries colours only). A wallpaper change touches none of
+it, so a template would rewrite an identical file every time.
+
+It is still in `reload.sh`'s sweep so that an installer re-run or a
+`theme.conf` edit applies without a logout.
+
+**`Xft/DPI` is deliberately absent.** XSETTINGS expects 1024ths of an inch, and
+hardcoding `96 * 1024` would override X's own autodetection and render wrong on
+any HiDPI panel. Add the key only if `themes/dark/theme.conf` grows a `dpi=`
+entry to source it from.
+
+**What it does not do:** xsettingsd has no CSS channel, so it plays no part in
+the wallpaper-driven accent colours. Those are `gtk.css`, which GTK re-reads on
+its own. If you are chasing a GTK app that ignores a new palette, xsettingsd is
+not the lever.
 
 ## Static themes
 

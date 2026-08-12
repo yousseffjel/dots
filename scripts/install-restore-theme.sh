@@ -14,6 +14,15 @@
 # symlink would make it write back into this git repo. Existing files are
 # left alone — they may be the user's own, or a previously themed copy
 # that is newer than this static fallback.
+#
+# The theme.conf renderers (settings.ini, xsettingsd.conf) live in the sibling
+# install-restore-theme-identity.sh — this file kept crossing the 250-line cap
+# as they grew. Resolved from BASH_SOURCE rather than the caller's SCRIPT_DIR,
+# the same choice install-session.sh made and for the same reason: this file is
+# SOURCED, and a test may source it with no SCRIPT_DIR set at all.
+THEME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=install-restore-theme-identity.sh
+source "$THEME_DIR/install-restore-theme-identity.sh"
 
 # --- the two manifest categories this file writes -----------------------------
 #
@@ -51,46 +60,6 @@ deploy_theme_file() {
     cp "$src" "$dst"
     manifest_append_row THEME theme "$dst"
     green "wrote   $dst"
-}
-
-# GTK settings.ini from themes/dark/theme.conf, so the dark GTK theme and
-# Papirus-Dark icons the palette assumes are actually selected. gtk.dcol
-# only supplies accent colours; it cannot pick a theme name.
-theme_write_gtk_ini() {
-    local theme_conf="$DOTS_DIR/themes/dark/theme.conf"
-    local gtk_ini="$CONF_HOME/gtk-3.0/settings.ini"
-    [[ -f "$theme_conf" ]] || return 0
-
-    conf_get() { sed -n "s/^$1=//p" "$theme_conf" | head -1; }
-
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write $gtk_ini"
-        return 0
-    fi
-    if [[ -e "$gtk_ini" ]]; then
-        # Same rule as deploy_theme_file: untouched means untracked. Ask
-        # the manifest rather than assuming — on every re-run this file is
-        # one we wrote ourselves on the first run, and reporting that as
-        # "not tracked for removal" would contradict the manifest.
-        if manifest_has_path THEME "$gtk_ini"; then
-            green "ok      $gtk_ini already deployed by us"
-        else
-            green "ok      $gtk_ini exists (left untouched, not tracked for removal)"
-        fi
-        return 0
-    fi
-    mkdir -p "$(dirname "$gtk_ini")"
-    cat >"$gtk_ini" <<EOF
-[Settings]
-gtk-theme-name=$(conf_get gtk_theme)
-gtk-icon-theme-name=$(conf_get icon_theme)
-gtk-cursor-theme-name=$(conf_get cursor_theme)
-gtk-cursor-theme-size=$(conf_get cursor_size)
-gtk-font-name=$(conf_get font)
-gtk-application-prefer-dark-theme=1
-EOF
-    green "wrote   $gtk_ini"
-    manifest_append_row THEME theme "$gtk_ini"
 }
 
 # fastfetch has no static config in this repo at all — fastfetch.dcol is the
@@ -207,6 +176,7 @@ restore_theme() {
     deploy_theme_file "$DOTS_DIR/config/dunst/dunstrc" "$CONF_HOME/dunst/dunstrc"
     deploy_theme_file "$DOTS_DIR/config/picom/picom.conf" "$CONF_HOME/picom/picom.conf"
     theme_write_gtk_ini
+    theme_write_xsettingsd_conf
     theme_claim_gtk_css
     theme_claim_fastfetch
     # Must precede the apply, and must run even when no apply happens —

@@ -190,6 +190,26 @@ reload_picom() {
     fi
 }
 
+reload_xsettingsd() {
+    # SIGHUP makes xsettingsd re-read its config and push the new values to
+    # every GTK client over the XSETTINGS property — no app restart needed.
+    #
+    # Unlike the other targets here, this one usually has nothing to do: its
+    # config is rendered from themes/dark/theme.conf, which a wallpaper change
+    # does not touch (see install-restore-theme-identity.sh). It matters after
+    # an installer re-run or a theme.conf edit, and it is in the sweep so those
+    # do not need a separate command or a logout.
+    if ! command -v xsettingsd >/dev/null 2>&1; then
+        say yellow "xsett   not installed — skipped"
+        return 0
+    fi
+    if pkill -HUP -x xsettingsd 2>/dev/null; then
+        say green "xsett   HUP sent (settings re-read)"
+    else
+        say yellow "xsett   not running — skipped"
+    fi
+}
+
 reload_wallpaper() {
     # feh writes ~/.fehbg as an executable snippet that re-applies the
     # current wallpaper. Re-running it repaints the root window, which
@@ -206,7 +226,8 @@ reload_wallpaper() {
     fi
 }
 
-for step in reload_dwm reload_st reload_dwmblocks reload_dunst reload_picom reload_wallpaper; do
+for step in reload_dwm reload_st reload_dwmblocks reload_dunst reload_picom \
+    reload_xsettingsd reload_wallpaper; do
     "$step" &
 done
 wait

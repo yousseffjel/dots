@@ -72,6 +72,11 @@ session_autostart_report() {
         'without it every binding in config/sxhkd/sxhkdrc is dead —' \
         'media keys, volume, brightness, theming and app launchers.'
 
+    session_report_daemon "$autostart" xsettingsd \
+        'add this line yourself:  command -v xsettingsd >/dev/null && ! pgrep -x xsettingsd >/dev/null && xsettingsd &' \
+        'without it GTK apps ignore ~/.config/xsettingsd/xsettingsd.conf —' \
+        'Xft antialiasing, hinting and RGBA fall back to toolkit defaults.'
+
     session_report_daemon "$autostart" polkit-gnome \
         'add these lines yourself:' \
         '  if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then' \

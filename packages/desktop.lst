@@ -46,6 +46,7 @@ picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is re
 dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
 libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
 xss-lock  # the screen never locks on idle or on suspend; only the manual Super+l keybind still works
+xsettingsd  # GTK apps get no XSETTINGS: Xft DPI, antialiasing and hinting fall back to each toolkit's own defaults, and a themes/dark/theme.conf edit needs an app restart instead of a theme reload
 
 # --- theming engine ---
 ImageMagick  # no colour extraction: wallpaper.sh and theme-apply.sh cannot build a palette from the wallpaper

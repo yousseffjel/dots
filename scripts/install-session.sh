@@ -109,6 +109,19 @@ if command -v sxhkd >/dev/null 2>&1 && ! pgrep -x sxhkd >/dev/null 2>&1; then
 	sxhkd &
 fi
 
+# XSETTINGS daemon. Serves the GTK theme identity and the Xft font-rendering
+# keys (antialias, hinting, RGBA) from ~/.config/xsettingsd/xsettingsd.conf,
+# written by the installer from themes/dark/theme.conf. Without it GTK apps
+# fall back to their own per-toolkit rendering defaults.
+#
+# No -c flag: xsettingsd 1.0.2 reads $XDG_CONFIG_HOME/xsettingsd/xsettingsd.conf
+# on its own (its --help text still claims ~/.xsettingsd and is stale —
+# verified against the binary). Passing the path here would duplicate the
+# installer's choice of it in a second place.
+if command -v xsettingsd >/dev/null 2>&1 && ! pgrep -x xsettingsd >/dev/null 2>&1; then
+	xsettingsd &
+fi
+
 EOF
 }
 

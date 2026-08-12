@@ -59,7 +59,7 @@ for fn in session_autostart_template session_autostart_report; do
 done
 
 # Every daemon this project may autostart.
-DAEMONS=(picom dwmblocks clipmenud sxhkd polkit-gnome dwm-lock)
+DAEMONS=(picom dwmblocks clipmenud sxhkd xsettingsd polkit-gnome dwm-lock)
 
 # --- side 1: what a fresh install actually launches -------------------------
 # The generated file, straight from the shipped function. A launch counts only
