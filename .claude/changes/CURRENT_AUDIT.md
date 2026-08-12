@@ -1178,3 +1178,58 @@ directory for the running history.
   fixed). Reviewer: WARN, resolved before commit. Tests: 10/10 + `--strict`;
   three mutants all caught. **Nothing ran against a real `dnf`, a Fedora box, a
   live X session, or GitHub Actions.**
+
+## 2026-08-12 — colour picker + display menu (Epic scope-c, sub-task 4 — EPIC CLOSED)
+
+- **`config/dwm/bin/dwm-colorpicker` (`Super+c`)** samples the pixel under the
+  pointer and puts its hex on the clipboard with a dunst swatch. A script rather
+  than a package because **ROADMAP §3 named a package that does not exist** —
+  there is no `xcolor` in Fedora, only `texlive-xcolor`, a LaTeX package. Every
+  other dependency was already installed for screenshots and theming; only
+  `xdotool` was added, purely for `getmouselocation`.
+- **`config/dwm/bin/dwm-display` (`Super+d`)** lists autorandr's saved profiles
+  first, then presets **derived from `xrandr` at run time** — output names differ
+  per machine and driver, so a hardcoded list would be wrong on the first laptop
+  it met. Each "only <output>" entry disables the others in the SAME xrandr call,
+  so the server never passes through a state with no output enabled.
+- **ROADMAP §3's status column re-verified end to end**, not spot-edited: the
+  compositor row still claimed nothing autostarts picom, four days after that
+  was fixed. §9's priority list is entirely done and is now labelled a record
+  rather than a backlog, pointing at MASTER_PLAN.md as the real queue. Two §3
+  rows stay open **by decision**: a blue-light filter (undecided) and
+  `xdg-desktop-portal-gtk` (deferred — only pays off with Flatpak).
+- **The reviewer BLOCKED round 1 on a happy-path bug worth remembering.**
+  ImageMagick's `%[hex:p{0,0}]` returns EIGHT hex digits (RRGGBBAA) for maim's
+  actual RGBA output, so the strict 6-digit validation rejected it and the picker
+  would have failed *every single time*. The test passed only because the fake
+  `maim` wrote an RGB PNG — **the shim reproduced the tool's interface but not
+  its output format**, so it tested against a world that does not exist. Fixed
+  with `-alpha off -depth 8` (the second flag covering the 16-bit case raised in
+  the same review, independently reproduced as twelve digits). The strict check
+  was deliberately KEPT so a future format change fails loudly instead of
+  copying a truncated colour. Round 2 confirmed `-alpha off` *discards* rather
+  than composites — a semi-transparent pixel yields its true source RGB, where
+  `-alpha remove` would have blended it.
+- **`config/dwm/bin/*` is the least test-covered surface in the repo** — nine
+  scripts, zero tests — and this sub-task is the demonstration of what that
+  costs. The picker's hex normalisation across PNG formats would fit the
+  existing shim-based `tests/*-template.sh` idiom directly.
+- **Another stale doc reference fixed:** CLAUDE.md credited `$PATH` setup to
+  `20-path.zsh`, which does not exist — it is `.zshenv`, deliberately, since
+  `conf.d` is interactive-only and dwm's autostart is not.
+- **`sxhkd` has no parse-check mode.** `sxhkd -c <file> -n` is not a dry run; it
+  launches the daemon and grabs keys. Attempted once, killed by timeout, nothing
+  disturbed — do not retry it.
+- See `.claude/changes/2026-08-12-colorpicker-display.md`. Commits `f88d684`,
+  `b03573a`. Audit: READY (Medium+, 13 files, +451/-14; 1 finding fixed).
+  Reviewer: **BLOCK then READY**. Tests: 10/10 + `--strict`, but note nothing in
+  `tests/` exercises the new scripts — the shimmed runs are what verified them.
+  **Neither script has met a real pointer or a second monitor.**
+
+### Epic scope-c closed
+
+All four sub-tasks merged: xsettingsd (`92eb216`), udiskie + autorandr
+(`6b8649e`), colour picker + display menu (`f88d684`), with packages folded into
+whichever sub-task needed them. Scope file:
+`.claude/tasks/scope-c-roster-gap-fill.md` — locked decisions live there,
+including the corrected xsettingsd rationale and the `xcolor` non-existence.

@@ -9,25 +9,21 @@ when slots run concurrently.
 
 ## Active
 
-- **Epic: roster gap-fill** — ROADMAP §3's last four `❌ add` rows. Scope file:
-  `.claude/tasks/scope-c-roster-gap-fill.md` (tool roster and rejections locked
-  there 2026-08-12 — do not re-litigate). 4 sub-tasks, one slot each; 2 and 3
-  both edit `install-session.sh` so they must not run concurrently.
-  - [ ] 1. packages (folded into the sub-tasks that need them)
-  - [x] 2. xsettingsd integration — `92eb216`, `ad3c872`. Note the rationale
-        was corrected mid-flight; locked decision 2 in the scope file is the
-        authoritative version.
-  - [x] 3. udiskie + autorandr — `6b8649e`, `a011220`. The planned function
-        split happened; the FILE cap then bit too (254/250) and forced a second
-        split into `install-session-template.sh`.
-  - [ ] 4. dwm-colorpicker + dwm-display ← **next, and it closes the Epic.**
-        Also owns the ROADMAP §3 corrections, including that `xcolor` — which
-        §3 still names as the colour picker — does not exist in Fedora.
+*(none — Epic scope-c closed 2026-08-12; see Recently Closed)*
 
 ---
 
 ## Queue
 
+- **`config/dwm/bin/*` has zero test coverage — nine scripts, no tests.** The
+  least-covered surface in the repo, and Epic scope-c demonstrated the cost:
+  `dwm-colorpicker` would have failed on **every** invocation and the suite was
+  green, because nothing in `tests/` runs those scripts at all. Start with the
+  picker's hex normalisation (PNG32/RGBA, PNG24/RGB, PNG48/16-bit, PNG8/palette
+  must all yield 6 digits) and `dwm-display`'s menu derivation from a faked
+  `xrandr` — both fit the existing shim idiom in `tests/*-template.sh` directly.
+  Note the trap that caused the bug: **the shim must emit the real tool's output
+  format**, not merely a plausible one.
 - **`ROADMAP.md` §3 names `xcolor` as the colour picker; no such Fedora package
   exists.** Only `texlive-xcolor`, a LaTeX package. Verified against
   packages.fedoraproject.org 2026-08-12. While correcting that, two more stale
@@ -58,6 +54,21 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **Epic: roster gap-fill (scope-c) — ALL 4 SUB-TASKS MERGED.**
+  Scope file `.claude/tasks/scope-c-roster-gap-fill.md` holds the locked
+  decisions; do not re-litigate them.
+  - [x] 1. packages — folded into whichever sub-task needed each one
+  - [x] 2. xsettingsd — `92eb216`, `ad3c872`
+  - [x] 3. udiskie + autorandr — `6b8649e`, `a011220`
+  - [x] 4. dwm-colorpicker + dwm-display + ROADMAP reconciliation — `f88d684`,
+        `b03573a`
+  Three things from this Epic worth carrying: a tool's justification was
+  **wrong** and got corrected mid-Epic before any code was written (xsettingsd);
+  a **shim that matched a tool's interface but not its output format** made a
+  broken script's test green until the reviewer blocked it (colour picker); and
+  **enumerated lists went stale three separate times** — the daemon list, rule 6
+  itself, and CLAUDE.md's `20-path.zsh` reference.
 
 - 2026-08-12 — **Epic scope-c sub-task 3: udiskie + autorandr** — `6b8649e`,
   `a011220`. Daemons 7 → 9. Two structural splits, both cap-forced: the
