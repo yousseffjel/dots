@@ -77,6 +77,16 @@ session_autostart_report() {
         'without it GTK apps ignore ~/.config/xsettingsd/xsettingsd.conf —' \
         'Xft antialiasing, hinting and RGBA fall back to toolkit defaults.'
 
+    session_report_daemon "$autostart" udiskie \
+        'add this line yourself:  command -v udiskie >/dev/null && ! pgrep -x udiskie >/dev/null && udiskie --automount --notify --smart-tray &' \
+        'without it USB sticks and SD cards never auto-mount — thunar-volman' \
+        'only does that while Thunar is running, and nothing daemonises it.'
+
+    session_report_daemon "$autostart" autorandr \
+        'add this line yourself:  command -v autorandr >/dev/null && autorandr --change &' \
+        'without it a saved display profile is never applied at session start.' \
+        'Hotplug still works: that is the udev rule the package ships, not this.'
+
     session_report_daemon "$autostart" polkit-gnome \
         'add these lines yourself:' \
         '  if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then' \
