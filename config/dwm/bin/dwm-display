@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# dwm-display — dmenu-driven monitor layout switcher.
+#
+# Bound to Super+d in config/sxhkd/sxhkdrc. Offers autorandr's saved profiles
+# first when autorandr is installed, then a set of xrandr presets derived from
+# whatever is actually connected.
+#
+# WHY NOT arandr. arandr is a GTK GUI for authoring a layout once and saving
+# the xrandr command it produces — the authoring half. autorandr (desktop.lst)
+# covers the automatic half: it fingerprints connected monitors by EDID and
+# re-applies the matching profile on hotplug, via the udev rule its package
+# ships. What was missing between them was a keybind for "put the displays how
+# I want them, now", which is this. Scope C locked decision 4.
+#
+# Presets are DERIVED from `xrandr`, never hardcoded: output names differ per
+# machine and per GPU driver (eDP-1 vs eDP1 vs LVDS-1), so a fixed list would
+# be wrong on the first laptop it met.
+#
+# usage: dwm-display [--list]
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+FONT="monospace:size=10"
+# Colours deliberately not passed — dmenu reads them from the X resource
+# database, and explicit -nb/-nf/-sb/-sf would pin the menu to compiled-in
+# colours and break theming. Same reasoning as dwm-powermenu.
+DMENU_OPTS=(-i -fn "$FONT")
+
+if ! command -v xrandr >/dev/null 2>&1; then
+    red "dwm-display: xrandr not found — it is declared in packages/desktop.lst"
+    exit 1
+fi
+
+# Connected outputs, in xrandr's own order. Matching $2 exactly avoids the
+# "disconnected" trap a bare /connected/ pattern walks into — the same care
+# dwm-brightness takes.
+connected() {
+    xrandr 2>/dev/null | awk '$2 == "connected" { print $1 }'
+}
+
+mapfile -t OUTPUTS < <(connected)
+if ((${#OUTPUTS[@]} == 0)); then
+    red "dwm-display: no connected outputs (or xrandr is unavailable)"
+    exit 1
+fi
+
+PRIMARY="${OUTPUTS[0]}"
+
+# Menu entries as "label<TAB>command". Built as two parallel arrays rather than
+# an associative one so the menu order is stable and reproducible.
+LABELS=()
+COMMANDS=()
+
+add() {
+    LABELS+=("$1")
+    COMMANDS+=("$2")
+}
+
+# autorandr's saved profiles first: if the user has curated one for this exact
+# set of monitors, it beats anything generated below. Silently skipped when
+# autorandr is absent — it is a desktop.lst package, so a failed install is
+# already reported loudly elsewhere and this must still work without it.
+if command -v autorandr >/dev/null 2>&1; then
+    while IFS= read -r profile; do
+        [[ -n "$profile" ]] && add "profile: $profile" "autorandr --load $profile"
+    done < <(autorandr --list 2>/dev/null || true)
+fi
+
+# One "only this output" entry per connected monitor, each turning every other
+# one off in the same xrandr call — a single call so the server never passes
+# through a state with no enabled output.
+for out in "${OUTPUTS[@]}"; do
+    cmd="xrandr --output $out --auto --primary"
+    for other in "${OUTPUTS[@]}"; do
+        [[ "$other" == "$out" ]] || cmd+=" --output $other --off"
+    done
+    add "only $out" "$cmd"
+done
+
+# Multi-output arrangements only make sense with something to arrange.
+if ((${#OUTPUTS[@]} > 1)); then
+    for out in "${OUTPUTS[@]:1}"; do
+        add "extend $out right of $PRIMARY" \
+            "xrandr --output $PRIMARY --auto --primary --output $out --auto --right-of $PRIMARY"
+        add "extend $out left of $PRIMARY" \
+            "xrandr --output $PRIMARY --auto --primary --output $out --auto --left-of $PRIMARY"
+        add "mirror $out onto $PRIMARY" \
+            "xrandr --output $PRIMARY --auto --primary --output $out --auto --same-as $PRIMARY"
+    done
+    cmd="xrandr"
+    for out in "${OUTPUTS[@]}"; do cmd+=" --output $out --auto"; done
+    add "all on (auto)" "$cmd"
+fi
+
+if [[ "${1:-}" == "--list" ]]; then
+    for i in "${!LABELS[@]}"; do
+        printf '%s\t%s\n' "${LABELS[$i]}" "${COMMANDS[$i]}"
+    done
+    exit 0
+elif [[ -n "${1:-}" ]]; then
+    red "dwm-display: unknown option '$1'"
+    echo "usage: dwm-display [--list]" >&2
+    exit 1
+fi
+
+# `|| exit 0` on the dmenu call, not `|| exit 1`: dismissing the menu with
+# Escape is a normal way to use it, not an error.
+choice="$(printf '%s\n' "${LABELS[@]}" | dmenu "${DMENU_OPTS[@]}" -l 10 -p "display>")" || exit 0
+[[ -n "$choice" ]] || exit 0
+
+for i in "${!LABELS[@]}"; do
+    if [[ "${LABELS[$i]}" == "$choice" ]]; then
+        # Word splitting is intended here: COMMANDS holds a command line built
+        # from xrandr output names, which cannot contain whitespace.
+        # shellcheck disable=SC2086
+        if ! ${COMMANDS[$i]}; then
+            red "dwm-display: '$choice' failed"
+            exit 1
+        fi
+        command -v notify-send >/dev/null 2>&1 &&
+            notify-send -a dwm-display "display" "$choice" || true
+        exit 0
+    fi
+done
+
+red "dwm-display: '$choice' is not one of the offered layouts"
+exit 1

@@ -33,7 +33,8 @@ dots/
 ├── config/
 │   ├── zsh/             # zsh config: .zshrc, .zshenv, conf.d/, functions/, completions/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness (on $PATH via 20-path.zsh)
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display
+│   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
 │   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table
@@ -115,6 +116,16 @@ for current state.
 - **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
 - alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 10 blocks plus the systray; picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
 - **README.md is no longer a stub** — it carries the CI badge and the pre-commit setup.
+
+**Roster gap-fill Epic closed 2026-08-12** (scope file
+`.claude/tasks/scope-c-roster-gap-fill.md` — locked decisions live there):
+xsettingsd, udiskie, autorandr, `dwm-colorpicker` (`Super+c`) and `dwm-display`
+(`Super+d`). **ROADMAP §3's status column was reconciled at the same time and
+§9 is entirely done** — treat `MASTER_PLAN.md` as the queue, not ROADMAP.
+Two §3 rows remain open *by decision*, not omission: a blue-light filter
+(undecided) and `xdg-desktop-portal-gtk` (deferred — only pays off with
+Flatpak). **`xcolor` is not a Fedora package** — §3 named it for years; only
+`texlive-xcolor`, a LaTeX package, exists. The colour picker is a script.
 
 **Still genuinely pending (ROADMAP is accurate here):**
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.

@@ -136,3 +136,19 @@ shift + Print
 
 super + l
 	dwm-lock
+
+# --- colour and displays -----------------------------------------------------
+# Both keys were checked free against BOTH grabbers before being added: dwm
+# compiles only Mod4Mask|ShiftMask XK_x (powermenu) and Mod4Mask XK_v
+# (clipmenu) — MODKEY itself is Mod1Mask (Alt), so dwm's window-management
+# binds do not contend for the Super namespace at all. A key grabbed by both
+# dwm and sxhkd dies with no error in either log, so this check is not optional.
+
+# Sample the pixel under the pointer; hex to the clipboard, swatch via dunst.
+super + c
+	dwm-colorpicker
+
+# Monitor layout menu: autorandr profiles when saved, then presets derived
+# from whatever xrandr reports as connected.
+super + d
+	dwm-display

@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# dwm-colorpicker — read the colour of one pixel and put it on the clipboard.
+#
+# Bound to Super+c in config/sxhkd/sxhkdrc. Point at whatever you want the
+# colour of, press the key, and the hex lands in the clipboard with a dunst
+# notification showing a swatch of it.
+#
+# WHY A SCRIPT AND NOT A PROGRAM. ROADMAP §3 named `xcolor` for this row, but
+# no such package exists in Fedora — the only `xcolor` in the repos is
+# `texlive-xcolor`, a LaTeX package (verified against
+# packages.fedoraproject.org 2026-08-12). `gpick` is packaged and is in
+# extra.lst for anyone who wants a real palette tool, but a GUI app is a heavy
+# answer to "what hex is that pixel". Everything this needs was already
+# installed for the screenshot and theming features: maim, ImageMagick, xclip,
+# libnotify. Only xdotool was added, and only for getmouselocation.
+#
+# usage: dwm-colorpicker [--no-notify]
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+# `magick` first, `convert` second — the same probe scripts/theme/colorgen.sh
+# does, and for the same reason: ImageMagick 7 dropped `convert`, ImageMagick 6
+# never had `magick`. Hardcoding either name breaks on one of the two.
+if command -v magick >/dev/null 2>&1; then
+    MAGICK="magick"
+elif command -v convert >/dev/null 2>&1; then
+    MAGICK="convert"
+else
+    red "dwm-colorpicker: ImageMagick not found (need 'magick' or 'convert' on PATH)"
+    exit 1
+fi
+
+for dep in xdotool maim xclip; do
+    if ! command -v "$dep" >/dev/null 2>&1; then
+        red "dwm-colorpicker: $dep not found — it is declared in packages/desktop.lst"
+        exit 1
+    fi
+done
+
+NOTIFY=1
+case "${1:-}" in
+    --no-notify) NOTIFY=0 ;;
+    -h | --help)
+        echo "usage: dwm-colorpicker [--no-notify]"
+        exit 0
+        ;;
+    "") ;;
+    *)
+        red "dwm-colorpicker: unknown option '$1'"
+        exit 1
+        ;;
+esac
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# getmouselocation --shell prints X=/Y=/SCREEN=/WINDOW= assignments. Captured
+# and evaluated rather than piped into eval directly: under `set -e` a failing
+# command substitution inside an assignment aborts with no message at all (the
+# trap dwm-brightness documents), so the failure is caught and named here.
+pointer="$(xdotool getmouselocation --shell 2>/dev/null || true)"
+if [[ -z "$pointer" ]]; then
+    red "dwm-colorpicker: xdotool returned nothing — is DISPLAY set and X running?"
+    exit 1
+fi
+# Only the two assignments that are used, and only if they look like integers.
+# eval on a subset that has been pattern-checked, never on the raw output.
+X=""
+Y=""
+while IFS= read -r line; do
+    case "$line" in
+        X=[0-9]*) X="${line#X=}" ;;
+        Y=[0-9]*) Y="${line#Y=}" ;;
+    esac
+done <<<"$pointer"
+if [[ -z "$X" || -z "$Y" ]]; then
+    red "dwm-colorpicker: could not read the pointer position from xdotool"
+    exit 1
+fi
+
+# One pixel at the pointer. -u hides maim's own UI; the geometry is exact so
+# there is nothing to select interactively.
+if ! maim -u -g "1x1+$X+$Y" "$TMP/px.png" 2>/dev/null; then
+    red "dwm-colorpicker: maim could not capture at +$X+$Y"
+    exit 1
+fi
+
+# %[hex:p{0,0}] gives the pixel as hex digits, no leading '#' — but the DIGIT
+# COUNT depends on the image, not on the format string. Two ways it varies, and
+# both were observed rather than guessed at:
+#
+#   * maim writes RGBA PNGs (color_type 6). For those %[hex:…] emits EIGHT
+#     digits, RRGGBBAA. `-alpha off` drops the channel first.
+#   * a 16-bit-per-channel image emits TWELVE, RRRRGGGGBBBB. `-depth 8`
+#     normalises that.
+#
+# The alpha case is not hypothetical: without `-alpha off` this failed on its
+# ordinary happy path, and a test whose fake maim wrote an RGB PNG passed
+# anyway — the shim was more forgiving than the real tool. The check below
+# stays strict on purpose, so a future format change fails loudly instead of
+# copying a truncated colour to the clipboard.
+hex="$("$MAGICK" "$TMP/px.png" -alpha off -depth 8 -format '%[hex:p{0,0}]' info: 2>/dev/null || true)"
+if [[ ! "$hex" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+    red "dwm-colorpicker: could not read a colour from the captured pixel (got '${hex:-nothing}')"
+    exit 1
+fi
+hex="#${hex,,}"
+
+printf '%s' "$hex" | xclip -selection clipboard
+printf '%s\n' "$hex"
+
+# A swatch is worth more than the text: dunst renders the -i image inline, so
+# you see the colour you just copied. Best-effort — the hex is already on the
+# clipboard and printed by the time this runs, so a missing notify-send or a
+# failed swatch must not fail the command.
+if ((NOTIFY == 1)) && command -v notify-send >/dev/null 2>&1; then
+    swatch="$TMP/swatch.png"
+    if "$MAGICK" -size 64x64 "xc:$hex" "$swatch" 2>/dev/null; then
+        notify-send -a dwm-colorpicker -i "$swatch" "$hex" "copied to clipboard" || true
+    else
+        notify-send -a dwm-colorpicker "$hex" "copied to clipboard" || true
+    fi
+fi

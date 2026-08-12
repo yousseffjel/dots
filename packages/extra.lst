@@ -85,6 +85,15 @@ adwaita-icon-theme
 # (desktop.lst) is what the keys themselves drive.
 pavucontrol
 alsa-utils
+# Full palette tool — schemes, mixing, variations. Strictly optional: the
+# keybound path is config/dwm/bin/dwm-colorpicker (Super+c), which samples one
+# pixel with maim + ImageMagick and needs no GUI. gpick is here for the times
+# you want to actually build a palette rather than read one colour.
+#
+# NOTE: ROADMAP §3 used to name `xcolor` for this row. There is no such Fedora
+# package — only texlive-xcolor, a LaTeX package (verified against
+# packages.fedoraproject.org 2026-08-12). Do not "restore" it.
+gpick
 # bluetooth: bluez is the stack, blueman the GTK manager the statusbar
 # block's click action opens (sub-task 7).
 bluez

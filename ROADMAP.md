@@ -154,16 +154,17 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 
 ## 3. Full Desktop Component Map (HyDE → my X11 equivalent)
 
-| Role | HyDE (Wayland) | My equivalent (X11) | Status |
-|---|---|---|---|
-> **Status column reconciled 2026-08-07**, at the close of the roster Epic.
-> Most of what this table listed as `❌ add` has since landed. Verified against
-> `packages/*.lst`, `config/` and `suckless/*/patches/` rather than from memory.
+> **Status column reconciled 2026-08-12**, at the close of the roster gap-fill
+> Epic (scope-c); previously 2026-08-07 at the close of the roster Epic.
+> Verified against `packages/*.lst`, `config/`, `scripts/install-session*.sh`
+> and `suckless/*/patches/` rather than from memory. Every row below is now
+> ✅ except the two marked otherwise, and both of those are decisions rather
+> than omissions.
 
 | Role | HyDE (Wayland) | My equivalent (X11) | Status |
 |---|---|---|---|
 | Window manager | Hyprland | dwm | ✅ have |
-| Compositor | (built into Hyprland) | **picom** (vsync, glx, no tearing; shadows deliberately off) | ⚠️ partial — packaged, configured, themed and perf-tuned, but **nothing autostarts it**: it is absent from `autostart.sh`, `.xinitrc` and sxhkd, and `reload.sh` only signals it if already running |
+| Compositor | (built into Hyprland) | **picom** (vsync, glx, no tearing; shadows deliberately off) | ✅ have — autostarted since 2026-08-08, first in `session_autostart_display` |
 | Status bar | Waybar | **dwmblocks** + status scripts (slstatus rejected) | ✅ have — 10 blocks + systray |
 | Launcher | Rofi | **dmenu** (vendored, patched, themed) | ✅ have |
 | Notifications | Dunst / swaync | **dunst** (themed, with `dunstctl`) | ✅ have — `config/dunst/`; not autostarted, but D-Bus activates it on the first notification, which is also why `reload.sh` can just kill it |
@@ -177,12 +178,12 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | Prompt | — | **starship** (wallpaper-themed via a spliced palette) | ✅ have |
 | Terminal | kitty | **alacritty** primary, **st** as the no-GPU fallback; both themed | ✅ have |
 | File manager | dolphin | **thunar** + volman/tumbler/file-roller, mime defaults wired | ✅ have |
-| Color picker | hyprpicker | **xcolor** or gpick | ❌ add — not packaged |
-| Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add — not packaged |
+| Color picker | hyprpicker | **`config/dwm/bin/dwm-colorpicker`** (xdotool + maim + ImageMagick + xclip), `gpick` optional | ✅ have — `Super+c`. **`xcolor` does not exist in Fedora** (only `texlive-xcolor`, a LaTeX package — verified 2026-08-12); this row previously named it |
+| Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add — not packaged, and not yet decided |
 | Display manager | SDDM | **ly** (`install-services.sh` enables `ly.service`) | ✅ have |
-| Monitor management | nwg-displays | **xrandr** + arandr (GUI) + autorandr (profiles) | ⚠️ partial — xrandr is used (brightness); arandr/autorandr not packaged |
+| Monitor management | nwg-displays | **autorandr** (profiles, hotplug) + **`config/dwm/bin/dwm-display`** (dmenu presets). arandr deliberately rejected | ✅ have — `Super+d`; autorandr autostarted and its udev rule covers hotplug |
 | Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
-| XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ add — not packaged |
+| XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ **deliberately deferred** — only pays off with Flatpak; under X11 Firefox and Chromium use their own dialogs. If added, the package alone is not enough: `XDG_CURRENT_DESKTOP` must be exported and `~/.config/xdg-desktop-portal/portals.conf` must set `default=gtk`, or file choosers hang rather than fail. Scope C locked decision 5 |
 | Auth agent | hyprpolkitagent | polkit-gnome | ✅ have — in `desktop.lst`, launched by `autostart.sh` (2026-08-08). Started by absolute path: the binary is not on `PATH`, and dwm has no session manager to run `/etc/xdg/autostart`. |
 | System tray | Waybar tray | dwm **systray patch** | ✅ have — `dwm-systray` + `status2d-systray` vendored |
 
@@ -380,6 +381,14 @@ Plus:
 ---
 
 ## 9. Priority / Build Order
+
+> **All ten are done as of 2026-08-12.** This list is kept as a record of the
+> order the work was actually taken in, not as a backlog — nothing below is
+> outstanding. Items 1–2 landed as `scripts/install-fedora.sh` plus the
+> four-tier `packages/*.lst`; 6 landed GTK-only (Qt theming was rejected
+> outright, Scope B locked decision 3); 8 landed as the in-house theming
+> engine rather than pywal. What *is* still open lives in
+> `.claude/tasks/MASTER_PLAN.md`, which is the authoritative queue.
 
 1. **README + `install.sh` orchestrator** — usability first.
 2. **Package lists + dnf installer + suckless build script.**

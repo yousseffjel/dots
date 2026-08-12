@@ -411,6 +411,28 @@ These were previously shipped commented out in `config.def.h` under `Mod` +
 `w`, needing a rebuild to enable. As sxhkd bindings they are live on install
 and cost a reload to change.
 
+### Colour and displays
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `c` | Sample the pixel under the pointer — hex to the clipboard, swatch via dunst |
+| `Super` + `d` | Monitor layout menu — autorandr profiles, then presets from the connected outputs |
+
+`Super` + `c` is `config/dwm/bin/dwm-colorpicker`: `xdotool` reads the pointer
+position, `maim` grabs a 1×1 capture there, and ImageMagick reads the hex out
+of it. There is no `xcolor` package in Fedora — only `texlive-xcolor`, which is
+a LaTeX package — so the script *is* the picker. `gpick` is in
+`packages/extra.lst` for when you want a full palette tool instead.
+
+`Super` + `d` is `config/dwm/bin/dwm-display`. Its presets are derived from
+`xrandr` at run time, never hardcoded, because output names differ per machine
+(`eDP-1` vs `eDP1` vs `LVDS-1`). With a single monitor connected it offers only
+that monitor; the extend/mirror entries appear when there is something to
+arrange. When `autorandr` has saved profiles they are listed first, since a
+profile you curated beats anything generated. Both also run from a shell —
+`dwm-display --list` prints the menu and the exact `xrandr` command behind each
+entry without applying anything.
+
 ### sxhkd itself
 
 | Keys | Action |
