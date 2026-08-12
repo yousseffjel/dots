@@ -1022,3 +1022,56 @@ directory for the running history.
   shellcheck and `bash -n` rather than reading only). Tests: 9/9, dunst held
   PID 6788 throughout. **Nothing ran against a real `dnf`, a Fedora box, a live
   X session, or GitHub Actions — the CI rewiring is unproven until a push.**
+
+## 2026-08-12 — manifest_has_path extracted (queue items 1 and 2)
+
+- **One shared `manifest_has_path <TAG> <path>` in `scripts/global_fn.sh`
+  replaces three byte-identical read loops** — `theme_is_ours` (4 call sites),
+  `theme_backed_up` (1) and `app_is_ours` (1). The duplication was the shape the
+  2026-08-10 pipefail fix converged all three on, deliberately left open then
+  because `global_fn.sh` is sourced by 12 scripts including `uninstall.sh`,
+  which deletes files based on manifest rows.
+- **The point was never tidiness.** The knowledge that makes the read loop
+  mandatory — `grep -q` exits on first match, SIGPIPEs `cut`, and under
+  `pipefail` turns a successful lookup into 141 — existed in three phrasings in
+  three places. Three copies of a subtle invariant is three chances for one to
+  be "simplified" back to the pipeline. It now lives once, beside the function,
+  and `tests/manifest-has-path.sh` fails if anyone reverts it.
+- **Queue item 1 closed without being performed.** `install-restore-theme.sh`
+  248 → **223**, so the split it was queued for is unnecessary. MASTER_PLAN
+  predicted this subsumption when the item was written.
+  `install-restore-apps.sh` 170 → 156; `global_fn.sh` 120 → 148.
+- **Direct calls, not wrappers** — decided by measurement at audit time, as the
+  plan said it would be: `manifest_has_path THEME "$dst"` also names the
+  manifest category at the call site, which `theme_is_ours` only implied.
+- **New `tests/manifest-has-path.sh`, suite 9 → 10.** Sources the shipped
+  function rather than reimplementing it. 11 assertions incl. category scoping
+  (a THEME row must not answer for APP), prefix/superstring rejection, and a
+  missing manifest as a clean miss. The regression proper: on a 200k-row
+  manifest with the target first, shipped **5/5**, the replaced pipeline
+  (reproduced verbatim) **0/5** — the same numbers the 2026-08-10 sweep got.
+- **Two shellcheck findings were real, not noise.** SC2329 caught that the
+  test's own `red`/`green`/`blue` were dead code, silently overwritten by the
+  `global_fn.sh` it sources — CLAUDE.md rule 2 does not apply to a script that
+  sources that file. SC2015 caught that `cmd && pass || fail` runs `fail` too if
+  `pass` fails, so a green suite could have hidden a broken reporter. Both fixed
+  at source; **zero suppressions added**.
+- **This log was renamed from `2026-08-10-` to `2026-08-12-` after being
+  committed** — the date had been taken from the previous log's filename rather
+  than `date -u`. Rule collision with session-protocol.md's immutability clause
+  was escalated to the user, not self-excepted; they approved the rename. The
+  commits `a48de6b`/`59d54d5` remain stamped 2026-08-10 17:40/17:42, matching
+  neither `date` nor file mtimes, with no `GIT_*_DATE` override set — an
+  unexplained environmental oddity; do not trust those two timestamps.
+- **Found by the post-merge check, pre-existing:** `tests/build.sh` was failing
+  on main because the gitignored `suckless/slock/config.h` dated 2026-08-05,
+  before the xresources patch, and so lacked `ResourcePref`. Invisible to CI
+  (fresh checkout regenerates it) and to the slot worktree for the same reason.
+  All five `config.h` cleared; build.sh green again. The dwm/st/dmenu ones were
+  the worse case — they would have compiled *green* against a stale config.
+- See `.claude/changes/2026-08-12-manifest-has-path.md`. Commits `a48de6b`,
+  `59d54d5`. Audit: READY (Medium+, 10 files, +348/-72; 3 findings, all 3 fixed).
+  Reviewer: READY (clean first round). Tests: 10/10 via TESTING.md's documented
+  runner, plus `lint.sh --strict` separately; `uninstall.sh --dry-run` verified
+  in a four-variable XDG sandbox with the real manifest untouched. **Nothing ran
+  against a real `dnf`, a Fedora box, a live X session, or GitHub Actions.**

@@ -1,5 +1,5 @@
 # manifest-has-path
-Date: 2026-08-10
+Date: 2026-08-12
 Files: 10 | Lines: +378/-72
 
 ## What changed
@@ -116,6 +116,31 @@ or GitHub Actions. This host is Arch.
 - **Scope note:** `CLAUDE.md` was added to the plan's `## Allowed` mid-task and
   recorded under `## Deviations` — it enumerates `tests/` by filename twice and a
   10th script made both stale. Announced, not silent.
+- **DECISION REVERSAL — this log was renamed after it was written.** It was
+  first committed as `2026-08-10-manifest-has-path.md`, because the date was
+  taken from the previous log's filename instead of from `date -u`, which is
+  what `/commit` step 2 actually prescribes. The real date is 2026-08-12
+  (`date -u`, corroborated by file mtimes: the queue-sweep log is Aug 10 12:04,
+  this one Aug 12 12:58). `session-protocol.md` calls any rename other than
+  archiving forbidden, so the collision was put to the user rather than
+  self-excepted; they chose the rename. Rationale: the immutability rule exists
+  to prevent silent rewriting of history, and the invariant it ultimately
+  serves — a filename prefix that sorts correctly for `session-init`'s
+  5-most-recent window and the 14-day archival trigger — is the thing a
+  two-day misdate breaks. Left uncorrected, this log shared a prefix with
+  `2026-08-10-queue-sweep-1-5.md`.
+  **Note the commits `a48de6b` / `59d54d5` are stamped 2026-08-10 17:40/17:42**,
+  which matches neither `date` nor the file mtimes and is not explained by any
+  `GIT_*_DATE` override (checked — none set). Unresolved environmental oddity,
+  recorded here so a future reader does not trust those two timestamps.
+- **Pre-existing, found by the post-merge check — `tests/build.sh` was failing
+  on main.** `suckless/*/config.h` are gitignored build artifacts; slock's dated
+  2026-08-05, before the xresources patch, so it lacked `ResourcePref` while
+  `slock.c` references it. Not caused by this change (never tracked by git) and
+  invisible to CI (fresh checkout regenerates from `config.def.h`) — which is
+  why the slot worktree passed and main did not. All five were cleared; they
+  regenerate on the next `make`. The dwm/st/dmenu ones were the more dangerous
+  case: those would have compiled *green* against a pre-xresources config.
 - **Skill/rule discrepancy, unresolved:** `/commit` step 9 says run the 14-day
   archival sweep in every mode; `session-protocol.md` says it runs on **main**
   post-merge, not from a slot, to avoid multi-slot conflicts. Followed the rule

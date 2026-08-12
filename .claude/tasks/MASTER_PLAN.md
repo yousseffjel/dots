@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-10
+Last Updated: 2026-08-12
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -15,21 +15,29 @@ when slots run concurrently.
 
 ## Queue
 
-- **Split `scripts/install-restore-theme.sh` — it is at 248 of 250 lines.**
-  The exact position `install-session.sh` was in before the 2026-08-10 sweep,
-  and it got there the same way: comments explaining a subtle bug. Both the
-  audit sweep and the reviewer flagged it independently. The seam is the
-  manifest predicates (`theme_is_ours`, `theme_backed_up`) versus the
-  deploy/claim/backup functions. Do this *before* the next edit to that file,
-  not during.
-- **Extract `manifest_has_path <TAG> <path>` into `scripts/global_fn.sh`.**
-  `theme_is_ours`, `theme_backed_up` (both in `install-restore-theme.sh`) and
-  `app_is_ours` (`install-restore-apps.sh`) are now three textually
-  near-identical read loops — the shape the pipefail fix converged them all
-  on. One helper replaces three. Deliberately not done in the sweep that
-  created the duplication: `global_fn.sh` is shared with `uninstall.sh` and
-  `version.sh`, so the blast radius deserves its own slot. Note this would
-  also shrink `install-restore-theme.sh` and may subsume the item above.
+- **Roster gap-fill — the last four `❌ add` rows of ROADMAP §3.** Tool choices
+  locked with the user 2026-08-12 after a comparison pass; do not re-litigate
+  them. **In:** `xsettingsd` (highest value — GTK apps currently keep the old
+  theme until restarted, because `settings.ini` is read only at startup; an
+  XSETTINGS daemon lets `reload.sh` SIGHUP them live, closing a real hole in
+  the engine), `udiskie` (the roster row is unmanned today: `thunar-volman`
+  only works while Thunar runs, and nothing daemonises it), `autorandr` (the
+  only option that reacts to hotplug), a `dwm-colorpicker` script + `xdotool`,
+  a `dwm-display` dmenu script, and `gpick` in `extra.lst`. **Out:** `arandr`
+  (autorandr + the script cover it) and `xdg-desktop-portal-gtk` (only earns
+  its place if Flatpak enters the picture). Unblocked by the 27 lines of
+  headroom now in `install-restore-theme.sh` — the xsettingsd template is an
+  engine-owned target with no static base config, so it needs a manifest claim
+  and a parent-directory mkdir there.
+- **`ROADMAP.md` §3 names `xcolor` as the colour picker; no such Fedora package
+  exists.** Only `texlive-xcolor`, a LaTeX package. Verified against
+  packages.fedoraproject.org 2026-08-12. While correcting that, two more stale
+  spots: §3's compositor row still says nothing autostarts picom (fixed
+  2026-08-08), and §9's whole priority list is closed.
+- **`.github/workflows/ci.yml` pins `fedora:41`, which is EOL.** Fedora's
+  active branches are 43, 44 and Rawhide. Found incidentally while checking
+  package availability. The image will eventually stop resolving and take the
+  matrix with it.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
@@ -51,6 +59,23 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **queue items 1 and 2, one closed by being subsumed** —
+  `a48de6b`, `59d54d5`. `manifest_has_path <TAG> <path>` now lives in
+  `global_fn.sh` and replaces `theme_is_ours` / `theme_backed_up` /
+  `app_is_ours`; `install-restore-theme.sh` 248 → **223**, so item 1's split is
+  no longer needed — exactly the subsumption item 2 predicted. Direct calls
+  beat wrappers on measurement. New `tests/manifest-has-path.sh` (suite 9 → 10)
+  proves the regression rather than describing it: shipped shape **5/5** on a
+  200k-row manifest, the replaced `| grep -qxF` pipeline **0/5**. Two
+  shellcheck findings were real — SC2329 (a test that sources `global_fn.sh`
+  must not define its own colour helpers; they are overwritten and become dead
+  code) and SC2015 (`cmd && pass || fail` runs both if `pass` fails). Zero
+  suppressions. **The post-merge check caught `tests/build.sh` failing on main**
+  from a pre-xresources `suckless/slock/config.h` — a gitignored artifact, so
+  invisible to both CI and the slot worktree; all five cleared. **This log was
+  also misdated `2026-08-10` and renamed with the user's approval** rather than
+  self-excepting session-protocol.md's immutability clause.
 
 - 2026-08-10 — **queue items 1–5, closed in one sweep** — `6a0c123`,
   `a47174d`. `install-session.sh` 250 → 192 via a new
