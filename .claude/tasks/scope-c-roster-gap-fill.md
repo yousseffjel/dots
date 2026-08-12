@@ -97,16 +97,19 @@ now pins `fedora:43`, the oldest supported release.
 
 ## Sub-tasks
 
+**EPIC CLOSED 2026-08-12 — all four merged.** Kept for the locked decisions
+above, which still bind; the sub-task list below is now a record.
+
 Order is deliberate. Sub-tasks 2 and 3 both edit
 `scripts/install-session.sh`, so they must not run as concurrent slots —
 `session-init` would flag the `## Scope` overlap, but sequencing is
 cleaner than resolving it.
 
-- [ ] **1. Packages** — `xsettingsd`, `udiskie`, `autorandr`, `xdotool`
+- [x] **1. Packages** (folded into the sub-tasks that needed each) — `xsettingsd`, `udiskie`, `autorandr`, `xdotool`
   into `desktop.lst` with consequence comments; `gpick` into `extra.lst`.
   *(Each sub-task folds in its own package line instead, where that keeps
   the slot self-contained — see sub-task 2.)*
-- [ ] **2. xsettingsd integration** — `theme_write_xsettingsd_conf` in
+- [x] **2. xsettingsd integration** — merged `92eb216` — `theme_write_xsettingsd_conf` in
   `install-restore-theme.sh` (sibling of `theme_write_gtk_ini`, same
   no-clobber + manifest rules; **not** a `.dcol` template — see locked
   decision 2), a 7th target in `reload.sh`, an autostart line + its paired
@@ -115,11 +118,11 @@ cleaner than resolving it.
   `install-restore-theme.sh` is at 223 and `theme_write_gtk_ini` is ~35
   lines, so its sibling probably pushes the file past 250 — the split old
   queue item 1 described may be needed here after all.
-- [ ] **3. udiskie + autorandr** — daemon set 6 -> 8 in
+- [x] **3. udiskie + autorandr** — merged `6b8649e` — daemon set 6 -> 8 in
   `install-session.sh` + its paired `install-session-report.sh` branch +
   `tests/autostart-daemons.sh`; autorandr's systemd user unit in
   `install-services.sh`.
-- [ ] **4. dwm-colorpicker + dwm-display** — two new `config/dwm/bin/`
+- [x] **4. dwm-colorpicker + dwm-display** — merged `f88d684` — two new `config/dwm/bin/`
   scripts, their `sxhkdrc` binds, `KEYBINDINGS.md`, and the `ROADMAP.md`
   §3 rows this Epic closes (including the `xcolor` correction).
 

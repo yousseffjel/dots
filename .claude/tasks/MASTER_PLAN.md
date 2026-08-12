@@ -15,10 +15,6 @@ when slots run concurrently.
 
 ## Queue
 
-- **`.github/workflows/ci.yml` pins `fedora:41`, which is EOL.** Fedora's
-  active branches are 43, 44 and Rawhide. Found incidentally while checking
-  package availability. The image will eventually stop resolving and take the
-  matrix with it.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
@@ -40,6 +36,13 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **CI off the EOL Fedora pin** — `6156aa6`, `6e840d7`. Both
+  matrices `fedora:41` -> `fedora:43` (oldest supported), with a comment saying
+  the pin must be bumped rather than deleted. The queue entry's own rationale
+  was wrong and the audit caught it being copied into the code: an EOL image
+  does not vanish, its repos move to archive mirrors and `dnf` breaks while the
+  image still pulls. Tag existence verified against Docker Hub before shipping.
 
 - 2026-08-12 — **first tests for `config/dwm/bin/`** — `67d417f`, `9849c6d`.
   Nine scripts, zero tests, until `dwm-colorpicker.sh` (12 assertions) and

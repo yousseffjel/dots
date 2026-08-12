@@ -1280,3 +1280,34 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `9849c6d`. Audit: READY (Medium+, 9 files, +582/-5; 2 findings, both fixed —
   one was a bug in my own test that made an assertion assert nothing).
   Reviewer: WARN, resolved before commit. Tests: 12/12 + `--strict`.
+
+## 2026-08-12 — CI matrix off the EOL Fedora pin (queue item)
+
+- **`ci.yml`'s `build-suckless` and `install-dry-run` matrices went
+  `fedora:41` -> `fedora:43`.** Fedora 41 and 42 are both EOL; the active
+  branches are 43, 44 and Rawhide(45). 43 rather than 44 because the pin exists
+  to be the OLDEST SUPPORTED release — with `latest` resolving to 44, the matrix
+  now spans two releases instead of testing one twice.
+- **The queue entry's stated rationale was wrong, and the audit caught me
+  repeating it in the new comment.** The entry said the EOL image "will
+  eventually stop resolving" — but `fedora:41` is still on Docker Hub (last
+  updated 2025-12-04). The real failure is that an EOL release's repos move to
+  archive mirrors, so **`dnf` starts erroring while the image still pulls
+  fine**. The reviewer confirmed that mechanism actually applies by checking
+  what the jobs run: `dnf install` in build-suckless, `dnf list --available` in
+  install-dry-run. The comment now states the true failure mode, which is what
+  someone debugging a red job will need.
+- **`fedora:43` was verified to exist** by querying Docker Hub's tag list
+  (43/44/45 present, updated 2026-05-28) rather than assumed — a task that
+  exists because a pin went stale should not ship another unverified pin.
+- The comment in both matrices says what the pin is FOR and that it must be
+  **bumped, not deleted**. There is no way to derive it in a GitHub Actions
+  matrix, so the comment is the only defence against someone removing it as
+  "redundant with latest".
+- Three restatements corrected: `CLAUDE.md`, `TESTING.md`'s toolbox example,
+  and a now-false "still pins `fedora:41`" line in the scope-c file.
+- **Still unobserved:** CI has never run. main is 20 commits ahead of origin, so
+  neither this change nor the 2026-08-10 job rewiring has executed once.
+- See `.claude/changes/2026-08-12-ci-fedora-eol.md`. Commits `6156aa6`,
+  `6e840d7`. Small task (no task folder). Audit: READY (Medium+ by file count,
+  6 files; 1 finding, fixed). Reviewer: READY. Tests: 12/12 + `--strict`.
