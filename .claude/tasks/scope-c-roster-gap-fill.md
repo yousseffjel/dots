@@ -26,13 +26,29 @@ and `docs/` + `KEYBINDINGS.md` + `ROADMAP.md` (markdown).
    query. `gpick` (0.4, in Fedora 43/44) goes in `extra.lst` for anyone
    who wants a real palette tool. `gcolor3` was considered and dropped as
    a redundant middle ground.
-2. **`xsettingsd` is in, and it is the highest-value item.** It closes a
-   real hole: the engine re-themes dwm, st, dmenu, dunst, picom,
-   alacritty and the prompt on every wallpaper change, but GTK reads
-   `settings.ini` only at startup, so already-running GTK apps keep the
-   old theme until restarted. An XSETTINGS daemon lets `reload.sh` SIGHUP
-   them live. `gnome-settings-daemon` (drags GNOME) and `xfsettingsd`
-   (drags xfconf + XFCE session bits) were both rejected as too heavy.
+2. **`xsettingsd` is in — but NOT for the reason first given.** It was
+   originally recommended as "closes a real hole: running GTK apps keep
+   the old theme until restarted". **That rationale is wrong and must not
+   be repeated.** The wallpaper-driven GTK surface is `gtk.css`, and
+   `gtk.dcol`'s own header records that GTK 3 re-reads it automatically
+   via `GtkCssProvider`, which is why that template has no post-command.
+   What XSETTINGS carries — theme name, icon theme, cursor, font — comes
+   from `themes/dark/theme.conf` and is **static**; `themes/` holds
+   exactly one theme and dark-only is a locked Scope A decision. XSETTINGS
+   also has no CSS channel, so even if the `gtk.css` hot-reload claim were
+   false (it is stated as fact but was never verified here), xsettingsd
+   could not fix it.
+   **The actual, narrower case, which the user accepted knowing the
+   above:** one authoritative place for `Xft/DPI`, antialias, hinting and
+   RGBA aimed at GTK apps, and it future-proofs a second theme or a light
+   mode without re-architecting the reload path. `gnome-settings-daemon`
+   (drags GNOME) and `xfsettingsd` (drags xfconf + XFCE session bits) were
+   both rejected as too heavy.
+   **Consequence for implementation:** because the content derives from
+   `theme.conf` rather than the palette, `xsettingsd.conf` is written by
+   `install-restore-theme.sh` as a sibling of `theme_write_gtk_ini` — it
+   is **not** a `.dcol` template. A palette template would re-render an
+   unchanged file on every wallpaper change for no reason.
 3. **`udiskie` is in, and it is not redundant with `thunar-volman`.**
    volman only auto-mounts while Thunar is running, and nothing
    daemonises Thunar — `autostart.sh` has no `thunar --daemon` line — so
@@ -88,12 +104,15 @@ cleaner than resolving it.
   into `desktop.lst` with consequence comments; `gpick` into `extra.lst`.
   *(Each sub-task folds in its own package line instead, where that keeps
   the slot self-contained — see sub-task 2.)*
-- [ ] **2. xsettingsd theming integration** — new
-  `config/theme/templates/always/xsettingsd.dcol`, the manifest claim and
-  parent-dir mkdir in `install-restore-theme.sh`, a 7th reload target in
-  `reload.sh`, an autostart line, plus `CLAUDE.md` and `docs/THEMING.md`.
-  Folds in its own `desktop.lst` line. **Unblocked by the 27 lines of
-  headroom from `manifest-has-path` (2026-08-12).**
+- [ ] **2. xsettingsd integration** — `theme_write_xsettingsd_conf` in
+  `install-restore-theme.sh` (sibling of `theme_write_gtk_ini`, same
+  no-clobber + manifest rules; **not** a `.dcol` template — see locked
+  decision 2), a 7th target in `reload.sh`, an autostart line + its paired
+  report branch, `tests/autostart-daemons.sh` 6 -> 7, plus `CLAUDE.md` and
+  `docs/THEMING.md`. Folds in its own `desktop.lst` line. **Warning:**
+  `install-restore-theme.sh` is at 223 and `theme_write_gtk_ini` is ~35
+  lines, so its sibling probably pushes the file past 250 — the split old
+  queue item 1 described may be needed here after all.
 - [ ] **3. udiskie + autorandr** — daemon set 6 -> 8 in
   `install-session.sh` + its paired `install-session-report.sh` branch +
   `tests/autostart-daemons.sh`; autorandr's systemd user unit in
