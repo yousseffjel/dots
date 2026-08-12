@@ -24,11 +24,6 @@ when slots run concurrently.
   `xrandr` — both fit the existing shim idiom in `tests/*-template.sh` directly.
   Note the trap that caused the bug: **the shim must emit the real tool's output
   format**, not merely a plausible one.
-- **`ROADMAP.md` §3 names `xcolor` as the colour picker; no such Fedora package
-  exists.** Only `texlive-xcolor`, a LaTeX package. Verified against
-  packages.fedoraproject.org 2026-08-12. While correcting that, two more stale
-  spots: §3's compositor row still says nothing autostarts picom (fixed
-  2026-08-08), and §9's whole priority list is closed.
 - **`.github/workflows/ci.yml` pins `fedora:41`, which is EOL.** Fedora's
   active branches are 43, 44 and Rawhide. Found incidentally while checking
   package availability. The image will eventually stop resolving and take the
