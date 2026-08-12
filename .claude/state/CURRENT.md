@@ -1,6 +1,6 @@
 <!-- STUB: managed by /plan and /commit. Do not edit by hand. -->
 
-Phase: committing
-Task: theme-roster-identity
-Task folder: tasks/theme-roster-identity/
-Last log: .claude/changes/2026-08-12-ci-fedora-eol.md
+Phase: idle
+Task: _(none)_
+Task folder: _(none)_
+Last log: .claude/changes/2026-08-12-theme-roster-identity.md
