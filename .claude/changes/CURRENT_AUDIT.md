@@ -1122,3 +1122,59 @@ directory for the running history.
   1.0.2, including that a malformed value is rejected loudly. **Nothing ran
   against a real `dnf`, a Fedora box, a live X session, or GitHub Actions —
   xsettingsd has never actually served settings to a running GTK app here.**
+
+## 2026-08-12 — udiskie + autorandr (Epic scope-c, sub-task 3)
+
+- **Two unmanned ROADMAP §3 rows are now manned.** udiskie auto-mounts
+  removable media (`--automount --notify --smart-tray`) without needing Thunar
+  resident — `thunar-volman` only works while Thunar runs and nothing
+  daemonises it, so that row did nothing before. autorandr re-applies a saved
+  display profile at session start.
+- **autorandr is a ONE-SHOT, not a daemon**, and deliberately carries no
+  `pgrep` guard — there is never a process to find. It is still backgrounded,
+  for two reasons: autostart never blocks on an xrandr round-trip, and it stays
+  inside the launch/report pairing `tests/autostart-daemons.sh` enforces rather
+  than falling outside both that check and the unknown-daemon check.
+- **The package's XDG autostart file is useless here** — dwm runs no session
+  manager, nothing reads `/etc/xdg/autostart`. Same reason polkit-gnome is
+  spelled out. The udev rule it ships still covers hotplug; the autostart line
+  covers session start only.
+- **No systemd unit, by design.** A `--user` unit would not round-trip:
+  `uninstall_steps.sh` disables SERVICE rows with `sudo systemctl disable`,
+  which is system-level. The plan's `## Forbidden` block listed
+  `install-services.sh` so that stayed structural rather than remembered.
+- **Two splits, both forced by caps.** `session_autostart_daemons()` hit 57/60
+  so the body became `_display()` (what paints the screen) + `_daemons()`
+  (interaction and devices), moving xsettingsd into the display half.
+  `install-session.sh` then hit **254/250**, so the whole body moved to
+  **`scripts/install-session-template.sh`** — the same seam the reporting half
+  took at this cap. 97 + 179 + 107 across three files.
+- **The function split was proven output-equivalent by BYTE DIFF**, not by the
+  suite staying green — and that caught two things the passing test did not: a
+  doubled blank line, and xsettingsd still sitting in the interaction half while
+  its new comment claimed the display half. Worth repeating on any future split.
+- **A stale enumeration removed rather than extended.**
+  `install_session_autostart()`'s two user-facing strings listed the daemons and
+  had already gone stale (xsettingsd was added without them). Replaced with
+  wording that cannot drift; **CLAUDE.md rule 6 now forbids re-adding one** and
+  documents the three-place obligation: launch line + report branch + test
+  roster. Daemons 7 -> 9, annotated packages 30 -> 32.
+- **The reviewer caught CLAUDE.md contradicting its own diff** — rule 6's new
+  paragraph named `install-session.sh` as the home of `session_autostart_*`
+  after the split had moved them, and the project map omitted the new file.
+  Fixed before commit. Docs written mid-task need re-reading after any late
+  structural change; the audit missed this and the fresh-eyes gate did not.
+- **Verification asymmetry, on the record:** udiskie's flags were checked
+  against a real binary but the local build is **2.7.0** while Fedora ships
+  **2.6.2**; udiskie was never *run* because `--automount` would have mounted
+  real devices. **autorandr is not installed here at all** and Fedora's package
+  pages list no files, so its udev rule and XDG autostart file are **assumed**.
+- **Open:** `--smart-tray` has never been exercised against dwm's systray (if
+  the icon never appears, automounting still works); and
+  `session_autostart_display()` is at 53 of 60, so the next display-related
+  daemon will need another split.
+- See `.claude/changes/2026-08-12-udiskie-autorandr.md`. Commits `6b8649e`,
+  `a011220`. Audit: READY (Medium+, 11 files, +352/-125; 2 findings, both
+  fixed). Reviewer: WARN, resolved before commit. Tests: 10/10 + `--strict`;
+  three mutants all caught. **Nothing ran against a real `dnf`, a Fedora box, a
+  live X session, or GitHub Actions.**

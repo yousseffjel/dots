@@ -17,10 +17,12 @@ when slots run concurrently.
   - [x] 2. xsettingsd integration — `92eb216`, `ad3c872`. Note the rationale
         was corrected mid-flight; locked decision 2 in the scope file is the
         authoritative version.
-  - [ ] 3. udiskie + autorandr ← **next.** `session_autostart_daemons()` is at
-        57 of 60 lines and this sub-task adds two more daemons to it — plan the
-        split in, do not discover it mid-implementation.
-  - [ ] 4. dwm-colorpicker + dwm-display
+  - [x] 3. udiskie + autorandr — `6b8649e`, `a011220`. The planned function
+        split happened; the FILE cap then bit too (254/250) and forced a second
+        split into `install-session-template.sh`.
+  - [ ] 4. dwm-colorpicker + dwm-display ← **next, and it closes the Epic.**
+        Also owns the ROADMAP §3 corrections, including that `xcolor` — which
+        §3 still names as the colour picker — does not exist in Fedora.
 
 ---
 
@@ -56,6 +58,16 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **Epic scope-c sub-task 3: udiskie + autorandr** — `6b8649e`,
+  `a011220`. Daemons 7 → 9. Two structural splits, both cap-forced: the
+  function (57/60) as planned, then the whole file (254/250) into
+  `install-session-template.sh`. Three things worth carrying forward: the
+  function split was proven equivalent by **byte diff**, which caught two
+  defects the green test missed; a stale daemon **enumeration** was removed
+  rather than extended, and CLAUDE.md rule 6 now forbids re-adding one; and the
+  reviewer caught CLAUDE.md contradicting its own diff because rule 6 was
+  written before the late split moved the functions it named.
 
 - 2026-08-12 — **Epic scope-c sub-task 2: xsettingsd** — `92eb216`, `ad3c872`.
   GTK apps now get the theme identity and the Xft rendering keys from one place;
