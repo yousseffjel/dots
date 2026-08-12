@@ -1233,3 +1233,50 @@ All four sub-tasks merged: xsettingsd (`92eb216`), udiskie + autorandr
 whichever sub-task needed them. Scope file:
 `.claude/tasks/scope-c-roster-gap-fill.md` — locked decisions live there,
 including the corrected xsettingsd rationale and the `xcolor` non-existence.
+
+## 2026-08-12 — first tests for config/dwm/bin/ (queue item 1)
+
+- **`config/dwm/bin/` went from nine scripts and ZERO tests to two covered.**
+  `tests/dwm-colorpicker.sh` (12 assertions) and `tests/dwm-display.sh` (20).
+  Suite 10 -> 12; both are picked up by CI's `tests/*.sh` glob with no workflow
+  change. Neither script under test was modified — `## Forbidden` listed
+  `config/dwm/bin/` and both stayed byte-identical.
+- **This existed because of what sub-task 4 proved**: `dwm-colorpicker` would
+  have failed on *every* invocation while the full suite stayed green, since
+  nothing in `tests/` ran it. Only the reviewer caught it.
+- **The mutation results are the real deliverable — 12 of 13 breakages fail the
+  suite.** A test that cannot fail is worse than none, so both files were
+  measured rather than assumed effective. Colorpicker 4/5: dropping
+  `-alpha off -depth 8`, either flag alone, and swapping to the compositing
+  `-alpha remove`. Display 8/8, including **labels correct but command wrong**
+  (`--off` -> `--auto`), which a label-only test sails past.
+- **The one survivor is documented, not papered over**: loosening
+  `^[0-9A-Fa-f]{6}$` to `{6,8}`. With normalisation intact no input tried
+  (RGBA, 16-bit, palette, grayscale, CMYK) yields anything but six digits, so
+  the strict regex is a second layer that never fires. Killing it would mean
+  asserting on the script's source text.
+- **The reviewer found a `--primary` gap my own mutants missed, and the reason
+  generalises: mutation testing only covers the mutations you IMAGINE.** Every
+  mutant I wrote attacked logic I had just authored; `--primary` was a flag I
+  had treated as incidental scenery, and dropping it survived all 17 assertions.
+  Three assertions added; both that mutation and the extend/mirror variant are
+  now caught. Ask the independent gate explicitly for a mutation you did not try.
+- **ImageMagick is deliberately NOT faked** — it is the thing under test, and
+  faking it would leave the file asserting against its own fixture generator.
+  So the colorpicker test **skips loudly** when neither `magick` nor `convert`
+  is present, which is what CI's ubuntu-latest `tests` job will do. Verified
+  directly on a bash+coreutils-only PATH: `dwm-display.sh` passes in full,
+  `dwm-colorpicker.sh` skips with exit 0 and a visible yellow block.
+- **Live side effects avoided:** `xclip`/`notify-send` faked (they would
+  overwrite the real clipboard and post real notifications) and `xrandr` faked
+  (it would reconfigure the tester's displays).
+- **Open:** ImageMagick 6's `convert` branch is *reachable* (verified with a
+  forwarding shim) but IM6 itself is untested — only IM7 exists here, and
+  Ubuntu runners have historically shipped IM6. Seven `dwm-*` scripts remain
+  untested; `dwm-brightness` is the highest-value next one, since it parses
+  `xrandr --verbose` output and does arithmetic on it — the same
+  parse-a-real-tool's-output shape that produced this whole thread of bugs.
+- See `.claude/changes/2026-08-12-dwm-bin-tests.md`. Commits `67d417f`,
+  `9849c6d`. Audit: READY (Medium+, 9 files, +582/-5; 2 findings, both fixed —
+  one was a bug in my own test that made an assertion assert nothing).
+  Reviewer: WARN, resolved before commit. Tests: 12/12 + `--strict`.

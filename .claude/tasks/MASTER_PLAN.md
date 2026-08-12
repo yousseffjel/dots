@@ -15,15 +15,6 @@ when slots run concurrently.
 
 ## Queue
 
-- **`config/dwm/bin/*` has zero test coverage — nine scripts, no tests.** The
-  least-covered surface in the repo, and Epic scope-c demonstrated the cost:
-  `dwm-colorpicker` would have failed on **every** invocation and the suite was
-  green, because nothing in `tests/` runs those scripts at all. Start with the
-  picker's hex normalisation (PNG32/RGBA, PNG24/RGB, PNG48/16-bit, PNG8/palette
-  must all yield 6 digits) and `dwm-display`'s menu derivation from a faked
-  `xrandr` — both fit the existing shim idiom in `tests/*-template.sh` directly.
-  Note the trap that caused the bug: **the shim must emit the real tool's output
-  format**, not merely a plausible one.
 - **`.github/workflows/ci.yml` pins `fedora:41`, which is EOL.** Fedora's
   active branches are 43, 44 and Rawhide. Found incidentally while checking
   package availability. The image will eventually stop resolving and take the
@@ -49,6 +40,20 @@ when slots run concurrently.
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **first tests for `config/dwm/bin/`** — `67d417f`, `9849c6d`.
+  Nine scripts, zero tests, until `dwm-colorpicker.sh` (12 assertions) and
+  `dwm-display.sh` (20). Suite 10 → 12, both picked up by CI's glob for free.
+  **12 of 13 deliberate mutations fail the suite** — that measurement, not the
+  assertion count, is what makes them load-bearing. The one survivor is
+  documented in the test header rather than papered over. Two lessons:
+  ImageMagick is deliberately NOT faked (faking the thing under test leaves the
+  file asserting against its own fixture generator), so it skips **loudly**
+  where CI cannot provide it; and **mutation testing only covers the mutations
+  you imagine** — the reviewer found a `--primary` gap because every mutant I
+  wrote attacked logic I had just authored. Seven `dwm-*` scripts remain
+  untested; `dwm-brightness` is the highest-value next, as it parses
+  `xrandr --verbose` and does arithmetic on it.
 
 - 2026-08-12 — **Epic: roster gap-fill (scope-c) — ALL 4 SUB-TASKS MERGED.**
   Scope file `.claude/tasks/scope-c-roster-gap-fill.md` holds the locked
