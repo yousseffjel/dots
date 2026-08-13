@@ -87,18 +87,14 @@ session_autostart_report() {
         'without it a saved display profile is never applied at session start.' \
         'Hotplug still works: that is the udev rule the package ships, not this.'
 
-    session_report_daemon "$autostart" polkit-gnome \
-        'add these lines yourself:' \
-        '  if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then' \
-        '    if [ -x /usr/libexec/polkit-gnome-authentication-agent-1 ]; then' \
-        '      /usr/libexec/polkit-gnome-authentication-agent-1 &' \
-        '    elif [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then' \
-        '      /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &' \
-        '    fi' \
-        '  fi' \
+    session_report_daemon "$autostart" lxpolkit \
+        'add this line yourself:  command -v lxpolkit >/dev/null && ! pgrep -x lxpolkit >/dev/null && lxpolkit &' \
         'without it no PolicyKit agent runs, so any GUI action needing' \
         'privileges (mounting a system disk, partition or package tools) is' \
-        'denied with no password prompt and often no error at all.'
+        'denied with no password prompt and often no error at all.' \
+        'If your autostart.sh still has the old polkit-gnome block, delete it:' \
+        'that package is retired on Fedora 43 and 44, so its [ -x ] guards' \
+        'never match and the block has been doing nothing.'
 
     session_report_daemon "$autostart" dwm-lock \
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \

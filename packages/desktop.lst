@@ -85,9 +85,15 @@ xz  # the vendored Bibata cursor tarball cannot be unpacked, so the desktop fall
 dnf-plugins-core  # `dnf copr enable` fails, so clipmenu and clipnotify never install and the clipboard-history keybind dies
 
 # --- privilege prompts ---
-# autostart.sh launches the agent by absolute path (see install-session.sh);
-# no desktop environment is running to start it from /etc/xdg/autostart.
-polkit-gnome  # no PolicyKit agent: any GUI action needing privileges is denied with no password prompt and often no error
+# autostart.sh launches the agent (see install-session-template.sh); no desktop
+# environment is running to start it from /etc/xdg/autostart, so that .desktop
+# file the package ships is never read on this setup.
+#
+# Was polkit-gnome until 2026-08-13. That package is retired — absent from
+# BOTH Fedora 43 and 44, so it was failing on every supported target, not just
+# the newest. lxpolkit is the LXDE agent, provides
+# PolicyKit-authentication-agent, and unlike polkit-gnome its binary is on PATH.
+lxpolkit  # no PolicyKit agent: any GUI action needing privileges is denied with no password prompt and often no error
 
 # --- applications behind a keybind ---
 # These two are applications rather than infrastructure, but they sit here on

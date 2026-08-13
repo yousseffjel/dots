@@ -193,7 +193,7 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | Monitor management | nwg-displays | **autorandr** (profiles, hotplug) + **`config/dwm/bin/dwm-display`** (dmenu presets). arandr deliberately rejected | ✅ have — `Super+d`; autorandr autostarted and its udev rule covers hotplug |
 | Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
 | XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ **deliberately deferred** — only pays off with Flatpak; under X11 Firefox and Chromium use their own dialogs. If added, the package alone is not enough: `XDG_CURRENT_DESKTOP` must be exported and `~/.config/xdg-desktop-portal/portals.conf` must set `default=gtk`, or file choosers hang rather than fail. Scope C locked decision 5 |
-| Auth agent | hyprpolkitagent | polkit-gnome | ✅ have — in `desktop.lst`, launched by `autostart.sh` (2026-08-08). Started by absolute path: the binary is not on `PATH`, and dwm has no session manager to run `/etc/xdg/autostart`. |
+| Auth agent | hyprpolkitagent | **lxpolkit** | ✅ have — in `desktop.lst`, launched by `autostart.sh`. Was `polkit-gnome` until 2026-08-13, when that package turned out to be retired on **both** Fedora 43 and 44; `lxpolkit` provides `PolicyKit-authentication-agent` and its binary *is* on `PATH`, so it uses the same `command -v` guard as the other daemons. dwm still has no session manager, so the `/etc/xdg/autostart` file the package ships is never read. |
 | System tray | Waybar tray | dwm **systray patch** | ✅ have — `dwm-systray` + `status2d-systray` vendored |
 
 ---
@@ -236,7 +236,7 @@ maim                      # screenshots
 slop                      # region select
 redshift                  # blue light filter
 xss-lock                  # auto-lock hook
-polkit-gnome              # auth agent
+lxpolkit                  # auth agent (polkit-gnome is retired on F43/F44)
 xdg-user-dirs
 xdg-desktop-portal-gtk
 
@@ -310,7 +310,7 @@ mpv                       # media player
 | `x11/.xinitrc` | Session startup | `xrdb -merge`, autostart, `exec dwm` (loop for restart) |
 | `x11/.Xresources` | Colors, fonts, DPI | Read by dwm/st via xresources patch; pywal writes here |
 | `x11/.xprofile` | Env vars | `QT_QPA_PLATFORMTHEME=qt5ct`, locale, PATH |
-| `x11/autostart.sh` | Autostart daemons | ✅ wired, six of them, written by `scripts/install-session.sh`: picom, dwmblocks (not slstatus), clipmenud, sxhkd, the polkit agent and `dwm-lock` (which execs `xss-lock`). `dunst` needs no line — D-Bus activates it. Still unwired from this list: `~/.fehbg` (the theming engine sets the wallpaper instead), nm-applet, udiskie, redshift. |
+| `x11/autostart.sh` | Autostart daemons | ✅ wired, written by `scripts/install-session-template.sh`. **The `DAEMONS` array in `tests/autostart-daemons.sh` is the list** — it is not restated here, because the count in this cell said "six" long after it was nine. `dunst` needs no line: D-Bus activates it. Deliberately still unwired: `~/.fehbg` (the theming engine sets the wallpaper instead), nm-applet, redshift. |
 | `picom/picom.conf` | Compositor | vsync on, shadows, fade, opacity rules |
 | `dunst/dunstrc` | Notifications | themed colors, urgency levels, keybind actions |
 | `dwm/bin/` (dmenu scripts) | Launcher/menus/clipboard | dmenu theming lives in `suckless/dwm/config.def.h` (compile-time); `dwm-powermenu`/`dwm-clipmenu` scripts | ✅ have |

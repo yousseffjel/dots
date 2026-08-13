@@ -86,12 +86,21 @@ is simply absent, and the installer reports a clean run.
 2. **sxhkd** — same class, caught earlier: it owns every non-dwm keybind and
    sat in best-effort `extra.lst`, so a failed install killed every media,
    volume, brightness, screenshot, lock and theming key at once, silently.
-3. **`polkit-gnome`** — packaged, autostarted by nothing, so no polkit agent
+3. **The polkit agent** — packaged, autostarted by nothing, so no polkit agent
    ran and every GUI privilege prompt failed silently. Fixed 2026-08-08. Its
-   own twist: the binary is **not on `PATH`** (it lives under `libexec`, and
-   Fedora and Arch disagree about where), so the obvious `command -v` guard
-   copied from the other daemons would have produced a line that never fires —
-   the same bug, reintroduced while fixing it. Both paths are tried.
+   own twist: `polkit-gnome`'s binary was **not on `PATH`** (it lived under
+   `libexec`, and Fedora and Arch disagreed about where), so the obvious
+   `command -v` guard copied from the other daemons would have produced a line
+   that never fires — the same bug, reintroduced while fixing it. Both libexec
+   paths were tried instead.
+
+   **Superseded 2026-08-13:** `polkit-gnome` is retired — absent from both
+   Fedora 43 and 44 — and was replaced by `lxpolkit`, whose binary *is* at
+   `/usr/bin`. The two-path fallback is gone and the agent now uses the same
+   ordinary `command -v` guard as the other daemons, which is also why it moved
+   from `session_autostart_services()` up to `session_autostart_daemons()`. The
+   lesson above still stands: it is why the replacement's binary location was
+   checked against the package's own file list rather than assumed.
 
 The structural defence is in place now: the daemon set is stated twice —
 `session_autostart_template()` in `scripts/install-session-template.sh` for

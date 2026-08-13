@@ -74,8 +74,8 @@ fi
 # picks the profile whose fingerprint matches right now.
 #
 # The package ships an XDG autostart file for exactly this, but nothing on this
-# setup reads /etc/xdg/autostart — dwm has no session manager. Same reason the
-# polkit agent is spelled out below. The udev rule the package ships is
+# setup reads /etc/xdg/autostart — dwm has no session manager. The polkit agent
+# below is launched for the same reason. The udev rule the package ships is
 # unaffected and still handles hotplug; this line covers session start.
 #
 # Unlike every other entry here this is a ONE-SHOT, not a daemon: it exits as
@@ -132,36 +132,32 @@ if command -v udiskie >/dev/null 2>&1 && ! pgrep -x udiskie >/dev/null 2>&1; the
 	udiskie --automount --notify --smart-tray &
 fi
 
-EOF
-}
-
-# Second half: services NOT on PATH, spelled out in full. Grouped for that
-# reason as much as for the line cap — an absolute path is a portability
-# liability, so the ones to re-check on a new distro are all in one place.
-session_autostart_services() {
-    cat <<'EOF'
-
 # PolicyKit authentication agent — the dialog that asks for a password when a
 # GUI program needs privileges: mounting a system disk from thunar, a package
 # or partition tool, some NetworkManager operations. With no agent running
 # those requests are simply denied, usually with no prompt and no error, so
 # the feature looks broken rather than unauthorized.
 #
-# A desktop environment starts this from /etc/xdg/autostart. dwm has no
-# session manager and nothing here reads that directory, so on this setup the
-# line below is the only thing that ever launches it.
-#
-# Not guarded with `command -v` like the daemons above: the binary is not on
-# PATH. It lives under libexec, and distributions disagree about where —
-# Fedora uses /usr/libexec, Arch uses /usr/lib/polkit-gnome. Both are tried
-# rather than one being guessed at.
-if ! pgrep -f polkit-gnome-authentication-agent >/dev/null 2>&1; then
-	if [ -x /usr/libexec/polkit-gnome-authentication-agent-1 ]; then
-		/usr/libexec/polkit-gnome-authentication-agent-1 &
-	elif [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
-		/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
-	fi
+# A desktop environment starts this from /etc/xdg/autostart. dwm has no session
+# manager and nothing here reads that directory, so the line below is the only
+# thing that ever launches it.
+if command -v lxpolkit >/dev/null 2>&1 && ! pgrep -x lxpolkit >/dev/null 2>&1; then
+	lxpolkit &
 fi
+
+EOF
+}
+
+# Second half: services NOT on PATH, spelled out in full. Grouped for that
+# reason as much as for the line cap — an absolute path is a portability
+# liability, so the ones to re-check on a new distro are all in one place.
+#
+# The polkit agent lived here until 2026-08-13, when polkit-gnome (whose binary
+# sat under libexec, in a location Fedora and Arch disagreed about) was replaced
+# by lxpolkit. That binary IS on PATH, so it moved up to the guarded daemons and
+# the two-branch absolute-path fallback went with it.
+session_autostart_services() {
+    cat <<'EOF'
 
 # Screen locking: arms X's idle timers, then execs `xss-lock -- slock` so the
 # screen locks on inactivity AND on suspend. One line rather than the xset
@@ -172,8 +168,10 @@ fi
 #
 # Spelled out in full rather than relying on PATH: ~/.config/dwm/bin is added
 # by config/zsh/.zshenv, which only runs if the display manager happens to
-# start this session through a login zsh. The three daemons above are system
-# binaries and need no such luck.
+# start this session through a login zsh. Everything launched above is a system
+# binary in /usr/bin and needs no such luck — which is why this one is the
+# odd case, not a count of the others that would go stale the next time one is
+# added.
 "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &
 EOF
 }
