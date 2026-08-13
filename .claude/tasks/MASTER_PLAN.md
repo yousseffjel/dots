@@ -56,22 +56,14 @@ service, volume/brightness OSD, battery, network block, screen recorder,
 `.gtkrc-2.0`, blue-light filter, emoji picker, keybind hint) were reviewed at
 the same time and **not** queued — raise them separately if wanted.
 
-- **A single user-facing command on `$PATH`.** HyDE has `hydectl` /
-  `hyde-shell`. dots has 21 scripts under `scripts/` — none on `$PATH` — plus
-  9 in `config/dwm/bin/`, which is the only directory `.zshenv` adds. The
-  question to settle before writing anything is whether this is a real
-  dispatcher (`dots theme|wallpaper|version|uninstall`) or just a symlink of
-  the four user-facing entry points into `~/.local/bin`. Note the shadowing
-  hazard already recorded in memory: `~/.local/bin` wins over
-  `~/.config/dwm/bin`, and `dwmblocks`' scripts already live in the former.
-- **Font and cursor assets that Fedora does not package.** HyDE's
-  `restore_fnt.sh` extracts tarballs into `~/.local/share/{fonts,icons}` and
-  runs `fc-cache`. dots is repo-packages-only, which is exactly why
-  `bibata-cursor-themes` was dropped as COPR-only and `themes/dark/theme.conf`
-  fell back to `cursor_theme=Adwaita`. Any implementation must go through the
-  manifest (`manifest_append_row`) or `uninstall.sh` cannot remove what it
-  drops, and downloading from GitHub releases at install time is a trust
-  decision of the same class as rule 4's COPR default — ask first.
+- ~~**A single user-facing command on `$PATH`.**~~ ✅ **Done 2026-08-13** — see
+  Recently Closed. Landed as a real dispatcher, not symlinked entry points:
+  one name in the contested `~/.local/bin` namespace instead of four.
+- ~~**Font and cursor assets that Fedora does not package.**~~ ✅ **Done
+  2026-08-13** — see Recently Closed. **This entry was wrong twice.** Fonts were
+  already fully packaged, so only cursors were missing; and HyDE's
+  `restore_fnt.sh` does not download from GitHub releases at all — it extracts
+  archives already in the clone, which is the approach taken.
 - **`CHANGELOG.md` + `CONTRIBUTING.md`.** `VERSION`, `version.sh` and
   `scripts/migrations/` all exist, so the repo versions itself but tells a
   user nothing about what changed between versions. The `pr-notes` skill
@@ -87,6 +79,26 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-08-13 — **one command on `$PATH`, and a vendored cursor theme** —
+  `5ed65b3`, `9c0438d`. Closes two of the four HyDE framework-parity items in
+  one slot. `scripts/dots` dispatches to the four user-facing scripts (nothing
+  moved; all stay independently runnable) and its `SUBCOMMANDS` table is the
+  only declaration of the list — `--help`, the zsh completion and the test all
+  read it back. It deliberately breaks rule 3 with `readlink -f`, because a
+  symlinked entry point makes `cd "$(dirname …)"` resolve `~/.local/bin`
+  instead of the repo. Bibata is vendored under `assets/cursors/` with checksum
+  and licence, extracted into `~/.local/share/icons` as a `THEME` row, and its
+  name is read out of the archive rather than hardcoded.
+  **Both queue entries were wrong about their own scope:** the "font and cursor"
+  item was already half-done (fonts were fully packaged), and its stated trust
+  concern — downloading at install time — is not what the reference
+  implementation does. Suite 13 → 15, **15/15 green on main post-merge**,
+  19/19 mutations caught. Three lessons: **a queue entry is a pointer, not a
+  brief**; **stage after fixing, not before auditing** (an early `git add`
+  had the reviewer BLOCK on a stale index, right about the commit and wrong
+  about the tree); and **a function sitting exactly on the 60-line cap is a
+  latent hard stop**.
 
 - 2026-08-13 — **the installer runs in CI for the first time** — `c4afeb3`,
   `3e3e6a5`. Closes the parity item "a container harness that runs

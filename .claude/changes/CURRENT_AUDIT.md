@@ -1428,3 +1428,62 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   Fedora container rather than skipped. **8/8 mutations caught.**
 - **Still unproven:** `install-fedora.sh` has never run on real hardware. ly has
   been *enabled*, never *started*; nothing graphical has run.
+
+## 2026-08-13 — one command on $PATH, and a cursor theme Fedora does not package
+- **Two HyDE-parity queue items closed in one slot** (`5ed65b3`, `9c0438d`).
+  **Both entries were wrong about their own scope**, and only reading the code
+  and the reference implementation showed it.
+- **`scripts/dots`** — the single user-facing command, symlinked to
+  `~/.local/bin/dots` by the restore stage and recorded as a `SCRIPT` manifest
+  row. Dispatches to `theme-apply.sh` / `wallpaper.sh` / `version.sh` /
+  `uninstall.sh`, forwarding arguments verbatim; nothing moved and every script
+  stays independently runnable. Its `SUBCOMMANDS` table is the **only**
+  declaration of the list — `--help`, `config/zsh/completions/_dots` and
+  `tests/dots-dispatch.sh` all read it back rather than restating it.
+- **It deliberately breaks rule 3.** Reached through a symlink, the repo's usual
+  `cd "$(dirname "${BASH_SOURCE[0]}")"` resolves `~/.local/bin` — `cd` follows
+  the directory, never the file — so it uses `readlink -f`. Documented in situ,
+  in CLAUDE.md, and proved by a test that invokes it through a real symlink.
+- **Bibata cursor theme vendored** under `assets/cursors/` (upstream `v2.0.7`
+  tarball + `.sha256` + `LICENSE.Bibata`), extracted by
+  `install-restore-cursor.sh` into `~/.local/share/icons` and claimed as a
+  `THEME` row. The theme name is read **out of the archive**, never hardcoded,
+  and checked against all four `theme.conf` files — that coupling is silent when
+  broken, since GTK just falls back to a default cursor with no error anywhere.
+- **The queue entry said "font AND cursor assets"; fonts were already done.**
+  `cascadia-code-nf-fonts` (desktop.lst, with consequence text) plus the noto
+  set covered it, and `extra.lst` even recorded why the obvious JetBrains Nerd
+  variant was rejected. **It also framed vendoring as a download-time trust
+  decision — HyDE does not download**: `restore_fnt.sh` extracts archives
+  already in the clone. That was the option the entry never considered, and the
+  one taken.
+- **The repo now redistributes GPL-3.0 material** — a change in posture, since
+  `themes/CREDITS.md` records reimplementing rather than vendoring HyDE's code
+  *because* of GPL. This is aggregation, not derivation; the licence ships
+  beside the artifact exactly as `suckless/*/LICENSE` does. Recorded in CREDITS.
+- **Three stale claims fixed because they contradicted this diff:**
+  `install-fedora.sh` still told users to enable a Bibata COPR; CLAUDE.md rule 4
+  cited it as the COPR example; and `install-pkg.sh` justified withholding a
+  `SCRIPT` row from starship by quoting the uninstall prompt this task rewrote.
+  The starship decision itself was left open and flagged, not changed in passing.
+- **`xz` was declared nowhere** while `tar -J` shells out to it — found in the
+  dependency sweep, added to `desktop.lst` with consequence text, name verified
+  against packages.fedoraproject.org.
+- Audit: ✅ READY (Medium+, 4 sweeps; 3 findings — a function exactly on the
+  60-line cap, an unguarded `ln -s` that would have aborted the whole restore
+  stage under `set -e`, and the `xz` gap). Reviewer: **BLOCK then READY**.
+- **The BLOCK was a stale git index, not a missing change.** `git add -A` had
+  been run to compute the audit tier *before* the fixes existed, so the reviewer
+  judged a changeset missing three of them. It was right about the committed
+  state and wrong about the working tree. **Stage after fixing, not before
+  auditing** — the gate reads the index. Second consecutive task where the
+  reviewer caught a claim/reality gap.
+- Tests: suite 13 → 15. **15/15 pass on main post-merge**, including
+  `tests/build.sh` (all five suckless programs). **19/19 mutations caught.**
+- **`/test` could not discover the suite** — all seven discovery priorities miss
+  this repo despite 15 scripts. Third occurrence; fix is a `.claude/config.yml`
+  with `test_command`, filed as a follow-up rather than done out of scope.
+- **Still unproven:** nothing has run on Fedora hardware. markdownlint is not
+  installed locally, so CI's `--strict` is the only gate on the eight markdown
+  files touched.
+- See `.claude/changes/2026-08-13-hyde-parity.md`.
