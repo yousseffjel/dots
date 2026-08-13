@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-12
+Last Updated: 2026-08-13
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -15,6 +15,20 @@ when slots run concurrently.
 
 ## Queue
 
+- **`polkit-gnome` is retired on Fedora 44 — a fresh install has no PolicyKit
+  agent.** Found 2026-08-13 by the new `install-container` job on its first run:
+  `dnf list --available polkit-gnome` does not resolve, so **`install-dry-run`
+  goes red on it too**, independently. It lives in `desktop.lst`, so the install
+  does not abort — it prints the red consequence line and carries on, which is
+  the tier working as designed. Replacements present on F44: `lxpolkit`,
+  `mate-polkit`, `xfce-polkit`, `polkit-kde`. Picking one is a roster decision.
+  Fixing it is a **three-file change** per rule 6: `packages/desktop.lst` (with
+  its trailing `#` consequence text) plus the **absolute libexec path** in both
+  `install-session-template.sh` and `install-session-report.sh` — the agent's
+  binary is not on `PATH`, and Fedora and Arch disagree about where it lives, so
+  the `command -v` guard the other daemons use would silently never fire.
+  `tests/autostart-daemons.sh` will fail the build if only one of the two is
+  updated.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
@@ -42,17 +56,6 @@ service, volume/brightness OSD, battery, network block, screen recorder,
 `.gtkrc-2.0`, blue-light filter, emoji picker, keybind hint) were reviewed at
 the same time and **not** queued — raise them separately if wanted.
 
-- **A container harness that runs `install-fedora.sh` for real.** HyDE ships
-  `Scripts/hydevm`; `TESTING.md` currently tells a human to drive `toolbox` by
-  hand, which is why the real-hardware item above has sat open since
-  2026-08-04. Acceptance is not "a script exists" — it is that the harness
-  runs the installer to completion in a `fedora:latest` container and asserts
-  on the result, so the failure mode it catches is a wrong package name or a
-  stage that aborts, not a lint error. Note the two things a container
-  genuinely cannot cover (`chsh`, `systemctl enable ly.service`) and make it
-  say so rather than skipping them silently. Closest existing prior art in
-  this repo is the `install-dry-run` CI job, which proves only that the
-  orchestrator threads its flags.
 - **A single user-facing command on `$PATH`.** HyDE has `hydectl` /
   `hyde-shell`. dots has 21 scripts under `scripts/` — none on `$PATH` — plus
   9 in `config/dwm/bin/`, which is the only directory `.zshenv` adds. The
@@ -84,6 +87,25 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-08-13 — **the installer runs in CI for the first time** — `c4afeb3`,
+  `3e3e6a5`. Closes the parity item "a container harness that runs
+  `install-fedora.sh` for real". New `.github/workflows/install-container.yml`
+  (its own file, `paths:`-filtered, `timeout-minutes: 90` from a **measured**
+  32-minute cold run) executes the installer to completion in `fedora:latest` +
+  `fedora:43` and makes **23 assertions**, every one derived from a shipped
+  source of truth rather than restated. **8/8 mutations caught; 13/13 test
+  scripts executed** (`build.sh` run in the container rather than skipped).
+  **It found two bugs on its first run**, both live on real hardware: `$USER`
+  unbound under `set -u`, and `systemctl enable ly.service` targeting a unit
+  that does not exist — Fedora's `ly` ships a templated `ly@.service`, so **no
+  display manager had ever been enabled by this installer on any machine**. Now
+  `ly@tty2.service`. Two lessons worth carrying: **verification that inspects
+  inputs cannot find a wrong output** — the `ly` bug survived every lint,
+  review and package-name check because none of them ever ran the line; and the
+  reviewer's BLOCK was on a **claim**, not on code (a comment described a
+  `getent` check that was never written), which four audit sweeps missed by
+  reading the assertions and the prose separately.
 
 - 2026-08-12 — **theme roster 1 → 4 + `theme.conf` identity wiring** —
   `60134a0`, `fb9f075`. Closes the parity queue item "More than one theme under

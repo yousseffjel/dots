@@ -1373,3 +1373,58 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `tests/build.sh` not run (needs `dnf` in a Fedora container — this host is
   Arch, and nothing here touches `suckless/`). Nothing run against a live X
   session.
+
+## 2026-08-13 — the installer runs in CI for the first time, and two bugs fall out
+
+- **`.github/workflows/install-container.yml`** runs `install-fedora.sh` to
+  completion in `fedora:latest` + the pinned oldest-supported image, then makes
+  **23 assertions**. Until now **nothing had ever executed the installer**:
+  `grep -c install-fedora ci.yml` was **0** — `install-dry-run` validates its
+  *inputs* and never invokes it, `build-suckless` compiles the C programs with
+  nothing installed around them. Closes the parity queue item opened 2026-08-12.
+- **Every expectation is derived, not restated.** Stage banners are extracted
+  from `install-fedora.sh` itself, the link set from `symlinks.sh
+  --list-links`, binaries and the enabled unit from the manifest's own
+  `SUCKLESS`/`SERVICE` rows, package failures from the red closing summary
+  `install-pkg.sh` already prints. A new stage, symlink pair or suckless program
+  is covered with no edit to the workflow.
+- **Bug 1 — `$USER` was unbound under `set -u`** (`install-services.sh`). Unset
+  in any container, cron job or `su -c`, so the services stage aborted after
+  every earlier stage had succeeded. Now `id -un`, with `|| true` on the getent
+  pipeline: under `pipefail` a passwd miss aborts on the *assignment*, silently.
+- **Bug 2 — `systemctl enable ly.service` has never worked.** Fedora's `ly`
+  ships a **templated** `ly@.service` (`Conflicts=getty@%i.service`) with no
+  `Alias=`, so the call failed with "Unit ly.service does not exist". **No
+  display manager had ever been enabled by this installer, on any machine**, and
+  no lint, review or package-name check could have found it because none of them
+  ever ran the line. Now `ly@tty2.service` — the unit's own `Conflicts=` frees
+  tty2 from its getty, and tty1's getty stays as a rescue login. Five stale
+  `ly.service` references corrected across four files.
+- **Three of my own claims were corrected by evidence, all in the same
+  direction: a container does MORE than assumed.** `chsh` works there;
+  `systemctl enable` works there (offline symlink creation needs the unit
+  *file*, not a running systemd) — and that is precisely *why* the job catches a
+  wrong unit name. The NOT-COVERED block was rewritten twice.
+- **The reviewer's BLOCK was on a claim, not on code.** A comment said "getent
+  confirms the shell afterwards" while no such assertion existed — so a
+  regression in the very `chsh` path just patched would have shipped green. Four
+  audit sweeps read the assertions and the prose separately and never noticed
+  they disagreed. **Assertions and the prose describing them are two places
+  stating one fact.**
+- **Measured, not guessed:** cold install **32 minutes** (one dnf transaction
+  per package, so wall-clock tracks package count) → `timeout-minutes: 90`, and
+  the job lives in its own workflow with a `paths:` filter so a docs-only push
+  skips it.
+- **Accepted debt, recorded in the workflow header:** the ~110-line assert body
+  is inline YAML and `tests/lint.sh` does **not** lint bash inside YAML. It is
+  shellcheck-clean only because it was extracted and checked by hand.
+- **Found and NOT fixed: `polkit-gnome` is retired on Fedora 44.** It is in
+  `desktop.lst`, so a fresh install ships with no PolicyKit agent, and
+  `install-dry-run` will go red on it independently. Queued below.
+- See `.claude/changes/2026-08-13-install-container-harness.md`. Commits
+  `c4afeb3`, `3e3e6a5`. Medium task (task folder archived). Audit: READY after
+  1 architecture + 2 size + 1 safety finding, all fixed. Reviewer: BLOCK then
+  READY. Tests: **13/13 executed, 0 failures** — `build.sh` run inside the
+  Fedora container rather than skipped. **8/8 mutations caught.**
+- **Still unproven:** `install-fedora.sh` has never run on real hardware. ly has
+  been *enabled*, never *started*; nothing graphical has run.
