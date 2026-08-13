@@ -1311,3 +1311,65 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - See `.claude/changes/2026-08-12-ci-fedora-eol.md`. Commits `6156aa6`,
   `6e840d7`. Small task (no task folder). Audit: READY (Medium+ by file count,
   6 files; 1 finding, fixed). Reviewer: READY. Tests: 12/12 + `--strict`.
+
+## 2026-08-12 — theme roster 1 -> 4, and `theme.conf` stopped being decorative
+
+- **Three new static themes** — `themes/{gruvbox,nord,tokyo-night}/`. Every
+  `colors.dcol` is **generated** by this repo's own `colorgen.sh` from a
+  four-block seed image, never hand-written; each header records its seed hex
+  and all three were confirmed to **regenerate byte-identical**. All carry the
+  same 89 `dcol_*` keys as `themes/dark`, which is the whole point of
+  generating them — hand-written hex is how a palette ends up missing a key
+  some template references. They are "flavoured by" their upstreams, not
+  faithful ports: only the four `dcol_pry` values are upstream's, every ramp is
+  this engine's dark curve. Dark-mode-only (scope-a) stays locked.
+- **`theme.conf` was report-only until this task.** `theme-apply.sh` *printed*
+  it and did nothing else; the identity writers that render it into
+  `settings.ini` + `xsettingsd.conf` were reachable only from the installer and
+  read a hardcoded `themes/dark/theme.conf`. A switch now sources those same
+  writers and calls them before `apply-templates`/`reload`, so `reload.sh`'s
+  existing `pkill -HUP xsettingsd` serves the new values. This also fixed a
+  latent bug nobody had hit: editing `themes/dark/theme.conf` and re-running
+  `theme-apply.sh` previously changed nothing at all.
+- **The write rule is three-way, and the asymmetry is deliberate.**
+  `THEME_IDENTITY_CLOBBER` (default `0`) expresses which caller is running:
+  absent -> write; ours per the manifest -> write only when clobbering (a
+  switch, not an installer re-run); **present but not ours -> never write, in
+  either mode**, with a yellow line saying identity was not applied there. A
+  hand-written `settings.ini` therefore keeps winning, by design.
+- **Rejected: a `.dcol` template for identity.** Nothing in it is
+  palette-derived, so it would re-render an identical file on every wallpaper
+  change (the reasoning already recorded for `xsettingsd.conf`), and a template
+  cannot ask the manifest whether a file is ours — which the no-clobber rule
+  requires. `config/theme/templates/theme/README.md` recommended the template
+  route and now records why it was rejected.
+- **`tests/theme-identity.sh`** (suite 12 -> 13, free CI pickup via the glob).
+  **9 of 9 deliberate mutations fail the suite.** It ships a **sandbox-only
+  fixture theme** because all four shipped `theme.conf` files carry identical
+  values — against shipped data alone, a regression that re-hardcoded
+  `themes/dark` would stay green forever. It also stubs `apply-templates.sh`
+  and `reload.sh`, whose real post-commands `pkill` dunst and dwmblocks
+  system-wide regardless of env sandboxing.
+- **A test that supplies a default never tests it.** The first mutation run had
+  exactly one survivor: flipping `THEME_IDENTITY_CLOBBER`'s default `0 -> 1`
+  left the suite green, because the test set both new globals itself while
+  `install-restore-theme.sh` sets **neither** and relies entirely on the
+  shipped `${VAR:-default}` values. Removing the test's own assignments killed
+  that mutant plus a second one not yet written. Mirror the real caller's
+  calling convention, including what it does not set.
+- **The stale doc was the file I did not create.** The reviewer's single
+  finding was `themes/dark/theme.conf`, still describing the old report-only
+  behaviour while the three *new* theme.conf files described the new one
+  correctly. Writing the siblings correctly is what made the original look
+  reviewed; a four-sweep audit with an explicit doc pass missed it.
+- **Known limit, not an omission:** all four `theme.conf` files carry identical
+  values (`Adwaita-dark` + `Papirus-Dark` + `JetBrains Mono`) because the repo
+  declares exactly one dark GTK theme. Distinct identities are a *packaging*
+  decision — a themed GTK theme plus matching icon set — and no packages were
+  added to manufacture variety.
+- See `.claude/changes/2026-08-12-theme-roster-identity.md`. Commits `60134a0`,
+  `fb9f075`. Medium+ task (task folder archived). Audit: READY. Reviewer: one
+  finding, fixed before commit. Tests: 11 OK / 0 failed + `--strict`;
+  `tests/build.sh` not run (needs `dnf` in a Fedora container — this host is
+  Arch, and nothing here touches `suckless/`). Nothing run against a live X
+  session.

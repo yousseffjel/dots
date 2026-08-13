@@ -33,9 +33,70 @@ when slots run concurrently.
   whole roster Epic was verified in sandboxed `$HOME` trees and against
   local binaries on an **Arch** dev host — never on a Fedora box.
 
+### Framework parity with HyDE (opened 2026-08-12 by a fresh HyDE diff)
+
+Source: comparison against the local HyDE clone at `8fa0073e` (2026-08-01),
+inspected directly rather than from `ROADMAP.md`. These are the **structural**
+gaps; the desktop-feature gaps from the same pass (tray applets, bluetooth
+service, volume/brightness OSD, battery, network block, screen recorder,
+`.gtkrc-2.0`, blue-light filter, emoji picker, keybind hint) were reviewed at
+the same time and **not** queued — raise them separately if wanted.
+
+- **A container harness that runs `install-fedora.sh` for real.** HyDE ships
+  `Scripts/hydevm`; `TESTING.md` currently tells a human to drive `toolbox` by
+  hand, which is why the real-hardware item above has sat open since
+  2026-08-04. Acceptance is not "a script exists" — it is that the harness
+  runs the installer to completion in a `fedora:latest` container and asserts
+  on the result, so the failure mode it catches is a wrong package name or a
+  stage that aborts, not a lint error. Note the two things a container
+  genuinely cannot cover (`chsh`, `systemctl enable ly.service`) and make it
+  say so rather than skipping them silently. Closest existing prior art in
+  this repo is the `install-dry-run` CI job, which proves only that the
+  orchestrator threads its flags.
+- **A single user-facing command on `$PATH`.** HyDE has `hydectl` /
+  `hyde-shell`. dots has 21 scripts under `scripts/` — none on `$PATH` — plus
+  9 in `config/dwm/bin/`, which is the only directory `.zshenv` adds. The
+  question to settle before writing anything is whether this is a real
+  dispatcher (`dots theme|wallpaper|version|uninstall`) or just a symlink of
+  the four user-facing entry points into `~/.local/bin`. Note the shadowing
+  hazard already recorded in memory: `~/.local/bin` wins over
+  `~/.config/dwm/bin`, and `dwmblocks`' scripts already live in the former.
+- **Font and cursor assets that Fedora does not package.** HyDE's
+  `restore_fnt.sh` extracts tarballs into `~/.local/share/{fonts,icons}` and
+  runs `fc-cache`. dots is repo-packages-only, which is exactly why
+  `bibata-cursor-themes` was dropped as COPR-only and `themes/dark/theme.conf`
+  fell back to `cursor_theme=Adwaita`. Any implementation must go through the
+  manifest (`manifest_append_row`) or `uninstall.sh` cannot remove what it
+  drops, and downloading from GitHub releases at install time is a trust
+  decision of the same class as rule 4's COPR default — ask first.
+- **`CHANGELOG.md` + `CONTRIBUTING.md`.** `VERSION`, `version.sh` and
+  `scripts/migrations/` all exist, so the repo versions itself but tells a
+  user nothing about what changed between versions. The `pr-notes` skill
+  generates this directly from `.claude/changes/` — the work is choosing what
+  a release boundary *is* here, not writing prose.
+- **Dependency automation for the pins.** HyDE runs `renovate.json5`. dots
+  hand-bumps `fedora:43` in two `ci.yml` matrices (done once already,
+  2026-08-12) and vendors 23 suckless `.diff` files that no tool watches.
+  Renovate covers the container tags; nothing covers the patches. Worth
+  scoping as "what can actually be automated here" before adopting a tool —
+  the answer may be one Dependabot stanza and a documented manual patch sweep.
+
 ---
 
 ## Recently Closed
+
+- 2026-08-12 — **theme roster 1 → 4 + `theme.conf` identity wiring** —
+  `60134a0`, `fb9f075`. Closes the parity queue item "More than one theme under
+  `themes/`". `gruvbox`, `nord`, `tokyo-night`, every `colors.dcol` **generated**
+  by `colorgen.sh` from a recorded seed hex and confirmed to regenerate
+  byte-identical. The wallpaper question that item asked to settle first was
+  settled: **a theme carries no `wallpapers/`** (Type C, per
+  `themes/dark/wallpapers/README.md`). Scope grew beyond colours because
+  `theme.conf` was report-only — a switch now applies GTK/icon/cursor/font
+  identity through the installer's own writers, never clobbering a file the
+  manifest does not claim. `tests/theme-identity.sh` (suite 12 → 13), 9/9
+  mutations caught. Two lessons: **a test that supplies a default never tests
+  it**, and **the stale doc is the sibling you did not create**.
 
 - 2026-08-12 — **CI off the EOL Fedora pin** — `6156aa6`, `6e840d7`. Both
   matrices `fedora:41` -> `fedora:43` (oldest supported), with a comment saying
