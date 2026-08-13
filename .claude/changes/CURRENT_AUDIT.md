@@ -1487,3 +1487,44 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   installed locally, so CI's `--strict` is the only gate on the eight markdown
   files touched.
 - See `.claude/changes/2026-08-13-hyde-parity.md`.
+
+## 2026-08-13 — the PolicyKit agent was retired out from under us
+- **`polkit-gnome` replaced by `lxpolkit`** (`6ff4a55`, `00cd483`). Closes the
+  top queue item. CI was red in two jobs and **every fresh install since the
+  retirement shipped with no PolicyKit agent** — GUI privilege prompts denied
+  with no password dialog and often no error.
+- **The queue entry was wrong in both directions.** It said "retired on Fedora
+  44": the package is absent from **f43 as well**, the repo's pinned
+  oldest-supported image, so every supported target was broken. Verified with a
+  control — `git`, `bash`, `picom`, `lxpolkit` all resolve through the same
+  mdapi endpoint on f43, so the negative is real. Its
+  `packages.fedoraproject.org` page still returns **HTTP 200** and looks alive
+  while listing only **EPEL 9**, which is the exact trap recorded in memory.
+- **It also prescribed the wrong fix** — "update the absolute libexec path in
+  both files". `lxpolkit` installs to **`/usr/bin/lxpolkit`**, on `PATH`, so the
+  two-branch fallback was **deleted** and the block **moved** from
+  `session_autostart_services()` to `session_autostart_daemons()`. That move was
+  forced by the function's own header, which defines its membership as "services
+  NOT on PATH" — leaving the agent there would have made the header false.
+- Rule 6's coupling honoured across all four sites (`desktop.lst`, template,
+  report, `DAEMONS`); **3/3 mutations caught**, including each one-sided edit.
+- The report side now also tells anyone whose `autostart.sh` still carries the
+  old block to delete it: its `[ -x ]` guards can no longer match.
+- **Two stale enumerations deleted rather than corrected** — a hardcoded "the
+  three daemons above" (would have become four) and ROADMAP's "six of them"
+  (really nine). ROADMAP now points at the `DAEMONS` array.
+- Audit ✅ READY (4 sweeps, 0 findings). Reviewer: **BLOCK then READY** — and
+  the BLOCK was on a doc claim this task introduced: the "Superseded" note was
+  spliced into the *middle* of a `HANDOFF.md` sentence, stranding its tail so
+  the paragraph asserted the code still tries two libexec paths. **Third
+  consecutive task where the reviewer caught a claim/reality gap**, second where
+  the audit read diff and prose separately and missed it. **Supersede a
+  historical note by appending a dated paragraph, never by interleaving.**
+- **Leaving the index empty worked**: tier computed with `git diff --shortstat
+  HEAD`, nothing staged, so the reviewer read the working tree — the direct fix
+  for the previous task's stale-index BLOCK.
+- Tests **14/14 on main post-merge**. `pgrep -x lxpolkit` is justified by the
+  package shipping a `.build-id` (compiled ELF ⇒ `comm` is the 8-char
+  `lxpolkit`), **reasoned from packaging, never observed running**.
+- **`/test` could not discover the suite for the fourth time.** Filed below.
+- See `.claude/changes/2026-08-13-polkit-lxpolkit.md`.

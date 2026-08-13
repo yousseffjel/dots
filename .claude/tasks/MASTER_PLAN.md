@@ -15,20 +15,11 @@ when slots run concurrently.
 
 ## Queue
 
-- **`polkit-gnome` is retired on Fedora 44 — a fresh install has no PolicyKit
-  agent.** Found 2026-08-13 by the new `install-container` job on its first run:
-  `dnf list --available polkit-gnome` does not resolve, so **`install-dry-run`
-  goes red on it too**, independently. It lives in `desktop.lst`, so the install
-  does not abort — it prints the red consequence line and carries on, which is
-  the tier working as designed. Replacements present on F44: `lxpolkit`,
-  `mate-polkit`, `xfce-polkit`, `polkit-kde`. Picking one is a roster decision.
-  Fixing it is a **three-file change** per rule 6: `packages/desktop.lst` (with
-  its trailing `#` consequence text) plus the **absolute libexec path** in both
-  `install-session-template.sh` and `install-session-report.sh` — the agent's
-  binary is not on `PATH`, and Fedora and Arch disagree about where it lives, so
-  the `command -v` guard the other daemons use would silently never fire.
-  `tests/autostart-daemons.sh` will fail the build if only one of the two is
-  updated.
+- ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
+  ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,
+  both corrected there: it was absent from **f43 as well as f44**, and the fix
+  was *not* a libexec path update — `lxpolkit` is on `PATH`, so the fallback was
+  deleted rather than re-pointed.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
@@ -79,6 +70,21 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-08-13 — **PolicyKit agent: `polkit-gnome` → `lxpolkit`** — `6ff4a55`,
+  `00cd483`. Closes the top queue item; CI was red in two jobs and every fresh
+  install since the retirement had no agent at all. **The entry was wrong
+  twice:** the package is gone from **f43 as well as f44** (verified with a
+  control query, since its packages.fedoraproject.org page still returns 200
+  while listing only EPEL 9), and the prescribed "update the absolute libexec
+  path" was not the fix — `lxpolkit` sits at `/usr/bin`, so the two-branch
+  fallback was deleted and the block moved from `session_autostart_services()`
+  to `_daemons()`, which its own header required. All four rule-6 sites moved
+  together, 3/3 coupling mutations caught, two stale enumerations deleted rather
+  than corrected. **The reviewer BLOCKed on a doc claim this task introduced** —
+  a supersession note spliced mid-sentence left prose asserting the code still
+  tried two paths. Third consecutive task where that gate caught a claim/reality
+  gap. **Supersede by appending a dated paragraph, never by interleaving.**
 
 - 2026-08-13 — **one command on `$PATH`, and a vendored cursor theme** —
   `5ed65b3`, `9c0438d`. Closes two of the four HyDE framework-parity items in
