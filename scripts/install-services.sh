@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # "services" stage: sets zsh as the default login shell and enables the ly
-# display manager service. Does not touch getty units — whether tty1's
-# getty needs disabling depends on the user's existing layout.
+# display manager on tty2 (`ly@tty2.service` — the unit is templated per TTY).
+# Still does not touch getty units by hand: the unit's own
+# `Conflicts=getty@%i.service` releases tty2 when ly starts, and tty1's getty
+# is deliberately left alone as a rescue login.
 #
 # usage: install-services.sh [--dry-run]
 
@@ -59,7 +61,18 @@ if [[ -n "$ZSH_BIN" ]]; then
             green "added   $ZSH_BIN -> /etc/shells"
         fi
     fi
-    CURRENT_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+    # $USER is not guaranteed to be set. A container, a cron job and `su -c`
+    # all leave it empty, and under `set -u` that is fatal — it took the whole
+    # services stage down after every earlier stage had already succeeded.
+    # `id -un` asks the passwd database instead of trusting the environment.
+    #
+    # The trailing `|| true` covers the other half of the same line: with
+    # `pipefail`, a getent miss (a user with no passwd entry at all) fails the
+    # command substitution, and `set -e` then aborts on the ASSIGNMENT, printing
+    # nothing. An empty CURRENT_SHELL is fine — it just is not zsh, so the chsh
+    # branch below runs and degrades on its own terms.
+    CURRENT_USER="${USER:-$(id -un 2>/dev/null || true)}"
+    CURRENT_SHELL="$(getent passwd "$CURRENT_USER" 2>/dev/null | cut -d: -f7 || true)"
     if [[ "$CURRENT_SHELL" != "$ZSH_BIN" ]]; then
         if [[ $DRY_RUN -eq 1 ]]; then
             blue "  (dry-run) would chsh -s $ZSH_BIN"
@@ -79,17 +92,36 @@ else
     yellow "zsh not found on PATH — run the install stage first (packages/core.lst) so this stage can set it as the default shell"
 fi
 
-# ly: enable the service, but don't touch getty units — whether tty1's getty
-# needs disabling depends on the user's existing layout.
+# ly ships a TEMPLATED unit — `ly@.service`, instantiated per TTY — and no
+# plain `ly.service` and no Alias= for one. This stage enabled `ly.service`
+# from the day it was written, so it has never enabled a display manager on
+# any machine; `systemctl enable ly.service` fails with "Unit ly.service does
+# not exist". Found 2026-08-13 by the install-container CI job, on its first
+# real run, which is the entire reason that job exists.
+#
+# tty2 rather than tty1: the unit carries `Conflicts=getty@%i.service`, so
+# instantiating it takes that TTY away from its getty by itself — no manual
+# getty step, and tty1's getty survives as a rescue login if ly misbehaves.
+LY_UNIT="ly@tty2.service"
 if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would enable ly.service"
-    elif systemctl is-enabled ly.service >/dev/null 2>&1; then
-        green "ok      ly.service already enabled"
+        blue "  (dry-run) would enable $LY_UNIT"
+    elif systemctl is-enabled "$LY_UNIT" >/dev/null 2>&1; then
+        green "ok      $LY_UNIT already enabled"
+    # Same degrade-don't-abort shape as the chsh call above, so a failure here
+    # cannot take the whole stage down via set -e after every earlier stage has
+    # already succeeded. Unlike chsh, stderr is NOT suppressed: systemctl's own
+    # message is the useful half of this branch. The observed one was
+    # "Failed to enable unit: Unit ly.service does not exist" — which is how
+    # the wrong-unit bug above was finally caught, and exactly the text someone
+    # debugging a fresh install needs to see.
+    elif "${SUDO[@]}" systemctl enable "$LY_UNIT"; then
+        # Recorded only on the run that actually enables it, so a re-run
+        # never appends a duplicate row.
+        manifest_append_row SERVICE "$LY_UNIT"
+        green "enabled $LY_UNIT"
     else
-        "${SUDO[@]}" systemctl enable ly.service
-        manifest_append_row SERVICE ly.service
-        green "enabled ly.service"
+        yellow "could not enable $LY_UNIT — run manually:  sudo systemctl enable $LY_UNIT"
     fi
 fi
 

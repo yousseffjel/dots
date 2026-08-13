@@ -59,7 +59,8 @@ partial uninstall is a normal, supported outcome, not an error.
    package that was already present on your system before you ran
    `install-fedora.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
-7. **Services.** Disables `ly.service` if (and only if) the installer was
+7. **Services.** Disables whatever `SERVICE` rows the manifest holds
+   (`ly@tty2.service` on a current install) if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
    packages.
 8. **Login shell.** Offers to `chsh` back to whatever your login shell was

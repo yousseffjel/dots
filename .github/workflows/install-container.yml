@@ -1,0 +1,287 @@
+name: install-container
+
+# Split out of ci.yml deliberately, for two reasons that are not the usual
+# "the file got long":
+#
+#   1. This job takes ~30 minutes per matrix leg. A cold fedora:latest run was
+#      measured at 32 minutes locally, on fast CPU and network, because
+#      install-pkg.sh runs ONE dnf transaction per package — wall-clock tracks
+#      package count, not download size. Its own workflow file lets it carry
+#      the `paths:` filter below, so a docs-only push does not pay for it.
+#   2. It is the only job that MUTATES a system rather than inspecting one, so
+#      keeping it separate from the fast inspection jobs in ci.yml makes the
+#      distinction visible in the Actions list.
+#
+# KNOWN, ACCEPTED DEBT: the assert step below is a ~110-line inline bash body,
+# well past this repo's 60-line convention, and `tests/lint.sh` does NOT lint
+# bash embedded in YAML (it covers scripts/, tests/ and root *.sh). It is
+# shellcheck-clean as of 2026-08-13, but only because it was extracted and
+# checked by hand. EXTRACT AND SHELLCHECK IT BY HAND when editing it, or move
+# it to tests/ and have this job invoke it the way ci.yml's lint and
+# build-suckless jobs invoke theirs.
+
+on:
+  push:
+    branches: [main]
+    # Allowlist, not a denylist: everything the installer installs, deploys,
+    # builds or reads. A new top-level directory is NOT covered until it is
+    # added here — which is the safe direction for a 30-minute job.
+    paths:
+      - 'scripts/**'
+      - 'packages/**'
+      - 'suckless/**'
+      - 'config/**'
+      - 'themes/**'
+      - 'VERSION'
+      - '.github/workflows/install-container.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'packages/**'
+      - 'suckless/**'
+      - 'config/**'
+      - 'themes/**'
+      - 'VERSION'
+      - '.github/workflows/install-container.yml'
+  # So a full run can be triggered by hand after a docs-only change, or to
+  # re-check against a newly released Fedora without pushing anything.
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref so pushes don't queue stale CI.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The only job anywhere in this repo that runs the installer. In ci.yml,
+  # install-dry-run validates the installer's INPUTS (every name in
+  # packages/*.lst resolves against enabled repos) and never invokes
+  # scripts/install-fedora.sh at all; build-suckless compiles the C programs
+  # without installing anything around them. Between them, "does a full
+  # install actually complete on a clean Fedora?" was unproven — which is why
+  # "run install-fedora.sh end-to-end" sat open in MASTER_PLAN.md from
+  # 2026-08-04.
+  #
+  # Deliberately slow and real: ~100 packages, a COPR, two git clones and five
+  # suckless builds. The failures it is here to catch are a stage that aborts
+  # and a package that resolves but does not install — neither is reachable
+  # from a lint or a dry run.
+  install-container:
+    name: install-container (${{ matrix.fedora }})
+    runs-on: ubuntu-latest
+    # Measured, not guessed: a cold `fedora:latest` run on a fast desktop with
+    # fast network sat at 21 minutes still inside extra.lst, with the COPR, five
+    # suckless builds and two git clones still to come. The driver is that
+    # install-pkg.sh runs ONE dnf transaction per package rather than batching a
+    # tier, so wall-clock scales with package count, not download size. A
+    # GitHub-hosted runner is slower on both CPU and network, so this is set
+    # well above the local figure. A run that exceeds it has hung, not been slow.
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same two images, same reasoning, and the same bump-don't-delete rule
+        # as the two container jobs in ci.yml. See build-suckless there for the
+        # full note on why an EOL pin breaks dnf rather than failing to pull.
+        fedora: ["fedora:latest", "fedora:43"]
+    container:
+      image: ${{ matrix.fedora }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # See ci.yml's build-suckless job for the dnf4-vs-dnf5 cache-path caveat.
+      - name: Cache dnf metadata + packages
+        uses: actions/cache@v6.1.0
+        with:
+          path: /var/cache/dnf
+          key: dnf-install-${{ matrix.fedora }}-${{ hashFiles('packages/*.lst') }}
+          restore-keys: |
+            dnf-install-${{ matrix.fedora }}-
+
+      # No --dry-run, no --skip-suckless: the point is the real thing. Runs as
+      # root, so install-services.sh's SUDO array stays empty and install-pre's
+      # privilege check passes without sudo being installed.
+      - name: Run install-fedora.sh for real
+        run: bash scripts/install-fedora.sh
+
+      # Every expectation below is DERIVED from a shipped source of truth
+      # rather than hand-listed here: the link set comes from `symlinks.sh
+      # --list-links`, the binaries from the manifest's own SUCKLESS rows, the
+      # package failures from the installer's own closing summary. A hardcoded
+      # copy of any of them would be one more enumeration to go stale — this
+      # repo has been bitten by that three separate times.
+      - name: Assert the install actually landed
+        run: |
+          fail=0
+          note() { echo "::error::$1"; fail=1; }
+
+          echo "::group::stages reached"
+          # install-fedora.sh tees an ANSI-stripped copy of the whole run here.
+          log=install.log
+          [ -f "$log" ] || { note "no install.log written"; exit 1; }
+          # The banner list is READ OUT OF THE ORCHESTRATOR, not restated here.
+          # A hand-written copy would catch a renamed stage (loudly) but miss a
+          # newly ADDED one entirely — silent under-coverage is the exact drift
+          # this repo has been bitten by three times.
+          n=0
+          while IFS= read -r stage; do
+            n=$((n + 1))
+            if grep -qF "$stage" "$log"; then
+              echo "OK: $stage"
+            else
+              note "stage banner missing from install.log: $stage"
+            fi
+          done < <(grep -oE 'blue "=== [^"]+ ==="' scripts/install-fedora.sh | sed 's/^blue "//; s/"$//')
+          [ "$n" -gt 0 ] || note "no stage banners found in install-fedora.sh — extraction broke"
+          # The completion sentinel is separate: it is the last line of the
+          # orchestrator, not one of the stage banners it prints along the way.
+          if grep -qF "✓ install complete" "$log"; then
+            echo "OK: ✓ install complete"
+          else
+            note "installer did not reach '✓ install complete'"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::no desktop-critical package failed"
+          # The installer never aborts on these by design; it reports them in a
+          # red closing summary instead. In CI that summary must be empty, or a
+          # keybind ships dead.
+          if grep -qF "DESKTOP-CRITICAL package(s) did not install" "$log"; then
+            note "desktop-critical packages failed — see the closing summary in install.log"
+            # Bounded by the summary's own last line rather than a line count:
+            # -A20 ran past the end into the suckless build output.
+            sed -n '/DESKTOP-CRITICAL package(s) did not install/,/Install these by hand/p' "$log" || true
+          else
+            echo "OK: none"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::symlinks"
+          # symlinks.sh --list-links prints "src<TAB>dst" for every pair it
+          # manages, so this covers a pair added later with no change here.
+          n=0
+          while IFS="$(printf '\t')" read -r src dst; do
+            [ -n "$dst" ] || continue
+            n=$((n + 1))
+            if [ ! -L "$dst" ]; then
+              note "not a symlink: $dst"
+            elif [ "$(readlink "$dst")" != "$src" ]; then
+              note "$dst -> $(readlink "$dst") (expected $src)"
+            else
+              echo "OK: $dst"
+            fi
+          done < <(bash scripts/symlinks.sh --list-links)
+          [ "$n" -gt 0 ] || note "symlinks.sh --list-links produced no pairs"
+          echo "::endgroup::"
+
+          echo "::group::ZDOTDIR"
+          if grep -q ZDOTDIR "$HOME/.zshenv" 2>/dev/null; then
+            echo "OK: $HOME/.zshenv sets ZDOTDIR"
+          else
+            note "$HOME/.zshenv does not set ZDOTDIR"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::login shell"
+          # Mirrors install-services.sh's own comparison rather than hardcoding
+          # a path, so it follows zsh wherever the package puts it. This is the
+          # only check that covers the chsh path — and that path is exactly
+          # where the `$USER: unbound variable` bug lived, so leaving it
+          # unasserted would let the same class of regression ship green.
+          zsh_bin="$(command -v zsh || true)"
+          current_shell="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f7 || true)"
+          if [ -z "$zsh_bin" ]; then
+            note "zsh is not installed — packages/core.lst did not land"
+          elif [ "$current_shell" = "$zsh_bin" ]; then
+            echo "OK: login shell is $current_shell"
+          else
+            note "login shell is '${current_shell:-<unset>}', expected '$zsh_bin'"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::display manager enabled"
+          # A SERVICE row exists only if `systemctl enable` actually returned 0.
+          # `systemctl enable` on a templated unit is offline symlink creation,
+          # so it works in a container — which makes this the direct regression
+          # guard for the bug this job found on its first run: install-services.sh
+          # enabled `ly.service`, which does not exist (ly ships `ly@.service`),
+          # so no display manager had ever been enabled on any machine. Asserting
+          # the ROW rather than the unit NAME keeps the TTY choice out of CI.
+          manifest="${XDG_STATE_HOME:-$HOME/.local/state}/dots/manifest"
+          if grep -q '^SERVICE' "$manifest" 2>/dev/null; then
+            # Process substitution, not `grep | while`: a pipeline runs the loop
+            # in a subshell, so any note() inside it would set fail=1 in a copy
+            # and the job would go green on a real finding. Every other loop in
+            # this step avoids the same trap.
+            while IFS="$(printf '\t')" read -r _t unit; do
+              echo "OK: enabled $unit"
+            done < <(grep '^SERVICE' "$manifest")
+          else
+            note "no SERVICE row in the manifest — systemctl enable never succeeded (wrong unit name?)"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::suckless binaries"
+          [ -f "$manifest" ] || note "no manifest at $manifest"
+          n=0
+          while IFS="$(printf '\t')" read -r _tag _prog path; do
+            [ -n "$path" ] || continue
+            n=$((n + 1))
+            if [ -x "$path" ]; then
+              echo "OK: $path"
+            else
+              note "missing or not executable: $path"
+            fi
+          done < <(grep '^SUCKLESS' "$manifest" 2>/dev/null || true)
+          [ "$n" -gt 0 ] || note "manifest recorded no SUCKLESS rows — did the build run?"
+          echo "::endgroup::"
+
+          exit "$fail"
+
+      # Stated, not skipped. A harness that quietly omitted these would read as
+      # full coverage of the installer when it is not. Each line below was
+      # checked against an actual container run rather than assumed — the first
+      # draft of this block claimed chsh could not work here, and it does.
+      - name: Report what a container cannot cover
+        if: always()
+        run: |
+          echo "::warning::NOT COVERED by this job — needs real hardware or a VM"
+          cat <<'EOF'
+          ┌─ COVERED, with a caveat ────────────────────────────────────┐
+          chsh -s <zsh>
+              Does work here, and is asserted above by comparing getent's
+              shell field against `command -v zsh`: the job runs as root
+              and shadow-utils is present. What is NOT proved is that a
+              real login session then starts zsh — there is no login, no
+              TTY and no PAM conversation.
+
+          systemctl enable ly@<tty>.service
+              Also works here, and is asserted above: enabling a unit is
+              offline symlink creation, which needs the unit FILE, not a
+              running systemd. That is precisely why it catches a wrong
+              unit name — the failure this job found on its first run.
+          └─────────────────────────────────────────────────────────────┘
+          ┌─ NOT COVERED ───────────────────────────────────────────────┐
+          ly actually running
+              Enabling is not starting. Whether ly presents a working
+              greeter on tty2, hands off to the session, and releases the
+              TTY from getty is a VM/hardware question entirely.
+
+          Anything graphical
+              No display server exists here. dwm/st/dmenu/dwmblocks/slock
+              are built and installed, and never run. The theming engine
+              likewise skips its initial apply for want of $DISPLAY.
+          └─────────────────────────────────────────────────────────────┘
+          EOF
+
+      # On a red run this log is the whole diagnosis, and the interesting part
+      # is the end. Printed rather than uploaded as an artifact: that would
+      # pin a fourth action version this repo cannot verify from a dev host
+      # with no network access to the marketplace, to save a scroll.
+      - name: Dump install.log on failure
+        if: failure()
+        run: |
+          echo "::group::install.log (last 200 lines)"
+          tail -n 200 install.log || echo "no install.log"
+          echo "::endgroup::"

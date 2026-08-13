@@ -12,7 +12,7 @@
 # A thin orchestrator over four stages, each its own standalone-runnable,
 # idempotent script: pre (sanity checks) -> install (dnf packages + suckless
 # build) -> restore (config symlinks + shell/tmux plugin managers) ->
-# services (default shell + ly.service). Re-runnable: every stage is
+# services (default shell + ly@tty2.service). Re-runnable: every stage is
 # idempotent on its own, so re-running this script after a partial or full
 # success converges to the same state rather than erroring or duplicating
 # work.
@@ -23,7 +23,7 @@
 #   --only-pre        run only the pre stage (sanity checks).
 #   --only-install    run only the install stage (dnf packages + suckless build).
 #   --only-restore    run only the restore stage (config symlinks + plugin managers).
-#   --only-services   run only the services stage (default shell + ly.service).
+#   --only-services   run only the services stage (default shell + ly@tty2.service).
 #                      Any combination of --only-* flags may be given; with
 #                      none given, all four stages run in order (the
 #                      default, full-install path).
@@ -165,6 +165,6 @@ fi
 green "✓ install complete"
 yellow "  - open a new shell or run: exec zsh"
 yellow "  - on first tmux start, TPM auto-installs plugins"
-yellow "  - log in via ly on next boot; disable getty@tty1 first if it's still enabled on the same tty"
+yellow "  - log in via ly on tty2 on next boot; tty1's getty is left alone on purpose as a rescue login"
 yellow "  - Node.js: install nvm yourself (https://github.com/nvm-sh/nvm), then nvm install --lts"
 yellow "  - lazygit / bibata-cursor-themes are COPR-only — see the script header for the copr enable commands"

@@ -9,7 +9,8 @@ See `CLAUDE.md` for the full project map and installer usage.
 
 This repo lints shell scripts (shellcheck + shfmt), Markdown
 (markdownlint), and validates the suckless build + package lists in CI —
-see `.github/workflows/ci.yml` and `TESTING.md`.
+see `.github/workflows/ci.yml`, `.github/workflows/install-container.yml`
+and `TESTING.md`.
 
 Install the pre-commit hooks once so the same checks run locally before
 every commit:

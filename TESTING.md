@@ -145,13 +145,55 @@ default never tests it.**
 
 ## Testing a full install in a disposable Fedora environment
 
-Never run `scripts/install-fedora.sh` on a machine you care about while
-iterating — it installs packages, enables a COPR, and changes your login
-shell and display manager. Use a disposable Fedora container instead:
+CI does this on every push that touches the installer or what it deploys
+(`.github/workflows/install-container.yml` carries a `paths:` allowlist, and
+`workflow_dispatch` triggers it by hand otherwise). The job runs
+`scripts/install-fedora.sh` to completion — no `--dry-run`, no
+`--skip-suckless` — inside `fedora:latest` and the pinned oldest-supported
+image, then asserts on what landed. It is the only job that executes the
+installer at all: `install-dry-run` validates the installer's *inputs*
+(every name in `packages/*.lst` resolves against enabled repos) without ever
+invoking it, and `build-suckless` compiles the C programs without installing
+anything around them.
+
+Its assertions are all **derived from a shipped source of truth**, never
+hand-listed in the workflow: the expected symlink set comes from
+`scripts/symlinks.sh --list-links`, the expected binaries from the manifest's own
+`SUCKLESS` rows, and desktop-package failures from the red closing summary
+the installer already prints. Add a symlink pair or a suckless program and
+the job covers it with no edit here.
+
+What the container cannot prove, the job **says out loud** rather than
+skipping quietly. Each row below was checked against a real run, not assumed:
+
+| Step | Status in the container |
+| ---- | ----------------------- |
+| `chsh -s <zsh>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh`. What is *not* proved is that a real login then starts zsh: no login, no TTY, no PAM conversation. |
+| `systemctl enable ly@<tty>.service` | **Works, and is asserted.** Enabling is offline symlink creation: it needs the unit *file*, not a running systemd. That is exactly why it catches a wrong unit name. |
+| ly actually running | **Not covered.** Enabling is not starting. Whether ly presents a greeter, hands off to the session and takes the TTY from getty is a hardware question. |
+| Anything graphical | **Not covered.** No display server, so dwm/st/dmenu/dwmblocks/slock are built and installed but never run, and the theming engine skips its initial apply for want of `$DISPLAY`. |
+
+Neither uncovered row is a gap in the harness; both are genuinely
+VM-or-hardware questions.
+
+That `systemctl enable` row is not a hypothetical. The job's **first real
+run found that `install-services.sh` had always enabled `ly.service`, which
+does not exist** — Fedora's `ly` ships a *templated* `ly@.service` with no
+`Alias=`. No display manager had ever been enabled, on any machine, and
+nothing had ever executed that line to notice. It now enables
+`ly@tty2.service`, and the job asserts a `SERVICE` row lands in the manifest,
+which only happens when `enable` returns 0.
+
+To iterate locally instead of pushing, never run
+`scripts/install-fedora.sh` on a machine you care about — it installs
+packages, enables a COPR, and changes your login shell and display manager.
+Use a disposable Fedora container:
 
 ```sh
 # podman (or toolbox, which wraps podman) — a throwaway Fedora userspace
-# sharing your kernel, cheap to create and destroy.
+# sharing your kernel, cheap to create and destroy. `docker run` takes the
+# same arguments if that is what you have; the CI job's own body was first
+# exercised under docker, not podman.
 podman run --rm -it --hostname dots-test fedora:latest bash
 
 # inside the container:
@@ -172,9 +214,9 @@ git clone https://github.com/<you>/dots.git ~/dots && cd ~/dots
 ./scripts/install-fedora.sh --dry-run
 ```
 
-Caveats: containers have no X server, systemd user session, or real TTY,
-so `startx`, `ly.service`, and `chsh` won't do anything useful past
-"did the command exit 0" — this flow validates package installation,
-symlinking, and the suckless build, not the graphical session itself.
+The same two caveats as the CI job apply, for the same reasons — see the
+table above — plus the absence of a real TTY. This flow validates package
+installation, symlinking, and the suckless build, not the graphical session.
 For that, use a Fedora VM (e.g. `virt-install`, GNOME Boxes, or a cloud
-Fedora Server instance) or real hardware.
+Fedora Server instance) or real hardware. **That remains the one thing
+nothing in this repo has ever done.**

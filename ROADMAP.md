@@ -180,7 +180,7 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | File manager | dolphin | **thunar** + volman/tumbler/file-roller, mime defaults wired | ✅ have |
 | Color picker | hyprpicker | **`config/dwm/bin/dwm-colorpicker`** (xdotool + maim + ImageMagick + xclip), `gpick` optional | ✅ have — `Super+c`. **`xcolor` does not exist in Fedora** (only `texlive-xcolor`, a LaTeX package — verified 2026-08-12); this row previously named it |
 | Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add — not packaged, and not yet decided |
-| Display manager | SDDM | **ly** (`install-services.sh` enables `ly.service`) | ✅ have |
+| Display manager | SDDM | **ly** (`install-services.sh` enables `ly@tty2.service`) | ✅ have |
 | Monitor management | nwg-displays | **autorandr** (profiles, hotplug) + **`config/dwm/bin/dwm-display`** (dmenu presets). arandr deliberately rejected | ✅ have — `Super+d`; autorandr autostarted and its udev rule covers hotplug |
 | Session autostart | uwsm / exec-once | **`.xinitrc` + `autostart.sh`** | ✅ have — `scripts/install-session.sh`, both user-owned once they exist |
 | XDG portal | xdg-desktop-portal-hyprland | xdg-desktop-portal-gtk (file pickers, flatpak) | ❌ **deliberately deferred** — only pays off with Flatpak; under X11 Firefox and Chromium use their own dialogs. If added, the package alone is not enough: `XDG_CURRENT_DESKTOP` must be exported and `~/.config/xdg-desktop-portal/portals.conf` must set `default=gtk`, or file choosers hang rather than fail. Scope C locked decision 5 |
