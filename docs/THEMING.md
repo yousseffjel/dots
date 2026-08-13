@@ -71,16 +71,26 @@ white wallpaper.
 
 ## Commands
 
+The installer puts a single `dots` command on `$PATH` (a symlink to
+`scripts/dots`), which forwards to the scripts below with arguments untouched:
+
 ```sh
-scripts/theme/wallpaper.sh --select        # dmenu picker
-scripts/theme/wallpaper.sh --random
-scripts/theme/wallpaper.sh ~/pics/foo.png
+dots wallpaper --select        # dmenu picker
+dots wallpaper --random
+dots wallpaper ~/pics/foo.png
 
+dots theme --list
+dots theme dark                # static palette
+dots theme --wallbash          # re-derive from current wallpaper
+```
+
+Every subcommand is the corresponding script, so `dots theme --list` is exactly
+`scripts/theme/theme-apply.sh --list`. Run the scripts directly when working in
+a checkout that is not the installed one — nothing requires the dispatcher:
+
+```sh
 scripts/theme/theme-apply.sh --list
-scripts/theme/theme-apply.sh dark          # static palette
-scripts/theme/theme-apply.sh --wallbash    # re-derive from current wallpaper
-
-scripts/theme/reload.sh                    # re-signal everything, no regen
+scripts/theme/reload.sh        # re-signal everything, no regen (no subcommand)
 ```
 
 Wallpapers come from `~/Pictures/wallpapers`; override with
@@ -143,7 +153,7 @@ to cover two things a copied base config would give for free — creating
 
 Consequence: until a theme has been applied, fastfetch runs on its own
 built-in defaults. On the documented headless fresh-server path that means
-running `scripts/theme/theme-apply.sh dark` after the first `startx`.
+running `dots theme dark` after the first `startx`.
 
 Two colours are themed — `display.color.keys` and `display.color.title`. The
 `colors` module at the bottom of the output prints the terminal's own
@@ -400,10 +410,14 @@ itself.
 
 ## Uninstall
 
-`scripts/uninstall.sh` removes deployed theme files (tracked in the
-manifest as `THEME` rows) and the whole generated `~/.cache/dots/theme`
-cache. `~/.fehbg` is left alone — it records the user's wallpaper choice
-and is normally feh's own file.
+`dots uninstall` (or `scripts/uninstall.sh`) removes deployed theme files
+(tracked in the manifest as `THEME` rows) and the whole generated
+`~/.cache/dots/theme` cache. `~/.fehbg` is left alone — it records the user's
+wallpaper choice and is normally feh's own file.
+
+The vendored cursor theme is a `THEME` row too, so it comes out with the rest.
+It is the one THEME entry that is a directory rather than a file, which works
+because `uninstall_theme` uses `rm -rf` — see `assets/cursors/README.md`.
 
 `gtk.css` and `fastfetch/config.jsonc` are removed too even though the
 installer never wrote their contents: both are claimed as `THEME` rows at

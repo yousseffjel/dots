@@ -136,8 +136,35 @@ for adding CI; new docs you add are linted normally.
   the stubs record their arguments, so the switch is still proved to have
   reached the engine with the right palette. Needs only bash + coreutils.
 
-All three were checked by mutation rather than assumed effective — see each
-file's header for what survived and why. `theme-identity.sh` kills 9 of 9,
+- **`tests/dots-dispatch.sh`** — the `dots` command and the symlink that puts
+  it on `$PATH`. Two failures neither lint nor review would catch. First, the
+  dispatcher is reached *through a symlink*, and this repo's usual `SCRIPT_DIR`
+  idiom (rule 3) resolves the symlink's **directory** — `~/.local/bin` — not
+  the repo, so the test invokes it through a real symlink rather than by path.
+  Second, `~/.local/bin` precedes `~/.config/dwm/bin` on `$PATH`, so the deploy
+  must claim exactly one name and must never claim a `dots` belonging to
+  something else: a `SCRIPT` manifest row is what authorises `uninstall.sh` to
+  delete a path. Subcommands are never enumerated — they are read back out of
+  `dots --help` and then *run*, which parsing the table could not prove. Needs
+  only bash + coreutils.
+
+- **`tests/cursor-theme.sh`** — the vendored cursor theme. The coupling it
+  guards is silent in exactly the way this repo keeps rediscovering: the
+  archive's top-level directory name and `cursor_theme=` in every
+  `themes/*/theme.conf` must agree, and when they don't, GTK and xsettingsd
+  just fall back to a default cursor. No error is logged anywhere, so the
+  symptom is "my cursor looks wrong", weeks later. Both sides are read with the
+  shipped functions (`cursor_theme_name`, `theme_conf_get`) rather than
+  reparsed, and the themes are globbed so a fifth is covered for free. Also
+  verifies the committed artifact against its recorded sha256 and proves a
+  tampered one is rejected. The tarball is deliberately **not** faked — a
+  fixture would test the test's own generator. Needs bash, coreutils and `tar`.
+
+All five were checked by mutation rather than assumed effective — see each
+file's header for what survived and why. `dots-dispatch.sh` and
+`cursor-theme.sh` kill 19 of 19 between them, including the two that matter
+most: claiming a foreign file, and one `theme.conf` drifting from the archive.
+`theme-identity.sh` kills 9 of 9,
 and its one first-pass survivor is worth repeating: the test originally set
 the two new globals itself, while the installer sets neither and relies on the
 shipped defaults, so flipping a default stayed green. **A test that supplies a

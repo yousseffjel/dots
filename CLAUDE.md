@@ -20,7 +20,7 @@ right vs. what's already stale.
 - **Shell**: bash (`scripts/*.sh`, `set -euo pipefail`, all re-runnable/idempotent), zsh (user shell config in `config/zsh/`)
 - **C**: vendored suckless sources (dwm, st, dmenu, dwmblocks, slock), built with `make`
 - **Config**: tmux (`config/tmux/`), zsh (`config/zsh/`), dwm runtime scripts (`config/dwm/bin/`) — deployed via symlinks, not copies
-- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / tests / build-suckless / install-dry-run jobs, and `.github/workflows/install-container.yml` runs the one job that actually executes the installer (split out 2026-08-13: it takes ~30 min per leg and carries a `paths:` filter so a docs-only push skips it). Both use a `fedora:latest` + **oldest-supported** matrix (`fedora:43` as of 2026-08-12 — the pin tracks the oldest supported release and must be bumped, not deleted, when that goes EOL; it sat at the long-dead `fedora:41` until then), backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. `tests/` holds `lint.sh`, `build.sh`, `pkglist.sh`, `picom-lockstep.sh`, `starship-template.sh`, `fastfetch-template.sh`, `autostart-daemons.sh`, `desktop-consequences.sh`, `tmux-tpm-lockstep.sh`, `manifest-has-path.sh`, `dwm-colorpicker.sh`, `dwm-display.sh` and `theme-identity.sh`. **Every test script is executed by CI** (2026-08-10): the `tests` job runs everything that needs only bash + coreutils, and the two it skips are *invoked* by the job that has their environment — `lint` runs `tests/lint.sh --strict` after installing the three linters, `build-suckless` runs `tests/build.sh` inside the Fedora container. Neither job restates those checks inline any more, so the scripts cannot rot unnoticed and the two copies cannot drift. `--strict` exists for exactly that wiring: `tests/lint.sh` skips a missing linter by default (useful locally), which in CI would mean a green job that checked nothing.
+- **CI and linters exist** (added 2026-08-05): `.github/workflows/ci.yml` runs lint / tests / build-suckless / install-dry-run jobs, and `.github/workflows/install-container.yml` runs the one job that actually executes the installer (split out 2026-08-13: it takes ~30 min per leg and carries a `paths:` filter so a docs-only push skips it). Both use a `fedora:latest` + **oldest-supported** matrix (`fedora:43` as of 2026-08-12 — the pin tracks the oldest supported release and must be bumped, not deleted, when that goes EOL; it sat at the long-dead `fedora:41` until then), backed by `.shellcheckrc`, `.markdownlint.yaml`, `.pre-commit-config.yaml` and `TESTING.md`. **`ls tests/*.sh` is the source of truth for what the suite contains** — this file used to restate all thirteen names and went stale the moment a fourteenth was added, which is the same lesson rule 6 records for daemons and rule 10 for package lists. **Every test script is executed by CI** (2026-08-10): the `tests` job runs everything that needs only bash + coreutils, and the two it skips are *invoked* by the job that has their environment — `lint` runs `tests/lint.sh --strict` after installing the three linters, `build-suckless` runs `tests/build.sh` inside the Fedora container. Neither job restates those checks inline any more, so the scripts cannot rot unnoticed and the two copies cannot drift. `--strict` exists for exactly that wiring: `tests/lint.sh` skips a missing linter by default (useful locally), which in CI would mean a green job that checked nothing.
 - **Beyond CI, verification is still manual and hands-on**: `bash -n`/`shellcheck` on edited scripts, package names checked against packages.fedoraproject.org (there is no `dnf` on the dev host — it is Arch), and sandboxed `$HOME` runs for anything touching the installer. The `install-container` workflow (2026-08-13) does now run the installer end-to-end in a Fedora container and assert on the result, which is the first automated check of the *whole* flow — but a container is not a machine: `systemctl enable` and every graphical path are outside what it can prove (`chsh` itself does work there), and the job says so in its own output. **Nothing has been run end-to-end on real Fedora hardware.**
 - **Package declarations**: `packages/*.lst` — plain-text, one package per line, `#` comments, no parser dependency beyond `sed`/`tr`/`grep` (already used everywhere else in `scripts/`).
 
@@ -31,7 +31,10 @@ right vs. what's already stale.
 ```
 dots/
 ├── config/
-│   ├── zsh/             # zsh config: .zshrc, .zshenv, conf.d/, functions/, completions/
+│   ├── zsh/             # zsh config: .zshrc, .zshenv, conf.d/, completions/
+│   │                    # (completions/ holds _dots; fpath is extended in conf.d/30-zinit.zsh
+│   │                    #  BEFORE compinit runs there — an addition after it is a no-op.
+│   │                    #  There is no functions/ dir; this map claimed one for months.)
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
 │   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
@@ -45,12 +48,21 @@ dots/
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
 │                        # NOTE: there is deliberately no config/fastfetch/ or config/gtk-3.0/ —
 │                        # those two configs are written ONLY by their templates (see docs/THEMING.md)
+├── assets/
+│   └── cursors/         # vendored upstream cursor tarball + its .sha256 + LICENSE.Bibata
+│                        # (Fedora packages no Bibata; see that dir's README.md before touching it)
 ├── scripts/
+│   ├── dots                    # THE user-facing command, symlinked to ~/.local/bin/dots by the restore stage.
+│   │                           # Thin dispatcher; its SUBCOMMANDS table is the ONLY declaration of the
+│   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
-│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + theme deploy + app configs + zinit/TPM bootstrap clones
+│   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + dots symlink + theme deploy + app configs + zinit/TPM bootstrap clones
+│   ├── install-restore-bin.sh  # sourced by install-restore.sh: the ~/.local/bin/dots symlink + its SCRIPT manifest row
 │   ├── install-restore-theme.sh # sourced by install-restore.sh: theme base-config deploy + manifest + backup
+│   ├── install-restore-cursor.sh # sourced by install-restore-theme.sh: extracts the vendored cursor tarball
+│   │                             # into ~/.local/share/icons and claims it as a THEME row
 │   ├── install-restore-theme-identity.sh # the identity writers: render a theme.conf into settings.ini + xsettingsd.conf
 │   │                                     # sourced by BOTH install-restore-theme.sh and scripts/theme/theme-apply.sh
 │   ├── install-restore-apps.sh  # sourced by install-restore.sh: thunar/xfce4/mimeapps deploy + guarded xfconf pass
@@ -73,10 +85,8 @@ dots/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
 │   └── */patches/      # vendored .diff files per program + PATCHES.md, applied at build time
 ├── themes/              # static themes: dark, gruvbox, nord, tokyo-night + CREDITS.md
-├── tests/               # lint.sh, build.sh, pkglist.sh, picom-lockstep.sh, starship-template.sh,
-│                        # fastfetch-template.sh, autostart-daemons.sh, desktop-consequences.sh,
-│                        # tmux-tpm-lockstep.sh, manifest-has-path.sh,
-│                        # dwm-colorpicker.sh, dwm-display.sh, theme-identity.sh
+├── tests/               # the suite; `ls tests/*.sh` is the list, deliberately not restated here.
+│                        # CI globs it, so a new test is picked up with no wiring.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / install-dry-run
 │                        # install-container.yml — the only job that RUNS install-fedora.sh (~30 min/leg, paths-filtered)
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md
@@ -98,6 +108,14 @@ install -> restore -> services — `scripts/install-{pre,pkg,restore,services}.s
 stage without mutating anything. `scripts/install-suckless.sh` (re)builds
 just the suckless programs standalone (also `--dry-run`-aware); `scripts/symlinks.sh`
 (re)links shell config without touching packages (also `--dry-run`-aware).
+
+After an install, **`dots` is the single user-facing command** (symlinked to
+`~/.local/bin/dots`): `dots theme`, `dots wallpaper`, `dots version`,
+`dots uninstall`. It only forwards — every target script stays independently
+runnable, and `dots --help` renders its list from the one table in
+`scripts/dots`. It deliberately breaks rule 3: because it is reached through a
+symlink, `cd "$(dirname "${BASH_SOURCE[0]}")"` would resolve `~/.local/bin`
+rather than the repo, so it uses `readlink -f` instead.
 
 ---
 
@@ -139,7 +157,7 @@ Flatpak). **`xcolor` is not a Fedora package** — §3 named it for years; only
 - Dark-mode-only wallbash-style engine: wallpaper -> ImageMagick colour extraction (`scripts/theme/colorgen.sh`) -> `.dcol` palette -> template engine (`scripts/theme/apply-templates.sh`) -> live targets -> ordered reload (`scripts/theme/reload.sh`).
 - dwm, st, dmenu and slock all read colours from the X resource database at runtime (xresources patches — see each tool's `patches/PATCHES.md`).
 - User commands: `scripts/theme/wallpaper.sh` and `scripts/theme/theme-apply.sh`; the keybinds (`Super+w`, `Super+Shift+w`, `Super+Ctrl+w`) live in `config/sxhkd/sxhkdrc`, needing no dwm rebuild but depending on sxhkd being installed (it is in `desktop.lst`, so a failed install is reported loudly rather than silently) and running. They moved out of `config.def.h` in roster sub-task 4 and must not be re-added there — dwm and sxhkd both `XGrabKey`, and a doubly-bound key silently dies.
-- **Four shipped static themes** — `dark` (Catppuccin Mocha), `gruvbox`, `nord`, `tokyo-night`. `config/theme/templates/` holds the `.dcol` templates. Every `colors.dcol` is **generated** by `colorgen.sh` from a four-block seed image, never hand-written, and each file's header records its seed hex so it can be regenerated; hand-written hex is how you get a palette missing a key some template references. **A theme switch applies the theme's identity too** (GTK theme name, icons, cursor, font) via the writers in `install-restore-theme-identity.sh` — `theme.conf` was report-only until 2026-08-12. Those writers never touch a `settings.ini`/`xsettingsd.conf` the manifest does not claim as ours, and only a *switch* (not an installer re-run) replaces one it does. All four `theme.conf` files currently carry identical values because the repo declares exactly one dark GTK theme; that is a packaging limit, not a design one. `tests/theme-identity.sh` guards the whole path.
+- **Four shipped static themes** — `dark` (Catppuccin Mocha), `gruvbox`, `nord`, `tokyo-night`. `config/theme/templates/` holds the `.dcol` templates. Every `colors.dcol` is **generated** by `colorgen.sh` from a four-block seed image, never hand-written, and each file's header records its seed hex so it can be regenerated; hand-written hex is how you get a palette missing a key some template references. **A theme switch applies the theme's identity too** (GTK theme name, icons, cursor, font) via the writers in `install-restore-theme-identity.sh` — `theme.conf` was report-only until 2026-08-12. Those writers never touch a `settings.ini`/`xsettingsd.conf` the manifest does not claim as ours, and only a *switch* (not an installer re-run) replaces one it does. All four `theme.conf` files currently carry identical values because the repo declares exactly one dark GTK theme; that is a packaging limit, not a design one. `tests/theme-identity.sh` guards the whole path. **`cursor_theme` is the one identity field backed by a vendored asset** rather than a package: `assets/cursors/` holds the upstream Bibata tarball and `install-restore-cursor.sh` unpacks it. The name in all four `theme.conf` files must match the archive's top-level directory — nothing at runtime notices when they disagree (GTK silently falls back to a default cursor), so `tests/cursor-theme.sh` reads both sides and fails the build instead.
 - **`config/dunst` and `config/picom` must never be added to `symlinks.sh`** — the engine rewrites those whole files on every wallpaper change, and a symlink would make it write into this repo. The installer copies them instead.
 - **Templates as of sub-task 9** (`always/`): `xresources`, `dunst`, `picom`, `gtk`, `statusbar`, `alacritty`, `starship`, `fastfetch`, `vim`. `cava.dcol` was **deleted** — it themed a program the installer never installs. Adding a template means reading `config/theme/templates/always/README.md` first: it documents the three target styles and, more importantly, which one is safe for a config that `symlinks.sh` links.
 - **`gtk.css` and `fastfetch/config.jsonc` have no static copy under `config/` at all** — the `.dcol` is the sole authored version. That avoids the two-files-in-lockstep hazard `picom` has (where `config/picom/picom.conf` and `picom.dcol` must be hand-edited together or the first wallpaper change reverts the tuning), at the cost of two obligations on `install-restore-theme.sh`: create the parent directory, or the engine's install-check skips the template forever; and claim the path in the manifest, or uninstall cannot remove it. **Do not add a `config/fastfetch/` directory** — it would reintroduce exactly the lockstep problem.
@@ -161,7 +179,7 @@ new pattern.
 1. **Every script is idempotent and re-runnable.** `set -euo pipefail` at the top; re-running after a partial or full success must be a safe no-op (or converge to the same state), never error out or duplicate work.
 2. **Colored logging helpers, not raw `echo`.** Each script defines its own `red()`/`green()`/`yellow()`/`blue()` (`printf '\033[3xm%s\033[0m\n'`) — red for hard errors, green for confirmed/success/already-ok, yellow for warnings/manual-follow-up, blue for informational. Reuse this pattern verbatim in new scripts rather than introducing a different color scheme or a shared sourced file.
 3. **`SCRIPT_DIR`/`DOTS_DIR` resolution pattern.** Every script computes its own location and the repo root the same way: `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` then `DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"`. Never hardcode paths.
-4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`, `bibata-cursor-themes`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-fedora.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default.
+4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. **Vendoring is the third option**, and the one taken for the Bibata cursor theme (2026-08-13): the upstream release tarball lives in `assets/cursors/` with its checksum and license, and the restore stage unpacks it — no COPR, no network at install time, and the artifact is pinned rather than floating. It is only worth it for a self-contained asset; don't vendor anything that needs building or linking. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-fedora.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default.
 5. **Suckless patches are vendored as `.diff` files under `suckless/<program>/patches/`**, named `<patch>-<version-or-date>-<hash>.diff`, applied at build time by `install-suckless.sh`. Don't hand-edit the vendored `.c`/`.h` sources directly for something a patch already covers — add or update the `.diff` instead so the change survives a re-vendor.
 6. **`install-suckless.sh` never overwrites user customizations** — `autostart.sh` and `.xinitrc` are treated as user-owned once they exist; preserve that guarantee in any change to the build/install flow.
 

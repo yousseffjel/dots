@@ -1,0 +1,72 @@
+#compdef dots
+# Completion for the `dots` dispatcher (scripts/dots).
+#
+# Nothing here enumerates subcommands or flags. Both are read back out of the
+# command's own --help at completion time:
+#
+#   * `dots --help`        renders the SUBCOMMANDS table in scripts/dots
+#   * `dots <sub> --help`  renders that script's own usage header
+#
+# So adding a subcommand, renaming one, or adding a flag to any of the four
+# target scripts needs no edit to this file. A hardcoded list here would be a
+# fourth copy of something the repo already declares once, and every
+# hand-written list in this repo has gone stale at least once.
+
+_dots() {
+    local curcontext="$curcontext" state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1: :->subcommand' \
+        '*:: :->args'
+
+    case $state in
+        subcommand)
+            local -a subcmds
+            local l
+            # Help lines for subcommands are "  <name>  <description>"; the
+            # usage and trailing prose lines have no leading double space, so
+            # they fall out on their own.
+            for l in ${(f)"$(_call_program dots-subcommands dots --help 2>/dev/null)"}; do
+                if [[ $l =~ '^  ([a-z][a-z-]*)[[:space:]]+(.+)$' ]]; then
+                    subcmds+=( "${match[1]}:${match[2]}" )
+                fi
+            done
+            _describe -t dots-subcommands 'dots subcommand' subcmds
+            ;;
+        args)
+            local -a flags
+            local l f
+            # Same trick one level down: the target script's usage block names
+            # its own flags, so they are read rather than restated.
+            #
+            # The four targets use TWO usage styles — theme/wallpaper list
+            # flags bare in a header block, version/uninstall write them as
+            # "usage: dots version [--json]". Brackets are stripped first or
+            # the second style yields nothing at all, which is exactly what an
+            # earlier version of this file did.
+            for l in ${(f)"$(_call_program dots-flags dots ${words[1]} --help 2>/dev/null)"}; do
+                for f in ${(z)l}; do
+                    f=${f//[\[\]]/}
+                    [[ $f == --[a-z]* ]] && flags+=( ${f%%[^a-z-]*} )
+                done
+            done
+            (( ${#flags} )) && _values 'option' ${(u)flags}
+
+            # Positional arguments differ per subcommand, and only these two
+            # take one at all.
+            case ${words[1]} in
+                theme)
+                    local -a themes
+                    themes=( ${(f)"$(_call_program dots-themes dots theme --list 2>/dev/null)"} )
+                    (( ${#themes} )) && _describe -t dots-themes 'theme' themes
+                    ;;
+                wallpaper)
+                    _files -g '*.(jpg|jpeg|png|webp|bmp|JPG|JPEG|PNG|WEBP|BMP)'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_dots "$@"

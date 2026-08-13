@@ -23,8 +23,12 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 WALLPAPER_DIR="${DOTS_WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 
+# Usage text lives in this file's header (lines 3-7), not in a string here, so
+# there is one copy. The trailing swap renames it to however it was invoked —
+# see the same comment in theme-apply.sh.
 usage() {
-    sed -n '3,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '3,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
+        | sed "s|wallpaper\.sh|${DOTS_CMD:-wallpaper.sh}|g"
 }
 
 notify() {

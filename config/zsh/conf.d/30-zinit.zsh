@@ -2,6 +2,7 @@
 #
 # Order matters here:
 #   1. zsh-completions    — adds completions to fpath, must precede compinit
+#   1b. this repo's own completions — same constraint, same reason
 #   2. compinit           — initializes the completion system
 #   3. zinit cdreplay     — replays compdefs queued by zinit before compinit ran
 #   4. fzf-tab            — must come AFTER compinit, BEFORE widget-wrapping plugins
@@ -22,6 +23,12 @@ source "${ZINIT_HOME}/zinit.zsh"
 # 1. Completions (adds to fpath; compinit will pick them up)
 zinit ice blockf
 zinit light zsh-users/zsh-completions
+
+# 1b. This repo's own completions (config/zsh/completions, which symlinks.sh
+# deploys to $ZDOTDIR/completions along with the rest of config/zsh). Same
+# ordering constraint as any fpath addition: compinit only scans what is in
+# fpath when it runs.
+[[ -d "$ZDOTDIR/completions" ]] && fpath=("$ZDOTDIR/completions" $fpath)
 
 # 2 + 3. compinit (cache zcompdump under XDG_CACHE_HOME)
 _zcompdump="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"

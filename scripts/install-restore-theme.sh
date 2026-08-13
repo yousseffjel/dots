@@ -23,6 +23,10 @@
 THEME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=install-restore-theme-identity.sh
 source "$THEME_DIR/install-restore-theme-identity.sh"
+# The vendored cursor theme — its own file for the same reason, and because a
+# test can then run the shipped function instead of a copy of it.
+# shellcheck source=install-restore-cursor.sh
+source "$THEME_DIR/install-restore-cursor.sh"
 
 # --- the two manifest categories this file writes -----------------------------
 #
@@ -175,6 +179,9 @@ restore_theme() {
     PREEXISTING_TARGETS=()
     deploy_theme_file "$DOTS_DIR/config/dunst/dunstrc" "$CONF_HOME/dunst/dunstrc"
     deploy_theme_file "$DOTS_DIR/config/picom/picom.conf" "$CONF_HOME/picom/picom.conf"
+    # Before the identity writers: both name cursor_theme from theme.conf, and
+    # the cursor they name should exist on disk by the time xsettingsd reloads.
+    restore_cursor_theme
     theme_write_gtk_ini
     theme_write_xsettingsd_conf
     theme_claim_gtk_css

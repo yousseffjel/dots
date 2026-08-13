@@ -19,6 +19,7 @@ source "$SCRIPT_DIR/global_fn.sh"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 DRY_RUN=0
@@ -97,6 +98,12 @@ if [[ $DRY_RUN -eq 0 ]]; then
         fi
     done < <("$SCRIPT_DIR/symlinks.sh" --list-links)
 fi
+
+# The `dots` command: one symlink into ~/.local/bin. Its own file so that
+# tests/dots-dispatch.sh can run the shipped function rather than a copy of it.
+# shellcheck source=install-restore-bin.sh
+source "$SCRIPT_DIR/install-restore-bin.sh"
+restore_dots_bin
 
 source "$SCRIPT_DIR/install-restore-theme.sh"
 restore_theme

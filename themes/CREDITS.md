@@ -59,6 +59,21 @@ rather than faithful ports, and none of them vendors upstream code.
 Licences verified against each repository's GitHub page on 2026-08-12. Each
 palette's own header records the exact seed hex, so it can be regenerated.
 
+## Bibata (cursor theme)
+
+`assets/cursors/Bibata-Modern-Classic.tar.xz` is an **unmodified upstream
+release artifact** from [ful1e5/Bibata_Cursor](https://github.com/ful1e5/Bibata_Cursor),
+release `v2.0.7`, **GPL-3.0** licensed. Unlike the palettes above — which are
+this repo's own output, merely seeded by upstream colours — this one is
+upstream's own binary, redistributed as-is.
+
+The GPL-3.0 text is vendored beside it as `assets/cursors/LICENSE.Bibata`,
+because the release tarball ships without one. This is aggregation, not
+derivation: no Bibata code is linked into or built against anything here, and
+it imposes nothing on the rest of this repo. All four `themes/*/theme.conf`
+name it as `cursor_theme`. Licence verified against the repository's GitHub
+API on 2026-08-13.
+
 ## suckless
 
 dwm, st, dmenu, dwmblocks and slock are from [suckless.org](https://suckless.org)

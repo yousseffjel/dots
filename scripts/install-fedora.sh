@@ -40,9 +40,13 @@
 # its installer needs to touch your zsh rc files and those are symlinked
 # from this repo.
 #
-# lazygit and bibata-cursor-themes are not in official Fedora repos (COPR
-# only) — install them yourself via `dnf copr enable dejan/lazygit` and
-# `dnf copr enable peterwu/rendezvous` respectively if you want them.
+# lazygit is not in official Fedora repos (COPR only) — install it yourself
+# via `dnf copr enable dejan/lazygit` if you want it.
+#
+# The Bibata cursor theme used to be listed here for the same reason. It is
+# no longer a COPR decision at all: the upstream release tarball is vendored
+# under assets/cursors/ and unpacked by the restore stage, so nothing needs
+# enabling. See assets/cursors/README.md.
 #
 # clipmenu + clipnotify (dwm-clipmenu's backend, see config/dwm/bin/) are
 # also COPR-only (skidnik/clipmenu) — unlike the two above, this repo IS
@@ -167,4 +171,4 @@ yellow "  - open a new shell or run: exec zsh"
 yellow "  - on first tmux start, TPM auto-installs plugins"
 yellow "  - log in via ly on tty2 on next boot; tty1's getty is left alone on purpose as a rescue login"
 yellow "  - Node.js: install nvm yourself (https://github.com/nvm-sh/nvm), then nvm install --lts"
-yellow "  - lazygit / bibata-cursor-themes are COPR-only — see the script header for the copr enable commands"
+yellow "  - lazygit is COPR-only — see the script header for the copr enable command"

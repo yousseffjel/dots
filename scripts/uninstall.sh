@@ -27,7 +27,9 @@ for arg in "$@"; do
         --yes) ASSUME_YES=1 ;;
         --dry-run) DRY_RUN=1 ;;
         -h | --help)
-            echo "usage: uninstall.sh [--yes] [--dry-run]"
+            # DOTS_CMD is set by scripts/dots when this was reached through the
+            # dispatcher, so the help names how it was actually invoked.
+            echo "usage: ${DOTS_CMD:-uninstall.sh} [--yes] [--dry-run]"
             exit 0
             ;;
         *)

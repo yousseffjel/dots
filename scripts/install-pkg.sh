@@ -134,9 +134,15 @@ fi
 #   2. No manifest row is written, so `uninstall.sh` will NOT remove it. A
 #      PACKAGE row would be actively harmful — uninstall_packages() passes
 #      every PACKAGE value to a single `dnf remove`, and one un-removable name
-#      makes that call fail, taking every other package down with it. A SCRIPT
-#      row would delete correctly but files starship under a prompt that reads
-#      "dwmblocks block scripts". Remove it by hand:
+#      makes that call fail, taking every other package down with it.
+#
+#      A SCRIPT row was rejected for a second reason that no longer holds: it
+#      would have filed starship under a prompt reading "dwmblocks block
+#      scripts". That prompt was generalised on 2026-08-13 (it now counts rows
+#      instead of naming one kind), so a SCRIPT row would read correctly today.
+#      Adding one is a behaviour change — uninstall would start deleting a
+#      binary the user may upgrade independently via `starship upgrade` — so it
+#      is left as a deliberate open choice, not done in passing. Until then:
 #        rm -f ~/.local/bin/starship
 #
 # Best-effort: on failure 99-prompt.zsh falls back to its built-in prompt,

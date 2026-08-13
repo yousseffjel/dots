@@ -113,7 +113,16 @@ HyDE's `restore_cfg.psv` maps repo path → target path with flags
 **To do:**
 - Either a `restore_cfg.psv`-style manifest + restore script, **or** use GNU `stow` (simpler: `stow -t ~ config`).
 - Automatic timestamped backups: `~/.config/backup_YYYYMMDD_HHMMSS/`.
-- `restore_fnt.sh` — Nerd Fonts + emoji fonts + `fc-cache -f`.
+- ~~`restore_fnt.sh` — Nerd Fonts + emoji fonts + `fc-cache -f`.~~ **Not
+  needed as written (checked 2026-08-13).** Fedora packages every font this
+  repo wants: `cascadia-code-nf-fonts` is the Nerd Font (`desktop.lst`, with
+  consequence text), plus `jetbrains-mono-fonts-all` and the noto set in
+  `extra.lst`. The *only* asset Fedora does not package is the **cursor**
+  theme, and that is handled by vendoring the upstream tarball under
+  `assets/cursors/` rather than by a downloader — see that directory's
+  `README.md` and `scripts/install-restore-cursor.sh`. Note HyDE's own
+  `restore_fnt.sh` does not download either; it extracts archives already in
+  the clone.
 - `restore_svc.sh` — `systemctl enable` needed services.
 - `restore_shl.sh` — zsh default shell, plugins (autosuggestions, syntax-highlighting), starship prompt.
 
@@ -334,6 +343,7 @@ mpv                       # media player
 | `rebuild.sh` | recompile all suckless tools |
 | `lock.sh` | slock wrapper (pause media, etc.) |
 | ~~`clipboard.sh`~~ | ✅ done as `config/dwm/bin/dwm-clipmenu` (thin dmenu-themed wrapper around `clipmenu`) |
+| `dots` | ✅ done 2026-08-13 — the single user-facing command on `$PATH`, HyDE's `hydectl` equivalent. Dispatches to `theme-apply.sh` / `wallpaper.sh` / `version.sh` / `uninstall.sh`; none of them moved |
 
 ---
 
@@ -374,8 +384,11 @@ file and rebuild dmenu/dwm rather than just swap a runtime config — out of sco
 until the theme-switcher script exists.
 
 Plus:
-- Nerd Fonts install script (`restore_fnt.sh`) — download from GitHub releases → `~/.local/share/fonts` → `fc-cache -f`.
-- At least **one complete default theme** shipped in repo.
+- ~~Nerd Fonts install script (`restore_fnt.sh`)~~ — see §2.3: fonts are all
+  packaged by Fedora, and the cursor theme (the one thing that is not) is
+  vendored under `assets/cursors/`, not downloaded.
+- ✅ **Four** complete themes shipped in repo (`dark`, `gruvbox`, `nord`,
+  `tokyo-night`) — done 2026-08-12, ahead of the "at least one" written here.
 - Later: HyDE-style community "theme patcher" (git-clone external theme repos).
 
 ---

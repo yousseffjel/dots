@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# dots — the single user-facing command for this repo.
+#
+# Thin dispatcher: every subcommand forwards its arguments verbatim to the
+# script that already implements it, so `dots theme --list` is exactly
+# `scripts/theme/theme-apply.sh --list`. Nothing is reimplemented here, and
+# each target stays independently runnable — the scripts are the product, this
+# is a front door onto them.
+#
+# Installed as a symlink at ~/.local/bin/dots (see install-restore.sh, which
+# also records it in the manifest so uninstall.sh removes it). Exactly ONE name
+# is claimed on $PATH: ~/.local/bin comes before ~/.config/dwm/bin in
+# config/zsh/.zshenv, so anything dropped here shadows the dwm-* controls. One
+# name that collides with nothing is the whole point of a dispatcher.
+#
+# usage: dots <subcommand> [args...]
+
+set -euo pipefail
+
+# ~/.local/bin/dots is a SYMLINK into the repo, so this repo's usual
+# `cd "$(dirname "${BASH_SOURCE[0]}")"` idiom (rule 3) resolves to
+# ~/.local/bin — the symlink's directory, not the repo. cd follows the
+# directory, never the file. readlink -f resolves the link itself; it is GNU
+# coreutils, already assumed elsewhere in this repo (find -printf).
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$SELF")" && pwd)"
+DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+red() { printf '\033[31m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
+
+# subcommand : script relative to DOTS_DIR : one-line description.
+#
+# The ONLY place a subcommand is declared. usage() renders its help from this
+# table and tests/dots-dispatch.sh reads it back out, so adding a subcommand is
+# a one-line change here and nothing else goes stale. Do not restate this list
+# in a help string, in the completion, or in the docs.
+SUBCOMMANDS=(
+    "theme:scripts/theme/theme-apply.sh:apply a colour theme (static or --wallbash)"
+    "wallpaper:scripts/theme/wallpaper.sh:set the wallpaper and re-theme from it"
+    "version:scripts/version.sh:print repo, installed and component versions"
+    "uninstall:scripts/uninstall.sh:reverse the install, manifest-driven"
+)
+
+usage() {
+    echo "usage: dots <subcommand> [args...]"
+    echo
+    echo "subcommands:"
+    local entry name desc
+    for entry in "${SUBCOMMANDS[@]}"; do
+        name="${entry%%:*}"
+        desc="${entry##*:}"
+        printf '  %-10s %s\n' "$name" "$desc"
+    done
+    echo
+    echo "Arguments after the subcommand are passed through untouched;"
+    echo "\`dots <subcommand> --help\` shows that subcommand's own options."
+}
+
+# Prints the script path for subcommand $1, or nothing if there is no match.
+resolve_subcommand() {
+    local wanted="$1" entry rest
+    for entry in "${SUBCOMMANDS[@]}"; do
+        if [[ "${entry%%:*}" == "$wanted" ]]; then
+            rest="${entry#*:}"
+            printf '%s\n' "${rest%%:*}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+case "${1:-}" in
+    "")
+        red "no subcommand given"
+        usage
+        exit 1
+        ;;
+    -h | --help)
+        usage
+        exit 0
+        ;;
+esac
+
+SUB="$1"
+shift
+
+if ! TARGET_REL="$(resolve_subcommand "$SUB")"; then
+    red "unknown subcommand: $SUB"
+    usage
+    exit 1
+fi
+
+TARGET="$DOTS_DIR/$TARGET_REL"
+if [[ ! -x "$TARGET" ]]; then
+    red "cannot run $TARGET_REL — not found or not executable"
+    yellow "  expected it at: $TARGET"
+    yellow "  if the repo moved, re-run scripts/install-fedora.sh --only-restore"
+    exit 1
+fi
+
+# Lets the target print "usage: dots theme ..." instead of its own filename
+# when it was reached through the dispatcher. Each target falls back to its own
+# name when DOTS_CMD is unset, so running the script directly is unchanged.
+export DOTS_CMD="dots $SUB"
+
+exec "$TARGET" "$@"

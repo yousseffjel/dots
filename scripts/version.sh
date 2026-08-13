@@ -16,7 +16,9 @@ for arg in "$@"; do
     case "$arg" in
         --json) JSON=1 ;;
         -h | --help)
-            echo "usage: version.sh [--json]"
+            # DOTS_CMD is set by scripts/dots when this was reached through the
+            # dispatcher, so the help names how it was actually invoked.
+            echo "usage: ${DOTS_CMD:-version.sh} [--json]"
             exit 0
             ;;
         *)

@@ -7,10 +7,13 @@ truth — it never guesses or hardcodes what to remove.
 ## Quick start
 
 ```sh
-scripts/uninstall.sh --dry-run   # preview every action, nothing is touched
-scripts/uninstall.sh             # interactive — confirms each category below
-scripts/uninstall.sh --yes       # non-interactive, auto-confirms everything
+dots uninstall --dry-run   # preview every action, nothing is touched
+dots uninstall             # interactive — confirms each category below
+dots uninstall --yes       # non-interactive, auto-confirms everything
 ```
+
+`dots` is the command the installer puts on `$PATH`; it forwards straight to
+`scripts/uninstall.sh`, which can equally be run directly from a checkout.
 
 It refuses to run as root (it manages a per-user install) and logs every
 step to `~/.local/state/dots/uninstall.log`.
@@ -34,13 +37,18 @@ partial uninstall is a normal, supported outcome, not an error.
    directory the installer actually built (dwm, st, dmenu, dwmblocks,
    slock — whichever are recorded in the manifest), removing their
    binaries and man pages from `/usr/local/bin` / `/usr/local/share/man`.
-3. **dwmblocks block scripts.** `dwm-cpu`/`dwm-mem`/`dwm-clock`/
-   `dwm-colors` are deployed to `~/.local/bin` by a separate
-   `make install-scripts` target (not `make install`), so the previous
-   step never touches them — removed here from their own manifest rows.
+3. **Scripts in `~/.local/bin`.** Two kinds, both recorded as `SCRIPT` rows
+   and both invisible to the previous step: the dwmblocks block scripts,
+   deployed by a separate `make install-scripts` target rather than
+   `make install`; and the `dots` command itself, a symlink to
+   `scripts/dots`. Removed from their manifest rows, so a `dots` that was
+   already there and belongs to something else was never given a row and is
+   left alone.
 4. **Theme files.** The base configs the installer *copied* rather than
    symlinked (`~/.config/dunst/dunstrc`, `~/.config/picom/picom.conf`, the
-   GTK `settings.ini`/`gtk.css`), plus the wholly generated
+   GTK `settings.ini`/`gtk.css`), the vendored cursor theme unpacked into
+   `~/.local/share/icons/` — the one entry that is a directory rather than a
+   file, which is why this step uses `rm -rf` — plus the wholly generated
    `~/.cache/dots/theme/`. Copies can't be identified by a readlink check
    the way symlinks can, so these are removed by manifest row instead — and
    a file that already existed when the installer ran was never given a row,

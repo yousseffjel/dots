@@ -70,16 +70,21 @@ uninstall_suckless() {
     fi
 }
 
-# dwmblocks block scripts are deployed by `make install-scripts` (a
-# separate target from `make install`, see install-suckless.sh) directly
-# to ~/.local/bin, so uninstall_suckless's `make uninstall` never touches
-# them — removed here explicitly instead.
+# Everything this installer drops into ~/.local/bin, which `make uninstall`
+# in uninstall_suckless never sees:
+#   * dwmblocks block scripts — deployed by `make install-scripts`, a separate
+#     target from `make install` (see install-suckless.sh)
+#   * the `dots` command — a symlink to scripts/dots (see install-restore.sh)
+# Both carry SCRIPT rows, so both are removed here. The prompt deliberately
+# does not name either one: it counts the manifest rows instead, because a
+# hardcoded "dwmblocks block scripts" would have started lying the moment the
+# second kind of row appeared.
 uninstall_scripts() {
-    blue "=== dwmblocks block scripts ==="
+    blue "=== scripts in ~/.local/bin ==="
     mapfile -t script_paths < <(manifest_rows SCRIPT | cut -f3)
     if [[ ${#script_paths[@]} -eq 0 ]]; then
         blue "  no SCRIPT rows in manifest — nothing to remove"
-    elif confirm "Remove ${#script_paths[@]} dwmblocks block script(s) from ~/.local/bin?"; then
+    elif confirm "Remove ${#script_paths[@]} script(s) this installer put in ~/.local/bin?"; then
         for path in "${script_paths[@]}"; do
             if [[ $DRY_RUN -eq 1 ]]; then
                 blue "  (dry-run) would remove $path"
@@ -92,7 +97,7 @@ uninstall_scripts() {
             fi
         done
     else
-        yellow "  skipped dwmblocks block scripts"
+        yellow "  skipped ~/.local/bin scripts"
     fi
 }
 

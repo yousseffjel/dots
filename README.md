@@ -5,6 +5,23 @@
 Personal dotfiles + a suckless-based dwm/X11 desktop bootstrap for Fedora.
 See `CLAUDE.md` for the full project map and installer usage.
 
+## The `dots` command
+
+The installer symlinks `scripts/dots` to `~/.local/bin/dots`, giving one
+user-facing command on `$PATH`:
+
+```sh
+dots theme --list             # or: dots theme dark, dots theme --wallbash
+dots wallpaper --select       # or: --random, or an image path
+dots version --json
+dots uninstall --dry-run
+```
+
+Each subcommand forwards its arguments verbatim to the script that implements
+it, so `dots theme --list` is exactly `scripts/theme/theme-apply.sh --list` and
+every script stays runnable on its own. `dots --help` lists what is available;
+`dots <subcommand> --help` shows that subcommand's options.
+
 ## Development
 
 This repo lints shell scripts (shellcheck + shfmt), Markdown
@@ -29,8 +46,8 @@ pre-commit run --all-files
 ## Versioning
 
 This repo follows semver via the `VERSION` file at the repo root.
-`scripts/version.sh` prints the repo version alongside what's actually
-installed (read from the manifest at `~/.local/state/dots/manifest`,
+`dots version` (`scripts/version.sh`) prints the repo version alongside
+what's actually installed (read from the manifest at `~/.local/state/dots/manifest`,
 written by `install-fedora.sh`).
 
 - **Patch** (`0.1.0` → `0.1.1`): fixes, package-list corrections, or

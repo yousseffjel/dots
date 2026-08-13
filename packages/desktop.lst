@@ -73,6 +73,14 @@ wireplumber  # pipewire has no session manager, so devices are never linked
 # --- fonts ---
 cascadia-code-nf-fonts  # every Nerd Font glyph renders as tofu in the prompt, the eza --icons aliases and fastfetch
 
+# --- cursor theme ---
+# GNU tar's -J filters through the EXTERNAL xz binary rather than linking
+# liblzma, so `tar -xJf` fails outright without this package — see
+# scripts/install-restore-cursor.sh. Practically always present (it is in
+# @core), declared anyway: rule 10 exists because the undeclared dependency is
+# the one nobody notices until a minimal image.
+xz  # the vendored Bibata cursor tarball cannot be unpacked, so the desktop falls back to the default X cursor
+
 # --- installer mechanism for a keybound feature ---
 dnf-plugins-core  # `dnf copr enable` fails, so clipmenu and clipnotify never install and the clipboard-history keybind dies
 

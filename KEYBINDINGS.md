@@ -441,13 +441,18 @@ entry without applying anything.
 
 ### Theming from a shell
 
-The theming commands also work without any keybinding:
+The theming commands also work without any keybinding, through the `dots`
+command the installer puts on `$PATH`:
 
 ```sh
-scripts/theme/wallpaper.sh --select      # or --random, or a path
-scripts/theme/theme-apply.sh --list
-scripts/theme/theme-apply.sh --wallbash  # re-derive from current wallpaper
+dots wallpaper --select      # or --random, or a path
+dots theme --list
+dots theme --wallbash        # re-derive from current wallpaper
 ```
+
+Each is a passthrough to the script that implements it
+(`scripts/theme/wallpaper.sh`, `scripts/theme/theme-apply.sh`), which can still
+be run directly. `dots --help` lists every subcommand.
 
 Wallpapers are read from `~/Pictures/wallpapers` by default; override with
 `DOTS_WALLPAPER_DIR`.
