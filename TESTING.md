@@ -56,6 +56,17 @@ for adding CI; new docs you add are linted normally.
   a failure instead of a skip. Either way an empty file list is a hard error
   — the script is itself one of the files it must find, so finding none means
   the `find` failed, not that there was nothing to check.
+- **`tests/shellcheck-pin.sh`** — shellcheck is pinned twice: `SHELLCHECK_VERSION`
+  in `.github/workflows/ci.yml` (the binary the `lint` job downloads and puts
+  ahead of the runner image's own) and the `shellcheck-py` rev in
+  `.pre-commit-config.yaml` (what a commit hook runs here). Drift between them
+  is silent and asymmetric — shellcheck renumbers findings across minor
+  releases, and 0.10.0 splitting unreachable function bodies out of SC2317
+  into SC2329 is exactly what turned `lint` red while `pre-commit run
+  --all-files` stayed green. Reads both numbers out of the shipped files and
+  ignores shellcheck-py's own fourth packaging component; an extraction that
+  matches nothing is a failure, not a pass. Bumping the version means bumping
+  both files and recomputing `SHELLCHECK_SHA256`.
 - **`tests/build.sh`** — `make clean && make` (never `make install`) for
   each of `suckless/{dwm,st,dmenu,dwmblocks,slock}`. Needs the build deps
   from `scripts/install-suckless.sh`'s `install_deps()` already installed

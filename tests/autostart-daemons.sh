@@ -85,12 +85,17 @@ launched() {
 : >"$SB/empty-autostart.sh"
 (
     # Invoked indirectly, from inside session_autostart_report — shellcheck
-    # cannot see through the sourced call, hence SC2329. Overriding them only
-    # for this subshell keeps the colour codes out of the text parsed below
-    # without disturbing this test's own output.
-    # shellcheck disable=SC2329
+    # cannot see through the sourced call, so it calls the body unreachable.
+    # BOTH codes are disabled because shellcheck renamed this finding in
+    # 0.10.0, splitting function-body unreachability out of SC2317 into
+    # SC2329: a single-code directive is green under one version and red
+    # under the other, which is exactly how it went red in CI on a runner
+    # image older than this repo's pin. Overriding these two only for this
+    # subshell keeps the colour codes out of the text parsed below without
+    # disturbing this test's own output.
+    # shellcheck disable=SC2317,SC2329
     green() { printf '%s\n' "$*"; }
-    # shellcheck disable=SC2329
+    # shellcheck disable=SC2317,SC2329
     yellow() { printf '%s\n' "$*"; }
     session_autostart_report "$SB/empty-autostart.sh"
 ) >"$SB/report.out"

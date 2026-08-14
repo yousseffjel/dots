@@ -12,6 +12,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Keep in lockstep with the shellcheck-py rev in .pre-commit-config.yaml —
+  # tests/shellcheck-pin.sh fails the build when the two disagree. The digest
+  # is of the release asset itself (GitHub release assets are immutable), so
+  # bumping the version means recomputing it.
+  SHELLCHECK_VERSION: v0.11.0
+  SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
   SHFMT_VERSION: v3.13.1
   MARKDOWNLINT_VERSION: 0.49.1
 
@@ -29,12 +35,27 @@ jobs:
       # path: tests/lint.sh finds its tools with `command -v`, so a shfmt
       # sitting in an unexported GOPATH/bin would be silently skipped —
       # which under --strict is a failure, by design.
+      #
+      # shellcheck is pinned like the other two, and for a reason that cost
+      # one red build: this step used to accept whatever shellcheck the runner
+      # image happened to ship. shellcheck 0.10.0 split unreachable *function
+      # bodies* out of SC2317 into SC2329, so a `disable=` directive written
+      # against one version is ignored by the other and the finding comes
+      # back — green for the author, red here. Pinning makes the linter CI
+      # runs the linter .pre-commit-config.yaml already declared.
+      # $HOME/.local/bin goes on $GITHUB_PATH, which PREPENDS, so this copy
+      # wins over the image's /usr/bin one.
       - name: Install linters
         run: |
-          command -v shellcheck >/dev/null 2>&1 || {
-            sudo apt-get update -y
-            sudo apt-get install -y shellcheck
-          }
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz"
+          echo "${SHELLCHECK_SHA256}  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          install -m 0755 \
+            "$RUNNER_TEMP/shellcheck-${SHELLCHECK_VERSION}/shellcheck" \
+            "$HOME/.local/bin/shellcheck"
+          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
           go install "mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}"
           echo "$(go env GOPATH)/bin" >>"$GITHUB_PATH"
           # Installed rather than npx'd so tests/lint.sh's `command -v

@@ -287,7 +287,7 @@ alacritty                 # terminal (or use st from suckless/)
 thunar                    # file manager (or pcmanfm)
 thunar-archive-plugin
 file-roller               # archive tool
-vim                       # or neovim
+vim-enhanced              # or neovim — Fedora ships no bare `vim` package
 tmux
 zsh
 starship                  # prompt (COPR or install script)

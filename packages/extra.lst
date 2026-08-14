@@ -48,6 +48,25 @@
 #   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
 #     repos, so no third-party repo is needed. Locked decision 8.
 #
+#   p7zip / p7zip-plugins — still on f43, gone on f44. Replaced by `7zip`
+#     below, upstream 7-Zip, which resolves on both. There is no
+#     `7zip-plugins`; RAR extraction here is `unar`'s job either way.
+#
+#   vim — does not resolve on f43 or f44. `vim` is the source package; the
+#     editor `vim.dcol` themes is `vim-enhanced` below. (Fedora's base image
+#     ships `vim-minimal`, which is `vi`.)
+#
+#   wget — does not resolve on f43 or f44 either; wget2 replaced it.
+#     `wget2-wget` below is the shim package whose stated purpose is to
+#     provide `/usr/bin/wget`, so the command name is unchanged; plain
+#     `wget2` installs only `/usr/bin/wget2`.
+#
+#     All three verified 2026-08-14 against the Fedora mdapi for f43 AND f44,
+#     each with a control query in the same sweep so an absence means the
+#     package is gone rather than the endpoint being unhappy. Note mdapi is
+#     case-sensitive where dnf is not: it reports `thunar` missing and
+#     `Thunar` present, which is a probe artefact, not a package rename.
+#
 #   The X11 and font -devel headers, plus gcc/make/patch/pkgconf-pkg-config —
 #     all moved to packages/build.lst, which install-suckless.sh installs
 #     itself immediately before it compiles.
@@ -131,14 +150,13 @@ desktop-file-utils
 lxappearance
 xdg-user-dirs
 unzip
-p7zip
-p7zip-plugins
+7zip
 zip
 tar
 
 # development stack (Node.js is handled by nvm, not dnf — see install-fedora.sh header)
 neovim
-vim
+vim-enhanced
 tmux
 rust
 cargo
@@ -157,6 +175,6 @@ trash-cli
 ripgrep
 fd-find
 curl
-wget
+wget2-wget
 binutils
 coreutils
