@@ -138,6 +138,24 @@ jobs:
       - name: Build each suckless program (make only, no install)
         run: bash tests/build.sh
 
+      # Deliberately NOT in packages/build.lst: these back tests/dwm-runtime.sh
+      # (scope-d slot C) only, and a real install never needs a virtual
+      # framebuffer, xdotool, or ImageMagick. build.lst is what
+      # install-suckless.sh reads for actual builds — mixing CI-only test
+      # tooling into it would mean a standalone build pulling in packages
+      # with no purpose outside this job, the same reasoning the "Install
+      # linters" step above already follows.
+      - name: Install dwm-runtime.sh test dependencies
+        run: dnf install -y xorg-x11-server-Xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick
+
+      # First-ever execution of the built dwm binary by this test suite.
+      # Asserts real EWMH state plus xresources/actualfullscreen/pertag
+      # patch behaviour under Xvfb — see the script's own header for what's
+      # a hard failure vs. advisory. Skips loudly (not a failure) if any of
+      # the tools above are somehow still missing.
+      - name: Run dwm under Xvfb
+        run: bash tests/dwm-runtime.sh
+
   install-dry-run:
     name: install-dry-run (${{ matrix.fedora }})
     runs-on: ubuntu-latest

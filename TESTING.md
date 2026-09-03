@@ -81,6 +81,20 @@ for adding CI; new docs you add are linted normally.
   each of `suckless/{dwm,st,dmenu,dwmblocks,slock}`. Needs the build deps
   from `scripts/install-suckless.sh`'s `install_deps()` already installed
   — run that script, or use the toolbox/podman flow below.
+- **`tests/dwm-runtime.sh`** — the first test in this repo to actually
+  execute dwm. Starts Xvfb, runs the binary `tests/build.sh` just compiled,
+  and asserts real EWMH root-window state (`_NET_SUPPORTED`,
+  `_NET_SUPPORTING_WM_CHECK`, `_NET_CLIENT_LIST`) plus the runtime
+  behaviour of three vendored patches: xresources (a colour set via `xrdb`
+  is actually rendered — sampled from a live screenshot, not asserted from
+  source), actualfullscreen (a real `_NET_WM_STATE_FULLSCREEN` toggle), and
+  pertag (`mfact` changed on one tag doesn't leak into another, and
+  persists when you switch back). Needs Xvfb, xdotool, ImageMagick, and
+  xterm (as test-only tooling, not `packages/build.lst` — a real install
+  never needs a virtual framebuffer); **skips loudly** if any are missing
+  or dwm hasn't been built, same reasoning as `tests/dwm-colorpicker.sh`.
+  restartsig (SIGHUP reload) is checked but **advisory only** — see the
+  script's own header for why a WARN there doesn't fail the build.
 - **`tests/pkglist.sh`** — offline syntax check on `packages/*.lst`: valid
   package-name characters, no list that parses to zero packages, no
   duplicates within a file, and no package appearing in two tiers (all
