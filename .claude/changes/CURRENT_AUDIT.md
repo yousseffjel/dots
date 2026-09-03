@@ -1569,3 +1569,33 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   (2026-08-04 → 2026-08-08), which would swamp this task's diff. Both are clean
   standalone tasks.
 - See `.claude/changes/2026-08-24-dwm-titus-reference-clone.md`.
+
+## 2026-09-03 — recovering the dwm-titus work, and closing scope-d slot A
+- **The 2026-08-24 dwm-titus-reference-clone work was fully audited (✅
+  READY) but never committed** — `state/CURRENT.md` was still in its idle
+  stub while `git status` showed the matching 7 modified + 2 untracked
+  files. `/recover-state` Option B applied: reviewer subagent re-verified
+  the live diff (READY), then it was committed as-is.
+  See `.claude/changes/2026-09-03-recover-state.md`.
+- **Epic scope-d, slot A closed**: CI's `build-suckless` job hardcoded 12
+  dnf package names under a comment claiming to match
+  `packages/build.lst` "exactly" — it didn't. `build.lst` declares 13; the
+  missing one was `patch` (applies the vendored suckless `.diff` files,
+  rule 5). The step now parses `build.lst` directly, reusing the
+  `read_pkg_list()` sed/tr/grep pattern already duplicated in
+  `install-pkg-tiers.sh` / `install-suckless.sh` / `tests/pkglist.sh`
+  rather than adding a 4th restatement. New `tests/ci-build-deps.sh`
+  extracts the step's own `run:` block out of the YAML and runs it against
+  a shimmed `dnf` that records its argv, asserting the installed set
+  matches `build.lst` exactly — the guard against the list drifting back
+  into a hardcoded copy.
+  **Per scope-d locked decision 7, this is deliberately incomplete**:
+  `packages/build.lst`'s content and CLAUDE.md rule 5's stale "applied at
+  build time" claim are untouched. CI now installs `patch` in its
+  container and `patch` is still unused by any build step in this repo —
+  that correction remains its own queue item.
+  Reviewer subagent: READY. See
+  `.claude/changes/2026-09-03-ci-build-deps-from-lst.md`.
+- Slots B (`tests/run-tests.sh` + `.claude/config.yml`), C
+  (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall symmetry)
+  remain open under scope-d.

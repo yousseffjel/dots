@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-24
+Last Updated: 2026-09-03
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -13,8 +13,12 @@ when slots run concurrently.
   (opened 2026-08-24). Scope file
   `.claude/tasks/scope-d-verification-harvest.md` holds the locked
   decisions; do not re-litigate them. Four sequential slots, in order:
-  - [ ] A — CI build deps from `packages/build.lst` (closes a live drift:
-        the job's hardcoded list is missing `patch`)
+  - [x] A — CI build deps from `packages/build.lst` (closes a live drift:
+        the job's hardcoded list is missing `patch`). **Done 2026-09-03** —
+        `.claude/changes/2026-09-03-ci-build-deps-from-lst.md`. CI now reads
+        build.lst directly; `tests/ci-build-deps.sh` guards it. Per locked
+        decision 7, `patch` is installed but still unused — that correction
+        stays its own queue item below.
   - [ ] B — `tests/run-tests.sh` + `.claude/config.yml` (also closes the
         four-times-logged "`/test` cannot discover the suite")
   - [ ] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
