@@ -1639,3 +1639,40 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - See `.claude/changes/2026-09-03-ci-test-runner.md`.
 - Slots C (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall
   symmetry) remain open under scope-d.
+
+## 2026-09-03 — scope-d slot C: dwm executes in a test for the first time
+- **New `tests/dwm-runtime.sh`** — the highest-value item from the
+  2026-08-24 dwm-titus comparison. Starts Xvfb and the real built `dwm`
+  binary, and asserts: EWMH root-window state (`_NET_SUPPORTED`'s required
+  atoms, `_NET_SUPPORTING_WM_CHECK` self-consistency, `_NET_CLIENT_LIST`);
+  **xresources** (a colour set via `xrdb` before dwm starts, sampled from a
+  live screenshot of the rendered border pixel — not asserted from source);
+  **actualfullscreen** (a real `_NET_WM_STATE_FULLSCREEN` toggle via
+  `alt+shift+f`); **pertag** (`mfact` adjusted on one tag doesn't leak into
+  another, and persists across a round-trip switch). xresources and pertag
+  are locked decision 4's required minimum and both are **mutation-tested**:
+  neutering `xresupdate()`'s load loop, and separately neutering `view()`'s
+  mfact-restore line, were each caught by the test (border reverted to
+  default; tag2 inherited tag1's adjusted value). A first pertag mutation
+  attempt targeted the wrong function (`toggleview()`, not `view()`) and
+  produced a false-negative green run — caught by re-reading `dwm.c`, not
+  assumed, and recorded rather than quietly fixed.
+- **restartsig (SIGHUP reload) is checked but advisory-only** — a `warn()`
+  that doesn't fail the build. Signal delivery to a backgrounded process
+  proved unreliable in the interactive dev sandbox this test was written
+  in, reproduced independently of dwm with a plain `bash -c 'trap ... HUP;
+  sleep 5' &`. Whether real CI has the same limitation is unresolved and
+  filed as a follow-up — not assumed either way.
+- **Xvfb needs `-noreset`**, discovered the hard way: without it, the X
+  server resets all state (properties, `RESOURCE_MANAGER`) the instant zero
+  clients are connected, so a short-lived `xrdb -merge` silently vanished
+  before dwm's own startup read it back.
+- Wired into `build-suckless` per locked decision 3, with its own CI-only
+  dependency step (Xvfb, xdotool, xwininfo, xprop, xdpyinfo, xrdb, xterm,
+  ImageMagick — verified against packages.fedoraproject.org, deliberately
+  kept out of `packages/build.lst` since a real install never needs a
+  virtual framebuffer).
+- Reviewer subagent: READY. See
+  `.claude/changes/2026-09-03-dwm-runtime-xvfb.md`.
+- Slot D (install/uninstall symmetry) remains open — the last slot in
+  scope-d.

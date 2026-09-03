@@ -24,9 +24,14 @@ when slots run concurrently.
         2026-09-03** — `.claude/changes/2026-09-03-ci-test-runner.md`.
         Hardened runner ported from dwm-titus per locked decision 2;
         `/test` now discovers the suite via `.claude/config.yml`.
-  - [ ] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
+  - [x] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
         (first execution of dwm by any test; reaches the 23 vendored
-        patches, which have none)
+        patches, which have none). **Done 2026-09-03** —
+        `.claude/changes/2026-09-03-dwm-runtime-xvfb.md`. Asserts real EWMH
+        state, xresources (mutation-tested), actualfullscreen, and pertag
+        (mutation-tested). restartsig (SIGHUP reload) is advisory-only —
+        signal delivery was unreliable in the dev sandbox; unresolved
+        whether that also affects real CI (follow-up filed in the log).
   - [ ] D — install/uninstall symmetry against the manifest
 
 ---
