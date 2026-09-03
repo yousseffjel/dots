@@ -1528,3 +1528,44 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `lxpolkit`), **reasoned from packaging, never observed running**.
 - **`/test` could not discover the suite for the fourth time.** Filed below.
 - See `.claude/changes/2026-08-13-polkit-lxpolkit.md`.
+
+## 2026-08-24 — a second reference clone, and the lint holes it opened
+- **`dwm-titus/` (ChrisTitusTech/dwm-titus, HEAD `e1f884e`) is now a sanctioned
+  read-only reference clone**, governed by the same rule 9 as `HyDE/`. New
+  `## Reference clones` section in `CLAUDE.md` covers both. It is the closest
+  external project to this one — **Fedora-only, X11, dwm, bash installer** — so
+  it is a far more direct comparison source than HyDE's Arch/Hyprland/Wayland.
+- **Its code is not liftable and the section says so.** It is a maintained hard
+  fork carrying patches inline in a 5.7k-line `dwm.c` (rule 5's inverse), it
+  parses `hotkeys/themes/window-rules.toml` through a linked-in `tomlparser.c`
+  with SIGUSR1 + inotify hot reload, its shell layer is Quickshell/Qt6, and it
+  ships kickstart ISOs. The section records **no file or test enumerations** —
+  it points at `ls dwm-titus/tests/*.sh` and `grep '^check-' Makefile`.
+- **Dropping the clone in the repo root broke three lint paths at once**, and
+  unlike HyDE it was actually picked up rather than merely at risk, because it
+  ships root-level `*.sh` and ~30 markdown files: `.markdownlintignore`,
+  `.pre-commit-config.yaml`'s duplicate exclude regex, and `tests/lint.sh`'s
+  `find -maxdepth 2`, which had `dwm-titus/install.sh` (775 foreign lines) in
+  its set — **verified before the fix, not assumed**. HyDE escaped the third
+  for a year purely by shipping no root-level script.
+- **`lint.sh` was fixed by deleting a list, not extending one.** The find now
+  pipes through `git check-ignore --stdin --non-matching --verbose`, so
+  `.gitignore` stays the single declaration of "not ours" and a third clone
+  needs no edit there. `|| true` guards its exit-1-when-nothing-ignored, which
+  `pipefail` would otherwise turn into a silently empty lint set — **tested in
+  a scratch repo with no `.gitignore`: 2 of 2 files returned, not zero.**
+- The `.markdownlintignore` / `.pre-commit-config.yaml` duplication was
+  **extended rather than collapsed** — `--ignore-path` would fix it, but
+  `pre-commit` is not installed here and an unverifiable hook change is not
+  worth shipping. Filed as a follow-up.
+- Lint **green** (shellcheck / shfmt / markdownlint). Audit Medium+ (6 files /
+  97 lines), 4 sweeps, ✅ READY, 3 findings all fixed in-sweep.
+- **Reviewer gate not run** — this session's instructions forbid spawning
+  subagents unless asked. Surfaced rather than self-excepted.
+- **Two mandated housekeeping steps were deliberately deferred, not skipped
+  silently:** `CURRENT_AUDIT.md` is 1530 lines and the skill's 250-line
+  auto-rotation collides with `session-protocol.md`'s "collapse is a separate,
+  explicit task" clause; and the 14-day archival sweep now qualifies **37 logs**
+  (2026-08-04 → 2026-08-08), which would swamp this task's diff. Both are clean
+  standalone tasks.
+- See `.claude/changes/2026-08-24-dwm-titus-reference-clone.md`.

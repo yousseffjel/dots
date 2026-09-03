@@ -64,7 +64,9 @@ jobs:
           npm install -g "markdownlint-cli@${MARKDOWNLINT_VERSION}"
 
       # scripts/*.sh, tests/*.sh, and any *.sh directly at the repo root —
-      # never suckless/ (C sources) or the untracked HyDE/ reference clone.
+      # never suckless/ (C sources), and never the untracked reference clones
+      # (CLAUDE.md rule 9), which lint.sh drops by asking git which paths
+      # .gitignore already covers rather than naming them a second time.
       #
       # --strict because every tool was just installed above: a "skipped, not
       # installed" line here means that install failed, and without the flag

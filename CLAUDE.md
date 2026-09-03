@@ -92,6 +92,7 @@ dots/
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
+├── dwm-titus/           # untracked local clone of ChrisTitusTech/dwm-titus — reference only; see Reference clones
 ├── ROADMAP.md           # comparison doc vs. HyDE; see Roadmap status below
 └── .claude/
     ├── changes/         # dated change logs (session-protocol.md governs this)
@@ -170,6 +171,76 @@ listed there.
 
 ---
 
+## Reference clones
+
+Two untracked clones sit in the repo root as comparison sources. Rule 9 governs
+both: read-only, never referenced from a script, never assumed present.
+
+### `HyDE/` — HyDE-Project/HyDE
+
+Arch + Hyprland + Wayland. The source `ROADMAP.md` was diffed against, and the
+origin of the framework-parity queue items in `MASTER_PLAN.md`. Different
+platform, different display server — borrow *structure*, not implementation.
+
+### `dwm-titus/` — ChrisTitusTech/dwm-titus (cloned 2026-08-24, HEAD `e1f884e`)
+
+The closest external project to this one: **Fedora-only, X11, dwm, bash
+installer** — the same platform contract, the same window manager, the same
+"one installer on a fresh Fedora box" goal. Docs at <https://dwm.christitus.com>.
+It is much further along on desktop shell and on validation, and it reaches
+several of the same ends by opposite means. Know these before comparing
+anything:
+
+- **Its patches are not vendored as `.diff` files.** It is a maintained hard
+  fork carrying patched code directly in `dwm.c` (5.7k lines);
+  `docs/PATCH-OWNERSHIP.md` records per-subsystem owners and invariants in place
+  of a patch series. That is the inverse of rule 5 — its `dwm.c` is not a source
+  you can lift from without deciding the re-vendor story first.
+- **Runtime config is TOML, hot-reloaded.** `config/{hotkeys,themes,window-rules}.toml`
+  are parsed by a vendored `tomlparser.c` linked into dwm and re-read on
+  `SIGUSR1` *and* on inotify writes to the config dir — keybinds, colours,
+  border width and window rules all change with no rebuild. dots keeps keybinds
+  in `config.def.h` + sxhkd and colours in generated xresources: a different
+  trade against the same problem.
+- **Its shell layer is Quickshell (QML/Qt6)** — panel, launcher, control center,
+  settings, notifications, network/bluetooth/audio/power — not dwmblocks +
+  dmenu. Most of its `scripts/` and over half its tests exist to serve that
+  layer, and the Qt dependency is exactly what this repo is built to avoid.
+- **It ships an ISO** (`dwm-fedora.ks`, `dwm-fedora-nvidia.ks` +
+  `scripts/build-dwm-fedora-installer-iso.sh`), and targets Fedora 44 where
+  dots pins oldest-supported.
+- `ls dwm-titus/tests/*.sh` and `grep -n '^check-' dwm-titus/Makefile` are the
+  source of truth for its suite and its gates. Do not restate either here.
+
+**Where it is ahead of dots**, i.e. the harvestable part:
+
+- dwm itself is exercised **live under Xvfb** (`make check-xvfb-runtime`, ~1090
+  lines): EWMH root properties, tag switching across monitors, fullscreen
+  requests, client lists. dots has never executed dwm in a test at all.
+- The installer's file manifest is **proved, not maintained** —
+  `make check-install-manifest` stages `install-system` into a `DESTDIR` temp
+  root, `cmp`s the resulting file list against a list *derived* from the
+  Makefile's own variables, then runs `uninstall` and `cmp`s back to the
+  pre-state. dots' manifest is hand-written and its uninstall symmetry unproven.
+- Its CI installs dependencies by **sourcing the repo's own package map**
+  (`dwm_packages fedora required`) rather than restating names — the same
+  no-second-declaration idea as dots' `packages/*.lst` glob, applied to CI.
+- `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SPEC.md`, `docs/RELEASING.md`
+  and a Dependabot config all exist — between them, the two open framework-parity
+  queue items in `MASTER_PLAN.md`.
+- `scripts/dwm-diagnostics` emits a human report **and** a machine `health-tsv`
+  from one code path, consumed by the shell's System Health pane.
+- `scripts/run-tests` is a hardened harness: refuses `/` and `/tmp` as a test
+  root, refuses a symlinked one, `setsid`s the child so no test can orphan a
+  daemon, and cleans its workspace on every exit path.
+
+**Where dots is ahead:** wallpaper-derived theming (dwm-titus palettes are
+hand-written in `themes.toml`), the four-tier package model with per-package
+consequence text, `.diff` patch vendoring that survives a re-vendor, and a far
+smaller dependency surface.
+
+---
+
 ## Project-specific rules
 
 These are conventions already established across `scripts/*.sh` — follow
@@ -186,7 +257,7 @@ new pattern.
     **Adding an autostart entry is a three-place change**, and all three are enforced: the launch line in one of `session_autostart_display` / `_daemons` / `_services` (all three now in `install-session-template.sh`, split off from `install-session.sh` at the 250-line cap), a matching `session_report_daemon` call (`install-session-report.sh`) so existing installs — whose `autostart.sh` is user-owned and never rewritten — are told what to paste, and the name in `DAEMONS` in `tests/autostart-daemons.sh`. That test RUNS both sides rather than parsing them and has caught an unpaired entry unprompted more than once, so skipping any of the three fails the build rather than shipping a daemon nobody launches. The template is three parts purely for the 60-line function cap; the test calls only `session_autostart_template` and `session_autostart_report`, so splitting it again costs the test nothing. **Do not re-add an enumerated daemon list anywhere else** — the user-facing "wrote autostart.sh" message used to carry one and had already gone stale.
 7. **`symlinks.sh` links directories, not individual files**, and backs up pre-existing conflicting paths to `~/.dotfiles-backup/<timestamp>/` before linking — keep new config categories (e.g. a future `config/nvim/`) consistent with this backup-then-link behavior rather than a blind overwrite. `symlinks.sh --restore [timestamp]` reverses a backup: no timestamp lists what's available under `~/.dotfiles-backup/`, a timestamp removes the matching symlink(s) and moves the backed-up originals back — it never touches a target that isn't currently one of its own symlinks (skips with a warning instead of overwriting unknown state).
 8. **Verification is manual.** When editing package names in `packages/*.lst`, check them against packages.fedoraproject.org — don't assume a package name is correct just because it looks plausible. Record verification method in the change log (per `session-protocol.md`).
-9. **`HyDE/` is a local, untracked reference clone** (comparison source for `ROADMAP.md`) — it is not part of this project, must never be edited, symlinked into, or referenced by any script, and should not be assumed present on another machine.
+9. **`HyDE/` and `dwm-titus/` are local, untracked reference clones** — comparison sources only (`HyDE/` for `ROADMAP.md`; `dwm-titus/` for the Fedora/X11/dwm questions in **Reference clones** above). Neither is part of this project: never edit them, symlink into them, or reference either from any script, and never assume they are present on another machine. Both are `.gitignore`d.
 10. **Package names live in `packages/*.lst`, never as inline arrays in installer scripts.** Four tiers, each with a different failure mode — pick by asking *what breaks, and does it announce itself?*
 
     | List | Consumer | On failure |

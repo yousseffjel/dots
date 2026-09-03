@@ -7,3 +7,7 @@ install.log
 # Local-only reference clone (HyDE-Project/HyDE) — see CLAUDE.md rule 9.
 # Never track, edit, or symlink into this.
 HyDE/
+
+# Local-only reference clone (ChrisTitusTech/dwm-titus) — see CLAUDE.md rule 9.
+# Never track, edit, or symlink into this.
+dwm-titus/

@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-08-13
+Last Updated: 2026-08-24
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -9,7 +9,18 @@ when slots run concurrently.
 
 ## Active
 
-*(none — Epic scope-c closed 2026-08-12; see Recently Closed)*
+- **Epic: scope-d — verification harvest from the dwm-titus clone**
+  (opened 2026-08-24). Scope file
+  `.claude/tasks/scope-d-verification-harvest.md` holds the locked
+  decisions; do not re-litigate them. Four sequential slots, in order:
+  - [ ] A — CI build deps from `packages/build.lst` (closes a live drift:
+        the job's hardcoded list is missing `patch`)
+  - [ ] B — `tests/run-tests.sh` + `.claude/config.yml` (also closes the
+        four-times-logged "`/test` cannot discover the suite")
+  - [ ] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
+        (first execution of dwm by any test; reaches the 23 vendored
+        patches, which have none)
+  - [ ] D — install/uninstall symmetry against the manifest
 
 ---
 
@@ -20,6 +31,27 @@ when slots run concurrently.
   both corrected there: it was absent from **f43 as well as f44**, and the fix
   was *not* a libexec path update — `lxpolkit` is on `PATH`, so the fallback was
   deleted rather than re-pointed.
+- **CLAUDE.md rule 5 describes a build step that does not exist.** Rule 5
+  says the vendored `.diff` files are "applied at build time by
+  `install-suckless.sh`". They are not: there is no `patch(1)` or `git apply`
+  invocation in `scripts/`, `tests/`, `.github/` or any suckless `Makefile`,
+  and all four `suckless/*/patches/PATCHES.md` say the sources are
+  pre-patched — "already baked into `dwm.c`/`config.def.h`", with the newer
+  entries "not a verbatim `patch -p1` apply — hand-merged into the
+  already-patched sources". `suckless/dwm/dwm.c` carries the systray enum and
+  `enum XResType` in-tree, which confirms it.
+  Two consequences to settle together:
+  (a) **`patch` in `packages/build.lst` is dead weight**, and its
+  justification comment cites a failure ("failed at the first patch") that
+  cannot occur. Once scope-d slot A lands, CI installs it too.
+  (b) **Rule 5's wording needs to become true** — the `.diff` files are a
+  vendored *record* of hand-merged changes and `PATCHES.md` is the authority.
+  Rewriting the rule means checking whatever cites it.
+  Rebuilding a real patch flow is **not** an option worth costing: the
+  `*-local.diff` files exist precisely because they could not apply cleanly
+  on top of the others. Split out of scope-d slot A by the user, 2026-08-24,
+  to keep that slot mechanical — see
+  `.claude/tasks/scope-d-verification-harvest.md` locked decision 7.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It

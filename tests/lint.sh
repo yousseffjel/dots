@@ -46,7 +46,18 @@ done
 
 cd "$DOTS_DIR"
 
-mapfile -t SH_FILES < <(find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*')
+# `-maxdepth 2` reaches the root-level scripts of the untracked reference
+# clones in the repo root (CLAUDE.md rule 9), so a foreign 700-line installer
+# lands in the lint set the moment one is cloned. `.gitignore` is already the
+# single declaration of what is not ours; `git check-ignore` reads it back
+# rather than repeating the directory names here. `--non-matching --verbose`
+# prints `::<TAB><path>` for the paths that are NOT ignored, and exits 1 when
+# nothing matched at all (no clone present) — hence the `|| true`.
+mapfile -t SH_FILES < <(
+    find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' \
+        | { git check-ignore --stdin --non-matching --verbose || true; } \
+        | sed -n 's/^::\t//p'
+)
 
 # An empty list means the find failed or the repo layout moved — never that
 # there is nothing to check, since this script is itself one of the matches.
