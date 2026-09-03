@@ -80,40 +80,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Until this job existed, tests/*.sh was linted by the job above but
-      # never executed, so a test could fail indefinitely without anyone
-      # noticing. Runs every test that needs nothing beyond bash + coreutils,
-      # discovered by glob, so a test added later is picked up automatically.
-      #
-      # Two are skipped deliberately. Each needs an environment this runner
-      # does not have, and each is INVOKED by the job that does have it — not
-      # reimplemented there, so neither can rot unnoticed:
-      #   build.sh — needs the X11 build toolchain; run by build-suckless
-      #              inside a Fedora container.
-      #   lint.sh  — needs shellcheck/shfmt/markdownlint; run by the lint job
-      #              as `tests/lint.sh --strict` once it has installed them.
+      # tests/run-tests.sh owns the glob, the dedicated-job skip list
+      # (build.sh -> build-suckless; lint.sh -> lint), and the hardened
+      # workspace/child handling. Invoked here rather than reimplemented so
+      # this job cannot drift from what a local run does.
       - name: Run repo tests
-        run: |
-          skip="build.sh lint.sh"
-          fail=0
-          for t in tests/*.sh; do
-            name="$(basename "$t")"
-            case " $skip " in
-              *" $name "*)
-                echo "skip: $name (covered by a dedicated job)"
-                continue
-                ;;
-            esac
-            echo "::group::$name"
-            if bash "$t"; then
-              echo "OK: $name"
-            else
-              echo "::error file=$t::$name failed"
-              fail=1
-            fi
-            echo "::endgroup::"
-          done
-          exit "$fail"
+        run: tests/run-tests.sh
 
   build-suckless:
     name: build-suckless (${{ matrix.fedora }})

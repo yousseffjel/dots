@@ -10,12 +10,13 @@ pip install pre-commit && pre-commit install   # once, see README.md
 tests/lint.sh                                  # shellcheck + shfmt + markdownlint
 tests/build.sh                                 # compiles dwm/st/dmenu/dwmblocks/slock
 tests/pkglist.sh                               # packages/*.lst syntax, all tiers
-for t in tests/*.sh; do bash "$t"; done        # everything
+tests/run-tests.sh                             # everything (hardened runner)
 ```
 
-The first three are *the same scripts CI runs* — `.github/workflows/ci.yml`
-invokes `tests/lint.sh` and `tests/build.sh` directly rather than restating
-their checks, so a clean local run is a strong signal CI will pass too.
+The first three, plus `run-tests.sh`, are *the same invocations CI runs* —
+`.github/workflows/ci.yml` calls `tests/lint.sh`, `tests/build.sh` and
+`tests/run-tests.sh` directly rather than restating their checks, so a clean
+local run is a strong signal CI will pass too.
 
 `tests/lint.sh` skips (rather than fails) any tool that isn't installed
 locally, so it stays usable on a box with only some of them. CI passes
@@ -56,6 +57,15 @@ for adding CI; new docs you add are linted normally.
   a failure instead of a skip. Either way an empty file list is a hard error
   — the script is itself one of the files it must find, so finding none means
   the `find` failed, not that there was nothing to check.
+- **`tests/run-tests.sh`** — the single owner of "run every test"; CI's
+  `tests` job invokes it rather than restating the loop. Ported from
+  `dwm-titus/scripts/run-tests` (a local reference clone, see CLAUDE.md):
+  refuses an unsafe `$DOTS_TEST_TMP_ROOT` (empty, symlinked, `/`, or `/tmp`),
+  `mktemp`s a workspace exported as `TMPDIR` for every test, and runs the
+  suite under `setsid` so an interrupted run (Ctrl-C, a killed CI job)
+  cannot orphan a child process. Deliberately **not** ported: dwm-titus's
+  per-run token handshake and root/EUID branches, which back
+  container-as-root tests this repo has none of.
 - **`tests/shellcheck-pin.sh`** — shellcheck is pinned twice: `SHELLCHECK_VERSION`
   in `.github/workflows/ci.yml` (the binary the `lint` job downloads and puts
   ahead of the runner image's own) and the `shellcheck-py` rev in

@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-09-03-ci-build-deps-from-lst.md
+Last log: .claude/changes/2026-09-03-ci-test-runner.md

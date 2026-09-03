@@ -1,0 +1,8 @@
+# claude-kit config — read by ~/.claude/hooks/_lib.sh (ck_config_get /
+# ck_config_list) and by the /test skill. Simple `key: value` lines only.
+
+# /test discovers this before falling back to package.json/Makefile/etc.
+# tests/run-tests.sh owns the glob, the dedicated-job skip list, and the
+# hardened workspace/child handling (CLAUDE.md rule 6/10's "one owner"
+# pattern, ported from dwm-titus — see .claude/tasks/scope-d-verification-harvest.md).
+test_command: "tests/run-tests.sh"

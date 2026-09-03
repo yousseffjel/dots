@@ -234,16 +234,21 @@ Be precise about this rather than optimistic.
   session — `pkill dunst`, `xrdb -merge`, `feh`, `slock`. Shim the binary onto
   an isolated `PATH` and assert on the call log. Leaving `/usr/bin` on the end
   of that `PATH` defeats the whole exercise.
-- `tests/*.sh` is the suite; run all 13 with
-  `for t in tests/*.sh; do bash "$t"; done`. Five of them are *consistency*
-  tests — two places state the same fact and the test holds them together
-  (`picom-lockstep`, `autostart-daemons`, `desktop-consequences`, `pkglist`,
-  `tmux-tpm-lockstep`). That shape has caught more real bugs here than any
-  assertion about output.
+- `tests/*.sh` is the suite; `ls tests/*.sh` is the count, deliberately not
+  restated here. Run all of it with `tests/run-tests.sh` (added 2026-09-03,
+  scope-d slot B) — it owns the glob, the dedicated-job skip list, and
+  process-group-safe cleanup; the old hand-copied `for t in tests/*.sh; do
+  bash "$t"; done` loop is gone from both CI and TESTING.md. Five of them are
+  *consistency* tests — two places state the same fact and the test holds
+  them together (`picom-lockstep`, `autostart-daemons`,
+  `desktop-consequences`, `pkglist`, `tmux-tpm-lockstep`). That shape has
+  caught more real bugs here than any assertion about output.
 - **CI runs every one of them** as of 2026-08-10, and runs the *scripts*
   rather than copies of their contents: `lint` calls `tests/lint.sh --strict`,
-  `build-suckless` calls `tests/build.sh`. Before that those two were
-  reimplemented inline and so were never executed by anything.
+  `build-suckless` calls `tests/build.sh`, and the `tests` job calls
+  `tests/run-tests.sh`. Before 2026-08-10 the first two were reimplemented
+  inline and so were never executed by anything; before 2026-09-03 the third
+  was the inline loop itself.
 
 ---
 
