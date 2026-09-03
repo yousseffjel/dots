@@ -151,15 +151,14 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          # Matches the dnf branch of scripts/install-suckless.sh's install_deps()
-          # exactly, so this job proves what that script actually installs
-          # (dwm/st need X11+Xft+Xinerama; slock additionally needs Xext+Xrandr+
-          # libxcrypt; pkgconf-pkg-config resolves freetype/fontconfig for the
-          # Makefiles; ncurses provides tic(1) for st's terminfo).
-          dnf install -y gcc make pkgconf-pkg-config \
-            libX11-devel libXft-devel libXinerama-devel libXext-devel \
-            libXrandr-devel libxcrypt-devel freetype-devel fontconfig-devel \
-            ncurses
+          # Reads packages/build.lst instead of restating its names — same
+          # parsing as read_pkg_list() in scripts/install-suckless.sh /
+          # scripts/install-pkg-tiers.sh / tests/pkglist.sh (CLAUDE.md rule
+          # 10). tests/ci-build-deps.sh shims dnf and asserts this step
+          # installs exactly what build.lst declares, so this can't drift
+          # back into a hardcoded list unnoticed.
+          mapfile -t pkgs < <(sed 's/#.*//' packages/build.lst | tr -s '[:space:]' '\n' | grep -v '^$')
+          dnf install -y "${pkgs[@]}"
 
       # tests/build.sh owns the program list and the make invocation. It
       # deliberately does not install build dependencies — that is the step
