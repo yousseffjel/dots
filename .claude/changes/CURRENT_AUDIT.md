@@ -1599,3 +1599,43 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Slots B (`tests/run-tests.sh` + `.claude/config.yml`), C
   (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall symmetry)
   remain open under scope-d.
+
+## 2026-09-03 — scope-d slot B: one owner for "run every test"
+- No script previously owned "run every test": CI's `tests` job inlined a
+  `for t in tests/*.sh` loop, and `TESTING.md`'s quick-start hand-copied the
+  same loop. New `tests/run-tests.sh` is now the single owner, hardened per
+  scope-d locked decision 2 (ported from the local read-only reference
+  clone `dwm-titus/scripts/run-tests`, minus its per-run token handshake and
+  root/EUID branches, which back container-as-root tests this repo has
+  none of): refuses an unsafe `$DOTS_TEST_TMP_ROOT` (empty, symlinked, `/`,
+  `/tmp`), `mktemp`s a workspace exported as `TMPDIR` for every test, and
+  runs the suite loop as a `setsid`-grouped child under trap-driven cleanup
+  (EXIT/HUP/INT/TERM) so an interrupted run cannot orphan a process.
+- New `.claude/config.yml` (`test_command: "tests/run-tests.sh"`) closes a
+  bug logged four separate times: `/test` had no way to discover this
+  repo's suite. Verified working — `/test`'s discovery resolved it and the
+  full suite ran and passed through it.
+- Interrupt-safety was verified against a standalone reproduction of the
+  exact trap/child code (the real script's ~3s total runtime is too fast to
+  reliably land an external `kill -INT` mid-run from a separate tool call),
+  not the real script directly. Confirmed: SIGINT -> `interrupt` trap ->
+  `stop_child` forwards the signal, escalates to SIGKILL after ~1s grace if
+  the child is still alive (async-started children have SIGINT/SIGQUIT
+  ignored by default under POSIX shell semantics — tolerated by the KILL
+  escalation, not a bug) -> child reaped -> parent exits 130 -> workspace
+  removed by the EXIT trap. No orphan, no leftover workspace.
+- Reviewer subagent: **WARN** — `HANDOFF.md:238` still documented the old
+  hand-copied loop and a stale "13 scripts" count. Fixed in-session: now
+  points at `tests/run-tests.sh`, count dropped (matches this repo's own
+  "don't restate `ls tests/*.sh`" convention). A separate, explicitly-dated
+  2026-08-13 decision table elsewhere in `HANDOFF.md` was deliberately left
+  untouched as a historical snapshot.
+- Also caught and fixed a process gap from slot A: that slot's commit had
+  baked in `Phase: committing` (the idle-reset was only ever written to the
+  worktree's working directory, never committed, so the merge carried the
+  stale phase to main) — corrected in a follow-up main commit. This slot's
+  commit resets state to idle **before** committing, so the same class of
+  bug can't recur here.
+- See `.claude/changes/2026-09-03-ci-test-runner.md`.
+- Slots C (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall
+  symmetry) remain open under scope-d.

@@ -19,8 +19,11 @@ when slots run concurrently.
         build.lst directly; `tests/ci-build-deps.sh` guards it. Per locked
         decision 7, `patch` is installed but still unused — that correction
         stays its own queue item below.
-  - [ ] B — `tests/run-tests.sh` + `.claude/config.yml` (also closes the
-        four-times-logged "`/test` cannot discover the suite")
+  - [x] B — `tests/run-tests.sh` + `.claude/config.yml` (also closes the
+        four-times-logged "`/test` cannot discover the suite"). **Done
+        2026-09-03** — `.claude/changes/2026-09-03-ci-test-runner.md`.
+        Hardened runner ported from dwm-titus per locked decision 2;
+        `/test` now discovers the suite via `.claude/config.yml`.
   - [ ] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
         (first execution of dwm by any test; reaches the 23 vendored
         patches, which have none)
