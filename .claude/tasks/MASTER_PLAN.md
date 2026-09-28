@@ -81,16 +81,18 @@ the same time and **not** queued — raise them separately if wanted.
 - ~~**`CHANGELOG.md` + `CONTRIBUTING.md`.**~~ ✅ **Done 2026-09-28** — release
   boundary: everything to date is the untagged 0.1.0; `[Unreleased]` from now.
   `tests/changelog-version.sh` guards VERSION vs the newest heading.
-- **Dependency automation for the pins.** HyDE runs `renovate.json5`. dots
-  hand-bumps `fedora:43` in two `ci.yml` matrices (done once already,
-  2026-08-12) and vendors 23 suckless `.diff` files that no tool watches.
-  Renovate covers the container tags; nothing covers the patches. Worth
-  scoping as "what can actually be automated here" before adopting a tool —
-  the answer may be one Dependabot stanza and a documented manual patch sweep.
+- ~~**Dependency automation for the pins.**~~ ✅ **Done 2026-09-28** —
+  Dependabot (actions + pre-commit) + `tests/linter-pins.sh` as its lockstep
+  gate; fedora image and suckless sources are a documented manual sweep.
 
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **dependency automation** — `bfb0c81`. `.github/dependabot.yml`
+  (github-actions + pre-commit, monthly). `tests/shellcheck-pin.sh` ->
+  `tests/linter-pins.sh` covering all three linters, so a bot bump stays red
+  until ci.yml's mirror moves. Closes the last HyDE-parity queue item.
 
 - 2026-09-28 — **CHANGELOG.md + CONTRIBUTING.md** — user chose "0.1.0 +
   Unreleased"; 0.1.0 dated at `d997704`, untagged. CONTRIBUTING points at

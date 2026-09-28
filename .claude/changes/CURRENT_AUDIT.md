@@ -1713,3 +1713,13 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   released heading disagree.
 - CONTRIBUTING.md points at CLAUDE.md rule numbers rather than restating them.
 - See `.claude/changes/2026-09-28-changelog-contributing.md`.
+
+## 2026-09-28 — Dependabot, and the pin test becomes its gate
+- `.github/dependabot.yml` covers `uses:` and pre-commit `rev:`s.
+  `tests/linter-pins.sh`, renamed from `shellcheck-pin.sh`, now covers
+  shellcheck, shfmt and markdownlint. A bot PR that bumps only the hook goes
+  red until `ci.yml`'s mirror moves.
+- The fedora image pin and the suckless sources are a manual sweep,
+  documented in CONTRIBUTING.md.
+- The HyDE-parity queue is now empty. See
+  `.claude/changes/2026-09-28-dependency-pins.md`.
