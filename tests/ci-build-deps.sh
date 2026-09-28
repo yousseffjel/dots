@@ -4,8 +4,8 @@
 #
 # That step used to hardcode 12 dnf package names under a comment claiming to
 # match scripts/install-suckless.sh's install_deps() "exactly" — it didn't:
-# build.lst declares 13, and `patch` (which applies the vendored suckless
-# .diff files, CLAUDE.md rule 5) was the one silently missing. The step now
+# build.lst declares 13, and `patch` was the one silently missing. (It is not
+# a build step — CLAUDE.md rule 5 — but build.lst declares it.) The step now
 # parses packages/build.lst directly instead of restating it, and this test
 # proves that by running the step's own shell block — extracted from the YAML,
 # not retyped — against a shimmed `dnf` that records what it was asked to

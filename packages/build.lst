@@ -20,11 +20,14 @@
 # cannot be expressed here.
 
 # toolchain
-# patch applies the vendored suckless/*/patches/*.diff files at build time
-# (CLAUDE.md rule 5). It was in core.lst and missing from install_deps()'s
-# own dnf list, so a standalone `install-suckless.sh` on a box without it
-# failed at the first patch. pkgconf-pkg-config resolves freetype/fontconfig
-# for the dwm and st Makefiles.
+# patch is NOT used by the build. The suckless sources ship pre-patched and
+# nothing applies suckless/*/patches/*.diff (CLAUDE.md rule 5 — the diffs are
+# a record). It is kept, by the user's decision on 2026-09-28, as the tool for
+# hand-merging or re-vendoring a patch on the machine the desktop runs on.
+# Know the cost: this tier aborts the build stage on failure, so a missing or
+# renamed `patch` would stop a build that does not need it. (Its old comment
+# claimed it applied the diffs at build time; it never did.)
+# pkgconf-pkg-config resolves freetype/fontconfig for the dwm and st Makefiles.
 gcc
 make
 patch
