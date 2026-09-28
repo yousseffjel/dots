@@ -46,12 +46,9 @@ when slots run concurrently.
 - ~~**CLAUDE.md rule 5 describes a build step that does not exist.**~~
   ✅ **Done 2026-09-28** (`0bf4065`) — rule 5 now says the diffs are a record;
   `patch` **kept** in build.lst by user decision, comment corrected.
-- **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
-  `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
-  the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
-  is a `set -g @resurrect-dir` option string with no shell, so it needs the
-  same single-quoted `run-shell` treatment the TPM paths got — see the header
-  of that file for why double quotes reintroduce the bug.
+- ~~**`@resurrect-dir` hardcodes `$HOME/.local/state`**~~ ✅ **Done 2026-09-28**
+  — plus the same bug in `tmux-palette`, now guarded tree-wide by
+  `tests/tmux-xdg-paths.sh`.
 - **Watch the first CI run after 2026-08-10.** The `lint` and `build-suckless`
   jobs were rewired to invoke `tests/lint.sh --strict` and `tests/build.sh`
   without CI ever executing once. Two things are unproven: that
@@ -96,6 +93,12 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **tmux XDG paths** — `@resurrect-dir` (queued) and
+  `tmux-palette`'s resurrect entries (found by the scan; the 2026-08-10 sweep
+  missed it because the lockstep test names two files). New
+  `tests/tmux-xdg-paths.sh`: tree-wide static sweep plus a live isolated tmux
+  server. 4/4 mutations caught, one only by the live layer.
 
 - 2026-09-28 — **rule 5 made true** — `0bf4065`. The `.diff` files were never
   applied by anything; rule 5, the project map, build.lst's `patch` comment and

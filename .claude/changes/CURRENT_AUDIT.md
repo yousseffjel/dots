@@ -1696,3 +1696,11 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   now corrected. `patch` is **kept** by the user's decision, and its hard-fail
   cost is documented. Closes the queue item from scope-d decision 7. See
   `.claude/changes/2026-09-28-rule5-patch-truth.md`.
+
+## 2026-09-28 — tmux honours XDG_STATE_HOME and XDG_DATA_HOME everywhere
+- `@resurrect-dir` (queue item) and `tmux-palette`'s resurrect save/restore
+  (a scan finding: the same XDG_DATA_HOME bug the 2026-08-10 sweep fixed in
+  the two files it checked) both go through single-quoted `run-shell`.
+- `tests/tmux-xdg-paths.sh` checks the **whole** `config/tmux/` tree, not a
+  file list, plus a live isolated tmux server. CI now installs tmux so that
+  layer cannot skip. See `.claude/changes/2026-09-28-tmux-xdg-paths.md`.
