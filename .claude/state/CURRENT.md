@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-09-28-rule5-patch-truth.md
+Last log: .claude/changes/2026-09-28-tmux-xdg-paths.md

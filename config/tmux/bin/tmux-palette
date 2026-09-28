@@ -2,6 +2,8 @@
 # tmux-palette — Warp-style fuzzy command palette.
 # Each entry is "label|tmux-command". Selecting an entry runs the
 # tmux-command via source-file (same parser tmux uses for tmux.conf).
+# Plugin paths are single-quoted run-shell bodies so /bin/sh expands
+# ${XDG_DATA_HOME:-...}; tmux's parser has no default form (see 30-plugins.conf).
 
 set -euo pipefail
 
@@ -27,8 +29,8 @@ copy mode|copy-mode
 clear scrollback|clear-history
 reload config|source-file ~/.config/tmux/tmux.conf
 list bindings|display-popup -E -w 80% -h 80% -T " keybindings " "tmux list-keys -N | sort | fzf --prompt='binding> ' --reverse"
-resurrect: save|run-shell ~/.local/share/tmux/plugins/tmux-resurrect/scripts/save.sh
-resurrect: restore|run-shell ~/.local/share/tmux/plugins/tmux-resurrect/scripts/restore.sh
+resurrect: save|run-shell '"${XDG_DATA_HOME:-$HOME/.local/share}/tmux/plugins/tmux-resurrect/scripts/save.sh"'
+resurrect: restore|run-shell '"${XDG_DATA_HOME:-$HOME/.local/share}/tmux/plugins/tmux-resurrect/scripts/restore.sh"'
 ai: claude (new)|display-popup -E -w 90% -h 90% -d "#{pane_current_path}" -T " claude " claude
 ai: claude --continue|display-popup -E -w 90% -h 90% -d "#{pane_current_path}" -T " claude --continue " "claude --continue"
 ai: pipe last block to claude|run-shell "$HOME/.config/tmux/bin/tmux-block-to-claude"

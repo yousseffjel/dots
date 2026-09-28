@@ -80,6 +80,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # tmux backs tests/tmux-xdg-paths.sh's live layer, which loads the real
+      # tmux config lines into an isolated server. Installed explicitly rather
+      # than trusted to the runner image: without it that layer skips and the
+      # job goes green having checked only the static half.
+      - name: Install tmux for tests/tmux-xdg-paths.sh
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tmux
+
       # tests/run-tests.sh owns the glob, the dedicated-job skip list
       # (build.sh -> build-suckless; lint.sh -> lint), and the hardened
       # workspace/child handling. Invoked here rather than reimplemented so

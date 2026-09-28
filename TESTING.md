@@ -135,6 +135,18 @@ for adding CI; new docs you add are linted normally.
   quoting rule), and **evaluates** both sides under a controlled environment
   so a difference in quoting or a trailing component cannot pass.
 
+- **`tests/tmux-xdg-paths.sh`** — the wider net the lockstep test lacked. It
+  sweeps **every** file under `config/tmux/`: no command line may name
+  `.local/share` or `.local/state` outside the `${XDG_…:-$HOME/.local/…}`
+  form. Then, with tmux installed, it loads the real `@resurrect-dir` line and
+  `tmux-palette`'s resurrect entries into an **isolated** tmux server (own
+  `-L` socket and `TMUX_TMPDIR`). Fake resurrect scripts record that they ran,
+  and the test checks where each path resolves with the XDG variables set and
+  unset. The live layer exists because a double-quoted `run-shell` passes the
+  static sweep and still breaks, since tmux expands it first. CI's `tests` job
+  installs tmux for it. `~/.config/tmux` paths are out of scope on purpose,
+  because `symlinks.sh` itself targets `$HOME/.config`.
+
 - **`tests/dwm-colorpicker.sh`** — the first test to cover anything in
   `config/dwm/bin/`, which held nine scripts and none. It exists because on
   2026-08-12 that gap let a total failure ship green: ImageMagick's
