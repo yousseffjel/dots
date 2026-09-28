@@ -201,6 +201,29 @@ for adding CI; new docs you add are linted normally.
   `notify-send` are all faked: a real `xrandr` would reconfigure your displays
   and a real `dmenu` would block forever. Needs only bash + coreutils.
 
+- **`tests/dwm-brightness.sh`, `tests/dwm-lock.sh`, `tests/dwm-screenshot.sh`,
+  `tests/dwm-menus.sh`** (2026-09-28) cover the other seven `config/dwm/bin/`
+  scripts, so all nine now have a test. All four run on a **sealed `PATH`**
+  (`tests/lib/sealed-path.sh`): the script under test sees only fakes plus
+  symlinks to the real tools it needs, so a "not installed" case cannot fall
+  through to a real binary, and nothing reaches the tester's screen, clipboard
+  or power state.
+  - brightness: `get` reads the first *connected* output even when a
+    disconnected one with its own `Brightness:` line comes first; steps clamp
+    to 10..100; a failed read writes nothing. Its fake `xrandr --verbose`
+    copies the real format.
+  - lock: the screen locks before DPMS powers off; no
+    `--transfer-sleep-lock`; the logind route versus the slock fallback; no
+    second daemon.
+  - screenshot: the xrdb colour becomes slop's float RGBA; Escape at any
+    prompt is a silent exit 0; a mistyped mode or destination is rejected
+    **before** anything is captured.
+  - menus: every powermenu action, confirm-before-reboot, no dmenu colour
+    flags. dwm-theme and dwm-wallpaper are run through the deployed symlink,
+    from a sandbox copy whose `scripts/theme/*.sh` are fakes, because the
+    real ones drive the theming engine.
+  - 17/17 mutations are caught. Two survived the first pass and each exposed
+    a weak assertion, which was fixed rather than documented.
 - **`tests/theme-identity.sh`** — the non-colour half of a theme (GTK theme
   name, icons, cursor, font). The failure it exists for is silent: a switch
   still re-colours everything, so a regression that froze the identity at

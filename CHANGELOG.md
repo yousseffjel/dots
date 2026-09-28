@@ -19,6 +19,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 ### Added
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
+- Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,
+  screenshot, powermenu, clipmenu, theme, wallpaper). All nine now have one.
 - `tests/install-uninstall-symmetry.sh`: restore then uninstall must return a
   sandboxed home to exactly what it was.
 - Dependabot for GitHub Actions and pre-commit hook versions. A bot bump of a
