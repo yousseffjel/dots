@@ -78,11 +78,9 @@ the same time and **not** queued — raise them separately if wanted.
   already fully packaged, so only cursors were missing; and HyDE's
   `restore_fnt.sh` does not download from GitHub releases at all — it extracts
   archives already in the clone, which is the approach taken.
-- **`CHANGELOG.md` + `CONTRIBUTING.md`.** `VERSION`, `version.sh` and
-  `scripts/migrations/` all exist, so the repo versions itself but tells a
-  user nothing about what changed between versions. The `pr-notes` skill
-  generates this directly from `.claude/changes/` — the work is choosing what
-  a release boundary *is* here, not writing prose.
+- ~~**`CHANGELOG.md` + `CONTRIBUTING.md`.**~~ ✅ **Done 2026-09-28** — release
+  boundary: everything to date is the untagged 0.1.0; `[Unreleased]` from now.
+  `tests/changelog-version.sh` guards VERSION vs the newest heading.
 - **Dependency automation for the pins.** HyDE runs `renovate.json5`. dots
   hand-bumps `fedora:43` in two `ci.yml` matrices (done once already,
   2026-08-12) and vendors 23 suckless `.diff` files that no tool watches.
@@ -93,6 +91,11 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **CHANGELOG.md + CONTRIBUTING.md** — user chose "0.1.0 +
+  Unreleased"; 0.1.0 dated at `d997704`, untagged. CONTRIBUTING points at
+  CLAUDE.md rule numbers instead of restating them. New
+  `tests/changelog-version.sh` (4/4 mutations).
 
 - 2026-09-28 — **tmux XDG paths** — `@resurrect-dir` (queued) and
   `tmux-palette`'s resurrect entries (found by the scan; the 2026-08-10 sweep

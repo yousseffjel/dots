@@ -1704,3 +1704,12 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - `tests/tmux-xdg-paths.sh` checks the **whole** `config/tmux/` tree, not a
   file list, plus a live isolated tmux server. CI now installs tmux so that
   layer cannot skip. See `.claude/changes/2026-09-28-tmux-xdg-paths.md`.
+
+## 2026-09-28 — CHANGELOG.md and CONTRIBUTING.md exist
+- The user chose the release boundary: everything to date is **0.1.0**
+  (untagged, at `d997704`), and `[Unreleased]` starts now. `VERSION` is
+  unchanged.
+- `tests/changelog-version.sh` fails the build when `VERSION` and the newest
+  released heading disagree.
+- CONTRIBUTING.md points at CLAUDE.md rule numbers rather than restating them.
+- See `.claude/changes/2026-09-28-changelog-contributing.md`.
