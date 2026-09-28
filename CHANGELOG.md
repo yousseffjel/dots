@@ -19,6 +19,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 ### Added
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
+- `tests/install-uninstall-symmetry.sh`: restore then uninstall must return a
+  sandboxed home to exactly what it was.
 - Dependabot for GitHub Actions and pre-commit hook versions. A bot bump of a
   linter stays red until CI's copy of that pin moves with it.
 
@@ -33,6 +35,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- Uninstall now restores theme configs you had before installing (`dunstrc`,
+  `picom.conf`, GTK files). Before, it left the theming engine's version in
+  place and your original in `~/.dotfiles-backup/`. Installs made before this
+  fix are reported rather than guessed at.
+- Uninstall no longer leaves behind a `mimeinfo.cache` the installer created.
 - tmux's resurrect directory and the command palette's resurrect entries now
   honour `$XDG_STATE_HOME` / `$XDG_DATA_HOME` instead of hardcoding
   `~/.local`.

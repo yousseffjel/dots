@@ -54,8 +54,14 @@ deploy_app_file() {
 # work without this; only the menu listing needs the cache. Best-effort:
 # desktop-file-utils arrives as a Thunar dependency, but this must not be
 # the thing that fails an install if it ever stops being one.
+#
+# The cache it writes is claimed as an APP row only when THIS run created it.
+# Unclaimed, it was the one file a restore -> uninstall round trip left
+# behind (tests/install-uninstall-symmetry.sh); a cache that already existed
+# belongs to whatever else lives in that directory and is never claimed.
 apps_update_desktop_db() {
     local app_dir="$1"
+    local cache="$app_dir/mimeinfo.cache" had_cache=0
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would refresh the desktop database in $app_dir"
         return 0
@@ -64,8 +70,12 @@ apps_update_desktop_db() {
         yellow "skip    update-desktop-database not found — Thunar's \"Open With\" list may not show Neovim until it is run"
         return 0
     fi
+    [[ -e "$cache" ]] && had_cache=1
     if update-desktop-database "$app_dir" 2>/dev/null; then
         green "ok      refreshed desktop database"
+        if [[ $had_cache -eq 0 && -e "$cache" ]]; then
+            manifest_append_row APP app "$cache"
+        fi
     else
         yellow "warn    update-desktop-database failed on $app_dir — non-fatal"
     fi

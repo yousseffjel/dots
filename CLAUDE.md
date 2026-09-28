@@ -72,7 +72,7 @@ dots/
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
-│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh — manifest-driven removal
+│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, theme-apply.sh
 ├── packages/            # four tiers; tests/pkglist.sh globs them, never names them

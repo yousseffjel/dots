@@ -52,11 +52,21 @@ partial uninstall is a normal, supported outcome, not an error.
    `~/.cache/dots/theme/`. Copies can't be identified by a readlink check
    the way symlinks can, so these are removed by manifest row instead — and
    a file that already existed when the installer ran was never given a row,
-   so it is not touched.
+   so it is not removed.
+4a. **Theme configs you had before installing.** A pre-existing
+   `dunstrc`/`picom.conf`/GTK file is left in place by the installer but
+   *is* rewritten by the theming engine on the first wallpaper change, so the
+   installer copies it to `~/.dotfiles-backup/<timestamp>/` first. This step
+   moves each of those originals back, replacing the generated version — so
+   you end up with the file you had, not the one the engine last wrote.
+   Installs made before 2026-09-28 did not record where each copy went; for
+   those the step says so and leaves the copy under `~/.dotfiles-backup/`.
 5. **App configs.** What `install-restore-apps.sh` deployed for the file
    manager: `~/.config/Thunar/{thunarrc,uca.xml}`, `~/.config/xfce4/
    helpers.rc`, `~/.config/mimeapps.list`, and
-   `~/.local/share/applications/dots-nvim.desktop`. Same copied-file,
+   `~/.local/share/applications/dots-nvim.desktop`, plus the
+   `mimeinfo.cache` next to it when the installer's desktop-database refresh
+   is what created it. Same copied-file,
    manifest-row rule as the theme category above. **Thunar's preferences
    are not reverted** — they live in your xfconf `thunar` channel next to
    settings Thunar wrote itself, nothing records what they were before, and
@@ -121,6 +131,13 @@ per-file record rather than "the most recent backup timestamp" so it stays
 correct even if you've re-run the installer multiple times.
 
 ## Testing an uninstall safely
+
+`tests/install-uninstall-symmetry.sh` proves the restore stage and this
+script are inverses: in a sandboxed `$HOME`, restore -> uninstall must leave
+every file as it was, except the leftovers listed under **What's kept,
+always** — which it checks are still listed there. It covers everything the
+restore stage writes; package, service, shell and suckless rows need root and
+are exercised by the `install-container` CI job instead.
 
 Same advice as `TESTING.md` gives for installing: don't iterate against a
 machine you care about. `--dry-run` is the fast local check; for a full

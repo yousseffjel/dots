@@ -40,8 +40,11 @@ source "$THEME_DIR/install-restore-cursor.sh"
 # (uninstall_theme deletes every THEME row outright, and must not delete
 # config we promised to leave alone), so without its own marker every
 # re-install would back that file up again — the second time capturing our
-# own generated content rather than the user's original. THEMEBACKUP rows
-# are informational; uninstall_theme only reads THEME.
+# own generated content rather than the user's original. Since 2026-09-28 a
+# THEMEBACKUP row also records WHERE the copy went (4th field), and
+# uninstall_theme_backups (scripts/uninstall-theme.sh) moves it back — before
+# that the rows were informational only, so uninstall left the engine's
+# version in place and the user's original stranded in ~/.dotfiles-backup.
 #
 # ------------------------------------------------------------------------------
 
@@ -141,7 +144,7 @@ theme_backup_preexisting() {
     for pre in "${PREEXISTING_TARGETS[@]}"; do
         manifest_has_path THEMEBACKUP "$pre" && continue
         if cp -a "$pre" "$theme_backup/$(basename "$pre")" 2>/dev/null; then
-            manifest_append_row THEMEBACKUP theme "$pre"
+            manifest_append_row THEMEBACKUP theme "$pre" "$theme_backup/$(basename "$pre")"
             yellow "backup  $pre -> $theme_backup/$(basename "$pre")"
         else
             red "could not back up $pre"

@@ -6,6 +6,8 @@
 # Its own file rather than another function in uninstall_steps.sh, which
 # is already at 230 of the 250-line cap (file-architecture.md) — the same
 # reason install-restore-theme.sh was split out of install-restore.sh.
+# (2026-09-28: uninstall_theme left for uninstall-theme.sh, the same way, and
+# uninstall_steps.sh is now ~200 lines — the figure above is historical.)
 #
 # Sourced by uninstall.sh only: assumes `set -euo pipefail`, global_fn.sh,
 # and uninstall.sh's own logging-aware red/green/yellow/blue plus
@@ -52,8 +54,17 @@ uninstall_apps() {
         fi
     done
 
-    # Only worth refreshing when a desktop entry actually went away.
+    # Only worth refreshing when a desktop entry actually went away — and not
+    # when the loop above just removed a cache the installer created and no
+    # .desktop file is left to index: the refresh would only write that same
+    # cache back, leaving behind the one file this uninstall was meant to
+    # remove. A cache that is still there was not ours, so it is refreshed.
     local app_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    local remaining=()
+    [[ -d "$app_dir" ]] && mapfile -t remaining < <(find "$app_dir" -maxdepth 1 -name '*.desktop')
+    if [[ ${#remaining[@]} -eq 0 && ! -e "$app_dir/mimeinfo.cache" ]]; then
+        removed=0
+    fi
     if [[ $removed -gt 0 && -d "$app_dir" ]] && command -v update-desktop-database >/dev/null 2>&1; then
         if update-desktop-database "$app_dir" 2>/dev/null; then
             green "  refreshed desktop database"

@@ -138,6 +138,23 @@ for adding CI; new docs you add are linted normally.
   quoting rule), and **evaluates** both sides under a controlled environment
   so a difference in quoting or a trailing component cannot pass.
 
+- **`tests/install-uninstall-symmetry.sh`** — scope-d's last slot. In a
+  sandboxed `$HOME` (all four XDG variables, `env -i`), it runs the restore
+  stage **twice**, then `uninstall.sh --yes`, and requires every file and
+  symlink to be back as it was. It runs twice: an empty HOME, and a
+  lived-in one with its own tmux config, `.zshenv` and `dunstrc`, where the
+  `dunstrc` is overwritten the way the first wallpaper apply would.
+  - The only permitted differences are the documented leftovers: the
+    `.zshenv` ZDOTDIR line and the zinit/TPM clones. They are asserted
+    exactly, and must still be listed in `docs/UNINSTALL.md`.
+  - Directories are compared out, because the installer `mkdir -p`s shared
+    XDG dirs.
+  - Fakes cover `git clone` and `update-desktop-database`. Sentinel
+    `sudo`/`dnf`/`systemctl`/`chsh`/`pkill`/`xrdb` must never be called.
+  - Its first runs found two real bugs: an unclaimed `mimeinfo.cache`, and
+    theme configs you had before installing never being restored. 6/6
+    mutations are caught.
+
 - **`tests/changelog-version.sh`** — the newest released `## [x.y.z]` heading
   in `CHANGELOG.md` must equal `VERSION`, and an `## [Unreleased]` section
   must sit above it. `VERSION` is what the manifest records and `migrate.sh`
