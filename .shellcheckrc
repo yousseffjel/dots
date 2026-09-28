@@ -1,7 +1,8 @@
 # shellcheck configuration — see https://www.shellcheck.net/wiki/Ignore
 #
-# Scope: scripts/*.sh and any *.sh at the repo root. Suckless C sources and
-# vendored .diff patches are out of scope.
+# Scope: every tracked *.sh at any depth — tests/lint.sh owns that list (it
+# reads .gitignore back via git check-ignore). Suckless C sources and vendored
+# .diff patches are out of scope.
 
 # Resolve `source`d files relative to the sourcing script (e.g.
 # scripts/version.sh sourcing scripts/global_fn.sh) instead of requiring a

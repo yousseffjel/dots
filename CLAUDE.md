@@ -87,6 +87,7 @@ dots/
 ├── themes/              # static themes: dark, gruvbox, nord, tokyo-night + CREDITS.md
 ├── tests/               # the suite; `ls tests/*.sh` is the list, deliberately not restated here.
 │                        # CI globs it, so a new test is picked up with no wiring.
+│                        # tests/lib/ holds SOURCED helpers, outside that depth-1 glob — never tests.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / install-dry-run
 │                        # install-container.yml — the only job that RUNS install-fedora.sh (~30 min/leg, paths-filtered)
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md

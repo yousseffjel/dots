@@ -94,7 +94,12 @@ for adding CI; new docs you add are linted normally.
   never needs a virtual framebuffer); **skips loudly** if any are missing
   or dwm hasn't been built, same reasoning as `tests/dwm-colorpicker.sh`.
   restartsig (SIGHUP reload) is checked but **advisory only** — see the
-  script's own header for why a WARN there doesn't fail the build.
+  script's own header for why a WARN there doesn't fail the build. Its X
+  helpers and check sections live in `tests/lib/dwm-runtime-{x,checks}.sh`
+  (split at the 250-line cap). **`tests/lib/` holds sourced helpers, never
+  tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file
+  there is never executed on its own, while `tests/lint.sh` lints every
+  tracked `*.sh` at any depth.
 - **`tests/pkglist.sh`** — offline syntax check on `packages/*.lst`: valid
   package-name characters, no list that parses to zero packages, no
   duplicates within a file, and no package appearing in two tiers (all

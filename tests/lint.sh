@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs three linters over scripts/*.sh, tests/*.sh and the repo-root *.sh:
+# Runs three linters over every tracked *.sh in the repo, at any depth:
 # static analysis, a format check (shfmt -d, no rewrite), and markdownlint.
 # This is the whole of the CI "lint" job (.github/workflows/ci.yml), which
 # invokes this script rather than restating the checks.
@@ -46,15 +46,20 @@ done
 
 cd "$DOTS_DIR"
 
-# `-maxdepth 2` reaches the root-level scripts of the untracked reference
-# clones in the repo root (CLAUDE.md rule 9), so a foreign 700-line installer
-# lands in the lint set the moment one is cloned. `.gitignore` is already the
-# single declaration of what is not ours; `git check-ignore` reads it back
-# rather than repeating the directory names here. `--non-matching --verbose`
-# prints `::<TAB><path>` for the paths that are NOT ignored, and exits 1 when
-# nothing matched at all (no clone present) — hence the `|| true`.
+# No depth limit, deliberately. This used to be `-maxdepth 2`, which silently
+# never linted anything one level deeper — scripts/theme/*.sh,
+# scripts/migrations/*.sh and tests/lib/*.sh — for as long as it existed; a
+# fixed depth is an enumeration of where scripts may live, and it went stale.
+#
+# The untracked reference clones in the repo root (CLAUDE.md rule 9) are the
+# reason a filter is needed at all: a foreign 700-line installer would land in
+# the lint set the moment one is cloned. `.gitignore` is already the single
+# declaration of what is not ours; `git check-ignore` reads it back rather
+# than repeating the directory names here. `--non-matching --verbose` prints
+# `::<TAB><path>` for the paths that are NOT ignored, and exits 1 when nothing
+# matched at all (no clone present) — hence the `|| true`.
 mapfile -t SH_FILES < <(
-    find . -maxdepth 2 -type f -name '*.sh' -not -path './.git/*' \
+    find . -type f -name '*.sh' -not -path './.git/*' \
         | { git check-ignore --stdin --non-matching --verbose || true; } \
         | sed -n 's/^::\t//p'
 )
