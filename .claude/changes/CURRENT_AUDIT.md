@@ -1740,3 +1740,13 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - 6/6 mutations are caught. One was first caught for the wrong reason (a
   syntax error) and was re-run.
 - See `.claude/changes/2026-09-28-install-uninstall-symmetry.md`.
+
+## 2026-09-28 — every config/dwm/bin script has a test
+- `tests/dwm-{brightness,lock,screenshot,menus}.sh` cover the seven that had
+  none. They run on a sealed PATH, and `dwm-theme`/`dwm-wallpaper` run from
+  a sandbox copy with fake engine scripts.
+- 17/17 mutations are caught. The two first-pass survivors each exposed a
+  weak assertion:
+  - an xrandr fixture that masked an unguarded read;
+  - a "maim not called" check that a bogus mode satisfies anyway.
+- See `.claude/changes/2026-09-28-dwm-bin-tests.md`.

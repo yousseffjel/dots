@@ -66,6 +66,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-09-28 — **the seven untested `config/dwm/bin/` scripts** — all nine
+  now have a test. Four new files on a sealed PATH (`tests/lib/sealed-path.sh`).
+  17/17 mutations; two survivors on the first pass each exposed a weak
+  assertion (fixed, not documented). Closes the 2026-08-12 note "Seven dwm-*
+  scripts remain untested".
+
 - 2026-09-28 — **Epic: scope-d — verification harvest from dwm-titus — ALL 4
   SLOTS MERGED.** Scope file `.claude/tasks/scope-d-verification-harvest.md`.
   - [x] A — CI build deps from `packages/build.lst` (2026-09-03)
