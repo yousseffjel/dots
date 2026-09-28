@@ -29,7 +29,9 @@ repos:
     rev: v0.49.1
     hooks:
       - id: markdownlint
-        args: ["--config", ".markdownlint.yaml"]
-        # Grandfathered pre-existing content — see .markdownlintignore and
-        # TESTING.md "Markdown linting" for why these aren't rewritten.
-        exclude: ^(\.claude/|suckless/|HyDE/|dwm-titus/|CLAUDE\.md|ROADMAP\.md)
+        # .markdownlintignore is the ONE list of grandfathered paths (see
+        # TESTING.md "Markdown linting"); tests/lint.sh passes the same flag.
+        # --ignore-path filters files pre-commit names explicitly too, so no
+        # `exclude:` copy is needed here — there used to be one, and two lists
+        # of the same paths drift.
+        args: ["--config", ".markdownlint.yaml", "--ignore-path", ".markdownlintignore"]
