@@ -27,7 +27,8 @@ every script stays runnable on its own. `dots --help` lists what is available;
 This repo lints shell scripts (shellcheck + shfmt), Markdown
 (markdownlint), and validates the suckless build + package lists in CI —
 see `.github/workflows/ci.yml`, `.github/workflows/install-container.yml`
-and `TESTING.md`.
+and `TESTING.md`. `CONTRIBUTING.md` covers the conventions and how to cut a
+release.
 
 Install the pre-commit hooks once so the same checks run locally before
 every commit:
@@ -45,7 +46,8 @@ pre-commit run --all-files
 
 ## Versioning
 
-This repo follows semver via the `VERSION` file at the repo root.
+This repo follows semver via the `VERSION` file at the repo root. What
+changed in each version is in `CHANGELOG.md`.
 `dots version` (`scripts/version.sh`) prints the repo version alongside
 what's actually installed (read from the manifest at `~/.local/state/dots/manifest`,
 written by `install-fedora.sh`).

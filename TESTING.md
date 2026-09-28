@@ -135,6 +135,13 @@ for adding CI; new docs you add are linted normally.
   quoting rule), and **evaluates** both sides under a controlled environment
   so a difference in quoting or a trailing component cannot pass.
 
+- **`tests/changelog-version.sh`** — the newest released `## [x.y.z]` heading
+  in `CHANGELOG.md` must equal `VERSION`, and an `## [Unreleased]` section
+  must sit above it. `VERSION` is what the manifest records and `migrate.sh`
+  compares, so notes filed under the wrong number, or a bump with no notes,
+  fail here rather than confusing an upgrade. The release steps it enforces
+  are in `CONTRIBUTING.md`.
+
 - **`tests/tmux-xdg-paths.sh`** — the wider net the lockstep test lacked. It
   sweeps **every** file under `config/tmux/`: no command line may name
   `.local/share` or `.local/state` outside the `${XDG_…:-$HOME/.local/…}`

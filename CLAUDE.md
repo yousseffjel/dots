@@ -227,8 +227,9 @@ anything:
   (`dwm_packages fedora required`) rather than restating names — the same
   no-second-declaration idea as dots' `packages/*.lst` glob, applied to CI.
 - `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SPEC.md`, `docs/RELEASING.md`
-  and a Dependabot config all exist — between them, the two open framework-parity
-  queue items in `MASTER_PLAN.md`.
+  and a Dependabot config all exist — working examples of the framework-parity queue
+  items in `MASTER_PLAN.md` (which says which of them are still open; dots has
+  had its own `CHANGELOG.md` and `CONTRIBUTING.md` since 2026-09-28).
 - `scripts/dwm-diagnostics` emits a human report **and** a machine `health-tsv`
   from one code path, consumed by the shell's System Health pane.
 - `scripts/run-tests` is a hardened harness: refuses `/` and `/tmp` as a test

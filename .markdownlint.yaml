@@ -1,5 +1,5 @@
 # markdownlint config — see https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
-# All rules on by default; relax the two that fight this repo's writing style.
+# All rules on by default; relax the three that fight this repo's writing style.
 default: true
 
 # line-length — dated change logs and README prose regularly wrap past 80
@@ -13,3 +13,9 @@ MD013:
 # no-inline-html — README/TESTING badges and the odd <details> block are
 # intentional.
 MD033: false
+
+# no-duplicate-heading — CHANGELOG.md follows Keep a Changelog, which repeats
+# "### Added" / "### Fixed" under every version by design. siblings_only still
+# flags two identical headings under the SAME parent, which is the real error.
+MD024:
+  siblings_only: true
