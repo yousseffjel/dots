@@ -43,27 +43,9 @@ when slots run concurrently.
   both corrected there: it was absent from **f43 as well as f44**, and the fix
   was *not* a libexec path update — `lxpolkit` is on `PATH`, so the fallback was
   deleted rather than re-pointed.
-- **CLAUDE.md rule 5 describes a build step that does not exist.** Rule 5
-  says the vendored `.diff` files are "applied at build time by
-  `install-suckless.sh`". They are not: there is no `patch(1)` or `git apply`
-  invocation in `scripts/`, `tests/`, `.github/` or any suckless `Makefile`,
-  and all four `suckless/*/patches/PATCHES.md` say the sources are
-  pre-patched — "already baked into `dwm.c`/`config.def.h`", with the newer
-  entries "not a verbatim `patch -p1` apply — hand-merged into the
-  already-patched sources". `suckless/dwm/dwm.c` carries the systray enum and
-  `enum XResType` in-tree, which confirms it.
-  Two consequences to settle together:
-  (a) **`patch` in `packages/build.lst` is dead weight**, and its
-  justification comment cites a failure ("failed at the first patch") that
-  cannot occur. Once scope-d slot A lands, CI installs it too.
-  (b) **Rule 5's wording needs to become true** — the `.diff` files are a
-  vendored *record* of hand-merged changes and `PATCHES.md` is the authority.
-  Rewriting the rule means checking whatever cites it.
-  Rebuilding a real patch flow is **not** an option worth costing: the
-  `*-local.diff` files exist precisely because they could not apply cleanly
-  on top of the others. Split out of scope-d slot A by the user, 2026-08-24,
-  to keep that slot mechanical — see
-  `.claude/tasks/scope-d-verification-harvest.md` locked decision 7.
+- ~~**CLAUDE.md rule 5 describes a build step that does not exist.**~~
+  ✅ **Done 2026-09-28** (`0bf4065`) — rule 5 now says the diffs are a record;
+  `patch` **kept** in build.lst by user decision, comment corrected.
 - **`@resurrect-dir` in `config/tmux/conf.d/30-plugins.conf` hardcodes
   `$HOME/.local/state`,** ignoring `$XDG_STATE_HOME`. Exactly the class of bug
   the 2026-08-10 sweep fixed for `$XDG_DATA_HOME`/TPM, one variable over. It
@@ -114,6 +96,11 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **rule 5 made true** — `0bf4065`. The `.diff` files were never
+  applied by anything; rule 5, the project map, build.lst's `patch` comment and
+  `tests/ci-build-deps.sh` said otherwise. `patch` stays (user's call) with its
+  hard-fail cost stated. Reviewer WARN on an overstatement, fixed pre-commit.
 
 - 2026-09-28 — **`tests/dwm-runtime.sh` split under the 250-line cap** —
   `74e1cfe`. Found by the 2026-09-28 scan. It also removed `tests/lint.sh`'s

@@ -1688,3 +1688,11 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `scripts/migrations/*.sh`.** `-maxdepth 2` excluded them. It is removed, and
   all six were already clean.
 - Reviewer: READY. See `.claude/changes/2026-09-28-split-dwm-runtime-test.md`.
+
+## 2026-09-28 — rule 5 corrected: the suckless diffs are a record
+- Nothing applies `suckless/*/patches/*.diff` at build time, which was
+  re-verified today. CLAUDE.md rule 5, the project map, `packages/build.lst`'s
+  `patch` comment and `tests/ci-build-deps.sh` all claimed otherwise and are
+  now corrected. `patch` is **kept** by the user's decision, and its hard-fail
+  cost is documented. Closes the queue item from scope-d decision 7. See
+  `.claude/changes/2026-09-28-rule5-patch-truth.md`.
