@@ -9,30 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-- **Epic: scope-d — verification harvest from the dwm-titus clone**
-  (opened 2026-08-24). Scope file
-  `.claude/tasks/scope-d-verification-harvest.md` holds the locked
-  decisions; do not re-litigate them. Four sequential slots, in order:
-  - [x] A — CI build deps from `packages/build.lst` (closes a live drift:
-        the job's hardcoded list is missing `patch`). **Done 2026-09-03** —
-        `.claude/changes/2026-09-03-ci-build-deps-from-lst.md`. CI now reads
-        build.lst directly; `tests/ci-build-deps.sh` guards it. Per locked
-        decision 7, `patch` is installed but still unused — that correction
-        stays its own queue item below.
-  - [x] B — `tests/run-tests.sh` + `.claude/config.yml` (also closes the
-        four-times-logged "`/test` cannot discover the suite"). **Done
-        2026-09-03** — `.claude/changes/2026-09-03-ci-test-runner.md`.
-        Hardened runner ported from dwm-titus per locked decision 2;
-        `/test` now discovers the suite via `.claude/config.yml`.
-  - [x] C — `tests/dwm-runtime.sh` under Xvfb, wired into `build-suckless`
-        (first execution of dwm by any test; reaches the 23 vendored
-        patches, which have none). **Done 2026-09-03** —
-        `.claude/changes/2026-09-03-dwm-runtime-xvfb.md`. Asserts real EWMH
-        state, xresources (mutation-tested), actualfullscreen, and pertag
-        (mutation-tested). restartsig (SIGHUP reload) is advisory-only —
-        signal delivery was unreliable in the dev sandbox; unresolved
-        whether that also affects real CI (follow-up filed in the log).
-  - [ ] D — install/uninstall symmetry against the manifest
+*(none — scope-d closed 2026-09-28; see Recently Closed)*
 
 ---
 
@@ -88,6 +65,20 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **Epic: scope-d — verification harvest from dwm-titus — ALL 4
+  SLOTS MERGED.** Scope file `.claude/tasks/scope-d-verification-harvest.md`.
+  - [x] A — CI build deps from `packages/build.lst` (2026-09-03)
+  - [x] B — `tests/run-tests.sh` + `.claude/config.yml` (2026-09-03)
+  - [x] C — `tests/dwm-runtime.sh` under Xvfb (2026-09-03)
+  - [x] D — install/uninstall symmetry — `e013c3c`. Found and fixed two real
+        uninstall bugs: an unclaimed `mimeinfo.cache`, and pre-existing theme
+        configs never restored (THEMEBACKUP rows had no backup path). The
+        `.zshenv` line + zinit/TPM clones stay as DOCUMENTED leftovers — user
+        chose to honor `docs/UNINSTALL.md` over a reversal (conflict surfaced
+        2026-09-28).
+  The Epic's thesis held in every slot: each one found something only
+  execution could.
 
 - 2026-09-28 — **dependency automation** — `bfb0c81`. `.github/dependabot.yml`
   (github-actions + pre-commit, monthly). `tests/shellcheck-pin.sh` ->

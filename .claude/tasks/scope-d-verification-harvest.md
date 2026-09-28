@@ -87,7 +87,7 @@ line. All four sub-tasks buy output verification.
 
 ## Sub-tasks
 
-- [ ] **A — CI build dependencies from `packages/build.lst`** (#3, Small)
+- [x] **A — CI build dependencies from `packages/build.lst`** (#3, Small) — done 2026-09-03
       `.github/workflows/ci.yml`'s `build-suckless` job hardcodes 12 dnf
       package names under a comment claiming it "Matches the dnf branch of
       scripts/install-suckless.sh's install_deps() exactly". **It does
@@ -103,7 +103,7 @@ line. All four sub-tasks buy output verification.
       build if any consumer restates the names; both matrix legs green; the
       change log states that `patch` is still declared and still unused.
 
-- [ ] **B — a real test runner** (#6, Small–Medium)
+- [x] **B — a real test runner** (#6, Small–Medium) — done 2026-09-03
       There is no runner. `ci.yml` inlines a `for t in tests/*.sh` loop,
       `TESTING.md` documents a hand-copied version of the same loop, and
       `/test` has failed to discover this suite in four separate logged
@@ -114,7 +114,7 @@ line. All four sub-tasks buy output verification.
       Exit: one owner for the loop; `/test` discovers the suite; an
       interrupted run leaves no orphaned child process.
 
-- [ ] **C — dwm under Xvfb** (#1, Medium–High)
+- [x] **C — dwm under Xvfb** (#1, Medium–High) — done 2026-09-03
       New `tests/dwm-runtime.sh`: start Xvfb, run the built dwm against it,
       assert real EWMH state and the patch behaviours from decision 4.
       Wired into `build-suckless` per decision 3.
@@ -122,7 +122,9 @@ line. All four sub-tasks buy output verification.
       xresources colour path and one pertag behaviour are asserted against
       a running instance; deliberate mutations of each are caught.
 
-- [ ] **D — install/uninstall symmetry** (#2, Medium)
+- [x] **D — install/uninstall symmetry** (#2, Medium) — **Done 2026-09-28**, `e013c3c`;
+      see `.claude/changes/2026-09-28-install-uninstall-symmetry.md` (deviation from
+      decision 5 recorded there: directories compared out, documented leftovers exact)
       New test proving the round-trip of decision 5 in a sandboxed `$HOME`
       honouring decisions 6 and 7.
       Exit: every path the restore stage creates is manifest-claimed, and

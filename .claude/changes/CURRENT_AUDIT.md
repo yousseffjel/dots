@@ -1723,3 +1723,20 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   documented in CONTRIBUTING.md.
 - The HyDE-parity queue is now empty. See
   `.claude/changes/2026-09-28-dependency-pins.md`.
+
+## 2026-09-28 — scope-d slot D: install/uninstall symmetry — EPIC CLOSED
+- New `tests/install-uninstall-symmetry.sh` runs a restore followed by
+  `uninstall --yes` in a sandboxed HOME, in fresh and lived-in scenarios.
+  Only the leftovers documented in `docs/UNINSTALL.md` may remain. The user
+  chose to honor that doc's `.zshenv` and zinit/TPM decision over reversing
+  it; the conflict was surfaced before any code was written.
+- **Two real uninstall bugs, found and fixed:**
+  - An unclaimed `mimeinfo.cache`, which uninstall's own refresh then
+    re-created.
+  - A theme config the user already had was never restored after the engine
+    overwrote it. The THEMEBACKUP rows lacked the backup path. They now have
+    it, and the new `uninstall_theme_backups` lives in
+    `scripts/uninstall-theme.sh`.
+- 6/6 mutations are caught. One was first caught for the wrong reason (a
+  syntax error) and was re-run.
+- See `.claude/changes/2026-09-28-install-uninstall-symmetry.md`.
