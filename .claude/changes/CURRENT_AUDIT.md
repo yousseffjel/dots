@@ -1676,3 +1676,15 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `.claude/changes/2026-09-03-dwm-runtime-xvfb.md`.
 - Slot D (install/uninstall symmetry) remains open — the last slot in
   scope-d.
+
+## 2026-09-28 — tests/dwm-runtime.sh split under the cap; lint reaches every depth
+- `tests/dwm-runtime.sh` 377 -> 128, plus `tests/lib/dwm-runtime-{x,checks}.sh`
+  (111 + 188). Found by the 2026-09-28 scan as the only 250-line-cap violation;
+  slot C's log never flagged it. Equivalence was checked by diffing the
+  normalized output against a pre-split baseline (the only difference is the
+  added Xvfb PID), and slot C's two dwm mutations are still CAUGHT on
+  sandboxed rebuilt copies.
+- **`tests/lint.sh` had never linted `scripts/theme/*.sh` or
+  `scripts/migrations/*.sh`.** `-maxdepth 2` excluded them. It is removed, and
+  all six were already clean.
+- Reviewer: READY. See `.claude/changes/2026-09-28-split-dwm-runtime-test.md`.

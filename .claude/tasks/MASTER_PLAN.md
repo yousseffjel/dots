@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-09-03
+Last Updated: 2026-09-28
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -114,6 +114,12 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-09-28 — **`tests/dwm-runtime.sh` split under the 250-line cap** —
+  `74e1cfe`. Found by the 2026-09-28 scan. It also removed `tests/lint.sh`'s
+  `-maxdepth 2`, which meant CI had never linted `scripts/theme/*.sh` or
+  `scripts/migrations/*.sh` (all clean). Output-equivalent to the pre-split
+  test, and both slot-C mutations are still caught.
 
 - 2026-08-13 — **PolicyKit agent: `polkit-gnome` → `lxpolkit`** — `6ff4a55`,
   `00cd483`. Closes the top queue item; CI was red in two jobs and every fresh
