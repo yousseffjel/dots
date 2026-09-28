@@ -12,8 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Keep in lockstep with the shellcheck-py rev in .pre-commit-config.yaml —
-  # tests/shellcheck-pin.sh fails the build when the two disagree. The digest
+  # All three linter versions below are pinned twice: here, and as the matching
+  # hook rev in .pre-commit-config.yaml. tests/linter-pins.sh fails the build
+  # when any pair disagrees — including on a Dependabot PR that bumped only the
+  # hook (see .github/dependabot.yml). The shellcheck digest
   # is of the release asset itself (GitHub release assets are immutable), so
   # bumping the version means recomputing it.
   SHELLCHECK_VERSION: v0.11.0

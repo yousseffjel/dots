@@ -66,17 +66,20 @@ for adding CI; new docs you add are linted normally.
   cannot orphan a child process. Deliberately **not** ported: dwm-titus's
   per-run token handshake and root/EUID branches, which back
   container-as-root tests this repo has none of.
-- **`tests/shellcheck-pin.sh`** — shellcheck is pinned twice: `SHELLCHECK_VERSION`
-  in `.github/workflows/ci.yml` (the binary the `lint` job downloads and puts
-  ahead of the runner image's own) and the `shellcheck-py` rev in
-  `.pre-commit-config.yaml` (what a commit hook runs here). Drift between them
-  is silent and asymmetric — shellcheck renumbers findings across minor
-  releases, and 0.10.0 splitting unreachable function bodies out of SC2317
-  into SC2329 is exactly what turned `lint` red while `pre-commit run
-  --all-files` stayed green. Reads both numbers out of the shipped files and
-  ignores shellcheck-py's own fourth packaging component; an extraction that
-  matches nothing is a failure, not a pass. Bumping the version means bumping
-  both files and recomputing `SHELLCHECK_SHA256`.
+- **`tests/linter-pins.sh`** — each linter is pinned twice: in
+  `.github/workflows/ci.yml`'s env block (`SHELLCHECK_VERSION`,
+  `SHFMT_VERSION`, `MARKDOWNLINT_VERSION`, which the `lint` job installs) and
+  as the matching hook `rev:` in `.pre-commit-config.yaml` (what a commit
+  runs here). Drift between them is silent and asymmetric. shellcheck
+  renumbers findings across minor releases: 0.10.0 split unreachable function
+  bodies out of SC2317 into SC2329, which turned `lint` red while
+  `pre-commit run --all-files` stayed green. The test reads every number out
+  of the shipped files and ignores packaging revisions (`v0.11.0.1`,
+  `v3.13.1-1`). An extraction that matches nothing is a failure, not a pass.
+  It is also **the gate for Dependabot's pre-commit PRs**: the bot cannot edit
+  ci.yml's env vars, so its PR stays red until the twin is bumped in the same
+  branch, plus `SHELLCHECK_SHA256` for shellcheck. It was
+  `tests/shellcheck-pin.sh` and covered shellcheck only until 2026-09-28.
 - **`tests/build.sh`** — `make clean && make` (never `make install`) for
   each of `suckless/{dwm,st,dmenu,dwmblocks,slock}`. Needs the build deps
   from `scripts/install-suckless.sh`'s `install_deps()` already installed

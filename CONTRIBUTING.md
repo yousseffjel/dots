@@ -72,6 +72,26 @@ When you write a test:
 - The reasoning belongs in a dated log under `.claude/changes/`, not in the
   changelog.
 
+## Keeping pins current
+
+`.github/dependabot.yml` opens monthly PRs for GitHub Actions `uses:` versions
+and `.pre-commit-config.yaml` hook revs. Its header explains the lockstep: a PR
+that bumps shellcheck, shfmt or markdownlint stays red on
+`tests/linter-pins.sh` until you bump the same version in `ci.yml`'s env block
+on that branch. For shellcheck, also recompute `SHELLCHECK_SHA256`.
+
+Two pins have no bot and are swept by hand:
+
+- **The oldest-supported Fedora image** (`fedora:43` in both workflow
+  matrices). When that release reaches end of life, bump it to the next one.
+  Don't delete it: an EOL image still pulls, but its repos move to the archive
+  and `dnf` breaks. Fedora's release docs at
+  <https://docs.fedoraproject.org/en-US/releases/> list which releases are
+  supported and when each one reaches end of life.
+- **The vendored suckless sources.** Upstream releases are rare. Re-vendoring
+  means re-merging every recorded `.diff` (see `CLAUDE.md` rule 5 and each
+  `PATCHES.md`), so it is a deliberate task, never a bump.
+
 ## Cut a release
 
 1. Decide the bump using `README.md` under **Versioning**.

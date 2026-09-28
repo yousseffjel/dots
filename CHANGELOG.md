@@ -19,6 +19,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 ### Added
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
+- Dependabot for GitHub Actions and pre-commit hook versions. A bot bump of a
+  linter stays red until CI's copy of that pin moves with it.
 
 ### Changed
 

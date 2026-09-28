@@ -1,0 +1,38 @@
+# Dependabot — what it can and cannot keep current in this repo.
+#
+# COVERED here:
+#   * github-actions — every `uses:` in .github/workflows/*.yml.
+#   * pre-commit     — every `rev:` in .pre-commit-config.yaml.
+#
+# THE LOCKSTEP. Three pre-commit hooks (shellcheck-py, pre-commit-shfmt,
+# markdownlint-cli) pin the same linter CI installs from ci.yml's env block
+# (SHELLCHECK_VERSION + SHELLCHECK_SHA256, SHFMT_VERSION,
+# MARKDOWNLINT_VERSION). Dependabot cannot edit those env vars, so its PR for
+# one of those hooks will go RED on tests/linter-pins.sh — by design. Finish
+# that PR by bumping the matching ci.yml value (and, for shellcheck,
+# recomputing the SHA256) in the same branch. A green bot PR that moved only
+# one copy is exactly the drift that test exists to stop.
+#
+# NOT COVERED — no Dependabot ecosystem reads them; see CONTRIBUTING.md,
+# "Keeping pins current":
+#   * the `fedora:<oldest supported>` matrix entry in ci.yml and
+#     install-container.yml (a `container:` tag, not a Dockerfile);
+#   * the vendored suckless sources and their .diff records (suckless/).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci

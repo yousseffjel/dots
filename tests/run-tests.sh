@@ -43,7 +43,7 @@ mkdir -p -- "$test_root"
 work="$(mktemp -d "$test_root/run-tests.XXXXXX")"
 # Invoked only indirectly, via `trap ... EXIT` below — shellcheck's
 # unreachable-body check (SC2317, split into SC2329 in 0.10.0, see
-# tests/shellcheck-pin.sh) can't see that and flags it as dead code.
+# tests/linter-pins.sh) can't see that and flags it as dead code.
 # shellcheck disable=SC2317,SC2329
 cleanup() {
     local status=$?
