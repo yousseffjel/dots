@@ -114,6 +114,15 @@ the generated one, delete `~/.fehbg` and re-run `dots theme <name>`.
 `--wallbash` does not generate anything — it derives a palette *from* a
 wallpaper you set. `tests/wallpaper-default.sh` covers all of this.
 
+**After a resolution change** the wallpaper is re-painted: feh draws at the
+screen size of the moment, and at every login `~/.xinitrc` draws it *before*
+`autorandr --change` switches to your saved layout. The installer copies an
+autorandr hook, `~/.config/autorandr/postswitch.d/10-dots-wallpaper`, that
+re-runs `~/.fehbg` after every switch: at login, on hotplug, and on a profile
+loaded from Super+d. `dwm-display` (Super+d) also re-runs it after its xrandr
+presets. A raw `xrandr` typed by hand has no hook, so run `~/.fehbg` after one.
+To keep a resolution across logins, save it once with `autorandr --save <name>`.
+
 ## App templates
 
 Four templates theme ordinary applications rather than the desktop shell.

@@ -24,6 +24,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   to the repo.
 - Unfocused windows are slightly dimmed by picom. Shadows, rounded corners
   and blur stay off.
+- The wallpaper is re-painted after every display change: an autorandr
+  `postswitch` hook (at login, on hotplug, and on a profile load) and
+  `dwm-display` (Super+d). Before, switching to a saved 1920x1080 layout at
+  login left the wallpaper covering only the old 1280x800 corner.
 - Inside a VM, `spice-vdagent` (new, in `extra.lst`) resizes the screen to
   the viewer window and shares the clipboard. It never starts on real
   hardware.

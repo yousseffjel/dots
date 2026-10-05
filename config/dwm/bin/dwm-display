@@ -118,6 +118,13 @@ for i in "${!LABELS[@]}"; do
             red "dwm-display: '$choice' failed"
             exit 1
         fi
+        # feh painted the root window at the OLD size; re-run it at the new
+        # one. A profile load also triggers autorandr's postswitch hook, which
+        # does the same — twice is harmless, and the xrandr presets have no
+        # hook at all. A wallpaper failure is not a layout failure.
+        if [[ -x "$HOME/.fehbg" ]]; then
+            "$HOME/.fehbg" >/dev/null 2>&1 || true
+        fi
         command -v notify-send >/dev/null 2>&1 &&
             notify-send -a dwm-display "display" "$choice" || true
         exit 0

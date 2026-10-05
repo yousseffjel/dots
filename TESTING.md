@@ -143,6 +143,16 @@ for adding CI; new docs you add are linted normally.
   with fake `apply-templates.sh`/`reload.sh` to prove the wallpaper exists
   before reload runs `~/.fehbg`, and does one real render when ImageMagick
   is installed.
+- **`tests/wallpaper-follows-display.sh`** — runs the shipped autorandr
+  `postswitch` hook under `/bin/sh` with ~/.fehbg present, non-executable and
+  absent. It then runs the real restore stage in a sandboxed `$HOME` (the
+  `tests/lib/install-symmetry.sh` helpers) and asserts the hook lands in
+  `$XDG_CONFIG_HOME/autorandr/postswitch.d/`: executable, a copy not a
+  symlink, and claimed in the manifest. It also covers the Super+d half:
+  `dwm-display` re-paints after a layout and leaves the wallpaper alone when
+  the layout fails. This part was split out of `tests/dwm-display.sh` at the
+  250-line cap. Every `dwm-display` run in both files uses a sandbox `HOME`,
+  since they now execute `~/.fehbg`.
 - **`tests/xinitrc-theme.sh`** — runs the generated `~/.xinitrc` in a
   sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
   the theme step: merge the cache and run `~/.fehbg` when a cache exists,

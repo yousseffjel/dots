@@ -1,0 +1,17 @@
+#!/bin/sh
+# autorandr postswitch hook — re-paint the wallpaper after a display change.
+#
+# feh paints the root window at the size the screen had at that moment, so
+# any later switch (autostart's `autorandr --change` at login, a monitor
+# hotplug, a profile loaded from Super+d) leaves it covering only the old
+# area, with black beyond. ~/.fehbg re-runs feh at the new size.
+#
+# autorandr runs every executable in ~/.config/autorandr/postswitch.d/ in
+# filename order. The installer COPIES this file there (install-restore-apps.sh)
+# rather than linking config/autorandr, because `autorandr --save` writes its
+# profiles into that same directory — a symlink would put them in the repo.
+#
+# ~/.fehbg is whichever wallpaper is current: the generated default or one set
+# with `dots wallpaper`. This only re-runs it, never rewrites it.
+[ -x "$HOME/.fehbg" ] || exit 0
+exec "$HOME/.fehbg"

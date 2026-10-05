@@ -44,6 +44,7 @@ dots/
 │   ├── thunar/, xfce4/  # thunarrc + uca.xml, helpers.rc — COPIED, never symlinked (the apps rewrite them)
 │   ├── applications/    # dots-nvim.desktop
 │   ├── mimeapps.list    # xdg default/added associations — COPIED (GIO rewrites it)
+│   ├── autorandr/       # postswitch.d/ wallpaper re-paint hook — COPIED, never linked (`autorandr --save` writes profiles there)
 │   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
 │                        # NOTE: there is deliberately no config/fastfetch/ or config/gtk-3.0/ —

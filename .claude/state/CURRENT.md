@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-05-visual-defaults.md
+Last log: .claude/changes/2026-10-05-wallpaper-follows-display.md

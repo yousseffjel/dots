@@ -47,7 +47,7 @@ DISPLAY_SH="$DOTS_DIR/config/dwm/bin/dwm-display"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-mkdir -p "$TMP/bin"
+mkdir -p "$TMP/bin" "$TMP/home"
 
 rc=0
 pass() { green "  ok: $1"; }
@@ -87,7 +87,7 @@ DP-2 disconnected (normal left inverted right)'
 ONE_MONITOR='eDP-1 connected primary 1920x1080+0+0 (normal left inverted right) 344mm x 194mm
 DP-2 disconnected (normal left inverted right)'
 
-menu() { PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list; }
+menu() { HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list; }
 
 # --- derivation from what is actually connected -----------------------------
 
@@ -187,7 +187,7 @@ blue "==> selection dispatch"
 : >"$TMP/applied.log"
 printf '#!/bin/sh\ngrep -x "mirror HDMI-1 onto eDP-1"\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
-if PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     if grep -qF -- "--output HDMI-1 --auto --same-as eDP-1" "$TMP/applied.log"; then
         pass "choosing an entry runs exactly that entry's xrandr command"
     else
@@ -197,12 +197,15 @@ else
     fail "selecting a valid entry exited non-zero"
 fi
 
+# The wallpaper re-paint after a layout (and its failure modes) is covered by
+# tests/wallpaper-follows-display.sh, split out at the 250-line cap.
+
 # Escape: dmenu exits non-zero having printed nothing. That is an ordinary way
 # to dismiss the menu, so it must be a clean exit 0 with nothing applied.
 : >"$TMP/applied.log"
 printf '#!/bin/sh\nexit 1\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
-if PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     if [[ -s "$TMP/applied.log" ]]; then
         fail "Escape applied something: $(cat "$TMP/applied.log")"
     else
@@ -215,7 +218,7 @@ fi
 # --- no connected outputs at all --------------------------------------------
 
 fake_xrandr 'DP-2 disconnected (normal left inverted right)'
-if PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list >/dev/null 2>&1; then
     fail "no connected outputs should be an error, not an empty menu"
 else
     pass "no connected outputs fails loudly"
