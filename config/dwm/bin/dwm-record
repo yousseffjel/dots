@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# dwm-record — screen recording via ffmpeg's x11grab, toggled by one key.
+#
+# With nothing recording, it asks for a mode and starts:
+#
+#   record>  full | region
+#
+# region is drawn with slop, as dwm-screenshot does. With a recording
+# running, the same key stops it and says where the file went. Escape at the
+# prompt or in slop aborts silently.
+#
+#   dwm-record            toggle (prompt when starting)
+#   dwm-record --full     start full-screen, or stop if running
+#   dwm-record --region   start region, or stop if running
+#
+# Video only, VP9 in WebM. Fedora's ffmpeg-free carries no H.264 encoder
+# (patents), but it is built with x11grab (libxcb) and libvpx. RPM Fusion's
+# ffmpeg works the same way here. The encoder runs at libvpx's realtime
+# speed so recording does not lag on a modest CPU.
+#
+# Stopping sends SIGINT, not SIGTERM: that is ffmpeg's "q" — it finishes the
+# file's index, which a kill would leave broken.
+#
+# Bound to Super+r in config/sxhkd/sxhkdrc.
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+OUT_DIR="${DOTS_RECORD_DIR:-$HOME/Videos/recordings}"
+NAME_FMT="dots-recording-%Y%m%d-%H%M%S.webm"
+STATE_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/dwm-record"
+FRAMERATE=30
+# libvpx: -deadline realtime with -cpu-used 8 is its fastest setting, and
+# -crf 32 with -b:v 0 is constant quality — sharp text, modest files.
+ENCODE_OPTS=(-c:v libvpx-vp9 -deadline realtime -cpu-used 8 -row-mt 1
+    -crf 32 -b:v 0 -pix_fmt yuv420p)
+STOP_WAIT_TENTHS=50
+FONT="monospace:size=10"
+SLOP_BORDER=2
+
+usage() {
+    echo "usage: dwm-record [--full|--region]"
+}
+
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a "dots-record" "$@" || true
+}
+
+fail() {
+    red "dwm-record: $1"
+    notify -u critical "Recording failed" "$1"
+    exit 1
+}
+
+# The recording's pid, if one is running. The comm check matters: a stale
+# pid file from a crashed session can name a pid the kernel has since given
+# to something else, and that process must never receive the stop signal.
+running_pid() {
+    local pid
+    pid="$(cat "$STATE_DIR/pid" 2>/dev/null || true)"
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    [[ "$(cat "/proc/$pid/comm" 2>/dev/null || true)" == ffmpeg ]] || return 1
+    printf '%s\n' "$pid"
+}
+
+stop() {
+    local pid="$1" out i
+    out="$(cat "$STATE_DIR/out" 2>/dev/null || true)"
+    kill -INT "$pid" 2>/dev/null || true
+    for ((i = 0; i < STOP_WAIT_TENTHS; i++)); do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 0.1
+    done
+    kill -0 "$pid" 2>/dev/null && kill -TERM "$pid" 2>/dev/null || true
+    rm -f "$STATE_DIR/pid" "$STATE_DIR/out"
+    if [[ -s "$out" ]]; then
+        notify "Recording saved" "$out"
+    else
+        fail "no video was written — see $STATE_DIR/ffmpeg.log"
+    fi
+}
+
+even() { printf '%d' $(($1 / 2 * 2)); }
+
+# Fills INPUT with ffmpeg's input arguments for the mode, or returns 1 on a
+# cancelled region. A global rather than printed output: a function run in
+# $( ) or <( ) cannot exit the script, so fail() inside it would be lost.
+# yuv420p needs even dimensions, so odd ones are rounded down.
+INPUT=()
+input_args() {
+    local mode="$1" geom w h x y
+    case "$mode" in
+        full)
+            geom="$(xrandr 2>/dev/null | awk '/ current / { print $8, $10 }' | tr -d ',' || true)"
+            read -r w h _ <<<"$geom" || true
+            if [[ "${w:-}" =~ ^[0-9]+$ && "${h:-}" =~ ^[0-9]+$ ]]; then
+                INPUT+=(-video_size "$(even "$w")x$(even "$h")")
+            fi
+            INPUT+=(-i "$DISPLAY")
+            ;;
+        region)
+            geom="$(slop -b "$SLOP_BORDER" -f '%w %h %x %y' 2>/dev/null || true)"
+            read -r w h x y _ <<<"$geom" || true
+            [[ "${w:-}" =~ ^[0-9]+$ && "${h:-}" =~ ^[0-9]+$ ]] || return 1
+            [[ "${x:-}" =~ ^[0-9]+$ && "${y:-}" =~ ^[0-9]+$ ]] || return 1
+            ((w >= 2 && h >= 2)) || return 1
+            INPUT+=(-video_size "$(even "$w")x$(even "$h")" -i "$DISPLAY+$x,$y")
+            ;;
+    esac
+}
+
+start() {
+    local mode="$1" out
+    command -v ffmpeg >/dev/null 2>&1 || fail "ffmpeg is not installed (packages/desktop.lst: ffmpeg-free)"
+    [[ -n "${DISPLAY:-}" ]] || fail "DISPLAY is not set"
+    if [[ "$mode" == region ]] && ! command -v slop >/dev/null 2>&1; then
+        fail "slop is not installed — region mode needs it"
+    fi
+    input_args "$mode" || exit 0
+    mkdir -p "$OUT_DIR" "$STATE_DIR"
+    out="$OUT_DIR/$(date +"$NAME_FMT")"
+    ffmpeg -hide_banner -loglevel error -f x11grab -framerate "$FRAMERATE" \
+        "${INPUT[@]}" "${ENCODE_OPTS[@]}" "$out" \
+        </dev/null >"$STATE_DIR/ffmpeg.log" 2>&1 &
+    printf '%s\n' "$!" >"$STATE_DIR/pid"
+    printf '%s\n' "$out" >"$STATE_DIR/out"
+    # A bad codec or a refused X connection kills ffmpeg within moments;
+    # catch that here rather than on a "stop" that finds nothing.
+    sleep 0.5
+    if ! running_pid >/dev/null; then
+        rm -f "$STATE_DIR/pid" "$STATE_DIR/out"
+        fail "ffmpeg exited at once — see $STATE_DIR/ffmpeg.log"
+    fi
+    notify "Recording" "Super+r stops it"
+}
+
+mode=""
+for arg in "$@"; do
+    case "$arg" in
+        --full) mode=full ;;
+        --region) mode=region ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            red "dwm-record: unknown argument: $arg"
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if pid="$(running_pid)"; then
+    stop "$pid"
+    exit 0
+fi
+if [[ -z "$mode" ]]; then
+    mode="$(printf '%s\n' full region | dmenu -i -fn "$FONT" -l 2 -p "record>")" || exit 0
+fi
+case "$mode" in
+    full | region) start "$mode" ;;
+    *) exit 0 ;;
+esac

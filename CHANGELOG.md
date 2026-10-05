@@ -47,6 +47,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - `Super` + `.` opens an emoji picker (`dwm-emoji`): every emoji from
   Unicode's data with its name, copied to the clipboard. New package:
   `unicode-emoji`.
+- `Super` + `r` starts and stops a screen recording (`dwm-record`): full
+  screen or a region, VP9/WebM to `~/Videos/recordings`, no audio. New
+  package: `ffmpeg-free`.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,

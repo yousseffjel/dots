@@ -61,6 +61,12 @@ alacritty  # the terminal keybind and thunar's "Open Terminal Here" fall back to
 maim  # the screenshot keys capture nothing at all
 slop  # region and window screenshot modes die; full-screen capture still works
 xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen and region are unaffected
+# Screen recording (Super+r, dwm-record). ffmpeg-free is Fedora's own build:
+# x11grab and libvpx are enabled, H.264 is not (checked against the ffmpeg
+# spec on src.fedoraproject.org and mdapi for f43 and f44, 2026-10-05). It
+# CONFLICTS with RPM Fusion's ffmpeg; if that is installed this line fails
+# and the recorder still works with it.
+ffmpeg-free  # the Super+r screen recorder cannot start (unless RPM Fusion's ffmpeg is installed instead)
 
 # --- emoji picker, keybound ---
 # Verified on mdapi.fedoraproject.org for f43 and f44 (2026-10-05). Data
