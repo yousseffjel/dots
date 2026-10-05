@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-09-28
+Last Updated: 2026-10-05
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -37,6 +37,12 @@ when slots run concurrently.
   done; package names are verified against upstream repos, not live. The
   whole roster Epic was verified in sandboxed `$HOME` trees and against
   local binaries on an **Arch** dev host — never on a Fedora box.
+  **2026-10-05: run on a Fedora 44 Server VM** (virtio GPU, no 3D accel, ly).
+  It found three bugs, fixed in `first-boot-fixes`, and passed on a re-test.
+  Still open: **bare metal**, a real GPU (the glx branch of the picom probe
+  is tested only against fake glxinfo output), and Workstation as a target.
+  Cosmetic: the login shell is recorded as `/usr/sbin/zsh`, because ly's
+  PATH puts sbin first and sbin is merged into bin on f42+. It works.
 
 ### Framework parity with HyDE (opened 2026-08-12 by a fresh HyDE diff)
 
@@ -65,6 +71,15 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-05 — **first-boot-fixes**: the first real install (Fedora 44 VM)
+  found three bugs: picom's glx backend froze the screen (now a glxinfo
+  probe), a headless install was never themed (now themed in `~/.xinitrc`),
+  and `chsh` failed silently (now `sudo usermod`). Re-tested on the VM.
+- 2026-10-05 — **visual-defaults** + **wallpaper-follows-display**: a
+  wallpaper generated from the palette, picom inactive dimming, a
+  spice-vdagent VM agent, and a wallpaper re-paint after every display
+  change. Confirmed on the VM at 1920x1080.
 
 - 2026-09-28 — **the seven untested `config/dwm/bin/` scripts** — all nine
   now have a test. Four new files on a sealed PATH (`tests/lib/sealed-path.sh`).

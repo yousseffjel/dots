@@ -1750,3 +1750,43 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   - an xrandr fixture that masked an unguarded read;
   - a "maim not called" check that a bogus mode satisfies anyway.
 - See `.claude/changes/2026-09-28-dwm-bin-tests.md`.
+
+## 2026-10-05 — first real install (Fedora 44 Server VM): three bugs fixed
+- The first end-to-end run of `install-fedora.sh` on a Fedora box (a libvirt
+  VM with a virtio GPU and no 3D acceleration, login via ly) found three bugs
+  that no container or sandbox could:
+  - picom's glx backend froze the screen. `autostart.sh` now probes
+    `glxinfo -B` (new `glx-utils` package) and uses xrender unless direct
+    rendering runs on a real GPU.
+  - A headless install was never themed. `~/.xinitrc` now does it before
+    `exec dwm`. It must not be in `autostart.sh`: re-theming HUPs dwm, and
+    every dwm start re-runs autostart.
+  - `chsh` failed silently for a non-root user. It is now
+    `sudo usermod -s`.
+- Re-tested on the VM after the merge: themed bar, live status,
+  `picom --backend xrender`, login shell zsh.
+- 7/7 mutations are caught. See `.claude/changes/2026-10-05-first-boot-fixes.md`.
+
+## 2026-10-05 — visual defaults: generated wallpaper, picom dimming, VM agent
+- A static theme apply renders a gradient wallpaper from the theme's own
+  palette (`scripts/theme/wallpaper-default.sh`), so no image is committed.
+  A user's own `~/.fehbg` is never replaced; ownership is a marker line.
+- picom dims unfocused windows (`inactive-dim 0.15`). This is a partial
+  DECISION REVERSAL of the 2026-08-07 perf pass, per the user's "simple and
+  stable"; shadows, corners and blur stay off.
+- `spice-vdagent` (`extra.lst`) starts only inside a VM. On the test VM it
+  stayed inactive, and the user chose a fixed `autorandr` profile instead.
+- The reviewer caught bash `%q` in `~/.fehbg`, which `/bin/sh` cannot read
+  for control characters. Fixed with POSIX quoting. See
+  `.claude/changes/2026-10-05-visual-defaults.md`.
+
+## 2026-10-05 — the wallpaper follows display changes
+- feh paints at the screen size of that moment; at login `~/.xinitrc`
+  paints before `autorandr --change` switches layout. An autorandr
+  `postswitch.d` hook (copied, never linked) and `dwm-display` now re-run
+  `~/.fehbg`.
+- `tests/dwm-display.sh` had run `dwm-display` against the real `$HOME`; it
+  is now sandboxed. The redraw cases were split into
+  `tests/wallpaper-follows-display.sh` at the 250-line cap.
+- Confirmed on the VM: 1920x1080 at login with the wallpaper filling the
+  screen. See `.claude/changes/2026-10-05-wallpaper-follows-display.md`.
