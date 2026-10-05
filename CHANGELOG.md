@@ -37,6 +37,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - A pop-up with a progress bar when the volume, mic or brightness keys are
   pressed (`dwm-osd`, a dunst notification that replaces itself). No new
   packages.
+- A `NET` block in the bar: Wi-Fi name and signal, `eth` for a wired link,
+  or `off`. Left-click opens `nmtui`. An existing install needs
+  `rm suckless/dwmblocks/blocks.h` before rebuilding, because the generated
+  `blocks.h` is never overwritten.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,
