@@ -3,7 +3,7 @@
 Epic decomposition per `.claude/rules/foundations/task-planning.md` §
 "Any -> Epic". Source request: user, 2026-08-24, in-chat — "lets start on
 #1 + #2 + #3 + #6" against the ranked harvest table in
-`.claude/changes/2026-08-24-dwm-titus-reference-clone.md`.
+`.claude/changes/archive/2026-08-24-dwm-titus-reference-clone.md`.
 
 Reference source: `dwm-titus/` at HEAD `e1f884e` (CLAUDE.md rule 9 — read
 only, never referenced from a script, never assumed present). Nothing here

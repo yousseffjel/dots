@@ -36,7 +36,7 @@ the differences are substantial:
 
 The security-relevant rows are deliberate: a theme is data, so this
 implementation never gives a palette or template file the ability to run
-shell code. See `.claude/changes/2026-08-05-theming-apply-templates.md`.
+shell code. See `.claude/changes/archive/2026-08-05-theming-apply-templates.md`.
 
 Thanks to the HyDE authors for a genuinely good design.
 

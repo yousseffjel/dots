@@ -6,7 +6,7 @@
 # or the theming engine silently does nothing. Silently is the operative word.
 # picom was packaged, configured, themed and performance-tuned for two months
 # while nothing launched it, and the installer reported a clean run throughout
-# (see .claude/changes/2026-08-08-picom-autostart.md). A package whose absence
+# (see .claude/changes/archive/2026-08-08-picom-autostart.md). A package whose absence
 # announces itself does not need to be here.
 #
 # Not the same as core.lst. core.lst hard-fails because the installer's own

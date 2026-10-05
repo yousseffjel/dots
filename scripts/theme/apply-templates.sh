@@ -6,7 +6,7 @@
 # Reimplements HyDE-Project/HyDE's fn_wallbash (read as a design
 # reference only, see CLAUDE.md rule 9) without its eval-based path
 # expansion, its background+disown post-commands, or its `source`-the-
-# palette step — see .claude/changes/2026-08-05-theming-apply-templates.md
+# palette step — see .claude/changes/archive/2026-08-05-theming-apply-templates.md
 # for rationale on each.
 #
 # Usage: apply-templates.sh [--palette PATH] <always|theme|all>...

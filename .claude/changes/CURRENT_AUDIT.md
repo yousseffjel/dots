@@ -1790,3 +1790,11 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `tests/wallpaper-follows-display.sh` at the 250-line cap.
 - Confirmed on the VM: 1920x1080 at login with the wallpaper filling the
   screen. See `.claude/changes/2026-10-05-wallpaper-follows-display.md`.
+
+## 2026-10-05 — change-log archive sweep (first ever)
+- 54 logs older than 14 days moved to `.claude/changes/archive/`, with
+  filenames preserved. Six links from live files were rewritten; links inside
+  immutable logs and archived task folders were left as written.
+- Also today: `wallpaper.sh` now writes `~/.fehbg` with POSIX quoting (slot
+  `wallpaper-sh-posix-quoting`, awaiting merge). See
+  `.claude/changes/2026-10-05-changelog-archive-sweep.md`.

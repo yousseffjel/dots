@@ -7,7 +7,7 @@
 # CLAUDE.md rule 9), simplified to one fixed dark-mode curve (no light/
 # vibrant/pastel/mono/--custom profiles, no video wallpapers) and sorted
 # by real perceptual luminance rather than upstream's hex-lexicographic
-# sort. Full rationale: .claude/changes/2026-08-05-theming-colorgen.md
+# sort. Full rationale: .claude/changes/archive/2026-08-05-theming-colorgen.md
 #
 # Usage: colorgen.sh <wallpaper> [--force]
 set -euo pipefail
