@@ -1807,3 +1807,25 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   existing `/usr/sbin/zsh` is respelled with no new row. New
   `tests/login-shell-path.sh`; the container CI assertion matches. See
   `.claude/changes/2026-10-05-login-shell-canonical-path.md`.
+
+## 2026-10-05 — desktop features round (seven ⭐ picks, one slot each)
+- `blueman-applet-autostart`: bluetooth tray icon at login when an adapter
+  exists (rule 6, 11 daemons).
+- `volume-brightness-osd`: `dwm-osd` — a self-replacing dunst progress pop-up
+  on the volume/mic/brightness keys. No new package.
+- `network-status-block`: `NET` dwmblocks block (nmcli, sysfs fallback,
+  signal 11, click → nmtui). Reviewer WARN ("connected (externally)") fixed.
+  Existing installs need `rm suckless/dwmblocks/blocks.h` + rebuild.
+- `keybind-cheatsheet`: `dwm-keys` (Super+/) reads KEYBINDINGS.md at runtime;
+  `tests/dwm-keys.sh` now fails the build when an sxhkdrc key has no row.
+- `emoji-picker`: `dwm-emoji` (Super+.) over Unicode's emoji-test.txt, copy
+  via xclip. New package `unicode-emoji` (desktop.lst).
+- `screen-recorder`: `dwm-record` (Super+r toggles) — x11grab → VP9/WebM,
+  SIGINT stop. Proved end to end with real ffmpeg on Xvfb. New package
+  `ffmpeg-free` (desktop.lst; conflicts with RPM Fusion's ffmpeg).
+- `night-light`: `dwm-nightlight` (Super+n) is the single gamma writer while
+  its daemon runs; dwm-brightness routes through it. New package
+  `gammastep`. Duplicate-daemon guard took three iterations (pipeline race,
+  then a `$( … || true)` subshell matching itself); final version verified
+  with the real pgrep.
+- Suite 28 → 35 tests. See the seven dated logs of 2026-10-05.

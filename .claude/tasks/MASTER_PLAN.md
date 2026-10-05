@@ -72,6 +72,14 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-05 — **desktop features round**: from the HyDE feature-gap list,
+  the user picked the ⭐ option for seven rows: bluetooth tray applet,
+  volume/brightness pop-up, NET block, keybind cheat sheet (Super+/), emoji
+  picker (Super+.), screen recorder (Super+r) and night light (Super+n,
+  owning the gamma with the brightness keys). Battery block stays out by the
+  desktop decision. Still unverified on the VM: x11grab on the virtio GPU,
+  repeated gamma applies on a real X server, the NET block (needs a fresh
+  `blocks.h`).
 - 2026-10-05 — **first-boot-fixes**: the first real install (Fedora 44 VM)
   found three bugs: picom's glx backend froze the screen (now a glxinfo
   probe), a headless install was never themed (now themed in `~/.xinitrc`),
