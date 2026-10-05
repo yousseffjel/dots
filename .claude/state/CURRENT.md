@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-05-login-shell-canonical-path.md
+Last log: .claude/changes/2026-10-05-blueman-applet-autostart.md

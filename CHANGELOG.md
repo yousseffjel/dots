@@ -31,6 +31,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - Inside a VM, `spice-vdagent` (new, in `extra.lst`) resizes the screen to
   the viewer window and shares the clipboard. It never starts on real
   hardware.
+- The bluetooth tray icon (`blueman-applet`) starts at login when a
+  bluetooth adapter exists. blueman was already installed, but its autostart
+  entry is never read in a dwm session.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,
