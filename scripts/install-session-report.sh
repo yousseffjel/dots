@@ -123,6 +123,11 @@ session_autostart_report() {
         'that package is retired on Fedora 43 and 44, so its [ -x ] guards' \
         'never match and the block has been doing nothing.'
 
+    session_report_daemon "$autostart" blueman-applet \
+        'add this line yourself:  command -v blueman-applet >/dev/null && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] && ! pgrep -x blueman-applet >/dev/null && blueman-applet &' \
+        'without it there is no bluetooth tray icon; pairing still works' \
+        'from blueman-manager (left-click the BT block).'
+
     session_report_daemon "$autostart" dwm-lock \
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
         'without it the screen never locks on idle or on suspend.' \

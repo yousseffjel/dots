@@ -189,6 +189,15 @@ if command -v lxpolkit >/dev/null 2>&1 && ! pgrep -x lxpolkit >/dev/null 2>&1; t
 	lxpolkit &
 fi
 
+# Bluetooth tray icon (pairing, connecting, file transfer). blueman ships an
+# /etc/xdg/autostart entry, but nothing in a dwm session reads that directory.
+# Started only when an adapter exists: without one the applet still runs and
+# puts a dead icon in the tray. The bar's BT block works either way.
+if command -v blueman-applet >/dev/null 2>&1 && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] \
+	&& ! pgrep -x blueman-applet >/dev/null 2>&1; then
+	blueman-applet &
+fi
+
 EOF
 }
 
