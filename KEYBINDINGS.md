@@ -360,6 +360,17 @@ dwm-screenshot --region               # region, then ask where it goes
 dwm-screenshot --full --both          # no prompts at all
 ```
 
+### Screen recording
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `r` | Start a recording (pick full screen or a region), or stop the one running (`dwm-record`) |
+
+Recordings are VP9 video in WebM, with no audio, saved to
+`~/Videos/recordings`. Fedora's `ffmpeg-free` cannot encode H.264, so
+convert one if a site insists on MP4. Stopping lets ffmpeg finish the file
+cleanly, so it plays even if you stop mid-motion.
+
 ### Lock and idle
 
 | Keys | Action |

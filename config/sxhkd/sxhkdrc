@@ -127,6 +127,13 @@ Print
 shift + Print
 	dwm-screenshot --region --clipboard
 
+# --- screen recording --------------------------------------------------
+# One key toggles: with nothing recording it asks full | region and starts;
+# while recording, the same key stops it. Files go to ~/Videos/recordings.
+# Super+r is free in both grabbers (super + ctrl + r is the sxhkd reload).
+super + r
+	dwm-record
+
 # --- lock --------------------------------------------------------------
 # dwm-lock rather than slock directly. While the xss-lock daemon is running
 # this goes through `loginctl lock-session`, so logind's own record of the
