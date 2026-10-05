@@ -51,6 +51,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- The login shell was recorded as `/usr/sbin/zsh` when the installer ran
+  with sbin first on `PATH` (since Fedora 42 sbin is a symlink to bin). A
+  later run under a different `PATH` then changed the shell again and
+  recorded zsh as the previous one, so `dots uninstall` would have "restored"
+  zsh. The path is now resolved first, and an install that already has
+  `/usr/sbin/zsh` is corrected on its next services run.
 - `dots wallpaper` wrote `~/.fehbg` with bash-only quoting, which a strict
   `/bin/sh` cannot run when the image path contains a tab or other control
   character. It now uses POSIX quoting.

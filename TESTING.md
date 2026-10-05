@@ -159,6 +159,13 @@ for adding CI; new docs you add are linted normally.
   `~/.fehbg` has no bash-only `$'...'` quoting, runs under `/bin/sh` with the
   exact path reaching a fake `feh`, and carries no generated-wallpaper marker,
   since a picked wallpaper is the user's.
+- **`tests/login-shell-path.sh`** — runs `install-services.sh` with zsh
+  reachable only through a symlinked `sbin` dir (Fedora 42+ layout) placed
+  first on a sealed `PATH`, with fake `sudo`, `usermod`, `getent` and `tee`.
+  It asserts that the resolved `/usr/bin` spelling reaches `usermod` and
+  `/etc/shells`, that an install already recorded as `/usr/sbin/zsh` is
+  respelled without a second `SHELL` manifest row (uninstall restores the
+  last one), and that `--dry-run` calls nothing.
 - **`tests/xinitrc-theme.sh`** — runs the generated `~/.xinitrc` in a
   sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
   the theme step: merge the cache and run `~/.fehbg` when a cache exists,
@@ -336,7 +343,7 @@ skipping quietly. Each row below was checked against a real run, not assumed:
 
 | Step | Status in the container |
 | ---- | ----------------------- |
-| `usermod -s <zsh> <user>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh`. But it runs as **root**, so the `sudo` path a real user takes is *not* proved — the previous `chsh -s` passed here while failing silently for every non-root user, found on the first VM install (2026-10-05). Nor is it proved that a real login then starts zsh. |
+| `usermod -s <zsh> <user>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh` with its directory resolved, so an `/usr/sbin/zsh` spelling fails it. But it runs as **root**, so the `sudo` path a real user takes is *not* proved — the previous `chsh -s` passed here while failing silently for every non-root user, found on the first VM install (2026-10-05). Nor is it proved that a real login then starts zsh. |
 | `systemctl enable ly@<tty>.service` | **Works, and is asserted.** Enabling is offline symlink creation: it needs the unit *file*, not a running systemd. That is exactly why it catches a wrong unit name. |
 | ly actually running | **Not covered.** Enabling is not starting. Whether ly presents a greeter, hands off to the session and takes the TTY from getty is a hardware question. |
 | Anything graphical | **Not covered.** No display server, so dwm/st/dmenu/dwmblocks/slock are built and installed but never run, and the theming engine skips its initial apply for want of `$DISPLAY`. |

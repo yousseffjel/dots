@@ -189,7 +189,13 @@ jobs:
           # only check that covers the login-shell path — and that path is exactly
           # where the `$USER: unbound variable` bug lived, so leaving it
           # unasserted would let the same class of regression ship green.
+          # The directory is resolved physically, as the script does: root's
+          # PATH puts /usr/sbin first, and since f42 that is a symlink to
+          # /usr/bin, so `command -v` alone answers /usr/sbin/zsh — the
+          # spelling the 2026-10-05 VM install recorded. Comparing against the
+          # resolved path makes this the regression guard for that fix too.
           zsh_bin="$(command -v zsh || true)"
+          [ -n "$zsh_bin" ] && zsh_bin="$(cd "$(dirname "$zsh_bin")" && pwd -P)/zsh"
           current_shell="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f7 || true)"
           if [ -z "$zsh_bin" ]; then
             note "zsh is not installed — packages/core.lst did not land"
