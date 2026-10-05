@@ -1798,3 +1798,12 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Also today: `wallpaper.sh` now writes `~/.fehbg` with POSIX quoting (slot
   `wallpaper-sh-posix-quoting`, awaiting merge). See
   `.claude/changes/2026-10-05-changelog-archive-sweep.md`.
+
+## 2026-10-05 — login shell recorded by its resolved path
+- Not cosmetic after all: shells were compared as strings, so a services
+  re-run under a bin-first PATH would `usermod` again and append a SHELL row
+  whose previous shell was zsh — the row uninstall restores. zsh's directory
+  is now resolved (`pwd -P`), shells are compared by identity (`-ef`), and an
+  existing `/usr/sbin/zsh` is respelled with no new row. New
+  `tests/login-shell-path.sh`; the container CI assertion matches. See
+  `.claude/changes/2026-10-05-login-shell-canonical-path.md`.

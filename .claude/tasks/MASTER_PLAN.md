@@ -41,8 +41,8 @@ when slots run concurrently.
   It found three bugs, fixed in `first-boot-fixes`, and passed on a re-test.
   Still open: **bare metal**, a real GPU (the glx branch of the picom probe
   is tested only against fake glxinfo output), and Workstation as a target.
-  Cosmetic: the login shell is recorded as `/usr/sbin/zsh`, because ly's
-  PATH puts sbin first and sbin is merged into bin on f42+. It works.
+  ~~Cosmetic: the login shell is recorded as `/usr/sbin/zsh`.~~ Fixed
+  2026-10-05 (`login-shell-canonical-path`) — it was a real uninstall bug.
 
 ### Framework parity with HyDE (opened 2026-08-12 by a fresh HyDE diff)
 
