@@ -153,6 +153,12 @@ for adding CI; new docs you add are linted normally.
   the layout fails. This part was split out of `tests/dwm-display.sh` at the
   250-line cap. Every `dwm-display` run in both files uses a sandbox `HOME`,
   since they now execute `~/.fehbg`.
+- **`tests/wallpaper-fehbg-quoting.sh`** — runs a sandbox copy of
+  `scripts/theme/wallpaper.sh`, with the engine scripts faked out, on an
+  image whose path contains a space, a quote, `$` and a tab. It asserts that
+  `~/.fehbg` has no bash-only `$'...'` quoting, runs under `/bin/sh` with the
+  exact path reaching a fake `feh`, and carries no generated-wallpaper marker,
+  since a picked wallpaper is the user's.
 - **`tests/xinitrc-theme.sh`** — runs the generated `~/.xinitrc` in a
   sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
   the theme step: merge the cache and run `~/.fehbg` when a cache exists,

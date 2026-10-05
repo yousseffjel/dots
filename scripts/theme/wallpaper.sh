@@ -135,7 +135,13 @@ fi
 # --no-fehbg above, then write ~/.fehbg ourselves: feh's own version
 # embeds the absolute path with no quoting robustness, and reload.sh
 # executes this file on every reload.
-printf '#!/bin/sh\nfeh --no-fehbg --bg-fill %q\n' "$TARGET" >"$HOME/.fehbg"
+#
+# POSIX single quotes, not bash's %q: for a control character %q emits
+# $'...', which /bin/sh (dash) cannot parse. Same form as
+# wallpaper-default.sh, minus its "# dots: generated wallpaper" marker — a
+# wallpaper picked here is the user's own and must never be regenerated over.
+sq_target="'${TARGET//\'/\'\\\'\'}'"
+printf '#!/bin/sh\nfeh --no-fehbg --bg-fill %s\n' "$sq_target" >"$HOME/.fehbg"
 chmod 755 "$HOME/.fehbg"
 green "wallpaper set"
 
