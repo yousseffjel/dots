@@ -155,3 +155,10 @@ super + c
 # from whatever xrandr reports as connected.
 super + d
 	dwm-display
+
+# --- help --------------------------------------------------------------
+# Every keybinding in a searchable dmenu list, read from KEYBINDINGS.md.
+# Super+/ checked free against both grabbers (dwm's only Super keys are
+# Shift+x and v).
+super + slash
+	dwm-keys

@@ -448,6 +448,16 @@ profile you curated beats anything generated. Both also run from a shell —
 `dwm-display --list` prints the menu and the exact `xrandr` command behind each
 entry without applying anything.
 
+### Help
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `/` | This list, searchable, in dmenu (`dwm-keys`) |
+
+`dwm-keys` reads this file at runtime, so a binding missing here is missing
+from the cheat sheet too. `tests/dwm-keys.sh` fails the build when a key in
+`sxhkdrc` has no row here.
+
 ### sxhkd itself
 
 | Keys | Action |
