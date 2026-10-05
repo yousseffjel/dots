@@ -162,3 +162,9 @@ super + d
 # Shift+x and v).
 super + slash
 	dwm-keys
+
+# --- emoji -------------------------------------------------------------
+# Pick an emoji in dmenu; it is copied to the clipboard. Super+. is the
+# emoji key on other desktops too, and is free in both grabbers.
+super + period
+	dwm-emoji

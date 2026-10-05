@@ -44,6 +44,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - `Super` + `/` opens a searchable list of every keybinding (`dwm-keys`),
   read from `KEYBINDINGS.md`. A new test fails the build when a key in
   `sxhkdrc` has no row there.
+- `Super` + `.` opens an emoji picker (`dwm-emoji`): every emoji from
+  Unicode's data with its name, copied to the clipboard. New package:
+  `unicode-emoji`.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,

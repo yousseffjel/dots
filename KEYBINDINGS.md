@@ -458,6 +458,16 @@ entry without applying anything.
 from the cheat sheet too. `tests/dwm-keys.sh` fails the build when a key in
 `sxhkdrc` has no row here.
 
+### Emoji
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `.` | Emoji picker — search by name or group; the pick is copied to the clipboard (`dwm-emoji`) |
+
+The list is Unicode's own, from the `unicode-emoji` package, so it matches
+the installed release. Colour glyphs need `google-noto-emoji-fonts`
+(`extra.lst`); without it the names still show and the copy still works.
+
 ### sxhkd itself
 
 | Keys | Action |

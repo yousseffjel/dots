@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# dwm-emoji — pick an emoji from a dmenu list; it lands on the clipboard.
+#
+# The list comes from Unicode's own test file (Fedora package unicode-emoji),
+# so it carries every emoji the installed release knows, each with its
+# official name and group to search on — "heart", "flag", "smileys". Only
+# fully-qualified entries are kept: those are the sequences every font and
+# every text field render as the emoji itself, and they are one per emoji.
+# Skin-tone variants are separate entries, which is how the file lists them.
+#
+# The emoji is COPIED (xclip, CLIPBOARD selection), not typed into the
+# focused window: paste it with Ctrl+v. It also lands in clipmenu's history.
+#
+# DWM_EMOJI_DATA overrides the data file, for tests/dwm-emoji.sh.
+#
+# usage: dwm-emoji
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+FONT="monospace:size=12"
+LINES_SHOWN=20
+DATA="${DWM_EMOJI_DATA:-/usr/share/unicode/emoji/emoji-test.txt}"
+
+fail() {
+    red "dwm-emoji: $1"
+    command -v notify-send >/dev/null 2>&1 && notify-send -u critical "dwm-emoji" "$1"
+    exit 1
+}
+
+[[ -r "$DATA" ]] || fail "no emoji data at $DATA — install the unicode-emoji package"
+command -v xclip >/dev/null 2>&1 || fail "xclip is not installed — nothing to copy the emoji with"
+
+# A data line:  1F600   ; fully-qualified   # 😀 E1.0 grinning face
+# The header comments mention "fully-qualified" too. They never contain the
+# "; fully-qualified" field form (checked against version 18.0), so the
+# leading-code-point match is a second guard, not the one doing the work.
+# After '#': the emoji, its version (E<n>.<n>, dropped), then the name.
+entries() {
+    awk '
+        /^# group: / { group = substr($0, 10); next }
+        /^[0-9A-F]/ && /; fully-qualified/ {
+            rest = substr($0, index($0, "#") + 2)
+            emoji = rest; sub(/ .*/, "", emoji)
+            name = rest; sub(/^[^ ]+ E[0-9.]+ /, "", name)
+            printf "%s %s  [%s]\n", emoji, name, group
+        }
+    ' "$DATA"
+}
+
+list="$(entries)"
+[[ -n "$list" ]] || fail "no emoji found in $DATA — has its format changed?"
+
+choice="$(printf '%s\n' "$list" | dmenu -i -fn "$FONT" -l "$LINES_SHOWN" -p "emoji")" || exit 0
+emoji="${choice%% *}"
+[[ -n "$emoji" ]] || exit 0
+
+printf '%s' "$emoji" | xclip -selection clipboard
+command -v notify-send >/dev/null 2>&1 && notify-send -u low "dwm-emoji" "copied $emoji"
+exit 0

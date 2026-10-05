@@ -62,6 +62,11 @@ maim  # the screenshot keys capture nothing at all
 slop  # region and window screenshot modes die; full-screen capture still works
 xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen and region are unaffected
 
+# --- emoji picker, keybound ---
+# Verified on mdapi.fedoraproject.org for f43 and f44 (2026-10-05). Data
+# files only; the binary side is xclip, already listed above.
+unicode-emoji  # the Super+. emoji picker has no list to show and exits with a notification
+
 # --- media and volume keys ---
 playerctl  # the XF86Audio play/next/prev/stop keys do nothing
 pamixer  # volume and mic keys do nothing, and both status blocks go blank
