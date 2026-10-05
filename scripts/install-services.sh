@@ -52,6 +52,17 @@ fi
 # stage, but this stage is standalone-runnable — guard for the case where
 # it hasn't run yet rather than aborting on an unguarded command substitution.
 ZSH_BIN="$(command -v zsh || true)"
+# The directory is resolved physically (2026-10-05, Fedora 44 VM). Since f42
+# /usr/sbin is a symlink to /usr/bin, and a PATH with sbin first — root's, and
+# ly's — finds /usr/sbin/zsh. Taken as-is, that spelling went into passwd and
+# /etc/shells, and a later run under a bin-first PATH saw "/usr/bin/zsh !=
+# /usr/sbin/zsh", ran usermod again and recorded zsh as the PREVIOUS shell —
+# the one uninstall restores. Only the directory is resolved: the binary
+# itself may be a symlink to a versioned name nobody should log in through.
+if [[ -n "$ZSH_BIN" ]]; then
+    zsh_dir="$(cd "${ZSH_BIN%/*}" 2>/dev/null && pwd -P || true)"
+    [[ -n "$zsh_dir" ]] && ZSH_BIN="$zsh_dir/zsh"
+fi
 if [[ -n "$ZSH_BIN" ]]; then
     if ! grep -qx "$ZSH_BIN" /etc/shells; then
         if [[ $DRY_RUN -eq 1 ]]; then
@@ -80,7 +91,21 @@ if [[ -n "$ZSH_BIN" ]]; then
     # the sudo this stage already requires; its stderr is left visible.
     CURRENT_USER="${USER:-$(id -un 2>/dev/null || true)}"
     CURRENT_SHELL="$(getent passwd "$CURRENT_USER" 2>/dev/null | cut -d: -f7 || true)"
-    if [[ "$CURRENT_SHELL" != "$ZSH_BIN" ]]; then
+    if [[ "$CURRENT_SHELL" == "$ZSH_BIN" ]]; then
+        green "ok      login shell is already zsh"
+    elif [[ -n "$CURRENT_SHELL" && "$CURRENT_SHELL" -ef "$ZSH_BIN" ]]; then
+        # Already zsh, spelled another way (/usr/sbin/zsh from an install that
+        # predates the resolution above). Respell it, but append NO SHELL row:
+        # the row from the run that switched to zsh holds the real previous
+        # shell, and uninstall reads the last row.
+        if [[ $DRY_RUN -eq 1 ]]; then
+            blue "  (dry-run) would usermod -s $ZSH_BIN $CURRENT_USER (was $CURRENT_SHELL, same binary)"
+        elif "${SUDO[@]}" usermod -s "$ZSH_BIN" "$CURRENT_USER"; then
+            green "login shell $CURRENT_SHELL -> $ZSH_BIN (same binary, canonical path)"
+        else
+            yellow "could not respell the login shell — it still works; to fix:  sudo usermod -s $ZSH_BIN \$USER"
+        fi
+    else
         if [[ $DRY_RUN -eq 1 ]]; then
             blue "  (dry-run) would usermod -s $ZSH_BIN $CURRENT_USER"
         elif [[ -n "$CURRENT_USER" ]] \
@@ -93,8 +118,6 @@ if [[ -n "$ZSH_BIN" ]]; then
         else
             yellow "could not set the login shell — run manually:  sudo usermod -s $ZSH_BIN \$USER"
         fi
-    else
-        green "ok      login shell is already zsh"
     fi
 else
     yellow "zsh not found on PATH — run the install stage first (packages/core.lst) so this stage can set it as the default shell"
