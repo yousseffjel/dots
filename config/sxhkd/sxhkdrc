@@ -49,18 +49,21 @@ XF86AudioStop
 # Raising the volume also unmutes, matching what a hardware volume key does
 # on every other desktop. Lowering deliberately does not — turning a muted
 # system down should not make it audible.
+#
+# dwm-osd then shows a pop-up with the new level. It follows a `;`, not `&&`:
+# it only reads, so it runs even when dwmblocks is not there to signal.
 
 XF86AudioRaiseVolume
-	pamixer --unmute --increase 5 && pkill -RTMIN+8 dwmblocks
+	pamixer --unmute --increase 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume
 
 XF86AudioLowerVolume
-	pamixer --decrease 5 && pkill -RTMIN+8 dwmblocks
+	pamixer --decrease 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume
 
 XF86AudioMute
-	pamixer --toggle-mute && pkill -RTMIN+8 dwmblocks
+	pamixer --toggle-mute && pkill -RTMIN+8 dwmblocks; dwm-osd volume
 
 XF86AudioMicMute
-	pamixer --default-source --toggle-mute && pkill -RTMIN+7 dwmblocks
+	pamixer --default-source --toggle-mute && pkill -RTMIN+7 dwmblocks; dwm-osd mic
 
 # --- brightness --------------------------------------------------------
 # Software gamma via xrandr, NOT a hardware backlight — this target is a
@@ -70,10 +73,10 @@ XF86AudioMicMute
 # status block reads the same value back with `dwm-brightness get`.
 
 XF86MonBrightnessUp
-	dwm-brightness up && pkill -RTMIN+6 dwmblocks
+	dwm-brightness up && pkill -RTMIN+6 dwmblocks; dwm-osd brightness
 
 XF86MonBrightnessDown
-	dwm-brightness down && pkill -RTMIN+6 dwmblocks
+	dwm-brightness down && pkill -RTMIN+6 dwmblocks; dwm-osd brightness
 
 # --- theming -----------------------------------------------------------
 # These live here rather than in dwm on purpose: config.def.h shipped them

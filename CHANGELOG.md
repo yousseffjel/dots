@@ -34,6 +34,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - The bluetooth tray icon (`blueman-applet`) starts at login when a
   bluetooth adapter exists. blueman was already installed, but its autostart
   entry is never read in a dwm session.
+- A pop-up with a progress bar when the volume, mic or brightness keys are
+  pressed (`dwm-osd`, a dunst notification that replaces itself). No new
+  packages.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,
