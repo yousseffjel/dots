@@ -36,7 +36,7 @@ dots/
 │   │                    #  BEFORE compinit runs there — an addition after it is a no-op.
 │   │                    #  There is no functions/ dir; this map claimed one for months.)
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
