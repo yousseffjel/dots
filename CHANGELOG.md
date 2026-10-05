@@ -51,6 +51,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- `dots wallpaper` wrote `~/.fehbg` with bash-only quoting, which a strict
+  `/bin/sh` cannot run when the image path contains a tab or other control
+  character. It now uses POSIX quoting.
 - Uninstall now restores theme configs you had before installing (`dunstrc`,
   `picom.conf`, GTK files). Before, it left the theming engine's version in
   place and your original in `~/.dotfiles-backup/`. Installs made before this
