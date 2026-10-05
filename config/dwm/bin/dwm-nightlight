@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# dwm-nightlight — a blue-light filter on fixed dusk and dawn times, and the
+# ONE program that writes the screen's gamma while it runs.
+#
+# Why one writer: the filter and dwm-brightness both work by setting the X
+# gamma ramps, and whichever writes last wins. gammastep's own daemon
+# re-applies its ramp every few seconds, so the brightness keys would last
+# until the next tick and then snap back. Here the brightness level is a
+# stored number, and every apply sets temperature AND brightness together:
+#
+#   gammastep -P -O <temp> -b <b>:<b>
+#
+# -P resets the ramps first. Without it each one-shot multiplies onto the
+# previous ramp, and the screen drifts redder and darker on every tick.
+#
+#   dwm-nightlight daemon   apply now, then every 60 s (started by autostart)
+#   dwm-nightlight apply    apply once (dwm-brightness calls this)
+#   dwm-nightlight toggle   filter on/off; the brightness is kept (Super+n)
+#   dwm-nightlight status   "on 4000K" / "off"
+#
+# The schedule is fixed times, no location lookup: full day temperature from
+# DAWN_END to DUSK_START, full night from DUSK_END to DAWN_START, a linear
+# ramp in between. Edit the constants below to move it.
+#
+# DWM_NIGHTLIGHT_NOW (HH:MM) overrides the clock, for tests/dwm-nightlight.sh.
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+DAY_TEMP=6500
+NIGHT_TEMP=4000
+DAWN_START="06:00"
+DAWN_END="07:00"
+DUSK_START="19:00"
+DUSK_END="20:00"
+INTERVAL=60
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dots/nightlight"
+OFF_FLAG="$STATE_DIR/off"
+BRIGHTNESS_FILE="$STATE_DIR/brightness"
+
+usage() {
+    echo "usage: dwm-nightlight daemon|apply|toggle|status"
+}
+
+minutes() { # HH:MM -> minutes since midnight
+    local h="${1%%:*}" m="${1##*:}"
+    printf '%d' $((10#$h * 60 + 10#$m))
+}
+
+# Linear interpolation from $1 to $2 as now moves from $3 to $4 (minutes).
+ramp() {
+    local from="$1" to="$2" start="$3" end="$4" now="$5"
+    printf '%d' $((from + (to - from) * (now - start) / (end - start)))
+}
+
+temperature() {
+    local now dawn_s dawn_e dusk_s dusk_e
+    [[ -e "$OFF_FLAG" ]] && {
+        printf '%d' "$DAY_TEMP"
+        return
+    }
+    now="$(minutes "${DWM_NIGHTLIGHT_NOW:-$(date +%H:%M)}")"
+    dawn_s="$(minutes "$DAWN_START")"
+    dawn_e="$(minutes "$DAWN_END")"
+    dusk_s="$(minutes "$DUSK_START")"
+    dusk_e="$(minutes "$DUSK_END")"
+    if ((now >= dawn_e && now < dusk_s)); then
+        printf '%d' "$DAY_TEMP"
+    elif ((now >= dusk_s && now < dusk_e)); then
+        ramp "$DAY_TEMP" "$NIGHT_TEMP" "$dusk_s" "$dusk_e" "$now"
+    elif ((now >= dawn_s && now < dawn_e)); then
+        ramp "$NIGHT_TEMP" "$DAY_TEMP" "$dawn_s" "$dawn_e" "$now"
+    else
+        printf '%d' "$NIGHT_TEMP"
+    fi
+}
+
+# The stored brightness as a 0.10-1.00 fraction; 100% when nothing is stored.
+brightness() {
+    local pct
+    pct="$(cat "$BRIGHTNESS_FILE" 2>/dev/null || true)"
+    [[ "$pct" =~ ^[0-9]+$ ]] || pct=100
+    ((pct < 10)) && pct=10
+    ((pct > 100)) && pct=100
+    awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }'
+}
+
+apply() {
+    local b
+    command -v gammastep >/dev/null 2>&1 || {
+        red "dwm-nightlight: gammastep is not installed"
+        return 1
+    }
+    b="$(brightness)"
+    gammastep -m randr -P -O "$(temperature)" -b "$b:$b" >/dev/null 2>&1 || {
+        red "dwm-nightlight: gammastep failed to set the gamma ramps"
+        return 1
+    }
+}
+
+# Matches the daemon by command line, not by name: a `#!/usr/bin/env bash`
+# script runs as a process named "bash", so `pgrep -x dwm-nightlight` never
+# finds it. dwm-brightness uses the same test to decide who owns the gamma.
+DAEMON_PATTERN='/dwm-nightlight daemon$'
+
+# Exits quietly when another daemon already runs: dwm re-runs autostart.sh
+# on every restart (restartsig), so the launch line fires more than once per
+# session and must not stack a second writer.
+#
+# `sleep & wait`, not a bare sleep: bash runs a trap only between commands,
+# so a plain 60 s sleep would sit on SIGTERM at logout for up to a minute.
+daemon() {
+    # pgrep -f also lists this process, and the $( ) subshell it ran in: a
+    # forked copy of this daemon with the same command line. That subshell
+    # has exited by the time the loop runs, so only a match that is neither
+    # this process nor gone is another daemon. (A pipeline instead of $( )
+    # would leave its other side alive and matching — the first version did.)
+    local pid others
+    others="$(pgrep -f "$DAEMON_PATTERN" 2>/dev/null || true)"
+    for pid in $others; do
+        [[ "$pid" == "$$" ]] && continue
+        [[ -e "/proc/$pid" ]] || continue
+        return 0
+    done
+    # Kill the pending sleep on the way out, or it outlives the daemon as an
+    # orphan for up to a minute, holding open whatever stdout it inherited.
+    trap 'kill "$sleeper" 2>/dev/null; exit 0' TERM INT
+    local sleeper=""
+    while :; do
+        apply || true
+        sleep "$INTERVAL" &
+        sleeper=$!
+        wait "$sleeper" || true
+    done
+}
+
+toggle() {
+    mkdir -p "$STATE_DIR"
+    if [[ -e "$OFF_FLAG" ]]; then
+        rm -f "$OFF_FLAG"
+    else
+        : >"$OFF_FLAG"
+    fi
+    apply || true
+    command -v notify-send >/dev/null 2>&1 \
+        && notify-send -u low -a dots-nightlight "Night light" "$(status)"
+    return 0
+}
+
+status() {
+    if [[ -e "$OFF_FLAG" ]]; then echo off; else echo "on $(temperature)K"; fi
+}
+
+case "${1:-}" in
+    daemon) daemon ;;
+    apply) apply ;;
+    toggle) toggle ;;
+    status) status ;;
+    -h | --help) usage ;;
+    *)
+        red "dwm-nightlight: unknown command '${1:-}'"
+        usage >&2
+        exit 1
+        ;;
+esac

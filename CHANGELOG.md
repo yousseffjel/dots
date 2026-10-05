@@ -50,6 +50,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - `Super` + `r` starts and stops a screen recording (`dwm-record`): full
   screen or a region, VP9/WebM to `~/Videos/recordings`, no audio. New
   package: `ffmpeg-free`.
+- A night light (`dwm-nightlight`, `Super` + `n` toggles): the screen warms
+  to 4000 K from dusk to dawn on fixed times. While it runs the brightness
+  keys go through it, so the two no longer undo each other. New package:
+  `gammastep`.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,

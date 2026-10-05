@@ -78,6 +78,12 @@ XF86MonBrightnessUp
 XF86MonBrightnessDown
 	dwm-brightness down && pkill -RTMIN+6 dwmblocks; dwm-osd brightness
 
+# Night light on/off (dwm-nightlight). Its daemon also owns the gamma while
+# it runs, so the two brightness keys above go through it — see the header
+# of config/dwm/bin/dwm-nightlight. Super+n is free in both grabbers.
+super + n
+	dwm-nightlight toggle
+
 # --- theming -----------------------------------------------------------
 # These live here rather than in dwm on purpose: config.def.h shipped them
 # commented out because enabling them meant a rebuild. As sxhkd bindings
