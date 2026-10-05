@@ -278,6 +278,11 @@ Each of these also fires `pkill -RTMIN+<n> dwmblocks`. That is not a
 cosmetic refresh: the volume and mic status blocks poll at interval 0, so
 the signal is the *only* thing that updates them.
 
+Every volume, mic and brightness key then runs `dwm-osd`, which shows a
+dunst pop-up with the new level as a progress bar. Holding a key updates one
+pop-up rather than stacking new ones. Without dunst running, the keys still
+work and simply show nothing.
+
 ### Brightness
 
 | Keys | Action |

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# dwm-osd — a pop-up for the volume, mic and brightness keys.
+#
+# A dunst notification with a progress bar (int:value) that REPLACES the
+# previous one: every call carries the same x-dunst-stack-tag, so holding a
+# key updates one pop-up instead of stacking a column of them. Its colours
+# come from the dunst template like every other notification, so it follows
+# the theme with no template work. dunstify ships in the dunst package.
+#
+# Called from config/sxhkd/sxhkdrc after the key has already changed the
+# value, so this only READS. It never changes anything, and it exits 0 when
+# it has nothing to show (no dunstify, no audio server, no X): a missing
+# pop-up must never turn a working volume key into a failing one.
+#
+# usage: dwm-osd volume|mic|brightness
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+TIMEOUT_MS=1500
+
+usage() {
+    echo "usage: dwm-osd volume|mic|brightness"
+}
+
+# notify <kind> <summary> <percent or empty> — one tag per kind, so the
+# volume and brightness pop-ups never replace each other mid-adjustment.
+notify() {
+    local kind="$1" summary="$2" value="$3"
+    local args=(-a dwm-osd -u low -t "$TIMEOUT_MS"
+        -h "string:x-dunst-stack-tag:dwm-osd-$kind")
+    if [[ -n "$value" ]]; then
+        args+=(-h "int:value:$value")
+        summary="$summary  $value%"
+    fi
+    dunstify "${args[@]}" "$summary" >/dev/null 2>&1 || true
+}
+
+# audio <kind> <label> [pamixer source flag] — pamixer prints nothing when
+# no PipeWire/PulseAudio server is reachable; show nothing rather than 0%.
+audio() {
+    local kind="$1" label="$2" vol
+    shift 2
+    command -v pamixer >/dev/null 2>&1 || return 0
+    if [[ "$(pamixer "$@" --get-mute 2>/dev/null || true)" == true ]]; then
+        notify "$kind" "$label muted" ""
+        return 0
+    fi
+    vol="$(pamixer "$@" --get-volume 2>/dev/null || true)"
+    [[ "$vol" =~ ^[0-9]+$ ]] || return 0
+    notify "$kind" "$label" "$vol"
+}
+
+brightness() {
+    local val
+    val="$(dwm-brightness get 2>/dev/null || true)"
+    [[ "$val" =~ ^[0-9]+$ ]] || return 0
+    notify brightness "Brightness" "$val"
+}
+
+[[ $# -eq 1 ]] || {
+    usage >&2
+    exit 1
+}
+case "$1" in
+volume | mic | brightness) ;;
+-h | --help)
+    usage
+    exit 0
+    ;;
+*)
+    red "dwm-osd: unknown kind '$1'"
+    usage >&2
+    exit 1
+    ;;
+esac
+
+command -v dunstify >/dev/null 2>&1 || exit 0
+case "$1" in
+volume) audio volume "Volume" ;;
+mic) audio mic "Microphone" --default-source ;;
+brightness) brightness ;;
+esac
