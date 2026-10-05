@@ -34,6 +34,7 @@ ly  # no graphical login: you must reach a TTY and run startx by hand
 # --- X tools the shipped scripts call by name ---
 xrdb  # theming engine cannot load colours; dwm, st, dmenu and slock stay at their compiled defaults
 xrandr  # the brightness keys do nothing — dwm-brightness drives gamma through it
+gammastep  # no night light: Super+n does nothing and the screen never warms at dusk (verified on mdapi for f43/f44, 2026-10-05)
 xset  # dwm-lock cannot arm X's idle timers, so the screen never locks on inactivity
 xclip  # screenshots are captured but never reach the clipboard
 xdotool  # the Super+c colour picker dies: dwm-colorpicker reads the pointer position with getmouselocation and has no fallback for it

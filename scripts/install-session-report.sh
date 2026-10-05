@@ -132,6 +132,11 @@ session_autostart_report() {
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
         'without it the screen never locks on idle or on suspend.' \
         'Super+l still works — it falls back to calling slock directly.'
+
+    session_report_daemon "$autostart" dwm-nightlight \
+        'add this line yourself:  command -v gammastep >/dev/null && "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &' \
+        'without it there is no night light, and Super+n only applies it once' \
+        'until the next brightness key.'
 }
 
 # Report on a ~/.xinitrc the user already has. Never edits it, for the same

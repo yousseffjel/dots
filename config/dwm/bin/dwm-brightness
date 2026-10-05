@@ -28,6 +28,25 @@ usage() {
     echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>"
 }
 
+# While dwm-nightlight's daemon runs it owns the gamma ramps: the filter and
+# this script both write them, and a ramp set here would be replaced on the
+# daemon's next tick. So the level becomes a stored number that the daemon
+# folds into every apply, and changing it asks for an apply right away.
+# Without the daemon nothing here changes: xrandr --brightness, as before.
+#
+# The path is resolved only once the daemon is known to run: reading $HOME at
+# the top would turn `set -u` into an abort for a caller without it, on the
+# path that never needed it.
+nightlight_file() {
+    printf '%s\n' "${XDG_STATE_HOME:-$HOME/.local/state}/dots/nightlight/brightness"
+}
+
+nightlight_active() {
+    command -v dwm-nightlight >/dev/null 2>&1 || return 1
+    command -v pgrep >/dev/null 2>&1 || return 1
+    pgrep -f '/dwm-nightlight daemon$' >/dev/null 2>&1
+}
+
 # Every connected output. Matching $2 exactly avoids the "disconnected"
 # trap that a bare /connected/ pattern walks into.
 outputs() {
@@ -44,6 +63,12 @@ outputs() {
 # and trip pipefail.
 current() {
     local raw val
+    if nightlight_active; then
+        val="$(cat "$(nightlight_file)" 2>/dev/null || true)"
+        [[ "$val" =~ ^[0-9]+$ ]] || val=$MAX
+        printf '%d\n' "$val"
+        return 0
+    fi
     # `|| true` is deliberate: under `set -e` a failing command substitution
     # in an assignment aborts the script with no message at all, so a dead X
     # server would make this exit 1 silently. Capture, then diagnose.
@@ -67,6 +92,15 @@ apply() {
     local pct="$1" out val found=0 failed=0
     if ((pct < MIN)); then pct=$MIN; fi
     if ((pct > MAX)); then pct=$MAX; fi
+    if nightlight_active; then
+        local file
+        file="$(nightlight_file)"
+        mkdir -p "${file%/*}"
+        printf '%d\n' "$pct" >"$file"
+        dwm-nightlight apply || return 1
+        printf '%d\n' "$pct"
+        return 0
+    fi
     val="$(awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }')"
 
     while read -r out; do

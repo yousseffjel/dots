@@ -299,12 +299,20 @@ work and simply show nothing.
 | --- | --- |
 | `XF86MonBrightnessUp` | Brightness +10% |
 | `XF86MonBrightnessDown` | Brightness −10% |
+| `Super` + `n` | Night light on / off (`dwm-nightlight`) |
 
 > **This is not a backlight control.** The target is a desktop with no
 > `/sys/class/backlight`, so `config/dwm/bin/dwm-brightness` scales the
 > output signal with `xrandr --brightness` instead. The image gets darker;
 > the monitor's lamp stays at full power. It never goes below 10% — a black
 > screen has to be undone from a terminal you can no longer see.
+
+**The night light** warms the screen from 19:00 to 20:00 and back from 06:00
+to 07:00 (6500 K by day, 4000 K at night; the times are constants at the top
+of `config/dwm/bin/dwm-nightlight`). Its daemon starts at login when
+`gammastep` is installed. While it runs it is the only thing that sets the
+screen's gamma, and the brightness keys go through it, because two programs
+writing the same gamma would undo each other within seconds.
 
 All connected outputs are set together, so displays that have drifted apart
 converge on the next keypress. From a shell:

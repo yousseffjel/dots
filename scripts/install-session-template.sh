@@ -226,5 +226,13 @@ session_autostart_services() {
 # odd case, not a count of the others that would go stale the next time one is
 # added.
 "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &
+
+# Night light: warmer colours from dusk to dawn (Super+n toggles). It is also
+# what the brightness keys go through while it runs — both set the same gamma
+# ramps, so one program must own them. A second launch after a dwm restart
+# exits by itself.
+if command -v gammastep >/dev/null 2>&1; then
+	"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &
+fi
 EOF
 }
