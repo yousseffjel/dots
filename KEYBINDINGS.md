@@ -173,7 +173,7 @@ Two behaviours worth knowing, both inherited from the upstream patch:
 
 ## Status bar
 
-Ten blocks, left to right, then dwm's native systray furthest right. Each is a
+Eleven blocks, left to right, then dwm's native systray furthest right. Each is a
 script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 `make install-scripts` and listed in `suckless/dwmblocks/blocks.def.h`.
 
@@ -187,8 +187,9 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 6 | `GAMMA` | Screen gamma level | **on change only** | — |
 | 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute |
 | 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5% |
-| 9 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
-| 10 | `` | Day, date and time | 60 s | left → this month's calendar |
+| 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal |
+| 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
+| 11 | `` | Day, date and time | 60 s | left → this month's calendar |
 
 > **Scroll on the bar needs a dwm rebuild on an existing install.** dwm bound
 > `ClkStatusText` for Button1/2/3 only, so a scroll was discarded before any
@@ -200,10 +201,19 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 > scripts/install-suckless.sh --skip-deps
 > ```
 
+**`NET` needs a dwmblocks rebuild with a fresh `blocks.h` on an existing
+install.** The block list is compiled in, and `blocks.h` is generated from
+`blocks.def.h` once and then left alone:
+
+```sh
+rm -f suckless/dwmblocks/blocks.h
+scripts/install-suckless.sh --skip-deps
+```
+
 **Blocks 6-8 are never polled.** They run once at startup and then only when
 something sends their signal — `config/sxhkd/sxhkdrc` fires
 `pkill -RTMIN+6/7/8 dwmblocks` after every gamma, mic and volume change. That
-is what keeps three of the ten blocks off the CPU entirely. The cost is that
+is what keeps three of the eleven blocks off the CPU entirely. The cost is that
 changing any of those values by some *other* route (`pamixer` straight from a
 shell, say) leaves the bar showing a stale figure until the next keypress.
 

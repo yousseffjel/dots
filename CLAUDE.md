@@ -138,7 +138,7 @@ for current state.
 
 **Also done, superseding earlier "pending" entries (roster Epic, 2026-08-06/07 — scope file `.claude/tasks/scope-b-app-roster-finalization.md`):**
 - **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
-- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 10 blocks plus the systray; picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
+- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 11 blocks plus the systray (NET added 2026-10-05); picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
 - **README.md is no longer a stub** — it carries the CI badge and the pre-commit setup.
 
 **Roster gap-fill Epic closed 2026-08-12** (scope file

@@ -22,6 +22,9 @@
 // changing the value. Break that pairing and the block silently never updates
 // again. The senders live in sxhkdrc -- signals 6, 7 and 8 are spoken for.
 //
+// Signal 11 belongs to dwm-net (added 2026-10-05, after the clock took 10),
+// so it sits out of order in the column: the number only has to be unique.
+//
 // SIGNALS ARE POSITION-INDEPENDENT BUT NOT FREE TO RENUMBER. Anything that
 // sends SIGRTMIN+n has to move with the number here, so grep for `RTMIN+` in
 // config/ before touching this column.
@@ -42,6 +45,8 @@ static const Block blocks[] = {
 	{"",		"$HOME/.local/bin/dwm-mic",			0,			7},
 
 	{"",		"$HOME/.local/bin/dwm-vol",			0,			8},
+
+	{"",		"$HOME/.local/bin/dwm-net",			30,			11},
 
 	{"",		"$HOME/.local/bin/dwm-bluetooth",		30,			9},
 
