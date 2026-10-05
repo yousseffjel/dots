@@ -41,6 +41,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   or `off`. Left-click opens `nmtui`. An existing install needs
   `rm suckless/dwmblocks/blocks.h` before rebuilding, because the generated
   `blocks.h` is never overwritten.
+- `Super` + `/` opens a searchable list of every keybinding (`dwm-keys`),
+  read from `KEYBINDINGS.md`. A new test fails the build when a key in
+  `sxhkdrc` has no row there.
 
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,

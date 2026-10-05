@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-05-network-status-block.md
+Last log: .claude/changes/2026-10-05-keybind-cheatsheet.md

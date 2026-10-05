@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# dwm-keys — a searchable cheat sheet of every keybinding, in dmenu.
+#
+# Read at runtime from KEYBINDINGS.md, the one document that describes both
+# halves of the keyboard: dwm's compiled-in keys and sxhkd's. Parsing the two
+# config files instead would give key names with no meaning attached (dwm's
+# are C, sxhkd's are shell commands). tests/dwm-keys.sh holds the document to
+# account: every binding in config/sxhkd/sxhkdrc must appear in this list.
+#
+# Found through this script's own path: ~/.config/dwm is a symlink to the
+# repo's config/dwm (scripts/symlinks.sh links directories), so readlink -f
+# lands in the repo and KEYBINDINGS.md sits three levels up. The same trick
+# `dots` uses, for the same reason. DWM_KEYS_DOC overrides it, for tests.
+#
+# Display only: picking a line does nothing. `Mod` is shown as `Alt`, which
+# is what dwm's MODKEY (Mod1Mask) is on every keyboard this targets.
+#
+# usage: dwm-keys
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+FONT="monospace:size=10"
+LINES_SHOWN=25
+KEY_WIDTH=32
+
+self="$(readlink -f "${BASH_SOURCE[0]}")"
+doc="${DWM_KEYS_DOC:-${self%/*}/../../../KEYBINDINGS.md}"
+
+if [[ ! -r "$doc" ]]; then
+    red "dwm-keys: cannot read $doc"
+    command -v notify-send >/dev/null 2>&1 \
+        && notify-send -u critical "dwm-keys" "KEYBINDINGS.md not found — was the repo moved?"
+    exit 1
+fi
+
+# Rows of the `| Keys | Action |` and `| Action | Effect |` (mouse) tables
+# only, so the status-bar and ownership tables never leak in. A table ends at
+# the first line that is not a row. The current `###` heading is appended so
+# a search for "theming" or "tags" finds its whole section.
+entries() {
+    awk -v w="$KEY_WIDTH" '
+        /^### / { section = substr($0, 5) }
+        /^\| (Keys \| Action|Action \| Effect) \|/ { intable = 1; next }
+        !/^\|/ { intable = 0 }
+        intable && /^\| ---/ { next }
+        intable {
+            n = split($0, f, "|")
+            if (n < 4) next
+            key = f[2]; act = f[3]
+            gsub(/`/, "", key); gsub(/`/, "", act)
+            gsub(/^ +| +$/, "", key); gsub(/^ +| +$/, "", act)
+            gsub(/ \+ /, "+", key)
+            sub(/^Mod\+/, "Alt+", key)
+            printf "%-" w "s %s  [%s]\n", key, act, section
+        }
+    ' "$doc"
+}
+
+list="$(entries)"
+if [[ -z "$list" ]]; then
+    red "dwm-keys: no keybinding tables found in $doc"
+    exit 1
+fi
+printf '%s\n' "$list" | dmenu -i -fn "$FONT" -l "$LINES_SHOWN" -p "keys" >/dev/null || true
