@@ -18,7 +18,7 @@
 
 # Two siblings, both split off at the 250-line cap: the reporting half
 # (session_autostart_report and its helper) and the autostart.sh body itself
-# (session_autostart_template and its three parts). What is left here is the
+# (session_autostart_template and its four parts). What is left here is the
 # orchestration — decide whether to write, write it, or report what is missing.
 #
 # Resolved from BASH_SOURCE rather than the caller's $SCRIPT_DIR (rule 3, and
@@ -60,22 +60,27 @@ install_session_autostart() {
     green "wrote   $autostart (autostart daemons + session services)"
 }
 
-install_session_xinitrc() {
-    local xinitrc="$HOME/.xinitrc"
-
-    if [[ -e "$xinitrc" ]]; then
-        green "ok      ~/.xinitrc exists (left untouched)"
-        return 0
-    fi
-
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write ~/.xinitrc (exec dwm)"
-        return 0
-    fi
-
-    cat >"$xinitrc" <<'EOF'
+# The ~/.xinitrc body, on stdout. A function rather than an inline heredoc so
+# tests/xinitrc-theme.sh can RUN the shipped file instead of restating it.
+#
+# The theme block is HERE, not in autostart.sh, and it must stay here. dwm
+# reads its colours from the X resource database once, at startup — so the
+# merge has to land before `exec dwm` to take effect without a restart. And the
+# only way to make a RUNNING dwm re-read them is reload.sh's `kill -HUP`, which
+# re-execs dwm (restartsig), which re-runs autostart.sh (runautostart() is
+# called on every start): a theme step in autostart.sh would loop the session
+# forever.
+#
+# Two cases. A theme cache exists: merge it and re-apply the wallpaper, which
+# nothing else does at login. No cache yet — every headless install, because
+# install-restore-theme.sh can only theme a running X session: apply the dark
+# theme once, which writes the cache for every later login. Bounded by timeout
+# so a wedged theme run delays the session instead of preventing it.
+session_xinitrc_template() {
+    cat <<'EOF'
 #!/bin/sh
-# Started by startx. dwm runs in the foreground; when it exits, X exits.
+# Started by startx, and by ly (its xinitrc session). dwm runs in the
+# foreground; when it exits, X exits.
 
 # Merge the distro's xinit fragments (keyboard layout, dbus, ssh-agent, ...).
 if [ -d /etc/X11/xinit/xinitrc.d ]; then
@@ -85,10 +90,43 @@ if [ -d /etc/X11/xinit/xinitrc.d ]; then
 	unset f
 fi
 
+# dots theme, before dwm starts so dwm reads the colours at startup. Must not
+# move to autostart.sh: re-theming a running dwm restarts it, and every dwm
+# start re-runs autostart.sh.
+dots_theme_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
+if [ -r "$dots_theme_cache/xresources" ]; then
+	command -v xrdb >/dev/null 2>&1 && xrdb -merge "$dots_theme_cache/xresources"
+	[ -x "$HOME/.fehbg" ] && "$HOME/.fehbg"
+elif [ -x "$HOME/.local/bin/dots" ]; then
+	# First login after a headless install: nothing has themed this desktop yet.
+	if command -v timeout >/dev/null 2>&1; then
+		timeout 120 "$HOME/.local/bin/dots" theme dark
+	else
+		"$HOME/.local/bin/dots" theme dark
+	fi
+fi
+unset dots_theme_cache
+
 exec dwm
 EOF
+}
+
+install_session_xinitrc() {
+    local xinitrc="$HOME/.xinitrc"
+
+    if [[ -e "$xinitrc" ]]; then
+        session_xinitrc_report "$xinitrc"
+        return 0
+    fi
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would write ~/.xinitrc (theme restore + exec dwm)"
+        return 0
+    fi
+
+    session_xinitrc_template >"$xinitrc"
     chmod 755 "$xinitrc"
-    green "wrote   ~/.xinitrc (exec dwm)"
+    green "wrote   ~/.xinitrc (theme restore + exec dwm)"
 }
 
 install_session() {

@@ -81,7 +81,7 @@ partial uninstall is a normal, supported outcome, not an error.
    (`ly@tty2.service` on a current install) if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
    packages.
-8. **Login shell.** Offers to `chsh` back to whatever your login shell was
+8. **Login shell.** Offers to switch back (`sudo usermod -s`) to whatever your login shell was
    before the installer switched it to zsh — only if the installer
    actually changed it (recorded in the manifest at that moment).
 9. **State.** Finally offers to remove `~/.local/state/dots/` itself (the

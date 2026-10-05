@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-09-28-dwm-bin-tests.md
+Last log: .claude/changes/2026-10-05-first-boot-fixes.md

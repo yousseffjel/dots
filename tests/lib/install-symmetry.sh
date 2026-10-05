@@ -11,7 +11,7 @@
 #   * update-desktop-database — writes <dir>/mimeinfo.cache, the one artefact
 #     the real tool leaves, with the real file's header. Faked so the result
 #     does not depend on whether desktop-file-utils is on the runner.
-#   * sudo dnf systemctl chsh pkill xrdb — SENTINELS. None has any business
+#   * sudo dnf systemctl chsh usermod pkill xrdb — SENTINELS. None has any business
 #     running during a restore + uninstall of a HOME with no package, service,
 #     shell or suckless rows; each records its call and fails, and the test
 #     asserts the log stays empty. pkill/xrdb are scope-d decision 8's hazard:
@@ -38,7 +38,7 @@ EOF
 printf '[MIME Cache]\n' >"${1:?}/mimeinfo.cache"
 EOF
     local s
-    for s in sudo dnf systemctl chsh pkill xrdb; do
+    for s in sudo dnf systemctl chsh usermod pkill xrdb; do
         printf '#!/usr/bin/env bash\necho "%s $*" >>"%s"\nexit 1\n' "$s" "$SENTINEL_LOG" >"$FAKEBIN/$s"
     done
     chmod +x "$FAKEBIN"/*

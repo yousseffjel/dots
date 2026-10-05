@@ -5,8 +5,9 @@
 # same cap: install-session.sh keeps the orchestration (decide whether to write,
 # write it, report if it already exists), this file is the content it writes.
 #
-# Three parts purely for the 60-line function cap — "what paints the screen",
-# "interaction and devices", then "services not on PATH". Callers use
+# Four parts purely for the 60-line function cap — the compositor, the rest of
+# "what paints the screen", "interaction and devices", then "services not on
+# PATH". Callers use
 # session_autostart_template; tests/autostart-daemons.sh calls only that and
 # session_autostart_report, never the parts, so re-splitting costs it nothing.
 #
@@ -17,10 +18,11 @@
 # Sourced by install-session.sh only. Assumes the caller has already
 # `set -euo pipefail`.
 
-# The autostart.sh body, on stdout — three parts so none exceeds the 60-line
+# The autostart.sh body, on stdout — four parts so none exceeds the 60-line
 # function cap. The original seam was "daemons on PATH, then services named by
 # absolute path"; the PATH half then reached 57 of 60 and was split again on a
 # second seam: what paints the screen, then what serves interaction and devices.
+# The compositor took a part of its own when it grew a GL probe (2026-10-05).
 #
 # Every daemon added here needs a matching session_report_daemon call in
 # install-session-report.sh, or existing installs are never told about it.
@@ -28,15 +30,15 @@
 # rather than parsing them — and it calls only these two entry points, never
 # the parts, which is why splitting again has cost that test nothing twice now.
 session_autostart_template() {
+    session_autostart_compositor
     session_autostart_display
     session_autostart_daemons
     session_autostart_services
 }
 
-# Part one: everything that decides how the screen looks. Ordered deliberately
-# — compositor first so windows are composited from the moment they appear,
-# then the settings daemon, then the display layout.
-session_autostart_display() {
+# Part one: the file header and the compositor, first so windows are composited
+# from the moment they appear. Its own part because of the GL probe below.
+session_autostart_compositor() {
     cat <<'EOF'
 #!/bin/sh
 # Run by dwm's autostart patch at startup — see runautostart() in dwm.c.
@@ -49,12 +51,42 @@ session_autostart_display() {
 # change — without this line that whole config is dead weight and picom never
 # runs at all.
 #
+# The backend is chosen HERE, overriding the config's `backend = "glx"`. On a
+# GPU without 3D acceleration (a VM's virtio GPU, observed on Fedora 44 on
+# 2026-10-05) picom's glx backend stops repainting: dwm and every client keep
+# running, but the screen freezes on whatever was drawn before picom started —
+# a bar stuck at "dwm-6.8", windows that open invisibly. xrender needs no GL.
+# So: glx only when glxinfo (glx-utils) reports direct rendering on a renderer
+# that is not a software rasteriser; xrender in every other case, including
+# when glxinfo or timeout is missing — a slower compositor beats a frozen one,
+# and the shipped config uses no glx-only effect. timeout bounds a GL stack
+# that hangs instead of failing.
+#
 # Backgrounded with & rather than picom's own -b: it keeps picom a child of
-# this script, matching the three daemons below, and dwm already backgrounds
+# this script, matching the daemons below, and dwm already backgrounds
 # autostart.sh as a whole.
 if command -v picom >/dev/null 2>&1 && ! pgrep -x picom >/dev/null 2>&1; then
-	picom &
+	picom_backend=xrender
+	if command -v glxinfo >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
+		glx_info="$(timeout 5 glxinfo -B 2>/dev/null)"
+		case "$glx_info" in
+		*"direct rendering: Yes"*)
+			case "$glx_info" in
+			*llvmpipe* | *softpipe* | *swrast*) ;;
+			*) picom_backend=glx ;;
+			esac
+			;;
+		esac
+	fi
+	picom --backend "$picom_backend" &
 fi
+EOF
+}
+
+# Part two: the rest of what decides how the screen looks — the settings
+# daemon, then the display layout.
+session_autostart_display() {
+    cat <<'EOF'
 
 # XSETTINGS daemon. Serves the GTK theme identity and the Xft font-rendering
 # keys (antialias, hinting, RGBA) from ~/.config/xsettingsd/xsettingsd.conf,
@@ -90,7 +122,7 @@ fi
 EOF
 }
 
-# Part two: interaction and devices. Every entry is a plain binary on PATH, so
+# Part three: interaction and devices. Every entry is a plain binary on PATH, so
 # each is guarded with `command -v` — except dwmblocks, which the suckless
 # build installs unconditionally alongside dwm itself.
 session_autostart_daemons() {
@@ -148,7 +180,7 @@ fi
 EOF
 }
 
-# Second half: services NOT on PATH, spelled out in full. Grouped for that
+# Part four: services NOT on PATH, spelled out in full. Grouped for that
 # reason as much as for the line cap — an absolute path is a portability
 # liability, so the ones to re-check on a new distro are all in one place.
 #

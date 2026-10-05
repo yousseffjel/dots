@@ -182,10 +182,10 @@ round_trip lived-in seed_lived_in
 
 blue "==> nothing reached the real system"
 if [[ -s "$SENTINEL_LOG" ]]; then
-    fail "a sentinel command ran (sudo/dnf/systemctl/chsh/pkill/xrdb):"
+    fail "a sentinel command ran (sudo/dnf/systemctl/chsh/usermod/pkill/xrdb):"
     sed 's/^/     /' "$SENTINEL_LOG"
 else
-    pass "no sudo, dnf, systemctl, chsh, pkill or xrdb call"
+    pass "no sudo, dnf, systemctl, chsh, usermod, pkill or xrdb call"
 fi
 real_manifest="${XDG_STATE_HOME:-$HOME/.local/state}/dots/manifest"
 if [[ -f "$real_manifest" ]] && grep -qF "$TMP" "$real_manifest"; then

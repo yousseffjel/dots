@@ -158,14 +158,17 @@ uninstall_shell() {
     fi
     IFS=$'\t' read -r _ prev_shell _ <<<"${shell_rows[${#shell_rows[@]} - 1]}"
     if [[ -z "$prev_shell" ]]; then
-        yellow "  recorded previous shell is empty — revert manually: chsh -s <shell>"
+        yellow "  recorded previous shell is empty — revert manually: sudo usermod -s <shell> \$USER"
     elif confirm "Restore previous login shell ($prev_shell)?"; then
+        # usermod under sudo, matching install-services.sh: chsh wants the
+        # user's password on a terminal and fails silently from a script.
+        local user="${USER:-$(id -un 2>/dev/null || true)}"
         if [[ $DRY_RUN -eq 1 ]]; then
-            blue "  (dry-run) would run: chsh -s $prev_shell"
-        elif chsh -s "$prev_shell" 2>/dev/null; then
+            blue "  (dry-run) would run: usermod -s $prev_shell $user"
+        elif [[ -n "$user" ]] && "${SUDO[@]}" usermod -s "$prev_shell" "$user"; then
             green "  restored login shell -> $prev_shell"
         else
-            red "  failed to chsh back to $prev_shell — run manually: chsh -s $prev_shell"
+            red "  failed to restore $prev_shell — run manually: sudo usermod -s $prev_shell \$USER"
         fi
     else
         yellow "  kept zsh as login shell"

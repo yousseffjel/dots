@@ -69,21 +69,29 @@ if [[ -n "$ZSH_BIN" ]]; then
     # The trailing `|| true` covers the other half of the same line: with
     # `pipefail`, a getent miss (a user with no passwd entry at all) fails the
     # command substitution, and `set -e` then aborts on the ASSIGNMENT, printing
-    # nothing. An empty CURRENT_SHELL is fine — it just is not zsh, so the chsh
+    # nothing. An empty CURRENT_SHELL is fine — it just is not zsh, so the shell
     # branch below runs and degrades on its own terms.
+    #
+    # usermod, not chsh (2026-10-05, first real Fedora install). chsh run as
+    # the user authenticates through PAM and wants the password on a terminal;
+    # inside this script it failed silently — stderr was suppressed — and the
+    # login shell stayed bash. Fedora Server may not ship chsh at all (it is
+    # util-linux-user). usermod is shadow-utils, always present, and runs under
+    # the sudo this stage already requires; its stderr is left visible.
     CURRENT_USER="${USER:-$(id -un 2>/dev/null || true)}"
     CURRENT_SHELL="$(getent passwd "$CURRENT_USER" 2>/dev/null | cut -d: -f7 || true)"
     if [[ "$CURRENT_SHELL" != "$ZSH_BIN" ]]; then
         if [[ $DRY_RUN -eq 1 ]]; then
-            blue "  (dry-run) would chsh -s $ZSH_BIN"
-        elif chsh -s "$ZSH_BIN" 2>/dev/null; then
+            blue "  (dry-run) would usermod -s $ZSH_BIN $CURRENT_USER"
+        elif [[ -n "$CURRENT_USER" ]] \
+            && "${SUDO[@]}" usermod -s "$ZSH_BIN" "$CURRENT_USER"; then
             # Recorded only on the one run that actually changes the shell —
             # once it's zsh, this branch is never re-entered, so a re-run
             # never clobbers the real previous shell with "zsh".
             manifest_append_row SHELL "$CURRENT_SHELL" "$ZSH_BIN"
             green "default shell -> $ZSH_BIN"
         else
-            yellow "could not chsh non-interactively — run manually:  chsh -s $ZSH_BIN"
+            yellow "could not set the login shell — run manually:  sudo usermod -s $ZSH_BIN \$USER"
         fi
     else
         green "ok      login shell is already zsh"
@@ -108,9 +116,9 @@ if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
         blue "  (dry-run) would enable $LY_UNIT"
     elif systemctl is-enabled "$LY_UNIT" >/dev/null 2>&1; then
         green "ok      $LY_UNIT already enabled"
-    # Same degrade-don't-abort shape as the chsh call above, so a failure here
+    # Same degrade-don't-abort shape as the usermod call above, so a failure here
     # cannot take the whole stage down via set -e after every earlier stage has
-    # already succeeded. Unlike chsh, stderr is NOT suppressed: systemctl's own
+    # already succeeded. Like usermod, stderr is NOT suppressed: systemctl's own
     # message is the useful half of this branch. The observed one was
     # "Failed to enable unit: Unit ly.service does not exist" — which is how
     # the wrong-unit bug above was finally caught, and exactly the text someone

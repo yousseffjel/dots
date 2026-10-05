@@ -249,6 +249,29 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
   install and is silently reverted the first time the wallpaper changes.
   `tests/picom-lockstep.sh` generates from the template and diffs the two,
   so that drift fails a test instead of surfacing weeks later.
+- **picom's backend is NOT taken from `picom.conf`.** The config says
+  `backend = "glx"`, but `autostart.sh` passes `--backend` explicitly: `glx`
+  only when `glxinfo -B` (package `glx-utils`) reports direct rendering on
+  a renderer that is not llvmpipe/softpipe/swrast, `xrender` otherwise —
+  including when `glxinfo` is missing. On a GPU without 3D acceleration
+  the glx backend freezes the screen while everything underneath keeps
+  running (first VM install, 2026-10-05). `tests/picom-backend-probe.sh`
+  pins the choice. Editing `backend` in the config therefore changes
+  nothing; change the probe in `install-session-template.sh`.
+
+### At login
+
+dwm reads its colours once, at startup, so the theme has to be in the X
+resource database **before** `exec dwm`. The `~/.xinitrc` the installer
+writes does that: with a cache under `~/.cache/dots/theme/` it merges
+`xresources` and runs `~/.fehbg`; with no cache yet — every headless
+install, since the installer can only theme a running X session — it runs
+`dots theme dark` once, bounded by `timeout`, and dwm starts regardless.
+
+This must never move into `autostart.sh`. Re-theming a running dwm means
+`kill -HUP` (restartsig re-exec), and dwm re-runs `autostart.sh` on every
+start — a theme step there loops the session. An existing `~/.xinitrc` is
+never edited; the installer prints the lines to paste.
 
 ## How reload works, per tool
 

@@ -157,15 +157,17 @@ theme_backup_preexisting() {
 }
 
 # Initial theme apply, only when an X session is actually running. On a
-# fresh server install there is no display yet; the colours land on the
-# first wallpaper.sh/theme-apply.sh run instead.
+# fresh server install there is no display yet; the ~/.xinitrc this installer
+# writes applies the dark theme on the first login instead (see
+# session_xinitrc_template in install-session.sh). Before 2026-10-05 nothing
+# did, and a headless install came up on dwm's compiled-in colours for good.
 theme_initial_apply() {
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would apply themes/dark if X is running"
         return 0
     fi
     if [[ -z "${DISPLAY:-}" ]] || [[ ! -f "$DOTS_DIR/themes/dark/colors.dcol" ]]; then
-        yellow "skip    initial theme apply (no DISPLAY — run theme-apply.sh dark after startx)"
+        blue "skip    initial theme apply (no DISPLAY — ~/.xinitrc applies it on first login)"
         return 0
     fi
     blue "==> applying the dark theme"

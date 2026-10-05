@@ -44,6 +44,7 @@ procps-ng  # pgrep/pkill missing: the status bar never refreshes after a volume 
 
 # --- daemons autostart.sh launches ---
 picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is read by nothing
+glx-utils  # autostart.sh cannot probe the GL renderer, so picom always runs on the slower xrender backend, even on a real GPU
 dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
 libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
 xss-lock  # the screen never locks on idle or on suspend; only the manual Super+l keybind still works

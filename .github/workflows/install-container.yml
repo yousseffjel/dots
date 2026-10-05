@@ -186,7 +186,7 @@ jobs:
           echo "::group::login shell"
           # Mirrors install-services.sh's own comparison rather than hardcoding
           # a path, so it follows zsh wherever the package puts it. This is the
-          # only check that covers the chsh path — and that path is exactly
+          # only check that covers the login-shell path — and that path is exactly
           # where the `$USER: unbound variable` bug lived, so leaving it
           # unasserted would let the same class of regression ship green.
           zsh_bin="$(command -v zsh || true)"
@@ -242,19 +242,21 @@ jobs:
       # Stated, not skipped. A harness that quietly omitted these would read as
       # full coverage of the installer when it is not. Each line below was
       # checked against an actual container run rather than assumed — the first
-      # draft of this block claimed chsh could not work here, and it does.
+      # draft of this block claimed chsh could not work here, and it did.
       - name: Report what a container cannot cover
         if: always()
         run: |
           echo "::warning::NOT COVERED by this job — needs real hardware or a VM"
           cat <<'EOF'
           ┌─ COVERED, with a caveat ────────────────────────────────────┐
-          chsh -s <zsh>
-              Does work here, and is asserted above by comparing getent's
-              shell field against `command -v zsh`: the job runs as root
-              and shadow-utils is present. What is NOT proved is that a
-              real login session then starts zsh — there is no login, no
-              TTY and no PAM conversation.
+          usermod -s <zsh> <user>
+              Works here, and is asserted above by comparing getent's
+              shell field against `command -v zsh`. But the job runs as
+              ROOT, where SUDO is empty and nothing asks for a password —
+              which is how the old `chsh -s` passed here for months while
+              failing silently for every real (non-root) user (first VM
+              install, 2026-10-05). The sudo path is NOT proved here, nor
+              that a real login then starts zsh.
 
           systemctl enable ly@<tty>.service
               Also works here, and is asserted above: enabling a unit is

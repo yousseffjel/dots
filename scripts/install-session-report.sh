@@ -38,6 +38,27 @@ session_report_daemon() {
     done
 }
 
+# An autostart.sh written before 2026-10-05 starts picom on the config's glx
+# backend unconditionally, which freezes the screen on a GPU without 3D
+# acceleration (see session_autostart_compositor). session_report_daemon only
+# asks whether picom is MENTIONED, so it calls such a file fine; this asks
+# whether the backend is chosen. Worded without "does not mention" on purpose:
+# tests/autostart-daemons.sh reads daemon names out of exactly that phrase.
+# shellcheck disable=SC2016
+session_report_picom_probe() {
+    local autostart="$1"
+
+    grep -q picom "$autostart" || return 0
+    grep -q -- '--backend' "$autostart" && return 0
+
+    yellow "kept    $autostart (starts picom without choosing a backend)"
+    yellow '        on a GPU without 3D acceleration (most VMs) the glx backend in'
+    yellow '        picom.conf freezes the screen. Either start it as:'
+    yellow '          picom --backend xrender &'
+    yellow '        or copy the glxinfo probe from a freshly generated autostart.sh:'
+    yellow '          rm the file, re-run scripts/install-fedora.sh --only-install'
+}
+
 # Report on an autostart.sh the user already has, one daemon per check. Never
 # edits it — CLAUDE.md rule 6 makes that file theirs the moment it exists, so
 # the most we do is name the line that is missing.
@@ -60,6 +81,7 @@ session_autostart_report() {
         'add this line yourself:  command -v picom >/dev/null && ! pgrep -x picom >/dev/null && picom &' \
         'without it there is no compositor: no vsync, and the tuned' \
         '~/.config/picom/picom.conf is never read by anything.'
+    session_report_picom_probe "$autostart"
 
     session_report_daemon "$autostart" dwmblocks \
         'add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &'
@@ -100,4 +122,26 @@ session_autostart_report() {
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
         'without it the screen never locks on idle or on suspend.' \
         'Super+l still works — it falls back to calling slock directly.'
+}
+
+# Report on a ~/.xinitrc the user already has. Never edits it, for the same
+# reason as autostart.sh above. The marker is the cache path the theme block
+# reads (see session_xinitrc_template): a file that names it restores the
+# theme, one that does not leaves every login at dwm's compiled-in colours.
+# shellcheck disable=SC2016,SC2088
+session_xinitrc_report() {
+    local xinitrc="$1"
+
+    if grep -q 'dots/theme' "$xinitrc"; then
+        green "ok      ~/.xinitrc exists and restores the dots theme"
+        return 0
+    fi
+
+    yellow "kept    ~/.xinitrc (exists, never restores the dots theme)"
+    yellow '        without it dwm starts on its compiled-in colours and no wallpaper.'
+    yellow '        Add these lines above `exec dwm` (NOT in autostart.sh — re-theming'
+    yellow '        a running dwm restarts it, and every start re-runs autostart.sh):'
+    yellow '          c="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"'
+    yellow '          if [ -r "$c/xresources" ]; then xrdb -merge "$c/xresources"; [ -x ~/.fehbg ] && ~/.fehbg'
+    yellow '          else "$HOME/.local/bin/dots" theme dark; fi'
 }

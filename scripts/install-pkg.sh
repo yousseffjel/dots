@@ -8,7 +8,7 @@
 # The three tiers this script reads, in install order:
 #
 #   core.lst    hard-fail. The installer's own next step breaks without it —
-#               git for the zinit/TPM clones, zsh for the chsh step.
+#               git for the zinit/TPM clones, zsh for the login-shell step.
 #   desktop.lst never aborts, but each failure is repeated in a red closing
 #               summary with the consequence taken from the package's own
 #               trailing comment. These are the ones whose absence would

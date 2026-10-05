@@ -117,7 +117,7 @@ for adding CI; new docs you add are linted normally.
   a parser change that stops matching the notes fails here rather than
   going unnoticed until an install.
 - **`tests/autostart-daemons.sh`** — the daemon set is stated twice:
-  `session_autostart_template()` in `scripts/install-session.sh` writes it
+  `session_autostart_template()` in `scripts/install-session-template.sh` writes it
   into a fresh machine's `autostart.sh`, and `session_autostart_report()` in
   `scripts/install-session-report.sh` names what is missing on an existing
   one, which rule 6 forbids the installer from editing. Asserts the two agree
@@ -127,6 +127,20 @@ for adding CI; new docs you add are linted normally.
   renaming either one does not silently blind the test. (That is not
   hypothetical: the two now live in different files and the test needed no
   change.)
+- **`tests/picom-backend-probe.sh`** — runs the compositor block of the
+  generated `autostart.sh` under `/bin/sh` with a PATH of fakes only, against
+  fake `glxinfo -B` outputs (llvmpipe, softpipe, a real GPU, virgl, indirect
+  rendering, `glxinfo` missing or failing, `timeout` missing), and asserts
+  which `--backend` picom gets. Also checks the report warns about an
+  existing `autostart.sh` that starts picom without choosing a backend. The
+  fake output follows mesa-demos' `glxinfo.c`; the dev host has no `glxinfo`.
+- **`tests/xinitrc-theme.sh`** — runs the generated `~/.xinitrc` in a
+  sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
+  the theme step: merge the cache and run `~/.fehbg` when a cache exists,
+  `dots theme dark` on a first login, and `exec dwm` in every case, including
+  when the theme apply fails. The host's `/etc/X11/xinit/xinitrc.d` is
+  swapped for an empty dir in the copy that runs, so its fragments are never
+  sourced.
 - **`tests/tmux-tpm-lockstep.sh`** — the TPM plugin directory is derived in
   two places, `TPM_DIR` in `scripts/install-restore.sh` (which pre-clones it)
   and `config/tmux/conf.d/30-plugins.conf` (which tells tmux where to look).
@@ -150,7 +164,7 @@ for adding CI; new docs you add are linted normally.
   - Directories are compared out, because the installer `mkdir -p`s shared
     XDG dirs.
   - Fakes cover `git clone` and `update-desktop-database`. Sentinel
-    `sudo`/`dnf`/`systemctl`/`chsh`/`pkill`/`xrdb` must never be called.
+    `sudo`/`dnf`/`systemctl`/`chsh`/`usermod`/`pkill`/`xrdb` must never be called.
   - Its first runs found two real bugs: an unclaimed `mimeinfo.cache`, and
     theme configs you had before installing never being restored. 6/6
     mutations are caught.
@@ -297,7 +311,7 @@ skipping quietly. Each row below was checked against a real run, not assumed:
 
 | Step | Status in the container |
 | ---- | ----------------------- |
-| `chsh -s <zsh>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh`. What is *not* proved is that a real login then starts zsh: no login, no TTY, no PAM conversation. |
+| `usermod -s <zsh> <user>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh`. But it runs as **root**, so the `sudo` path a real user takes is *not* proved — the previous `chsh -s` passed here while failing silently for every non-root user, found on the first VM install (2026-10-05). Nor is it proved that a real login then starts zsh. |
 | `systemctl enable ly@<tty>.service` | **Works, and is asserted.** Enabling is offline symlink creation: it needs the unit *file*, not a running systemd. That is exactly why it catches a wrong unit name. |
 | ly actually running | **Not covered.** Enabling is not starting. Whether ly presents a greeter, hands off to the session and takes the TTY from getty is a hardware question. |
 | Anything graphical | **Not covered.** No display server, so dwm/st/dmenu/dwmblocks/slock are built and installed but never run, and the theming engine skips its initial apply for want of `$DISPLAY`. |

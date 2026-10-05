@@ -47,6 +47,20 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `~/.local`.
 - The documentation no longer claims the vendored suckless `.diff` files are
   applied at build time. The sources ship pre-patched; the diffs are a record.
+- **Found by the first real install** (Fedora 44 Server VM):
+  - The screen no longer freezes after login on a GPU without 3D
+    acceleration, which includes most VMs. picom's glx backend stopped
+    repainting there. `autostart.sh` now checks the GL renderer with
+    `glxinfo` (new package `glx-utils`) and falls back to xrender.
+  - A headless install now comes up themed. The installer cannot theme a
+    desktop that is not running yet, and nothing used to do it at login;
+    `~/.xinitrc` now applies the dark theme on the first login and restores
+    it on every later one.
+  - The login shell is now actually set to zsh. `chsh` needs your password
+    on a terminal and failed silently from the script; the installer and
+    uninstaller now use `sudo usermod -s`.
+  - An existing `autostart.sh` or `~/.xinitrc` is still never edited. The
+    installer prints the lines to add instead.
 
 ## [0.1.0] - 2026-09-03
 
