@@ -85,6 +85,14 @@ fuse
 pipewire-alsa
 pipewire-jack-audio-connection-kit
 
+# virtual machines
+# spice-vdagent resizes the X screen to the viewer window and shares the
+# clipboard with the host. autostart.sh starts its session agent only when
+# `systemd-detect-virt --vm` says this IS a VM; on real hardware it sits
+# installed and unused. Best-effort tier: a missing package only means a VM
+# keeps a fixed resolution, which announces itself the moment you look.
+spice-vdagent
+
 # fonts & theming
 # jetbrains-mono-fonts-all is for plain UI surfaces, which need no glyphs —
 # the Nerd Font itself (cascadia-code-nf-fonts) is in desktop.lst, since

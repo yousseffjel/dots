@@ -119,6 +119,18 @@ fi
 if command -v autorandr >/dev/null 2>&1; then
 	autorandr --change &
 fi
+
+# SPICE guest agent, inside a VM only: resizes the screen to the viewer window
+# (virt-manager: View > Scale Display > Auto resize VM with window) and shares
+# the clipboard with the host. A desktop environment starts it from
+# /etc/xdg/autostart, which nothing reads here — same as autorandr above. The
+# system half, spice-vdagentd, is meant to be activated by the package itself
+# when the SPICE port appears (unverified on a live VM as of 2026-10-05 — if
+# resizing does nothing, `systemctl status spice-vdagentd` is the first check).
+if command -v spice-vdagent >/dev/null 2>&1 && systemd-detect-virt --vm --quiet 2>/dev/null \
+	&& ! pgrep -x spice-vdagent >/dev/null 2>&1; then
+	spice-vdagent &
+fi
 EOF
 }
 

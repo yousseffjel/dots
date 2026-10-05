@@ -37,10 +37,23 @@ uninstall_theme() {
             fi
         done
         theme_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
+        # A ~/.fehbg naming a wallpaper wallpaper-default.sh generated would
+        # dangle once the cache is gone. Removed only then — recognised by the
+        # marker line that script writes (FEHBG_MARKER there; keep in step).
+        # One naming an image the user picked is theirs and stays.
+        fehbg="$HOME/.fehbg"
+        fehbg_ours=0
+        [[ -f "$fehbg" ]] && grep -qxF '# dots: generated wallpaper' "$fehbg" && fehbg_ours=1
         if [[ $DRY_RUN -eq 1 ]]; then
             blue "  (dry-run) would remove generated cache $theme_cache"
-        elif [[ -d "$theme_cache" ]]; then
-            rm -rf "$theme_cache" && green "  removed  $theme_cache"
+            ((fehbg_ours == 0)) || blue "  (dry-run) would remove $fehbg (points at the generated wallpaper)"
+        else
+            if [[ -d "$theme_cache" ]]; then
+                rm -rf "$theme_cache" && green "  removed  $theme_cache"
+            fi
+            if ((fehbg_ours == 1)); then
+                rm -f "$fehbg" && green "  removed  $fehbg (pointed at the generated wallpaper)"
+            fi
         fi
     else
         yellow "  skipped theme files"

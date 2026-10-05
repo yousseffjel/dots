@@ -134,6 +134,15 @@ for adding CI; new docs you add are linted normally.
   which `--backend` picom gets. Also checks the report warns about an
   existing `autostart.sh` that starts picom without choosing a backend. The
   fake output follows mesa-demos' `glxinfo.c`; the dev host has no `glxinfo`.
+- **`tests/wallpaper-default.sh`** — runs `scripts/theme/wallpaper-default.sh`
+  on a sealed PATH (`tests/lib/sealed-path.sh`) with a fake `magick`/`convert`
+  in a sandboxed `$HOME`. Asserts the gradient uses the palette's own keys, a
+  theme switch replaces a *generated* `~/.fehbg`, a user's own `~/.fehbg` is
+  never touched, and a failed render (the fake fails midway, leaving a partial
+  file) leaves nothing behind. It also runs a sandbox copy of `theme-apply.sh`
+  with fake `apply-templates.sh`/`reload.sh` to prove the wallpaper exists
+  before reload runs `~/.fehbg`, and does one real render when ImageMagick
+  is installed.
 - **`tests/xinitrc-theme.sh`** — runs the generated `~/.xinitrc` in a
   sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
   the theme step: merge the cache and run `~/.fehbg` when a cache exists,

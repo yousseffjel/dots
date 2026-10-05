@@ -4,6 +4,11 @@ Intentionally empty. No wallpapers are committed to this repository —
 they are large binaries, and most attractive ones carry licences that
 make redistribution a question rather than a given.
 
+Since 2026-10-05 a fresh install is not left on a black screen because of
+it: `scripts/theme/wallpaper-default.sh` renders a gradient from the active
+theme's palette whenever no wallpaper of your own is set (see
+`docs/THEMING.md`, "The generated default wallpaper").
+
 ## Where wallpapers actually go
 
 `scripts/theme/wallpaper.sh` reads from `~/Pictures/wallpapers` by

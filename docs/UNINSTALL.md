@@ -49,7 +49,8 @@ partial uninstall is a normal, supported outcome, not an error.
    GTK `settings.ini`/`gtk.css`), the vendored cursor theme unpacked into
    `~/.local/share/icons/` — the one entry that is a directory rather than a
    file, which is why this step uses `rm -rf` — plus the wholly generated
-   `~/.cache/dots/theme/`. Copies can't be identified by a readlink check
+   `~/.cache/dots/theme/`, and `~/.fehbg` when it points at the wallpaper
+   generated there (one naming an image you picked is left alone). Copies can't be identified by a readlink check
    the way symlinks can, so these are removed by manifest row instead — and
    a file that already existed when the installer ran was never given a row,
    so it is not removed.

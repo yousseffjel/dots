@@ -18,6 +18,16 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- A default wallpaper. A static theme apply renders a gradient from the
+  theme's own colours, so a fresh install is no longer a black screen. A
+  wallpaper you set yourself is never replaced, and no image is committed
+  to the repo.
+- Unfocused windows are slightly dimmed by picom. Shadows, rounded corners
+  and blur stay off.
+- Inside a VM, `spice-vdagent` (new, in `extra.lst`) resizes the screen to
+  the viewer window and shares the clipboard. It never starts on real
+  hardware.
+
 - `CHANGELOG.md` and `CONTRIBUTING.md`.
 - Tests for the seven untested `config/dwm/bin/` scripts (brightness, lock,
   screenshot, powermenu, clipmenu, theme, wallpaper). All nine now have one.

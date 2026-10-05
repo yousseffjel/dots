@@ -154,6 +154,12 @@ else
     # theme.conf carries the non-colour parts of a theme (gtk/icon/cursor
     # theme names, font). Rendered, not just reported — see apply_identity.
     apply_identity "$THEME"
+
+    # A wallpaper rendered from this palette, unless the user has set their
+    # own. Before reload.sh, which runs ~/.fehbg and so puts it on screen. A
+    # failure here costs the wallpaper, never the theme.
+    "$SCRIPT_DIR/wallpaper-default.sh" "$THEME" "$PALETTE" \
+        || yellow "wall    no generated wallpaper — the theme is applied without one"
 fi
 
 # Both groups: theme/ templates only re-render on a theme switch, which is

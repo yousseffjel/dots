@@ -96,6 +96,24 @@ scripts/theme/reload.sh        # re-signal everything, no regen (no subcommand)
 Wallpapers come from `~/Pictures/wallpapers`; override with
 `DOTS_WALLPAPER_DIR`.
 
+### The generated default wallpaper
+
+No wallpaper image is committed to this repo (see
+`themes/dark/wallpapers/README.md`). Instead, every **static** theme apply runs
+`scripts/theme/wallpaper-default.sh`, which renders a 2560×1440 diagonal
+gradient from the palette itself — `dcol_1xa2` (a lifted tint of the
+background) into `dcol_pry1` (the background) — to
+`~/.cache/dots/theme/wallpapers/<theme>.png`, and points `~/.fehbg` at it.
+`reload.sh` then runs `~/.fehbg`, so it is on screen in the same apply.
+
+It **never replaces a wallpaper you chose**: `~/.fehbg` is only written when
+it is absent or carries the `# dots: generated wallpaper` marker line this
+script writes (uninstall uses the same marker to remove it). Once you run
+`dots wallpaper <image>`, theme switches leave your image alone. To go back to
+the generated one, delete `~/.fehbg` and re-run `dots theme <name>`.
+`--wallbash` does not generate anything — it derives a palette *from* a
+wallpaper you set. `tests/wallpaper-default.sh` covers all of this.
+
 ## App templates
 
 Four templates theme ordinary applications rather than the desktop shell.
