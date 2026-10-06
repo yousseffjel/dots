@@ -119,7 +119,7 @@ check_theme() {
     fi
     value="$(dconf read "$COLOR_SCHEME_KEY" 2>/dev/null || true)"
     case "$value" in
-        "'prefer-dark'") report ok "$s" color-scheme "apps are asked for dark mode" ;;
+        "'prefer-dark'") report ok "$s" color-scheme "dark-mode preference is set (dconf; the portal check below says whether apps get it)" ;;
         "") report warn "$s" color-scheme "dark-mode preference unset — scripts/install-fedora.sh --only-restore" ;;
         *) report skip "$s" color-scheme "dark-mode preference is $value (your choice, left alone)" ;;
     esac

@@ -107,6 +107,23 @@ elif [ -x "$HOME/.local/bin/dots" ]; then
 fi
 unset dots_theme_cache
 
+# The systemd side of the session. dots-session.target pulls in
+# graphical-session.target, without which xdg-desktop-portal refuses to start
+# (see ~/.config/systemd/user/dots-session.target): no dark mode for GTK4 apps,
+# no portal file chooser. DISPLAY is handed to the user manager first so the
+# portal can open windows. Stopped when this script exits, however X ends — a
+# signal is turned into a normal exit so the EXIT trap runs. If systemd is
+# missing or the start fails, dwm starts exactly as before.
+if command -v systemctl >/dev/null 2>&1 &&
+	systemctl --user import-environment DISPLAY XAUTHORITY >/dev/null 2>&1 &&
+	systemctl --user daemon-reload >/dev/null 2>&1 &&
+	systemctl --user start dots-session.target >/dev/null 2>&1; then
+	trap 'systemctl --user stop dots-session.target >/dev/null 2>&1' EXIT
+	trap 'exit 0' HUP INT TERM
+	dwm
+	exit 0
+fi
+
 exec dwm
 EOF
 }

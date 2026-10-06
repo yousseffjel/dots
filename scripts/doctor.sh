@@ -85,11 +85,14 @@ report() {
 source "$SCRIPT_DIR/doctor-checks.sh"
 # shellcheck source=doctor-session.sh
 source "$SCRIPT_DIR/doctor-session.sh"
+# shellcheck source=doctor-portal.sh
+source "$SCRIPT_DIR/doctor-portal.sh"
 
 check_install
 check_packages
 check_session
 check_theme
+check_portal
 check_gtk3_theme
 check_flatpak
 check_system

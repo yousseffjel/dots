@@ -170,7 +170,12 @@ for adding CI; new docs you add are linted normally.
   sandboxed `$HOME` with fake `xrdb`, `dwm`, `timeout` and `dots`, and asserts
   the theme step: merge the cache and run `~/.fehbg` when a cache exists,
   `dots theme dark` on a first login, and `exec dwm` in every case, including
-  when the theme apply fails. The host's `/etc/X11/xinit/xinitrc.d` is
+  when the theme apply fails. With a fake `systemctl`, it also checks that
+  `dots-session.target` is started before dwm and stopped after it exits,
+  including when the shell is HUP'd as a dying X server does. A failed start
+  still runs dwm. The paste lines for an existing `~/.xinitrc` must all
+  appear in `docs/THEMING.md`. A pre-portal `.xinitrc`, derived from the
+  shipped template, gets only those lines. The host's `/etc/X11/xinit/xinitrc.d` is
   swapped for an empty dir in the copy that runs, so its fragments are never
   sourced.
 - **`tests/tmux-tpm-lockstep.sh`** — the TPM plugin directory is derived in

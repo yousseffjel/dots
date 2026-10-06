@@ -325,6 +325,45 @@ This must never move into `autostart.sh`. Re-theming a running dwm means
 start — a theme step there loops the session. An existing `~/.xinitrc` is
 never edited; the installer prints the lines to paste.
 
+### Desktop portal
+
+GTK4/libadwaita apps, Firefox and Electron get dark mode from the desktop
+portal's Settings interface, which `xdg-desktop-portal-gtk` serves from the
+dconf `color-scheme` key. Apps also get the portal file chooser from it. In a
+dwm session that only works if `~/.xinitrc` starts **`dots-session.target`**:
+
+- `xdg-desktop-portal.service` (1.22) has
+  `Requisite=graphical-session.target`, so it refuses to start unless that
+  target is active;
+- a full desktop such as GNOME activates it, but startx/ly + dwm never did;
+- `graphical-session.target` has `RefuseManualStart=yes`, so
+  `~/.config/systemd/user/dots-session.target` (copied there by the restore
+  stage) pulls it in with `BindsTo=`.
+
+Until 2026-10-06 nothing did this, and *no* portal worked in a dwm session.
+
+The `~/.xinitrc` the installer writes starts the target before dwm and stops it
+when the session ends. If you had a `~/.xinitrc` before installing, replace its
+`exec dwm` with:
+
+```sh
+systemctl --user import-environment DISPLAY XAUTHORITY
+systemctl --user daemon-reload
+if systemctl --user start dots-session.target; then
+  trap 'systemctl --user stop dots-session.target' EXIT
+  trap 'exit 0' HUP INT TERM
+  dwm; exit 0
+fi
+exec dwm
+```
+
+then log out and back in. `dots doctor` checks both halves:
+
+- `graphical-session.target` is active;
+- the portal really answers `color-scheme`.
+
+The dconf line only proves the preference is stored.
+
 ## How reload works, per tool
 
 | Tool | Reads colours from | Reload mechanism |

@@ -114,6 +114,16 @@ session_autostart_report() {
         'only matters inside a VM: without it the screen never resizes to' \
         'the viewer window and the host clipboard is not shared.'
 
+    session_autostart_report_more "$autostart"
+}
+
+# The rest of the list — split off purely for the 60-line function cap, the
+# same way session_autostart_template is split into parts. Callers (and
+# tests/autostart-daemons.sh) only ever call session_autostart_report.
+# shellcheck disable=SC2016,SC2088
+session_autostart_report_more() {
+    local autostart="$1"
+
     session_report_daemon "$autostart" lxpolkit \
         'add this line yourself:  command -v lxpolkit >/dev/null && ! pgrep -x lxpolkit >/dev/null && lxpolkit &' \
         'without it no PolicyKit agent runs, so any GUI action needing' \
@@ -140,18 +150,26 @@ session_autostart_report() {
 }
 
 # Report on a ~/.xinitrc the user already has. Never edits it, for the same
-# reason as autostart.sh above. The marker is the cache path the theme block
-# reads (see session_xinitrc_template): a file that names it restores the
-# theme, one that does not leaves every login at dwm's compiled-in colours.
-# shellcheck disable=SC2016,SC2088
+# reason as autostart.sh above. Two markers, checked independently, because a
+# file generated before 2026-10-06 has the first and not the second:
+#   * the cache path the theme block reads — without it every login starts at
+#     dwm's compiled-in colours;
+#   * dots-session.target — without it no desktop portal can start.
 session_xinitrc_report() {
-    local xinitrc="$1"
-
-    if grep -q 'dots/theme' "$xinitrc"; then
-        green "ok      ~/.xinitrc exists and restores the dots theme"
+    local xinitrc="$1" theme=0 session=0
+    grep -q 'dots/theme' "$xinitrc" && theme=1
+    grep -q 'dots-session.target' "$xinitrc" && session=1
+    if ((theme && session)); then
+        green "ok      ~/.xinitrc exists, restores the dots theme and starts dots-session.target"
         return 0
     fi
+    ((theme)) || session_xinitrc_report_theme
+    ((session)) || session_xinitrc_report_session
+}
 
+# The paste-in lines a ~/.xinitrc needs; split out for the 60-line cap.
+# shellcheck disable=SC2016,SC2088
+session_xinitrc_report_theme() {
     yellow "kept    ~/.xinitrc (exists, never restores the dots theme)"
     yellow '        without it dwm starts on its compiled-in colours and no wallpaper.'
     yellow '        Add these lines above `exec dwm` (NOT in autostart.sh — re-theming'
@@ -159,4 +177,20 @@ session_xinitrc_report() {
     yellow '          c="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"'
     yellow '          if [ -r "$c/xresources" ]; then xrdb -merge "$c/xresources"; [ -x ~/.fehbg ] && ~/.fehbg'
     yellow '          else "$HOME/.local/bin/dots" theme dark; fi'
+}
+
+# shellcheck disable=SC2016
+session_xinitrc_report_session() {
+    yellow "kept    ~/.xinitrc (exists, never starts dots-session.target)"
+    yellow '        without it no desktop portal starts: GTK4/libadwaita apps stay light'
+    yellow '        and apps get no portal file chooser. Replace `exec dwm` with:'
+    yellow '          systemctl --user import-environment DISPLAY XAUTHORITY'
+    yellow '          systemctl --user daemon-reload'
+    yellow '          if systemctl --user start dots-session.target; then'
+    yellow "            trap 'systemctl --user stop dots-session.target' EXIT"
+    yellow "            trap 'exit 0' HUP INT TERM"
+    yellow '            dwm; exit 0'
+    yellow '          fi'
+    yellow '          exec dwm'
+    yellow '        then log out and back in.'
 }
