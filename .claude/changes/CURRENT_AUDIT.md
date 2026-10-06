@@ -1829,3 +1829,23 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   then a `$( … || true)` subshell matching itself); final version verified
   with the real pgrep.
 - Suite 28 → 35 tests. See the seven dated logs of 2026-10-05.
+
+## 2026-10-06 — GTK2 theme, desktop portal, `dots doctor` (one slot each)
+- Correction first: "what is next" item 5 offered the dwm-under-Xvfb and
+  install/uninstall-symmetry tests as gaps. Both had existed since September;
+  CLAUDE.md's dwm-titus list was stale and was repeated unchecked. The list is
+  now rewritten with each harvested item dated.
+- `gtk2-theme-template`: `gtk2.dcol` writes a palette-driven `~/.gtkrc-2.0`
+  (lxpolkit is GTK2; Fedora 44 retired gnome-themes-extra). It only ever
+  replaces an engine-written file. Rendered dark in a fedora:44 container
+  with real gtk2.
+- `xdg-portal-gtk`: DECISION REVERSAL of scope C locked decision 5.
+  Added xdg-desktop-portal-gtk + dconf + dbus-daemon (extra.lst) and a
+  `portals.conf` (gtk). `prefer-dark` is written to dconf only when unset
+  (dbus-run-session for headless installs), recorded as a DCONF manifest
+  row and reset by uninstall only while unchanged.
+- `dots-doctor`: `dots doctor [--tsv]`, a read-only health report from one
+  `report()`. Each list it walks is read from its declaration. Reviewer
+  BLOCK in round 1: SERVICE rows were read from the wrong field, and the
+  fixture had a hand-made row. Fixed; READY in round 2.
+- Suite 35 → 38 tests. See the three dated logs of 2026-10-06.

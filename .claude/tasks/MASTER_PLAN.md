@@ -72,6 +72,14 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-06 — **GTK2 theme, desktop portal, `dots doctor`** ("what is next"
+  items 4 + 5, as the user re-picked them). GTK2 apps are themed from the
+  wallpaper via `~/.gtkrc-2.0`. xdg-desktop-portal-gtk + `prefer-dark`
+  reverse scope C decision 5. `dots doctor` replaced item 5, which was
+  already done (scope D). Unverified on the VM: lxpolkit's dialog
+  (`pkexec true`), the portal answering `color-scheme`, and a real
+  `dots doctor` run inside dwm. Scope E (Flatpak, another session's file) is
+  now unblocked.
 - 2026-10-05 — **desktop features round**: from the HyDE feature-gap list,
   the user picked the ⭐ option for seven rows: bluetooth tray applet,
   volume/brightness pop-up, NET block, keybind cheat sheet (Super+/), emoji
