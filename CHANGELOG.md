@@ -105,6 +105,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- Notifications were drawn on top of the status bar. dunst now places them
+  below it (`offset = (12, 36)`). Existing installs pick this up on the next
+  wallpaper or theme change.
 - GTK3 apps (Thunar, and Flatpak GTK3 apps) were light, not dark. Every theme
   names `Adwaita-dark`, which GTK4 has built in but GTK 3.24 does not. On
   Fedora it came from `gnome-themes-extra`, which Fedora 44 retired, so GTK3

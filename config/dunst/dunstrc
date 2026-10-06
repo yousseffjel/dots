@@ -16,7 +16,9 @@
     follow = mouse
     width = (300, 450)
     origin = top-right
-    offset = (12, 12)
+    # y clears dwm's top bar (font height + 2, ~21px at size=10) plus a
+    # 12px gap; raise it if you enlarge the bar font in config.def.h.
+    offset = (12, 36)
     scale = 0
     notification_limit = 5
 
