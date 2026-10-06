@@ -44,6 +44,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - `Super` + `/` opens a searchable list of every keybinding (`dwm-keys`),
   read from `KEYBINDINGS.md`. A new test fails the build when a key in
   `sxhkdrc` has no row there.
+- GTK2 apps follow the wallpaper colours, most importantly the password
+  prompt (`lxpolkit`), which used to be GTK2's light default. A new template
+  writes `~/.gtkrc-2.0`. Fedora 44 no longer packages a dark GTK2 theme, so
+  this is a complete set of colours rather than tweaks. A `~/.gtkrc-2.0` of
+  your own is never replaced; delete it to use the generated one.
 - `Super` + `.` opens an emoji picker (`dwm-emoji`): every emoji from
   Unicode's data with its name, copied to the clipboard. New package:
   `unicode-emoji`.

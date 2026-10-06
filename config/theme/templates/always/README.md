@@ -18,7 +18,7 @@ for the reader of the *output*, not for the reader of the template.
 | Style | Used by | Why |
 | --- | --- | --- |
 | Write the target directly | `xresources`, `dunst`, `picom`, `gtk`, `statusbar`, `fastfetch` | The file is engine-owned. Nothing of the user's lives there. |
-| Render to `${cacheDir}`, install via post-command | `vim`, `starship` | The real destination is user-owned, or is not detectable by the engine's install-check. |
+| Render to `${cacheDir}`, install via post-command | `vim`, `starship`, `gtk2` | The real destination is user-owned, or is not detectable by the engine's install-check. |
 | Render to `${cacheDir}`, let the app import it | `alacritty` | The app's own config is a **symlink into this repo**, so it can never be rewritten — but the app can pull a second file in itself. |
 
 The third style is the one to reach for whenever a themed app's config is
@@ -68,7 +68,7 @@ the deploy-a-base-file path gets for free:
    template forever and the app is simply never themed. `theme_write_gtk_ini`
    creates `~/.config/gtk-3.0` as a side effect of writing `settings.ini`;
    `theme_claim_fastfetch` creates `~/.config/fastfetch` explicitly.
-2. **Claim the path in the install manifest** (`theme_claim_gtk_css`,
+2. **Claim the path in the install manifest** (`theme_claim_engine_target`,
    `theme_claim_fastfetch`), so `uninstall_theme` removes a file the
    installer never wrote the contents of. Both keep the no-clobber rule: a
    pre-existing file at that path is left untouched and deliberately *not*
@@ -80,7 +80,7 @@ own built-in defaults until `scripts/theme/theme-apply.sh` runs.
 
 ## Maintainer note: path derivation in post-commands
 
-`vim.dcol` and `starship.dcol` re-derive their paths from the XDG variables
+`vim.dcol`, `starship.dcol` and `gtk2.dcol` re-derive their paths from the XDG variables
 (`"${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"`) instead of using the
 engine's `${cacheDir}` token.
 
