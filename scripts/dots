@@ -39,6 +39,7 @@ SUBCOMMANDS=(
     "theme:scripts/theme/theme-apply.sh:apply a colour theme (static or --wallbash)"
     "wallpaper:scripts/theme/wallpaper.sh:set the wallpaper and re-theme from it"
     "version:scripts/version.sh:print repo, installed and component versions"
+    "doctor:scripts/doctor.sh:check the install and the running desktop (read-only)"
     "uninstall:scripts/uninstall.sh:reverse the install, manifest-driven"
 )
 

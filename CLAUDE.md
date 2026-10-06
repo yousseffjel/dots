@@ -76,6 +76,8 @@ dots/
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
+│   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
+│   │                           # checks in doctor-checks.sh / doctor-session.sh, every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh
 ├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
@@ -115,7 +117,7 @@ just the suckless programs standalone (also `--dry-run`-aware); `scripts/symlink
 
 After an install, **`dots` is the single user-facing command** (symlinked to
 `~/.local/bin/dots`): `dots theme`, `dots wallpaper`, `dots version`,
-`dots uninstall`. It only forwards — every target script stays independently
+`dots doctor`, `dots uninstall`. It only forwards — every target script stays independently
 runnable, and `dots --help` renders its list from the one table in
 `scripts/dots`. It deliberately breaks rule 3: because it is reached through a
 symlink, `cd "$(dirname "${BASH_SOURCE[0]}")"` would resolve `~/.local/bin`
@@ -217,28 +219,28 @@ anything:
 - `ls dwm-titus/tests/*.sh` and `grep -n '^check-' dwm-titus/Makefile` are the
   source of truth for its suite and its gates. Do not restate either here.
 
-**Where it is ahead of dots**, i.e. the harvestable part:
+**Where it was ahead of dots, and what has been harvested since** (this list
+said "dots has never executed dwm in a test" until 2026-10-06, a month after
+that stopped being true — check the repo before repeating any of it):
 
-- dwm itself is exercised **live under Xvfb** (`make check-xvfb-runtime`, ~1090
-  lines): EWMH root properties, tag switching across monitors, fullscreen
-  requests, client lists. dots has never executed dwm in a test at all.
-- The installer's file manifest is **proved, not maintained** —
-  `make check-install-manifest` stages `install-system` into a `DESTDIR` temp
-  root, `cmp`s the resulting file list against a list *derived* from the
-  Makefile's own variables, then runs `uninstall` and `cmp`s back to the
-  pre-state. dots' manifest is hand-written and its uninstall symmetry unproven.
-- Its CI installs dependencies by **sourcing the repo's own package map**
-  (`dwm_packages fedora required`) rather than restating names — the same
-  no-second-declaration idea as dots' `packages/*.lst` glob, applied to CI.
-- `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SPEC.md`, `docs/RELEASING.md`
-  and a Dependabot config all exist — working examples of the framework-parity queue
-  items in `MASTER_PLAN.md` (which says which of them are still open; dots has
-  had its own `CHANGELOG.md` and `CONTRIBUTING.md` since 2026-09-28).
-- `scripts/dwm-diagnostics` emits a human report **and** a machine `health-tsv`
-  from one code path, consumed by the shell's System Health pane.
-- `scripts/run-tests` is a hardened harness: refuses `/` and `/tmp` as a test
-  root, refuses a symlinked one, `setsid`s the child so no test can orphan a
-  daemon, and cleans its workspace on every exit path.
+- dwm exercised **live under Xvfb** — ✅ harvested 2026-09-03 as
+  `tests/dwm-runtime.sh` (EWMH root state plus four vendored patches), run by
+  the `build-suckless` CI job.
+- An install manifest **proved, not maintained** — ✅ harvested 2026-09-28 as
+  `tests/install-uninstall-symmetry.sh`: restore twice, uninstall, and the
+  sandbox HOME must be byte-identical apart from the documented leftovers.
+- CI installing dependencies from **the repo's own package map** — ✅
+  harvested 2026-09-03 (`tests/ci-build-deps.sh`; `ci.yml` reads
+  `packages/build.lst`).
+- A **hardened test runner** — ✅ harvested 2026-09-03 (`tests/run-tests.sh`:
+  `setsid`, workspace cleaned on every exit path).
+- **Human and machine-readable diagnostics from one code path** — ✅
+  harvested 2026-10-06 as `dots doctor` (`scripts/doctor.sh`, `--tsv`).
+- Project docs: `CHANGELOG.md`, `CONTRIBUTING.md` and Dependabot exist here
+  too; **`SECURITY.md`, `SPEC.md` and `docs/RELEASING.md` still do not.**
+- **Still not harvested, by decision:** runtime TOML config with hot reload
+  (an Epic the user has not asked for) and the Quickshell/Qt6 shell layer
+  (rejected — see scope D's out-of-scope list).
 
 **Where dots is ahead:** wallpaper-derived theming (dwm-titus palettes are
 hand-written in `themes.toml`), the four-tier package model with per-package

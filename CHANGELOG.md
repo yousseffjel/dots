@@ -55,6 +55,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   Firefox, Chromium and Electron apps use dark mode. It is set only if
   nothing had set it before, and `dots uninstall` resets it unless you
   changed it since.
+- `dots doctor`: a read-only health report covering:
+  - the install: manifest, links, login shell, the login service;
+  - every package list, with each missing desktop package's consequence;
+  - the X session daemons, the picom backend and the theme;
+  - audio, network, bluetooth and the dark-mode setting.
+
+  Each problem names the command that fixes it. `--tsv` prints the same
+  checks for scripts. It exits 1 when something the install promises is
+  broken.
 - `Super` + `.` opens an emoji picker (`dwm-emoji`): every emoji from
   Unicode's data with its name, copied to the clipboard. New package:
   `unicode-emoji`.

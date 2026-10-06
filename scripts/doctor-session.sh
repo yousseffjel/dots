@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# The X session, theme and hardware checks of scripts/doctor.sh — SOURCED by
+# it, never run alone. Assumes doctor.sh's report(), DOTS_DIR, global_fn.sh
+# (via doctor-checks.sh) and `set -euo pipefail`.
+
+AUTOSTART="${XDG_DATA_HOME:-$HOME/.local/share}/dwm/autostart.sh"
+COLOR_SCHEME_KEY=/org/gnome/desktop/interface/color-scheme
+# Test override (tests/doctor.sh).
+BT_SYSFS="${DOTS_DOCTOR_BT_SYSFS:-/sys/class/bluetooth}"
+
+# Exceptions to "daemon N runs as a process whose command line names N".
+# dwm-lock execs xss-lock; autorandr --change runs once at login and exits
+# (empty = not a daemon, nothing to look for). Every key must be a name
+# session_autostart_report reports — tests/doctor.sh fails the build if one
+# is renamed or dropped there and left stale here.
+declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="")
+
+# daemon_applies <name> — false for a daemon autostart.sh deliberately does
+# not start on this machine. Mirrors the two conditions in
+# install-session-template.sh; tests/doctor.sh holds the names to the report.
+daemon_applies() {
+    case "$1" in
+        spice-vdagent) systemd-detect-virt --vm --quiet 2>/dev/null ;;
+        blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
+        *) return 0 ;;
+    esac
+}
+
+# report_names <autostart> — the daemons the installer's own report says that
+# file does not mention. Against /dev/null that is every daemon it knows,
+# which is how the list is read here without being restated.
+report_names() {
+    (
+        # shellcheck disable=SC2317,SC2329 # called from the sourced report
+        green() { :; }
+        # shellcheck disable=SC2317,SC2329
+        yellow() { printf '%s\n' "$*"; }
+        # shellcheck source=install-session-report.sh
+        source "$DOTS_DIR/scripts/install-session-report.sh"
+        session_autostart_report "$1"
+    ) | sed -n 's/.*does not mention \([A-Za-z0-9._-]*\).*/\1/p'
+}
+
+contains() {
+    local needle="$1" x
+    shift
+    for x in "$@"; do [[ "$x" == "$needle" ]] && return 0; done
+    return 1
+}
+
+check_daemons() {
+    local all=() unmentioned=() name proc
+    mapfile -t all < <(report_names /dev/null)
+    [[ -f "$AUTOSTART" ]] && mapfile -t unmentioned < <(report_names "$AUTOSTART")
+    for name in "${all[@]}"; do
+        proc="$name"
+        [[ -v "DAEMON_PROCESS[$name]" ]] && proc="${DAEMON_PROCESS[$name]}"
+        if ! command -v "$name" >/dev/null 2>&1 && [[ ! -x "$HOME/.config/dwm/bin/$name" ]]; then
+            report skip session "daemon-$name" "$name: not installed"
+        elif [[ -z "$proc" ]]; then
+            report skip session "daemon-$name" "$name: runs once at login, nothing to check"
+        elif pgrep -f "(^|/)$proc( |\$)" >/dev/null 2>&1; then
+            report ok session "daemon-$name" "$name is running"
+        elif ! daemon_applies "$name"; then
+            report skip session "daemon-$name" "$name: not needed here (no VM / no bluetooth adapter)"
+        elif [[ ! -f "$AUTOSTART" ]] || contains "$name" "${unmentioned[@]}"; then
+            report warn session "daemon-$name" "$name is not started: $AUTOSTART does not mention it — run scripts/install-suckless.sh --skip-deps and paste the line it prints"
+        else
+            report warn session "daemon-$name" "$name is in autostart.sh but not running — it exited or failed to start; run it in a terminal to see why"
+        fi
+    done
+}
+
+check_session() {
+    local s=session args res
+    if [[ -z "${DISPLAY:-}" ]] || ! pgrep -x dwm >/dev/null 2>&1; then
+        report skip "$s" x-session "no dwm session here — run dots doctor from a terminal inside dwm for these checks"
+        return 0
+    fi
+    report ok "$s" dwm "dwm is running on $DISPLAY"
+    check_daemons
+    args="$(pgrep -a -x picom 2>/dev/null | head -n1 || true)"
+    if [[ "$args" == *"--backend xrender"* ]]; then
+        report ok "$s" picom-backend "picom uses xrender (no 3D acceleration found at login)"
+    elif [[ -n "$args" ]]; then
+        report ok "$s" picom-backend "picom uses the backend in picom.conf (3D acceleration found)"
+    fi
+    res="$(xrdb -query 2>/dev/null || true)"
+    if grep -q '^dwm\.' <<<"$res"; then
+        report ok "$s" xresources "theme colours are loaded into X"
+    else
+        report warn "$s" xresources "no dwm.* X resources — dwm runs on compiled-in colours; run: dots theme dark"
+    fi
+}
+
+check_theme() {
+    local s=theme first value
+    if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/xresources" ]]; then
+        report ok "$s" cache "a theme has been applied"
+    else
+        report warn "$s" cache "no theme applied yet — run: dots theme dark"
+    fi
+    if [[ -x "$HOME/.fehbg" ]]; then
+        report ok "$s" wallpaper "a wallpaper is set (.fehbg)"
+    else
+        report warn "$s" wallpaper "no wallpaper set — dots wallpaper <image>, or dots theme dark for the default"
+    fi
+    first="$(head -n1 "$HOME/.gtkrc-2.0" 2>/dev/null || true)"
+    if [[ "$first" == *"Generated by scripts/theme/apply-templates.sh"* ]]; then
+        report ok "$s" gtk2 "GTK2 apps are themed (.gtkrc-2.0)"
+    elif [[ -n "$first" ]]; then
+        report skip "$s" gtk2 "GTK2: a .gtkrc-2.0 of your own is in use (left alone)"
+    else
+        report warn "$s" gtk2 "no .gtkrc-2.0 — GTK2 apps (the password prompt) stay light until the next theme apply"
+    fi
+    if ! command -v dconf >/dev/null 2>&1; then
+        report skip "$s" color-scheme "dconf not installed"
+        return 0
+    fi
+    value="$(dconf read "$COLOR_SCHEME_KEY" 2>/dev/null || true)"
+    case "$value" in
+        "'prefer-dark'") report ok "$s" color-scheme "apps are asked for dark mode" ;;
+        "") report warn "$s" color-scheme "dark-mode preference unset — scripts/install-fedora.sh --only-restore" ;;
+        *) report skip "$s" color-scheme "dark-mode preference is $value (your choice, left alone)" ;;
+    esac
+}
+
+check_system() {
+    local s=system vol state
+    if command -v pamixer >/dev/null 2>&1; then
+        vol="$(pamixer --get-volume 2>/dev/null || true)"
+        if [[ "$vol" =~ ^[0-9]+$ ]]; then
+            report ok "$s" audio "audio works (volume $vol%)"
+        else
+            report warn "$s" audio "pamixer reaches no audio server — no sound device, or PipeWire is not running"
+        fi
+    fi
+    if command -v nmcli >/dev/null 2>&1; then
+        state="$(nmcli -t -f STATE general 2>/dev/null || true)"
+        if [[ "$state" == connected* ]]; then
+            report ok "$s" network "network: $state"
+        else
+            report warn "$s" network "network: ${state:-NetworkManager not answering} — run nmtui to connect"
+        fi
+    fi
+    if [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]]; then
+        report ok "$s" bluetooth "a bluetooth adapter is present"
+    else
+        report skip "$s" bluetooth "no bluetooth adapter"
+    fi
+}
