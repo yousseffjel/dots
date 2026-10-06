@@ -51,3 +51,46 @@ Findings: icons override is NOT redundant — the user icon dir is mounted at
 search path (freedesktop-sdk MR 6777, merge status unconfirmed); the real-path
 mount works on any runtime. `install-restore-apps.sh` is at 220/250 and
 `tests/install-uninstall-symmetry.sh` at 223/250 — new code needs its own file.
+
+## VM verification (2026-10-06, after merge) — two pre-existing bugs found
+
+Overrides verified on the VM: `flatpak override --user --show` lists the three
+`:ro` grants; inside the sandbox `~/.config/gtk-3.0` (gtk.css, settings.ini)
+and `~/.local/share/icons/Bibata-Modern-Classic` are visible, and flatpak
+mirrors the gtk-3.0 grant into the per-app `$XDG_CONFIG_HOME` too. But both
+test apps rendered LIGHT:
+
+- **GTK3 (Mousepad):** `theme.conf` says `gtk_theme=Adwaita-dark`. GTK 3.24
+  has no such built-in (gtk/gtkcssprovider.c `_gtk_css_provider_load_named`:
+  an unresolved name is retried WITHOUT the variant, then falls back to plain
+  Adwaita), and Fedora 44 has no `gnome-themes-extra`, so the
+  `gtk-application-prefer-dark-theme=1` already in settings.ini is discarded.
+  `flatpak run --env=GTK_THEME=Adwaita:dark` rendered dark. Very likely hits
+  native GTK3 apps on the host too. Fix: `gtk_theme=Adwaita` in all four themes.
+- **GTK4 (Text Editor):** the portal never starts — `gdbus ... Settings.ReadOne`
+  → "Could not activate remote peer 'org.freedesktop.portal.Desktop': startup
+  job failed". xdg-desktop-portal 1.22.1's unit has
+  `Requisite=graphical-session.target`, which a startx/dwm session never
+  activates. So NO portal works in a dwm session (the f831138 portal work
+  installed it but it was never exercised under real systemd).
+
+## Decisions (user, 2026-10-06, round 3)
+
+8. **Portal fix: a session target.** A user unit `dots-session.target`
+   (`BindsTo=graphical-session.target`), started from ~/.xinitrc after the
+   systemd environment import and stopped when dwm exits. Existing installs'
+   ~/.xinitrc is user-owned (rule 6) → a report line telling them what to
+   paste. Rejected: a drop-in resetting `Requisite=` (fights upstream, never
+   stopped at logout, next unit with the same Requisite breaks again).
+9. **Two slots:** `slot/gtk3-dark-theme-name` (Small) and
+   `slot/portal-session-target` (Medium; include a doctor check that the
+   portal actually ANSWERS, not just that the package is installed).
+10. **Flatpak apps on PATH for dmenu:** add the user and system
+    `flatpak/exports/bin` to PATH in `config/zsh/.zshenv`. Micro, own commit.
+11. **GTK3 fix: restore the gnome-themes-extra shim** (user, round 4) —
+    `~/.local/share/themes/Adwaita-dark/gtk-3.0/gtk.css`, one @import of GTK3's
+    built-in dark stylesheet, plus a `xdg-data/themes:ro` Flatpak grant.
+    Supersedes the "rename to `Adwaita`" fix in the VM section above: GTK4
+    treats `Adwaita-dark` as a built-in alias, so a rename would turn plain
+    GTK4 apps light. Slot `gtk3-adwaita-dark-shim` (renamed from decision 9's
+    `gtk3-dark-theme-name`).

@@ -26,7 +26,7 @@ daemon_names() {
 make_fakes() {
     BIN="$SB/bin"
     seal_path "$BIN" bash sed grep awk tr cut cat head readlink dirname basename \
-        ls sort id date mkdir touch mktemp mv
+        ls sort id date mkdir touch mktemp mv cp
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
         fake "$BIN" rpm 'rc=0; shift 2; for p in "$@"; do
@@ -68,13 +68,15 @@ make_home() {
         manifest_set_meta version "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION")"
         manifest_append_row SERVICE ly@tty2.service
     )
-    # The Flatpak grants and remote, written by restore_flatpak itself.
+    # The Flatpak grants and remote, the GTK3 settings.ini and the
+    # Adwaita-dark shim — each written by the installer's own function.
     # shellcheck disable=SC2016 # the -c script expands in the sandbox shell
     env -i PATH="$BIN" HOME="$H" XDG_DATA_HOME="$H/.local/share" XDG_STATE_HOME="$H/.local/state" \
-        DRY_RUN=0 "$(type -P bash)" -c 'set -euo pipefail
+        XDG_CONFIG_HOME="$H/.config" DOTS_DIR="$DOTS_DIR" DRY_RUN=0 "$(type -P bash)" -c 'set -euo pipefail
         green() { :; }; yellow() { echo "$*" >&2; }; blue() { :; }
         source "$0/scripts/global_fn.sh"; source "$0/scripts/install-restore-flatpak.sh"
-        restore_flatpak' "$DOTS_DIR" >/dev/null
+        source "$0/scripts/install-restore-theme.sh"; CONF_HOME="$XDG_CONFIG_HOME"
+        restore_flatpak; theme_write_gtk_ini; restore_gtk3_shim' "$DOTS_DIR" >/dev/null
     ln -s "$DOTS_DIR/scripts/dots" "$H/.local/bin/dots"
     local src dst
     while IFS=$'\t' read -r src dst; do

@@ -11,6 +11,7 @@
 #     different advice, a VM-only daemon off a VM is skipped, dwm-lock is
 #     found as xss-lock;
 #   * no X session, not Fedora: whole sections skip instead of failing;
+#   * the GTK3 theme name: missing -> warn, a GTK built-in -> ok;
 #   * flatpak: a missing grant or remote warns, a grant set the user's own
 #     way is ok, no flatpak at all skips;
 #   * it is read-only: the sandbox HOME is byte-identical afterwards.
@@ -70,6 +71,7 @@ check "every reported daemon is checked" \
     test "$(grep -cE $'^[a-z]+\tsession\tdaemon-' "$SB/out.tsv")" -eq "${#DAEMONS[@]}"
 check "dwm-lock is found as xss-lock" row ok session daemon-dwm-lock
 check "autorandr is one-shot, not a daemon" row skip session daemon-autorandr
+check "the GTK3 theme name resolves (the shim)" row ok theme gtk3
 check "Flatpak grants and Flathub are checked" row ok theme flatpak
 check "...the Flathub remote too" row ok theme flathub
 find "$H" -printf '%p %s %l\n' | sort >"$SB/before"
@@ -129,6 +131,20 @@ DISPLAY_SET="" tsv
 check "no X: one skip for the whole session section" \
     test "$(grep -c $'\tsession\t' "$SB/out.tsv")" -eq 1
 check "no X: still exit 0" rc_is 0
+
+blue "==> GTK3 theme"
+SHIM="$H/.local/share/themes/Adwaita-dark"
+mv "$SHIM" "$SB/shim.bak"
+tsv
+check "an Adwaita-dark nothing provides warns" row warn theme gtk3
+check "...saying GTK3 falls back to light" grep -q 'fall back to light Adwaita' <(detail gtk3)
+INI="$H/.config/gtk-3.0/settings.ini"
+cp "$INI" "$SB/ini.bak"
+sed -i 's/^gtk-theme-name=.*/gtk-theme-name=Adwaita/' "$INI"
+tsv
+check "plain Adwaita is built in, ok without a theme dir" grep -q 'built into GTK' <(detail gtk3)
+cp "$SB/ini.bak" "$INI"
+mv "$SB/shim.bak" "$SHIM"
 
 blue "==> flatpak"
 G="$H/.local/share/flatpak/overrides/global"

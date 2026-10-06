@@ -90,7 +90,16 @@ reset_fp() {
 }
 mkdir -p "$SB/fp"
 
-ALL='xdg-config/fontconfig:ro xdg-config/gtk-3.0:ro ~/.local/share/icons:ro '
+# The grant list is the installer's own FLATPAK_GRANTS, read back rather than
+# restated: a fourth grant once broke four hard-coded counts here. The file
+# only assigns at the top level, so sourcing it alone is safe.
+# shellcheck disable=SC2016 # expands in the child shell
+mapfile -t GRANTS < <(bash -c 'source "$1/scripts/install-restore-flatpak.sh"; printf "%s\n" "${FLATPAK_GRANTS[@]}"' _ "$DOTS_DIR")
+N=${#GRANTS[@]}
+sorted() { LC_ALL=C sort | tr '\n' ' '; }
+ALL="$(printf '%s\n' "${GRANTS[@]}" | sorted)"
+# shellcheck disable=SC2088 # literal entries: "~" is flatpak's syntax for HOME
+ICONS_RW='~/.local/share/icons' ICONS_RO='~/.local/share/icons:ro'
 # Between install and uninstall: proves the install wrote, so a round trip that
 # "restores" a file nothing ever touched cannot pass.
 WROTE='restore_flatpak; flatpak_grant_for xdg-config/gtk-3.0:ro >/dev/null && echo WROTE'
@@ -99,27 +108,26 @@ wrote() { grep -qx WROTE "$SB/$1.out"; }
 blue "==> install"
 reset_fp
 run fresh fake restore_flatpak
-if [[ "$(entries fresh)" == "$ALL" && "$(rows fresh override)" == 3 && "$(remotes)" == flathub ]] \
+if [[ "$(entries fresh)" == "$ALL" && "$(rows fresh override)" == "$N" && "$(remotes)" == flathub ]] \
     && grep -qF "remote	flathub	https://dl.flathub.org/repo/flathub.flatpakrepo" "$SB/fresh/.local/state/dots/manifest"; then
-    ok "fresh HOME: three read-only grants, Flathub added, four rows"
+    ok "fresh HOME: all $N read-only grants, Flathub added, $((N + 1)) rows"
 else
     bad "fresh: $(entries fresh) / $(rows fresh override) / $(remotes) / $(cat "$SB/fresh.out")"
 fi
 reset_fp
 run rerun fake "restore_flatpak; restore_flatpak"
-if [[ "$(grep -c '^flatpak override' "$SB/fp/calls")" == 3 && "$(grep -c '^flatpak remote-add' "$SB/fp/calls")" == 1 && "$(rows rerun "")" == 4 ]]; then
+if [[ "$(grep -c '^flatpak override' "$SB/fp/calls")" == "$N" && "$(grep -c '^flatpak remote-add' "$SB/fp/calls")" == 1 && "$(rows rerun "")" == $((N + 1)) ]]; then
     ok "a re-run writes nothing more"
 else
     bad "re-run: $(cat "$SB/fp/calls")"
 fi
 reset_fp
-# shellcheck disable=SC2088 # a literal entry: "~" is flatpak's syntax for HOME
-THEIRS_MSG='~/.local/share/icons already set'
 seed theirs '[Context]\nfilesystems=!home;~/.local/share/icons;\n'
 echo flathub >"$SB/fp/remotes"
 run theirs fake restore_flatpak
-if [[ "$(rows theirs override)" == 2 && "$(rows theirs remote)" == 0 ]] && grep -qF "$THEIRS_MSG" "$SB/theirs.out" \
-    && [[ "$(entries theirs)" == '!home xdg-config/fontconfig:ro xdg-config/gtk-3.0:ro ~/.local/share/icons ' ]]; then
+want="$(printf '%s\n' '!home' "$ICONS_RW" "${GRANTS[@]}" | grep -vxF "$ICONS_RO" | sorted)"
+if [[ "$(rows theirs override)" == $((N - 1)) && "$(rows theirs remote)" == 0 ]] \
+    && grep -qF "$ICONS_RW already set" "$SB/theirs.out" && [[ "$(entries theirs)" == "$want" ]]; then
     ok "the user's own grant (another mode) and remote are left alone, with no row"
 else
     bad "user's settings: $(entries theirs) / $(cat "$SB/theirs.out")"
@@ -127,7 +135,7 @@ fi
 reset_fp
 seed negated '[Context]\nfilesystems=!xdg-config/gtk-3.0;\n'
 run negated fake restore_flatpak
-if [[ "$(rows negated override)" == 2 ]] && grep -qF '!xdg-config/gtk-3.0;' "$(gfile negated)"; then
+if [[ "$(rows negated override)" == $((N - 1)) ]] && grep -qF '!xdg-config/gtk-3.0;' "$(gfile negated)"; then
     ok "a path the user negated stays negated"
 else
     bad "negation: $(entries negated)"
@@ -136,7 +144,7 @@ reset_fp
 # An env var that happens to be called "filesystems" is not a grant.
 seed envvar '[Environment]\nfilesystems=xdg-config/gtk-3.0:ro;\n'
 run envvar fake "restore_flatpak; uninstall_flatpak"
-if [[ "$(grep -c 'set     flatpak override' "$SB/envvar.out")" == 3 ]] && cmp -s "$SB/envvar.before" "$(gfile envvar)"; then
+if [[ "$(grep -c 'set     flatpak override' "$SB/envvar.out")" == "$N" ]] && cmp -s "$SB/envvar.before" "$(gfile envvar)"; then
     ok "only [Context] holds grants: a look-alike key elsewhere is neither read nor edited"
 else
     bad "look-alike key: $(cat -A "$(gfile envvar)") / $(cat "$SB/envvar.out")"
@@ -150,7 +158,7 @@ else
 fi
 reset_fp
 run offline offline restore_flatpak
-if [[ "$(rows offline remote)" == 0 && "$(rows offline override)" == 3 ]] && grep -q 'Re-run .*--only-restore' "$SB/offline.out"; then
+if [[ "$(rows offline remote)" == 0 && "$(rows offline override)" == "$N" ]] && grep -q 'Re-run .*--only-restore' "$SB/offline.out"; then
     ok "offline: no remote and no row, a re-run hint, grants still set"
 else
     bad "offline: $(cat "$SB/offline.out")"

@@ -158,7 +158,7 @@ Things that look safe and are not. Each was learned the hard way.
   this as a `.dcol` template: nothing in it is palette-derived, and a template
   cannot ask the manifest whether a file is ours.
 - **All four `themes/*/theme.conf` carry identical values**, because the repo
-  declares exactly one dark GTK theme (`Adwaita-dark`, a GTK3 built-in). That
+  declares exactly one dark GTK theme (`Adwaita-dark`: built into GTK4, a vendored shim for GTK3). That
   is a packaging limit, not a design one, and it is why the identity test ships
   a sandbox-only fixture theme — against shipped data alone, a regression that
   re-hardcoded `themes/dark` would stay green forever.

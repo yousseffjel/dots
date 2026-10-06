@@ -99,8 +99,8 @@ spice-vdagent
 # without it the prompt, eza and fastfetch all render tofu.
 #
 # Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
-# and themes/dark/theme.conf selects Adwaita-dark — a GTK3 built-in that
-# never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
+# and themes/dark/theme.conf selects Adwaita-dark, which is pure CSS (a GTK4
+# built-in, and a vendored one-line shim for GTK3) and never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
 jetbrains-mono-fonts-all
 google-noto-emoji-fonts
 google-noto-sans-fonts
@@ -119,7 +119,7 @@ xdg-desktop-portal-gtk
 dconf
 dbus-daemon
 # Flatpak, with the Flathub remote added --user by install-restore-flatpak.sh
-# (an explicit rule-4 exception, like the clipmenu COPR) and three read-only
+# (an explicit rule-4 exception, like the clipmenu COPR) and four read-only
 # global overrides so sandboxed apps see the vendored cursor, the icon theme
 # and the wallpaper gtk.css. Dark mode reaches them through the portal above.
 flatpak

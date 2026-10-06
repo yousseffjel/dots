@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Flatpak integration for the "restore" stage: the Flathub remote and three
+# Flatpak integration for the "restore" stage: the Flathub remote and four
 # read-only global overrides. Sourced by install-restore.sh, never
 # standalone: assumes `set -euo pipefail`, global_fn.sh (manifest_append_row,
 # flatpak_grant_for), DRY_RUN and the red/green/yellow/blue helpers.
@@ -44,6 +44,10 @@ FLATPAK_GRANTS=(
     # dots ships no fontconfig today; this makes a user's own rendering
     # tweaks reach sandboxed apps too.
     "xdg-config/fontconfig:ro"
+    # The GTK3 Adwaita-dark shim (install-restore-gtk3-shim.sh). The runtime
+    # has no theme by that name either, so without it sandboxed GTK3 apps
+    # fall back to light Adwaita exactly as native ones did.
+    "xdg-data/themes:ro"
 )
 
 restore_flatpak() {

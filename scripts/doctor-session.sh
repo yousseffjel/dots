@@ -125,6 +125,40 @@ check_theme() {
     esac
 }
 
+# GTK 3.24 builds in only Adwaita and HighContrast(Inverse); any other name
+# needs a gtk-3.0/ theme directory, or GTK3 falls back to LIGHT Adwaita and
+# drops prefer-dark with it (assets/themes/README.md). That is how Fedora 44's
+# retirement of gnome-themes-extra went unnoticed for two months. The name is
+# read from the settings.ini dots writes — the value actually in effect — and
+# looked up where GTK3 looks: the user data dir, ~/.themes, XDG_DATA_DIRS.
+check_gtk3_theme() {
+    local s=theme ini name d dirs=() sys=()
+    ini="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
+    name="$(sed -n '/^gtk-theme-name=/{s/^gtk-theme-name=//p;q;}' "$ini" 2>/dev/null || true)"
+    if [[ -z "$name" ]]; then
+        report skip "$s" gtk3 "no GTK3 theme set in $ini"
+        return 0
+    fi
+    case "$name" in
+        Adwaita | HighContrast | HighContrastInverse)
+            report ok "$s" gtk3 "GTK3 theme $name is built into GTK"
+            return 0
+            ;;
+    esac
+    IFS=: read -r -a sys <<<"${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    dirs=("${XDG_DATA_HOME:-$HOME/.local/share}/themes" "$HOME/.themes")
+    for d in "${sys[@]}"; do
+        dirs+=("$d/themes")
+    done
+    for d in "${dirs[@]}"; do
+        if [[ -d "$d/$name/gtk-3.0" ]]; then
+            report ok "$s" gtk3 "GTK3 theme $name found in $d"
+            return 0
+        fi
+    done
+    report warn "$s" gtk3 "GTK3 theme $name not found — GTK3 apps fall back to light Adwaita; scripts/install-fedora.sh --only-restore"
+}
+
 # Flatpak apps: the read-only grants and the Flathub remote restore_flatpak
 # adds. The grant list is the installer's own FLATPAK_GRANTS, sourced rather
 # than restated. A grant the user set another way (another mode, negated) is
@@ -148,9 +182,9 @@ check_flatpak() {
     if [[ ${#missing[@]} -gt 0 ]]; then
         report warn "$s" flatpak "Flatpak apps cannot see ${missing[*]} — scripts/install-fedora.sh --only-restore"
     elif [[ $theirs -gt 0 ]]; then
-        report ok "$s" flatpak "Flatpak apps see the cursor, icons and gtk.css ($theirs grant(s) set your own way)"
+        report ok "$s" flatpak "Flatpak apps see the cursor, icons, GTK3 theme and gtk.css ($theirs grant(s) set your own way)"
     else
-        report ok "$s" flatpak "Flatpak apps see the cursor, icons and gtk.css"
+        report ok "$s" flatpak "Flatpak apps see the cursor, icons, GTK3 theme and gtk.css"
     fi
     remotes="$(flatpak remotes --columns=name 2>/dev/null || true)"
     if grep -qx flathub <<<"$remotes"; then

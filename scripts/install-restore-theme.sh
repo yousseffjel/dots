@@ -27,6 +27,8 @@ source "$THEME_DIR/install-restore-theme-identity.sh"
 # test can then run the shipped function instead of a copy of it.
 # shellcheck source=install-restore-cursor.sh
 source "$THEME_DIR/install-restore-cursor.sh"
+# shellcheck source=install-restore-gtk3-shim.sh
+source "$THEME_DIR/install-restore-gtk3-shim.sh"
 
 # Line 1 of gtk.css and ~/.gtkrc-2.0, as the template engine writes them,
 # carries this inside the target's own comment syntax. gtk2.dcol's
@@ -202,6 +204,8 @@ restore_theme() {
     # Before the identity writers: both name cursor_theme from theme.conf, and
     # the cursor they name should exist on disk by the time xsettingsd reloads.
     restore_cursor_theme
+    # Likewise the theme settings.ini and xsettingsd name (Adwaita-dark).
+    restore_gtk3_shim
     theme_write_gtk_ini
     theme_write_xsettingsd_conf
     theme_claim_engine_target "$CONF_HOME/gtk-3.0/gtk.css"

@@ -157,6 +157,12 @@ check_manifest() {
             fail "manifest has no $cat rows — the restore did less than it should"
         fi
     done
+    # The GTK3 Adwaita-dark shim: restore_theme must actually call it.
+    if grep -q "^THEME	theme	.*/themes/Adwaita-dark$" "$TMP/$name.manifest2"; then
+        pass "manifest claims the GTK3 Adwaita-dark shim"
+    else
+        fail "no THEME row for themes/Adwaita-dark — restore_gtk3_shim did not run"
+    fi
     # The colour scheme is written only where nothing had set it.
     local want_dconf=1
     [[ "$name" == lived-in ]] && want_dconf=0

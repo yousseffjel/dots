@@ -409,8 +409,13 @@ leaves it alone (you may have edited it since), a theme switch replaces it
 ### All four currently share one identity
 
 Every shipped `theme.conf` names `Adwaita-dark` + `Papirus-Dark`, because this
-repo declares exactly one dark GTK theme — Adwaita-dark is a GTK3 built-in and
-`packages/extra.lst` adds no other. The values are repeated per theme rather
+repo declares exactly one dark GTK theme and `packages/extra.lst` adds no other.
+Adwaita-dark is built into GTK4 but **not** into GTK 3.24: GTK3 gets it from
+`assets/themes/Adwaita-dark`, the one-line shim `gnome-themes-extra` used to
+ship before Fedora 44 retired it. Without that shim GTK3 falls back to *light*
+Adwaita and discards `gtk-application-prefer-dark-theme` too (see
+`assets/themes/README.md`). `dots doctor` warns when the name resolves to
+nothing. The values are repeated per theme rather
 than inherited so that each theme *can* state its own; install another GTK theme
 and edit one line to see the switch apply it.
 

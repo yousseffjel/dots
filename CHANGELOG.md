@@ -56,8 +56,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   nothing had set it before, and `dots uninstall` resets it unless you
   changed it since.
 - Flatpak integration. `flatpak` (in `extra.lst`), the Flathub remote added
-  to your user installation, and three read-only global overrides
-  (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`).
+  to your user installation, and four read-only global overrides
+  (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`,
+  `xdg-data/themes`).
   Flatpak apps get the dots cursor and icons and the wallpaper accent
   colours of GTK3 apps; dark mode reaches them through the portal above.
   Settings you already had are left alone, and `dots uninstall` reverts
@@ -104,6 +105,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- GTK3 apps (Thunar, and Flatpak GTK3 apps) were light, not dark. Every theme
+  names `Adwaita-dark`, which GTK4 has built in but GTK 3.24 does not. On
+  Fedora it came from `gnome-themes-extra`, which Fedora 44 retired, so GTK3
+  fell back to light Adwaita and ignored the dark preference too. The
+  installer now ships that package's one-line `Adwaita-dark` theme for GTK3
+  (`~/.local/share/themes/Adwaita-dark`; one you already have is left alone),
+  and Flatpak apps get a read-only view of `~/.local/share/themes`. Re-run
+  `scripts/install-fedora.sh --only-restore`, then restart GTK3 apps.
+  `dots doctor` now warns when the GTK3 theme name resolves to nothing.
 - The login shell was recorded as `/usr/sbin/zsh` when the installer ran
   with sbin first on `PATH` (since Fedora 42 sbin is a symlink to bin). A
   later run under a different `PATH` then changed the shell again and

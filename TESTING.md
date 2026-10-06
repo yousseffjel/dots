@@ -213,13 +213,24 @@ for adding CI; new docs you add are linted normally.
   re-runs, a key changed after install, `--dry-run` both ways, and that
   `portals.conf` names the gtk backend and is linked by `symlinks.sh`.
 
+- **`tests/gtk3-adwaita-dark-shim.sh`** — the GTK3 `Adwaita-dark` shim
+  (`restore_gtk3_shim` / `uninstall_theme`) on a sealed PATH: deployed byte
+  for byte with one THEME row, re-runs, a user's own `Adwaita-dark` kept and
+  never claimed, `--dry-run`, a missing asset. Two guards against the bug it
+  fixes coming back: every `themes/*/theme.conf` `gtk_theme` must be a GTK3
+  built-in or a shim under `assets/themes` (read through the shipped
+  `theme_conf_get`), and the stylesheet the shim `@import`s must still be in
+  libgtk-3 — via `gresource` where installed, else a weaker name match in the
+  library, else a yellow skip.
+
 - **`tests/flatpak-integration.sh`** — `restore_flatpak` /
   `uninstall_flatpak` against `tests/lib/fake-flatpak.sh` on a sealed PATH:
   no flatpak, offline, a remote or grant the user already has (any mode, or
   negated), re-runs, a grant changed after install, a remote installed refs
   still come from, `--dry-run` both ways, and a user's own `[Environment]` /
-  `[Session Bus Policy]` groups coming back byte for byte. Round-trip cases
-  must also prove the install wrote something, or "nothing changed" would
+  `[Session Bus Policy]` groups coming back byte for byte. Expected grant
+  counts and sets are read from the shipped `FLATPAK_GRANTS`, never
+  restated. Round-trip cases must also prove the install wrote something, or "nothing changed" would
   pass vacuously (it did, once, while the fake was broken).
   - **When a real `flatpak` is installed**, `tests/lib/flatpak-real.sh` runs
     the same round trip against it — fresh `mktemp` HOME, all XDG variables

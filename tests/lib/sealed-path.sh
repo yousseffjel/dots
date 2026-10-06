@@ -28,8 +28,14 @@ seal_path() {
 
 # fake <dir> <name> <body> — writes an executable fake whose body is a bash
 # snippet. `$LOG` inside it is the shared call log the tests assert on.
+#
+# The target is removed first. A sealed dir holds SYMLINKS to the real tools,
+# and a test that copies one and then fakes a tool in the copy would otherwise
+# write through the link into /usr/bin itself — gtk3-adwaita-dark-shim's
+# failed-copy case did exactly that to cp, stopped only by file permissions.
 fake() {
     local dir="$1" name="$2" body="$3"
+    rm -f "$dir/$name"
     printf '#!%s\n%s\n' "$(type -P bash)" "$body" >"$dir/$name"
     chmod 755 "$dir/$name"
 }

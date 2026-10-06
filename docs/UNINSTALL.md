@@ -47,8 +47,10 @@ partial uninstall is a normal, supported outcome, not an error.
 4. **Theme files.** The base configs the installer *copied* rather than
    symlinked (`~/.config/dunst/dunstrc`, `~/.config/picom/picom.conf`, the
    GTK `settings.ini`/`gtk.css`), the vendored cursor theme unpacked into
-   `~/.local/share/icons/` — the one entry that is a directory rather than a
-   file, which is why this step uses `rm -rf` — plus the wholly generated
+   `~/.local/share/icons/` and the GTK3 `Adwaita-dark` shim copied into
+   `~/.local/share/themes/` — the two entries that are directories rather
+   than files, which is why this step uses `rm -rf` (an `Adwaita-dark` that
+   was already there is yours and has no row) — plus the wholly generated
    `~/.cache/dots/theme/`, and `~/.fehbg` when it points at the wallpaper
    generated there (one naming an image you picked is left alone). Copies can't be identified by a readlink check
    the way symlinks can, so these are removed by manifest row instead — and
@@ -82,8 +84,9 @@ partial uninstall is a normal, supported outcome, not an error.
    after installing, your choice stays. Runs before the package step, which
    may remove `dconf` itself.
 5b. **Flatpak integration.** The installer adds the Flathub remote to your
-   user installation and three read-only global overrides
-   (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`),
+   user installation and four read-only global overrides
+   (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`,
+   `xdg-data/themes`),
    each only when it was absent. This step reverts exactly those:
    - an override is removed only while it is still the entry the installer
      wrote — one you have since changed (a different mode, a `!` negation)
