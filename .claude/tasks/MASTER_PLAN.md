@@ -78,16 +78,17 @@ the same time and **not** queued — raise them separately if wanted.
   bugs and both are fixed: GTK3 `Adwaita-dark` was unresolvable on Fedora 44,
   so all GTK3 apps were light (vendored shim; VM-verified dark), and no
   desktop portal could start in a dwm session (`dots-session.target`).
-  Flatpak launchers are on PATH for dmenu. **Unverified on the VM:** the
-  portal (the code had not been pushed when the VM pulled), Mod+p listing
-  Flatpak apps, and the Bibata cursor inside a Flatpak window.
+  Flatpak launchers are on PATH for dmenu, and `dmenu_path` now rebuilds its
+  cache when PATH changes (`dmenu-path-cache`). **Fully VM-verified:** the
+  portal answers (Flatpak Text Editor dark), Mod+p lists Flatpak apps, and
+  the Bibata cursor holds over a Flatpak window.
 - 2026-10-06 — **GTK2 theme, desktop portal, `dots doctor`** ("what is next"
   items 4 + 5, as the user re-picked them). GTK2 apps are themed from the
   wallpaper via `~/.gtkrc-2.0`. xdg-desktop-portal-gtk + `prefer-dark`
   reverse scope C decision 5. `dots doctor` replaced item 5, which was
-  already done (scope D). Unverified on the VM: lxpolkit's dialog
-  (`pkexec true`), the portal answering `color-scheme`, and a real
-  `dots doctor` run inside dwm. Scope E (Flatpak, another session's file) is
+  already done (scope D). The portal answering and a real `dots doctor` run
+  inside dwm were VM-verified with scope E; still unverified: lxpolkit's
+  dialog (`pkexec true`). Scope E (Flatpak, another session's file) is
   now unblocked.
 - 2026-10-05 — **desktop features round**: from the HyDE feature-gap list,
   the user picked the ⭐ option for seven rows: bluetooth tray applet,

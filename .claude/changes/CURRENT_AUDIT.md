@@ -1887,3 +1887,18 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Suite 38 → 40 tests. Mutation testing per slot; one documented survivor
   (the HUP trap is untestable on bash). The portal fix is NOT yet on the VM:
   main was unpushed when the VM pulled. See the four dated logs of 2026-10-06.
+
+## 2026-10-06 — dmenu-path-cache; scope E fully VM-verified
+
+- `dmenu-path-cache`: dmenu's `dmenu_path` (pathcache-local patch) now also
+  rebuilds `~/.cache/dmenu_run` when `$PATH` differs from the PATH it was
+  built for (`$cache.path`). Upstream only rebuilt when a PATH directory got
+  newer than the cache, so the Flatpak `exports/bin` dirs added by
+  flatpak-exports-path were never scanned. Rule 5: diff + PATCHES.md entry in
+  the same commit; `tests/dmenu-path-cache.sh` runs the real compiled
+  `stest`. Suite 40 → 41.
+- VM (Fedora 44), after a re-login and `install-suckless.sh`:
+  `dots doctor` all green, the portal answers (Flatpak GNOME Text Editor,
+  GTK4, dark), `Mod+p` lists `org.xfce.mousepad`, and the Bibata cursor is
+  unchanged over a Flatpak window (user report, no screenshot possible).
+  **Every scope E item is now verified on the VM.**
