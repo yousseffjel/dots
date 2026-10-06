@@ -3,7 +3,7 @@
 # own (tests/lib/ is outside run-tests.sh's depth-1 glob). One function per
 # section; the caller runs them in the order its header explains. Each reads
 # and writes the caller's globals (WIN1, CHECKWIN_HEX, COLOR_A, DWM_PID, rc
-# via pass/fail/warn), and relies on the helpers in dwm-runtime-x.sh.
+# via pass/fail), and relies on the helpers in dwm-runtime-x.sh.
 
 # 1. EWMH root-window state. Sets CHECKWIN_HEX and WIN1 for later sections.
 check_ewmh() {
@@ -135,46 +135,47 @@ check_pertag() {
     fi
 }
 
-# 5. restartsig (ADVISORY): change the resource, HUP dwm, expect a NEW window
+# 5. restartsig: change the resource, HUP dwm, expect a NEW window
 #    to pick up the NEW colour.
 #
 # Runs LAST, after every focus-dependent check, and verifies against a FRESH
 # window rather than one that predates the restart — see check_fullscreen.
-# execvp() on restart preserves the X connection (fds survive exec) and the
-# PID (same process image, new code) — neither can signal "the new instance
-# finished setup()". The check window CAN: setup() XCreateSimpleWindow()s a
-# fresh one every call, so root's _NET_SUPPORTING_WM_CHECK value changing away
-# from its pre-restart value is what "restarted and re-initialised" actually
-# looks like on the wire.
 #
-# WARN, not FAIL, on this section only: `kill -HUP` to a backgrounded child
-# was proven, while developing this test, to not be delivered at all in the
-# interactive sandbox this was written in — reproduced independently with a
-# plain `bash -c 'trap ... HUP; sleep 5' &` that never caught its own HUP
-# either, so this is an environment property, not a dwm bug being papered
-# over. A normal CI container should not have this restriction, but nothing
-# here can prove that from this machine, so a failure is surfaced loudly
-# without failing the build. If it warns on the first real CI run too, that
-# is a genuine finding worth its own follow-up rather than a false negative
-# to unblock silently.
+# dwm acts on SIGHUP only at its NEXT X event: sighup() just clears
+# `running`, and run() sits blocked in XNextEvent() until something arrives.
+# A live desktop produces events constantly (every status-bar update is a
+# root PropertyNotify), so a reload is near-instant there; this test produced
+# none, so the restart never happened and the section always warned — which
+# was wrongly blamed on signal delivery in the sandbox.
+#
+# How a restart is detected: delete root's _NET_SUPPORTING_WM_CHECK BEFORE
+# the kill, then wake dwm with a throwaway root property, and wait for the
+# check property to come back. Only setup() sets it, so it reappears only
+# once a fresh instance has re-initialised. The order matters: deleting after
+# the kill would race any stray event that restarts dwm first — the delete
+# would then remove the NEW instance's property and fail a good run. Comparing the check window's ID
+# before and after does NOT work: execvp() keeps the PID, the old X
+# connection closes on exec, and the new one usually gets the same client
+# slot — so the new check window often has the very same ID (2 of 3
+# container runs, 2026-10-06).
 check_restartsig() {
-    local color_b="#654321" new_checkwin_hex="" win2 got
-    blue "==> restartsig (SIGHUP reload) — advisory"
+    local color_b="#654321" win2 got
+    blue "==> restartsig (SIGHUP reload)"
     printf 'dwm.selbordercolor: %s\n' "$color_b" | xrdb -merge -
+    xprop -root -remove _NET_SUPPORTING_WM_CHECK
     kill -HUP "$DWM_PID"
+    xprop -root -f _DOTS_TEST_WAKE 8s -set _DOTS_TEST_WAKE 1
     for _ in $(seq 1 50); do
-        new_checkwin_hex="$(xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -oE '0x[0-9a-fA-F]+')"
-        [[ -n "$new_checkwin_hex" && "$new_checkwin_hex" != "$CHECKWIN_HEX" ]] && break
+        xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+' && break
         sleep 0.1
     done
-    if [[ -z "$new_checkwin_hex" || "$new_checkwin_hex" == "$CHECKWIN_HEX" ]]; then
-        warn "SIGHUP never triggered a restart (check window never changed)"
+    if ! xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+'; then
+        fail "SIGHUP never triggered a restart (_NET_SUPPORTING_WM_CHECK never came back)"
         return 0
     fi
-    DWM_PID="$(pgrep -f "^$DWM\$" | head -1)"
     win2="$(spawn_win)"
     if [[ -z "$win2" ]]; then
-        warn "no window appeared after restart — cannot verify reload"
+        fail "no window appeared after restart — cannot verify reload"
         return 0
     fi
     xdotool windowfocus "$win2"
@@ -183,6 +184,6 @@ check_restartsig() {
     if [[ "$got" == "$(hex_of "$color_b")" ]]; then
         pass "SIGHUP reload (restartsig) re-reads dwm.selbordercolor as $color_b"
     else
-        warn "border pixel after SIGHUP is #$got, expected $color_b (restartsig reload)"
+        fail "border pixel after SIGHUP is #$got, expected $color_b (restartsig reload)"
     fi
 }

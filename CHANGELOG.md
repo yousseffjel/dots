@@ -110,6 +110,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- CI's `build-suckless` job had failed on both Fedora images since
+  2026-09-08 although every check in `tests/dwm-runtime.sh` passed: its
+  cleanup called `pkill`, which the CI container lacks, and that "command not
+  found" became the exit status. The job now installs `procps-ng`, and the
+  cleanup can no longer change the result. The test's `SIGHUP` reload check
+  never passed either, because dwm acts on the signal only at its next X
+  event and the test sent none. It now sends one, and the check is a hard
+  failure instead of a warning.
 - dmenu (`Mod` + `p`) never listed commands from a directory added to `PATH`
   after its cache was built, until something in that directory changed. That
   is how the Flatpak launchers stayed hidden. `dmenu_path` now also rebuilds

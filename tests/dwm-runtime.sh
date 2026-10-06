@@ -20,12 +20,12 @@
 # -noreset on the Xvfb invocation is load-bearing — see start_xvfb() in
 # tests/lib/dwm-runtime-x.sh for why.
 #
-# RESTARTSIG (SIGHUP) IS ADVISORY, NOT A HARD FAILURE — see the comment on
-# check_restartsig() in tests/lib/dwm-runtime-checks.sh: signal delivery to a
-# backgrounded child was proven unreliable in the interactive sandbox this
-# test was developed in, independent of dwm entirely. Every other assertion
-# here IS a hard failure, including the two the exit criteria actually
-# require (xresources colour path, one pertag behaviour).
+# Every assertion is a hard failure, restartsig (SIGHUP reload) included.
+# restartsig was advisory until 2026-10-06 because it never passed — blamed
+# on signal delivery in the sandbox, but really because dwm acts on SIGHUP
+# only at its next X event and the test sent none. See check_restartsig() in
+# tests/lib/dwm-runtime-checks.sh. Promoted after 5/5 passes on fedora:latest,
+# then 3/3 on each of fedora:latest and fedora:43 (CI's two images).
 #
 # actualfullscreen and pertag run BEFORE restartsig, deliberately: a SIGHUP
 # restart's scan()-recovered pre-existing windows were observed to lose
@@ -69,6 +69,10 @@ command -v xrdb >/dev/null 2>&1 || skip "xrdb"
 command -v xprop >/dev/null 2>&1 || skip "xprop"
 command -v xwininfo >/dev/null 2>&1 || skip "xwininfo"
 command -v xterm >/dev/null 2>&1 || skip "xterm"
+# procps-ng: cleanup() kills the test xterms by class. CI's container lacked
+# it, and the "command not found" in the EXIT trap became the exit status —
+# build-suckless was red from 2026-09-08 to 2026-10-06 with every check passing.
+command -v pkill >/dev/null 2>&1 || skip "pkill (procps-ng)"
 if command -v magick >/dev/null 2>&1; then
     MAGICK="magick"
 elif command -v convert >/dev/null 2>&1; then
@@ -83,8 +87,6 @@ fail() {
     red "  FAIL: $1"
     rc=1
 }
-# Advisory, not blocking: see check_restartsig() for why.
-warn() { yellow "  WARN: $1"; }
 
 TMP="$(mktemp -d)"
 WINCLASS="DwmRuntimeTest$$"
@@ -93,9 +95,12 @@ DWM_PID=
 WIN1=
 CHECKWIN_HEX=
 
+# Teardown must never decide the exit status: set -e is live in an EXIT
+# trap, so a failing kill/pkill here used to replace a passing run's 0.
 cleanup() {
     local status=$?
     trap - EXIT
+    set +e
     [[ -n "$DWM_PID" ]] && kill "$DWM_PID" 2>/dev/null
     pkill -f "xterm -class $WINCLASS" 2>/dev/null
     [[ -n "$XVFB_PID" ]] && kill "$XVFB_PID" 2>/dev/null
@@ -125,4 +130,4 @@ if ((rc != 0)); then
     red "✗ dwm-runtime is broken"
     exit 1
 fi
-green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen and pertag all hold (restartsig is advisory-only, see above)"
+green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag and restartsig all hold"

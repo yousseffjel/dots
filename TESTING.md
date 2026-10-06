@@ -88,16 +88,17 @@ for adding CI; new docs you add are linted normally.
   execute dwm. Starts Xvfb, runs the binary `tests/build.sh` just compiled,
   and asserts real EWMH root-window state (`_NET_SUPPORTED`,
   `_NET_SUPPORTING_WM_CHECK`, `_NET_CLIENT_LIST`) plus the runtime
-  behaviour of three vendored patches: xresources (a colour set via `xrdb`
+  behaviour of four vendored patches: xresources (a colour set via `xrdb`
   is actually rendered — sampled from a live screenshot, not asserted from
-  source), actualfullscreen (a real `_NET_WM_STATE_FULLSCREEN` toggle), and
+  source), actualfullscreen (a real `_NET_WM_STATE_FULLSCREEN` toggle),
   pertag (`mfact` changed on one tag doesn't leak into another, and
-  persists when you switch back). Needs Xvfb, xdotool, ImageMagick, and
-  xterm (as test-only tooling, not `packages/build.lst` — a real install
+  persists when you switch back), and restartsig (a `SIGHUP` re-exec picks up
+  a changed colour). Needs Xvfb, xdotool, ImageMagick, xterm and procps-ng
+  (as test-only tooling, not `packages/build.lst` — a real install
   never needs a virtual framebuffer); **skips loudly** if any are missing
   or dwm hasn't been built, same reasoning as `tests/dwm-colorpicker.sh`.
-  restartsig (SIGHUP reload) is checked but **advisory only** — see the
-  script's own header for why a WARN there doesn't fail the build. Its X
+  restartsig was advisory until 2026-10-06; it never passed because dwm acts
+  on `SIGHUP` only at its next X event and the test sent none. Its X
   helpers and check sections live in `tests/lib/dwm-runtime-{x,checks}.sh`
   (split at the 250-line cap). **`tests/lib/` holds sourced helpers, never
   tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file

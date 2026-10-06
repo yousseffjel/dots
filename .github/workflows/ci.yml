@@ -155,13 +155,15 @@ jobs:
       # with no purpose outside this job, the same reasoning the "Install
       # linters" step above already follows.
       - name: Install dwm-runtime.sh test dependencies
-        run: dnf install -y xorg-x11-server-Xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick
+        run: dnf install -y xorg-x11-server-Xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng
 
       # First-ever execution of the built dwm binary by this test suite.
-      # Asserts real EWMH state plus xresources/actualfullscreen/pertag
-      # patch behaviour under Xvfb — see the script's own header for what's
-      # a hard failure vs. advisory. Skips loudly (not a failure) if any of
-      # the tools above are somehow still missing.
+      # Asserts real EWMH state plus xresources/actualfullscreen/pertag/
+      # restartsig patch behaviour under Xvfb, every check a hard failure.
+      # Skips loudly (not a failure) if any of the tools above are somehow
+      # still missing. procps-ng is for its cleanup's pkill: without it the
+      # EXIT trap's "command not found" failed this step from 2026-09-08 to
+      # 2026-10-06 although every check passed.
       - name: Run dwm under Xvfb
         run: bash tests/dwm-runtime.sh
 
