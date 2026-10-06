@@ -40,6 +40,9 @@ BACKUP_DIR="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
 # config/sxhkd is safe for the simpler reason that nothing generates it — the
 # theming engine has no sxhkd target. Linking it is what makes Super+Ctrl+r
 # (reload sxhkd) pick up an edit made in this repo without a reinstall.
+#
+# config/xdg-desktop-portal holds only portals.conf, which xdg-desktop-portal
+# reads and never writes.
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
@@ -47,6 +50,7 @@ LINKS=(
     "$CONFIG_DIR/starship:$HOME/.config/starship"
     "$CONFIG_DIR/alacritty:$HOME/.config/alacritty"
     "$CONFIG_DIR/sxhkd:$HOME/.config/sxhkd"
+    "$CONFIG_DIR/xdg-desktop-portal:$HOME/.config/xdg-desktop-portal"
 )
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }

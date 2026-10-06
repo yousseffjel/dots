@@ -8,7 +8,8 @@
 # The install-*.sh stage scripts keep their own pre-existing inline
 # red()/green()/yellow()/blue() definitions untouched (this repo's
 # convention); they additionally source this file only for confirm(),
-# refuse_root(), and the manifest_* functions below.
+# refuse_root(), the manifest_* functions below, and dconf_cmd() — shared by
+# install-restore-apps.sh and uninstall-apps.sh.
 #
 # usage (from a script that has already resolved SCRIPT_DIR):
 #   source "$SCRIPT_DIR/global_fn.sh"
@@ -145,4 +146,16 @@ manifest_has_path() {
         [[ "$row" == "$target" ]] && return 0
     done < <(manifest_rows "$category" 2>/dev/null | cut -f3)
     return 1
+}
+
+# dconf write/reset go through dconf-service, which is reached over the
+# session bus. An install over ssh, or from a text console, has none; then a
+# throwaway bus from dbus-run-session (packages/extra.lst: dbus-daemon) lets
+# dconf-service write ~/.config/dconf/user all the same, and the next login
+# reads it. `dconf read` needs no bus and is called directly. Returns 1 when
+# neither route works.
+dconf_cmd() {
+    dconf "$@" 2>/dev/null && return 0
+    command -v dbus-run-session >/dev/null 2>&1 || return 1
+    dbus-run-session -- dconf "$@" 2>/dev/null
 }

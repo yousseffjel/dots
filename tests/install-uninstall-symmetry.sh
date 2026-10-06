@@ -83,13 +83,17 @@ seed_lived_in() {
     printf '[global]\nfont = Monospace 9\n' >"$h/.config/dunst/dunstrc"
     printf 'gtk-font-name = "Sans 9"\n' >"$h/.gtkrc-2.0"
     printf 'export EDITOR=vi\n' >"$h/.zshenv"
+    # A colour scheme already chosen — even 'default' — must survive both ways.
+    printf "/org/gnome/desktop/interface/color-scheme\t'default'\n" >"$DCONF_STORE"
 }
 
 # <name> <seed function or ''>
 round_trip() {
     local name="$1" seed="$2" home="$TMP/$1/home" manifest before
     mkdir -p "$home"
+    : >"$DCONF_STORE"
     [[ -n "$seed" ]] && "$seed" "$home"
+    cp "$DCONF_STORE" "$TMP/$name.dconf.before"
     blue "==> $name: restore x2 -> uninstall --yes"
     snapshot "$home" >"$TMP/$name.before"
     before=""
@@ -124,6 +128,11 @@ round_trip() {
         tail -15 "$TMP/$name.uninstall.log"
     fi
     check_leftovers "$name" "$home" "$before"
+    if cmp -s "$TMP/$name.dconf.before" "$DCONF_STORE"; then
+        pass "dconf is back exactly as it was"
+    else
+        fail "dconf differs after uninstall: $(tr '\t\n' ' ;' <"$DCONF_STORE")"
+    fi
 }
 
 claims() { grep -vE '^(#|META	)' "$1" | sort; }
@@ -139,6 +148,14 @@ check_manifest() {
             fail "manifest has no $cat rows — the restore did less than it should"
         fi
     done
+    # The colour scheme is written only where nothing had set it.
+    local want_dconf=1
+    [[ "$name" == lived-in ]] && want_dconf=0
+    if [[ $(grep -c "^DCONF	" "$TMP/$name.manifest2") -eq $want_dconf ]]; then
+        pass "manifest has $want_dconf DCONF row(s)"
+    else
+        fail "expected $want_dconf DCONF row(s): $(grep "^DCONF	" "$TMP/$name.manifest2" || echo none)"
+    fi
     # META rows (version/commit/date) are rewritten by every run, so only the
     # claims are compared, order-independently.
     if diff <(claims "$TMP/$name.manifest1") <(claims "$TMP/$name.manifest2") >"$TMP/$name.mdiff"; then

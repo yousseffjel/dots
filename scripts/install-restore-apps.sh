@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # App-config deployment for the "restore" stage — Thunar, the Xfce helper
-# defaults, and the xdg mime defaults. Sourced by install-restore.sh only,
+# defaults, the xdg mime defaults, and the dconf colour-scheme preference. Sourced by install-restore.sh only,
 # never standalone: every function here assumes the caller has already
 # `set -euo pipefail`, sourced global_fn.sh (for manifest_has_path() /
 # manifest_append_row()), and set DOTS_DIR/DRY_RUN plus the red/green/
@@ -148,6 +148,48 @@ apps_xfconf_prefs() {
     green "ok      Thunar preferences: $set_count set, $kept_count already had a value (left alone)"
 }
 
+# dconf keys this installer sets, as key|GVariant value. color-scheme is what
+# xdg-desktop-portal-gtk's Settings portal serves as org.freedesktop.appearance
+# color-scheme — it reads GSettings and nothing else — and what libadwaita
+# apps, Firefox, Chromium and Electron consult for dark mode. The theming
+# engine is dark-only, so the value is fixed.
+DCONF_PREFS=(
+    "/org/gnome/desktop/interface/color-scheme|'prefer-dark'"
+)
+
+# Unlike the xfconf pass above, these ARE undone by uninstall, which is why a
+# key is written only when it is unset: then there was no earlier value to
+# lose. The DCONF manifest row records what was written, and uninstall resets
+# the key only while it still holds that value. A key with any value at all —
+# even 'default', which someone may have chosen — is the user's and is never
+# touched.
+apps_dconf_prefs() {
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would set ${#DCONF_PREFS[@]} dconf key(s) that are still unset"
+        return 0
+    fi
+    if ! command -v dconf >/dev/null 2>&1; then
+        yellow "skip    dconf not found — portal apps keep their own light/dark choice"
+        return 0
+    fi
+    local entry key value current
+    for entry in "${DCONF_PREFS[@]}"; do
+        IFS='|' read -r key value <<<"$entry"
+        # Also what makes a re-run a no-op: after our own write the key is
+        # no longer unset.
+        current="$(dconf read "$key" 2>/dev/null || true)"
+        if [[ -n "$current" ]]; then
+            green "ok      $key is $current (left alone)"
+        elif dconf_cmd write "$key" "$value"; then
+            manifest_append_row DCONF dconf "$key" "$value"
+            green "set     $key = $value"
+        else
+            yellow "skip    $key — no session bus and no dbus-run-session (dbus-daemon)."
+            yellow "        Re-run scripts/install-fedora.sh --only-restore from inside X."
+        fi
+    done
+}
+
 restore_apps() {
     blue "==> deploying app configs"
     local conf_home data_home
@@ -174,4 +216,5 @@ restore_apps() {
 
     apps_update_desktop_db "$data_home/applications"
     apps_xfconf_prefs
+    apps_dconf_prefs
 }

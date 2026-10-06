@@ -106,6 +106,18 @@ google-noto-emoji-fonts
 google-noto-sans-fonts
 papirus-icon-theme
 adwaita-icon-theme
+# Desktop portal. config/xdg-desktop-portal/portals.conf names the gtk
+# backend explicitly — a dwm session sets no XDG_CURRENT_DESKTOP, so without
+# it gtk is reached only as a warned-about last-resort fallback.
+# It serves the GTK file chooser and, through its Settings portal, the
+# 'prefer dark' colour scheme that libadwaita apps, Firefox, Chromium and
+# Electron read. That scheme lives in dconf (the gtk backend reads it from
+# GSettings and nowhere else), and install-restore-apps.sh writes it there
+# through dbus-run-session when the install runs with no session bus — which
+# is the dbus-daemon package's only job here; the system bus stays dbus-broker.
+xdg-desktop-portal-gtk
+dconf
+dbus-daemon
 
 # desktop utilities & file management
 # pavucontrol is the GUI mixer the volume block's click action opens; pamixer

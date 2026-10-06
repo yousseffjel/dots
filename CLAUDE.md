@@ -45,6 +45,7 @@ dots/
 │   ├── applications/    # dots-nvim.desktop
 │   ├── mimeapps.list    # xdg default/added associations — COPIED (GIO rewrites it)
 │   ├── autorandr/       # postswitch.d/ wallpaper re-paint hook — COPIED, never linked (`autorandr --save` writes profiles there)
+│   ├── xdg-desktop-portal/ # portals.conf — names the gtk backend (a dwm session sets no XDG_CURRENT_DESKTOP); symlinked
 │   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
 │                        # NOTE: there is deliberately no config/fastfetch/ or config/gtk-3.0/ —
@@ -146,9 +147,11 @@ for current state.
 xsettingsd, udiskie, autorandr, `dwm-colorpicker` (`Super+c`) and `dwm-display`
 (`Super+d`). **ROADMAP §3's status column was reconciled at the same time and
 §9 is entirely done** — treat `MASTER_PLAN.md` as the queue, not ROADMAP.
-Two §3 rows remain open *by decision*, not omission: a blue-light filter
-(undecided) and `xdg-desktop-portal-gtk` (deferred — only pays off with
-Flatpak). **`xcolor` is not a Fedora package** — §3 named it for years; only
+Two §3 rows were left open *by decision*, not omission, and **both have since
+landed at the user's request**: the blue-light filter (`dwm-nightlight`,
+2026-10-05) and `xdg-desktop-portal-gtk` (2026-10-06 — a DECISION REVERSAL of
+scope C's locked decision 5; it pays off without Flatpak through the Settings
+portal's dark preference). See `ROADMAP.md` §3 for what that decision got wrong. **`xcolor` is not a Fedora package** — §3 named it for years; only
 `texlive-xcolor`, a LaTeX package, exists. The colour picker is a script.
 
 **Still genuinely pending (ROADMAP is accurate here):**

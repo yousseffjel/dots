@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sandbox helpers for tests/install-uninstall-symmetry.sh — SOURCED, never run
 # on its own (tests/lib/ is outside run-tests.sh's depth-1 glob). Reads the
-# caller's TMP and DOTS_DIR; defines FAKEBIN and SENTINEL_LOG.
+# caller's TMP and DOTS_DIR; defines FAKEBIN, SENTINEL_LOG and DCONF_STORE.
 
 # Fakes, first on PATH:
 #   * git — `clone` makes a tiny non-empty tree instead of touching the
@@ -11,6 +11,7 @@
 #   * update-desktop-database — writes <dir>/mimeinfo.cache, the one artefact
 #     the real tool leaves, with the real file's header. Faked so the result
 #     does not depend on whether desktop-file-utils is on the runner.
+#   * dconf + dbus-run-session — a file-backed dconf ($DCONF_STORE); see below.
 #   * sudo dnf systemctl chsh usermod pkill xrdb — SENTINELS. None has any business
 #     running during a restore + uninstall of a HOME with no package, service,
 #     shell or suckless rows; each records its call and fails, and the test
@@ -36,6 +37,31 @@ EOF
     cat >"$FAKEBIN/update-desktop-database" <<'EOF'
 #!/usr/bin/env bash
 printf '[MIME Cache]\n' >"${1:?}/mimeinfo.cache"
+EOF
+    # dconf: a file-backed stand-in for the user's dconf database, so the
+    # restore's colour-scheme write is visible and can never reach the real
+    # one. write/reset need a "session bus", which env -i never provides —
+    # only the dbus-run-session fake does — so the headless-install route
+    # (the one a real ssh install takes) is the one exercised.
+    DCONF_STORE="$TMP/dconf.store"
+    : >"$DCONF_STORE"
+    cat >"$FAKEBIN/dconf" <<EOF
+#!/usr/bin/env bash
+store="$DCONF_STORE"
+case "\$1" in
+read) awk -F'\t' -v k="\$2" '\$1==k {print \$2}' "\$store" ;;
+write | reset)
+    [[ -n "\${FAKE_SESSION_BUS:-}" ]] || exit 1
+    awk -F'\t' -v k="\$2" '\$1!=k' "\$store" >"\$store.new" && mv "\$store.new" "\$store"
+    [[ "\$1" == reset ]] || printf '%s\\t%s\\n' "\$2" "\$3" >>"\$store"
+    ;;
+*) exit 1 ;;
+esac
+EOF
+    cat >"$FAKEBIN/dbus-run-session" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == -- ]] && shift
+FAKE_SESSION_BUS=1 exec "$@"
 EOF
     local s
     for s in sudo dnf systemctl chsh usermod pkill xrdb; do

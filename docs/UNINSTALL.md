@@ -73,6 +73,14 @@ partial uninstall is a normal, supported outcome, not an error.
    settings Thunar wrote itself, nothing records what they were before, and
    resetting them could not be told apart from discarding choices you made
    in Thunar's own preferences dialog afterwards.
+5a. **The dark colour-scheme preference.** The installer sets dconf's
+   `/org/gnome/desktop/interface/color-scheme` to `'prefer-dark'` (what the
+   gtk desktop portal hands to libadwaita apps, Firefox, Chromium and
+   Electron), and only when the key was unset — so, unlike Thunar's
+   preferences, there was nothing earlier to lose, and this step resets it.
+   It is reset only while it still says `'prefer-dark'`: if you changed it
+   after installing, your choice stays. Runs before the package step, which
+   may remove `dconf` itself.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran

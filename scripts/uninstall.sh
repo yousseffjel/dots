@@ -117,6 +117,8 @@ uninstall_scripts
 uninstall_theme
 uninstall_theme_backups
 uninstall_apps
+# Before uninstall_packages, which may remove dconf itself.
+uninstall_dconf
 uninstall_packages
 uninstall_services
 uninstall_shell

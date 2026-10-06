@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# The "app configs" uninstall step — removes what install-restore-apps.sh
+# The "app configs" uninstall steps — removes what install-restore-apps.sh
 # deployed (Thunar's thunarrc/uca.xml, the Xfce helper defaults, the xdg
-# mime defaults, and the Neovim desktop entry).
+# mime defaults, and the Neovim desktop entry), and resets the dconf keys it
+# set (uninstall_dconf).
 #
 # Its own file rather than another function in uninstall_steps.sh, which
 # is already at 230 of the 250-line cap (file-architecture.md) — the same
@@ -74,4 +75,43 @@ uninstall_apps() {
     fi
 
     blue "  note: Thunar preferences in the xfconf \"thunar\" channel are left as they are."
+}
+
+# DCONF row: <key> <value written>. install-restore-apps.sh wrote the key only
+# while it was unset, so resetting it restores exactly what was there before.
+# It is reset only while it still holds that value: a value changed since is
+# the user's choice, made after the install, and stays.
+uninstall_dconf() {
+    blue "=== dconf settings ==="
+    local rows=()
+    mapfile -t rows < <(manifest_rows DCONF)
+    if [[ ${#rows[@]} -eq 0 ]]; then
+        blue "  no DCONF rows in manifest — nothing to reset"
+        return 0
+    fi
+    if ! command -v dconf >/dev/null 2>&1; then
+        yellow "  dconf not found — ${#rows[@]} setting(s) left as they are"
+        return 0
+    fi
+    if ! confirm "Reset ${#rows[@]} dconf setting(s) dots set (the dark colour-scheme preference)?"; then
+        yellow "  skipped dconf settings"
+        return 0
+    fi
+    local row key value current
+    for row in "${rows[@]}"; do
+        key="$(cut -f3 <<<"$row")"
+        value="$(cut -f4 <<<"$row")"
+        if [[ $DRY_RUN -eq 1 ]]; then
+            blue "  (dry-run) would reset $key if it is still $value"
+            continue
+        fi
+        current="$(dconf read "$key" 2>/dev/null || true)"
+        if [[ "$current" != "$value" ]]; then
+            yellow "  kept     $key = ${current:-unset} (changed since install)"
+        elif dconf_cmd reset "$key"; then
+            green "  reset    $key"
+        else
+            red "  could not reset $key (no session bus and no dbus-run-session)"
+        fi
+    done
 }
