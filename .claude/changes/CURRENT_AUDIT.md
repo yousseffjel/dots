@@ -1849,3 +1849,9 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   BLOCK in round 1: SERVICE rows were read from the wrong field, and the
   fixture had a hand-made row. Fixed; READY in round 2.
 - Suite 35 → 38 tests. See the three dated logs of 2026-10-06.
+
+## 2026-10-06 — dunst notifications clear the bar
+
+- `dunst-clear-bar`: dunst `offset` y 12 → 36 in `config/dunst/dunstrc` and
+  `dunst.dcol` (lockstep), so popups sit below dwm's ~21px top bar. Found on
+  the Fedora 44 VM. Reviewer READY first round; suite unchanged, all green.
