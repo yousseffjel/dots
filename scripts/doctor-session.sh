@@ -125,6 +125,41 @@ check_theme() {
     esac
 }
 
+# Flatpak apps: the read-only grants and the Flathub remote restore_flatpak
+# adds. The grant list is the installer's own FLATPAK_GRANTS, sourced rather
+# than restated. A grant the user set another way (another mode, negated) is
+# theirs and counts as present. `remotes` without --user also lists a system
+# Flathub, which serves apps just as well.
+check_flatpak() {
+    local s=theme grant entry missing=() theirs=0 remotes
+    if ! command -v flatpak >/dev/null 2>&1; then
+        report skip "$s" flatpak "flatpak not installed"
+        return 0
+    fi
+    # shellcheck source=install-restore-flatpak.sh
+    source "$DOTS_DIR/scripts/install-restore-flatpak.sh"
+    for grant in "${FLATPAK_GRANTS[@]}"; do
+        if ! entry="$(flatpak_grant_for "$grant")"; then
+            missing+=("$grant")
+        elif [[ "$entry" != "$grant" ]]; then
+            theirs=$((theirs + 1))
+        fi
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        report warn "$s" flatpak "Flatpak apps cannot see ${missing[*]} — scripts/install-fedora.sh --only-restore"
+    elif [[ $theirs -gt 0 ]]; then
+        report ok "$s" flatpak "Flatpak apps see the cursor, icons and gtk.css ($theirs grant(s) set your own way)"
+    else
+        report ok "$s" flatpak "Flatpak apps see the cursor, icons and gtk.css"
+    fi
+    remotes="$(flatpak remotes --columns=name 2>/dev/null || true)"
+    if grep -qx flathub <<<"$remotes"; then
+        report ok "$s" flathub "the Flathub remote is configured"
+    else
+        report warn "$s" flathub "no Flathub remote — scripts/install-fedora.sh --only-restore"
+    fi
+}
+
 check_system() {
     local s=system vol state
     if command -v pamixer >/dev/null 2>&1; then

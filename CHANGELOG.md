@@ -55,6 +55,16 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   Firefox, Chromium and Electron apps use dark mode. It is set only if
   nothing had set it before, and `dots uninstall` resets it unless you
   changed it since.
+- Flatpak integration. `flatpak` (in `extra.lst`), the Flathub remote added
+  to your user installation, and three read-only global overrides
+  (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`).
+  Flatpak apps get the dots cursor and icons and the wallpaper accent
+  colours of GTK3 apps; dark mode reaches them through the portal above.
+  Settings you already had are left alone, and `dots uninstall` reverts
+  only what the installer added: the remote stays while an installed app
+  still comes from it. `GTK_THEME` is deliberately not set, because it
+  breaks the layout of GTK4/libadwaita apps. `dots doctor` checks the
+  overrides and the remote.
 - `dots doctor`: a read-only health report covering:
   - the install: manifest, links, login shell, the login service;
   - every package list, with each missing desktop package's consequence;

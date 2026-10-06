@@ -81,6 +81,22 @@ partial uninstall is a normal, supported outcome, not an error.
    It is reset only while it still says `'prefer-dark'`: if you changed it
    after installing, your choice stays. Runs before the package step, which
    may remove `dconf` itself.
+5b. **Flatpak integration.** The installer adds the Flathub remote to your
+   user installation and three read-only global overrides
+   (`~/.local/share/icons`, `xdg-config/gtk-3.0`, `xdg-config/fontconfig`),
+   each only when it was absent. This step reverts exactly those:
+   - an override is removed only while it is still the entry the installer
+     wrote — one you have since changed (a different mode, a `!` negation)
+     stays, and any override of your own was never touched. `flatpak` has
+     no command to remove a single global grant, so the step edits
+     `~/.local/share/flatpak/overrides/global` itself; your own groups in
+     that file come back byte for byte, and a file only the installer wrote
+     is removed;
+   - the Flathub remote is removed only if the installer added it (a remote
+     that already existed was never recorded) and no installed app or
+     runtime still comes from it.
+
+   Runs before the package step, which may remove `flatpak` itself.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
@@ -113,6 +129,13 @@ partial uninstall is a normal, supported outcome, not an error.
 - The zinit and TPM plugin-manager clones under `~/.local/share/` (not
   installer-specific state — removing them would also affect any other
   zsh/tmux config you might switch to).
+- `~/.local/share/flatpak/` itself. flatpak creates its `repo/` and a
+  summary cache there on the first `--user` command; it is flatpak's
+  directory, shared with every app you install, so only the settings the
+  installer made in it are reverted (step 5b).
+- The Flathub remote, while any installed Flatpak still comes from it. Run
+  `flatpak remote-delete --user flathub` after uninstalling those apps if
+  you want it gone.
 - The `suckless/` build trees and object files in this repo checkout —
   `make uninstall` only touches the installed copies under `/usr/local`.
 

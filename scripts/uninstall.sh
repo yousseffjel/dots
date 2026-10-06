@@ -110,6 +110,7 @@ fi
 source "$SCRIPT_DIR/uninstall_steps.sh"
 source "$SCRIPT_DIR/uninstall-apps.sh"
 source "$SCRIPT_DIR/uninstall-theme.sh"
+source "$SCRIPT_DIR/uninstall-flatpak.sh"
 
 uninstall_configs
 uninstall_suckless
@@ -119,6 +120,9 @@ uninstall_theme_backups
 uninstall_apps
 # Before uninstall_packages, which may remove dconf itself.
 uninstall_dconf
+# Before uninstall_packages too: removing the flatpak package would leave no
+# binary to delete the remote with.
+uninstall_flatpak
 uninstall_packages
 uninstall_services
 uninstall_shell

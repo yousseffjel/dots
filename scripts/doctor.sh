@@ -90,6 +90,7 @@ check_install
 check_packages
 check_session
 check_theme
+check_flatpak
 check_system
 
 if [[ "$FORMAT" == human ]]; then

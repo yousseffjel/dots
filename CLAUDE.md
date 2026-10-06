@@ -68,13 +68,14 @@ dots/
 │   ├── install-restore-theme-identity.sh # the identity writers: render a theme.conf into settings.ini + xsettingsd.conf
 │   │                                     # sourced by BOTH install-restore-theme.sh and scripts/theme/theme-apply.sh
 │   ├── install-restore-apps.sh  # sourced by install-restore.sh: thunar/xfce4/mimeapps deploy + guarded xfconf pass
+│   ├── install-restore-flatpak.sh # sourced by install-restore.sh: Flathub remote (--user) + read-only global overrides
 │   ├── install-services.sh     # stage: login shell to zsh (sudo usermod) + enable ly@tty2.service (the unit is templated per TTY)
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
-│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh — manifest-driven removal
+│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
 │   │                           # checks in doctor-checks.sh / doctor-session.sh, every list read from its source
@@ -153,7 +154,16 @@ Two §3 rows were left open *by decision*, not omission, and **both have since
 landed at the user's request**: the blue-light filter (`dwm-nightlight`,
 2026-10-05) and `xdg-desktop-portal-gtk` (2026-10-06 — a DECISION REVERSAL of
 scope C's locked decision 5; it pays off without Flatpak through the Settings
-portal's dark preference). See `ROADMAP.md` §3 for what that decision got wrong. **`xcolor` is not a Fedora package** — §3 named it for years; only
+portal's dark preference). See `ROADMAP.md` §3 for what that decision got wrong.
+**Flatpak integration followed the same day** (scope file
+`.claude/tasks/scope-e-flatpak-integration.md`): Flathub plus three read-only
+`flatpak override --user` filesystem grants, under the same write-if-absent /
+revert-if-unchanged contract as the dconf row. **Do not add `GTK_THEME`** — it
+was chosen first and reversed (decision 5 there): it is a GTK debugging
+variable that breaks GTK4/libadwaita Flatpak layouts. `flatpak` cannot unset
+one global grant, so `uninstall-flatpak.sh` edits the override keyfile itself;
+`tests/flatpak-integration.sh` checks that edit against a real flatpak when
+one is installed. **`xcolor` is not a Fedora package** — §3 named it for years; only
 `texlive-xcolor`, a LaTeX package, exists. The colour picker is a script.
 
 **Still genuinely pending (ROADMAP is accurate here):**
@@ -258,7 +268,7 @@ new pattern.
 1. **Every script is idempotent and re-runnable.** `set -euo pipefail` at the top; re-running after a partial or full success must be a safe no-op (or converge to the same state), never error out or duplicate work.
 2. **Colored logging helpers, not raw `echo`.** Each script defines its own `red()`/`green()`/`yellow()`/`blue()` (`printf '\033[3xm%s\033[0m\n'`) — red for hard errors, green for confirmed/success/already-ok, yellow for warnings/manual-follow-up, blue for informational. Reuse this pattern verbatim in new scripts rather than introducing a different color scheme or a shared sourced file.
 3. **`SCRIPT_DIR`/`DOTS_DIR` resolution pattern.** Every script computes its own location and the repo root the same way: `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` then `DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"`. Never hardcode paths.
-4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. **Vendoring is the third option**, and the one taken for the Bibata cursor theme (2026-08-13): the upstream release tarball lives in `assets/cursors/` with its checksum and license, and the restore stage unpacks it — no COPR, no network at install time, and the artifact is pinned rather than floating. It is only worth it for a self-contained asset; don't vendor anything that needs building or linking. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-fedora.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default.
+4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. **Vendoring is the third option**, and the one taken for the Bibata cursor theme (2026-08-13): the upstream release tarball lives in `assets/cursors/` with its checksum and license, and the restore stage unpacks it — no COPR, no network at install time, and the artifact is pinned rather than floating. It is only worth it for a self-contained asset; don't vendor anything that needs building or linking. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-fedora.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default. **Second exception (2026-10-06):** `install-restore-flatpak.sh` adds the **Flathub** remote (`--user`), also explicitly authorised in-session. Unlike the COPR it is reverted: a FLATPAK manifest row is written only when the remote did not already exist, and `dots uninstall` removes it only while no installed ref comes from it.
 5. **Suckless patches are vendored as `.diff` files under `suckless/<program>/patches/`**, named `<patch>-<version-or-date>-<hash>.diff`, **as a record — nothing applies them.** The vendored `.c`/`.h` sources are already patched — each diff was merged into them once, when it was vendored (some by a clean `patch -p1`, the ones that conflicted by hand, as each `PATCHES.md` entry records) — the build is plain `make`, and no `patch(1)` or `git apply` call exists in `scripts/`, `tests/`, `.github/` or any suckless `Makefile`. `suckless/<program>/patches/PATCHES.md` is the authority on what each patch is and how it was merged. A change to a patched behaviour therefore goes into the sources **and** its `.diff` + `PATCHES.md` entry in the same commit, so the tree could be rebuilt from upstream plus the recorded diffs; the `*-local.diff` files are diffs captured against this tree because they could not apply cleanly on top of the others. Don't turn this into a build-time apply step — the `*-local` diffs are exactly why that cannot work. (Until 2026-09-28 this rule claimed `install-suckless.sh` applied the diffs at build time; it never did.)
 6. **`install-suckless.sh` never overwrites user customizations** — `autostart.sh` and `.xinitrc` are treated as user-owned once they exist; preserve that guarantee in any change to the build/install flow.
 

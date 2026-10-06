@@ -6,6 +6,8 @@
 
 # shellcheck source=sealed-path.sh
 source "$(dirname "${BASH_SOURCE[0]}")/sealed-path.sh"
+# shellcheck source=fake-flatpak.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fake-flatpak.sh"
 
 # The daemon names, read the way doctor-session.sh reads them: from the
 # installer's report against a file that mentions nothing.
@@ -44,6 +46,7 @@ esac'
         fake "$BIN" dconf "echo \"'prefer-dark'\""
         fake "$BIN" systemd-detect-virt '[[ -z "${FAKE_NOT_VM:-}" ]]'
     }
+    fake_flatpak "$BIN/flatpak" "$SB/fp"
     local d
     for d in "${DAEMONS[@]}"; do
         [[ -e "$BIN/$d" ]] || fake "$BIN" "$d" 'exit 0'
@@ -65,6 +68,13 @@ make_home() {
         manifest_set_meta version "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION")"
         manifest_append_row SERVICE ly@tty2.service
     )
+    # The Flatpak grants and remote, written by restore_flatpak itself.
+    # shellcheck disable=SC2016 # the -c script expands in the sandbox shell
+    env -i PATH="$BIN" HOME="$H" XDG_DATA_HOME="$H/.local/share" XDG_STATE_HOME="$H/.local/state" \
+        DRY_RUN=0 "$(type -P bash)" -c 'set -euo pipefail
+        green() { :; }; yellow() { echo "$*" >&2; }; blue() { :; }
+        source "$0/scripts/global_fn.sh"; source "$0/scripts/install-restore-flatpak.sh"
+        restore_flatpak' "$DOTS_DIR" >/dev/null
     ln -s "$DOTS_DIR/scripts/dots" "$H/.local/bin/dots"
     local src dst
     while IFS=$'\t' read -r src dst; do

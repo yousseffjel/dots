@@ -195,11 +195,37 @@ for adding CI; new docs you add are linted normally.
     exactly, and must still be listed in `docs/UNINSTALL.md`.
   - Directories are compared out, because the installer `mkdir -p`s shared
     XDG dirs.
-  - Fakes cover `git clone` and `update-desktop-database`. Sentinel
-    `sudo`/`dnf`/`systemctl`/`chsh`/`usermod`/`pkill`/`xrdb` must never be called.
+  - Fakes cover `git clone`, `update-desktop-database`, a file-backed
+    `dconf` (+ `dbus-run-session`) and `flatpak` (`tests/lib/fake-flatpak.sh`
+    — without it a dev host's real flatpak would run, network included).
+    Sentinel `sudo`/`dnf`/`systemctl`/`chsh`/`usermod`/`pkill`/`xrdb` must
+    never be called.
+  - The lived-in HOME also holds a Flatpak global override of its own, which
+    must come back byte for byte, and the Flathub remote must be gone.
   - Its first runs found two real bugs: an unclaimed `mimeinfo.cache`, and
     theme configs you had before installing never being restored. 6/6
     mutations are caught.
+
+- **`tests/color-scheme.sh`** — the dark colour-scheme preference
+  (`apps_dconf_prefs` / `uninstall_dconf`) against a fake `dconf` whose
+  database is a file, on a sealed PATH: a session bus vs. `dbus-run-session`
+  vs. neither, no `dconf`, a key the user already set (even `'default'`),
+  re-runs, a key changed after install, `--dry-run` both ways, and that
+  `portals.conf` names the gtk backend and is linked by `symlinks.sh`.
+
+- **`tests/flatpak-integration.sh`** — `restore_flatpak` /
+  `uninstall_flatpak` against `tests/lib/fake-flatpak.sh` on a sealed PATH:
+  no flatpak, offline, a remote or grant the user already has (any mode, or
+  negated), re-runs, a grant changed after install, a remote installed refs
+  still come from, `--dry-run` both ways, and a user's own `[Environment]` /
+  `[Session Bus Policy]` groups coming back byte for byte. Round-trip cases
+  must also prove the install wrote something, or "nothing changed" would
+  pass vacuously (it did, once, while the fake was broken).
+  - **When a real `flatpak` is installed**, `tests/lib/flatpak-real.sh` runs
+    the same round trip against it — fresh `mktemp` HOME, all XDG variables
+    sandboxed, a local remote URL so nothing touches the network. That is
+    what keeps the fake's keyfile format honest; where flatpak is absent
+    (the CI runner) it prints a yellow skip.
 
 - **`tests/changelog-version.sh`** — the newest released `## [x.y.z]` heading
   in `CHANGELOG.md` must equal `VERSION`, and an `## [Unreleased]` section

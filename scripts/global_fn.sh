@@ -9,7 +9,8 @@
 # red()/green()/yellow()/blue() definitions untouched (this repo's
 # convention); they additionally source this file only for confirm(),
 # refuse_root(), the manifest_* functions below, and dconf_cmd() — shared by
-# install-restore-apps.sh and uninstall-apps.sh.
+# install-restore-apps.sh and uninstall-apps.sh — and the flatpak_* override
+# readers, shared by install-restore-flatpak.sh and uninstall-flatpak.sh.
 #
 # usage (from a script that has already resolved SCRIPT_DIR):
 #   source "$SCRIPT_DIR/global_fn.sh"
@@ -20,7 +21,8 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 # ~/.local/state/dots/manifest — a single tab-separated file, one row per
-# line, first field is the row type (META/CONFIG/SUCKLESS/PACKAGE/SERVICE).
+# line, first field is the row type — `grep -rn manifest_append_row scripts/`
+# lists every one; a copy here went stale twice (it lacked DCONF and FLATPAK).
 # Plain sed/awk/grep-parseable by design — no jq or other new dependency.
 MANIFEST_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dots"
 MANIFEST_FILE="$MANIFEST_DIR/manifest"
@@ -158,4 +160,54 @@ dconf_cmd() {
     dconf "$@" 2>/dev/null && return 0
     command -v dbus-run-session >/dev/null 2>&1 || return 1
     dbus-run-session -- dconf "$@" 2>/dev/null
+}
+
+# --- flatpak: the user installation's global override -----------------------
+#
+# `flatpak override --user` can add a filesystem grant but has no way to take
+# one back out — --nofilesystem adds a "!path" negation, and --reset drops
+# every global override, the user's own included. So uninstall-flatpak.sh
+# edits this keyfile itself, and both sides read it through the helpers below
+# rather than through `flatpak override --show`. Shape (flatpak 1.18, entries
+# reordered on every write, ";"-terminated):
+#   [Context]
+#   filesystems=xdg-config/gtk-3.0:ro;~/.local/share/icons:ro;!home;
+flatpak_override_file() {
+    printf '%s/overrides/global\n' "${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}"
+}
+
+# Every entry of [Context] filesystems=, one per line, exactly as written.
+flatpak_grants() {
+    local f
+    f="$(flatpak_override_file)"
+    [[ -f "$f" ]] || return 0
+    awk '/^\[/ { ctx = ($0 == "[Context]") }
+        ctx && /^filesystems=/ {
+            n = split(substr($0, 13), a, ";")
+            for (i = 1; i <= n; i++) if (a[i] != "") print a[i]
+        }' "$f"
+}
+
+# The entry, if any, that names the same path as $1 — whatever its mode or
+# negation: "~/.local/share/icons", "!~/.local/share/icons" and
+# "~/.local/share/icons:create" all answer for "~/.local/share/icons:ro".
+# A read loop, not `| grep -q`: see manifest_has_path.
+flatpak_grant_for() {
+    local want entry path
+    want="$(flatpak_grant_path "$1")"
+    while IFS= read -r entry; do
+        path="$(flatpak_grant_path "$entry")"
+        if [[ "$path" == "$want" ]]; then
+            printf '%s\n' "$entry"
+            return 0
+        fi
+    done < <(flatpak_grants)
+    return 1
+}
+
+flatpak_grant_path() {
+    local p="${1#!}"
+    p="${p%:ro}"
+    p="${p%:rw}"
+    printf '%s\n' "${p%:create}"
 }

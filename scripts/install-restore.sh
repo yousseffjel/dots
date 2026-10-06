@@ -115,6 +115,11 @@ restore_theme
 source "$SCRIPT_DIR/install-restore-apps.sh"
 restore_apps
 
+# Flathub remote + read-only overrides so Flatpak apps see the cursor, icons
+# and gtk.css. After restore_theme, which unpacks the cursor it exposes.
+source "$SCRIPT_DIR/install-restore-flatpak.sh"
+restore_flatpak
+
 # Pre-clone plugin managers so first launch isn't blocked on a network round-trip.
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 if [[ ! -d "$ZINIT_HOME/.git" ]]; then

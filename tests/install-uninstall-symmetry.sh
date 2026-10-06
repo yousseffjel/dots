@@ -85,6 +85,9 @@ seed_lived_in() {
     printf 'export EDITOR=vi\n' >"$h/.zshenv"
     # A colour scheme already chosen — even 'default' — must survive both ways.
     printf "/org/gnome/desktop/interface/color-scheme\t'default'\n" >"$DCONF_STORE"
+    # A Flatpak global override of their own: uninstall must give it back as is.
+    mkdir -p "$h/.local/share/flatpak/overrides"
+    printf '[Context]\nfilesystems=!home;\n\n[Environment]\nFOO=bar\n' >"$h/.local/share/flatpak/overrides/global"
 }
 
 # <name> <seed function or ''>
@@ -92,6 +95,7 @@ round_trip() {
     local name="$1" seed="$2" home="$TMP/$1/home" manifest before
     mkdir -p "$home"
     : >"$DCONF_STORE"
+    : >"$FLATPAK_STATE/remotes"
     [[ -n "$seed" ]] && "$seed" "$home"
     cp "$DCONF_STORE" "$TMP/$name.dconf.before"
     blue "==> $name: restore x2 -> uninstall --yes"
@@ -133,6 +137,11 @@ round_trip() {
     else
         fail "dconf differs after uninstall: $(tr '\t\n' ' ;' <"$DCONF_STORE")"
     fi
+    if [[ ! -s "$FLATPAK_STATE/remotes" ]]; then
+        pass "the Flathub remote the restore added is gone"
+    else
+        fail "flatpak remotes left after uninstall: $(cat "$FLATPAK_STATE/remotes")"
+    fi
 }
 
 claims() { grep -vE '^(#|META	)' "$1" | sort; }
@@ -141,7 +150,7 @@ check_manifest() {
     local name="$1" cat
     # A restore that silently did nothing would round-trip perfectly; require
     # that it actually claimed something in each category it writes.
-    for cat in CONFIG SCRIPT THEME APP; do
+    for cat in CONFIG SCRIPT THEME APP FLATPAK; do
         if grep -q "^$cat	" "$TMP/$name.manifest2"; then
             pass "manifest has $cat rows"
         else

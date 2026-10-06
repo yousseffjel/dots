@@ -11,6 +11,8 @@
 #     different advice, a VM-only daemon off a VM is skipped, dwm-lock is
 #     found as xss-lock;
 #   * no X session, not Fedora: whole sections skip instead of failing;
+#   * flatpak: a missing grant or remote warns, a grant set the user's own
+#     way is ok, no flatpak at all skips;
 #   * it is read-only: the sandbox HOME is byte-identical afterwards.
 # SEALED PATH: the fakes in tests/lib/doctor-sandbox.sh are all it can reach.
 
@@ -68,6 +70,8 @@ check "every reported daemon is checked" \
     test "$(grep -cE $'^[a-z]+\tsession\tdaemon-' "$SB/out.tsv")" -eq "${#DAEMONS[@]}"
 check "dwm-lock is found as xss-lock" row ok session daemon-dwm-lock
 check "autorandr is one-shot, not a daemon" row skip session daemon-autorandr
+check "Flatpak grants and Flathub are checked" row ok theme flatpak
+check "...the Flathub remote too" row ok theme flathub
 find "$H" -printf '%p %s %l\n' | sort >"$SB/before"
 
 blue "==> one code path, two formats"
@@ -125,6 +129,26 @@ DISPLAY_SET="" tsv
 check "no X: one skip for the whole session section" \
     test "$(grep -c $'\tsession\t' "$SB/out.tsv")" -eq 1
 check "no X: still exit 0" rc_is 0
+
+blue "==> flatpak"
+G="$H/.local/share/flatpak/overrides/global"
+cp "$G" "$SB/global.bak"
+sed -i 's|xdg-config/gtk-3.0:ro;||' "$G"
+tsv
+check "a missing grant warns, naming it" grep -q 'cannot see xdg-config/gtk-3.0:ro' <(detail flatpak)
+sed -i 's|^filesystems=|filesystems=xdg-config/gtk-3.0;|' "$G"
+tsv
+check "a grant set another way is the user's, and ok" grep -q 'your own way' <(detail flatpak)
+cp "$SB/global.bak" "$G"
+mv "$SB/fp/remotes" "$SB/remotes.bak" && : >"$SB/fp/remotes"
+tsv
+check "no Flathub remote warns" row warn theme flathub
+mv "$SB/remotes.bak" "$SB/fp/remotes"
+mv "$BIN/flatpak" "$SB/flatpak.bak"
+tsv
+check "no flatpak: one skip, no warn" row skip theme flatpak
+check "...and still exit 0" rc_is 0
+mv "$SB/flatpak.bak" "$BIN/flatpak"
 
 blue "==> read-only"
 find "$H" -printf '%p %s %l\n' | sort >"$SB/after"

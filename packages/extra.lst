@@ -118,6 +118,11 @@ adwaita-icon-theme
 xdg-desktop-portal-gtk
 dconf
 dbus-daemon
+# Flatpak, with the Flathub remote added --user by install-restore-flatpak.sh
+# (an explicit rule-4 exception, like the clipmenu COPR) and three read-only
+# global overrides so sandboxed apps see the vendored cursor, the icon theme
+# and the wallpaper gtk.css. Dark mode reaches them through the portal above.
+flatpak
 
 # desktop utilities & file management
 # pavucontrol is the GUI mixer the volume block's click action opens; pamixer
