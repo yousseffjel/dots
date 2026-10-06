@@ -1,6 +1,6 @@
 <!-- STUB: managed by /plan and /commit. Do not edit by hand. -->
 
-Phase: committing
-Task: ci-dwm-runtime-red
-Task folder: tasks/ci-dwm-runtime-red/
-Last log: .claude/changes/2026-10-06-dmenu-path-cache.md
+Phase: idle
+Task: _(none)_
+Task folder: _(none)_
+Last log: .claude/changes/2026-10-06-ci-dwm-runtime-red.md
