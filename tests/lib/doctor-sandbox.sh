@@ -41,7 +41,17 @@ esac'
         fake "$BIN" xrdb 'echo "dwm.normbgcolor:	#1e1e2e"'
         fake "$BIN" pamixer 'echo 40'
         fake "$BIN" nmcli 'echo connected'
-        fake "$BIN" systemctl 'echo "${FAKE_SERVICE:-enabled}"'
+        fake "$BIN" systemctl 'case "$*" in
+*is-active*graphical-session.target*) echo "${FAKE_GST:-active}"; [[ "${FAKE_GST:-active}" == active ]] ;;
+*) echo "${FAKE_SERVICE:-enabled}" ;;
+esac'
+        # ReadOne returns one variant: gdbus prints "(<uint32 1>,)". The error
+        # text is what the VM printed with no graphical-session.target.
+        fake "$BIN" gdbus 'case "${FAKE_PORTAL:-dark}" in
+dark) echo "(<uint32 1>,)" ;;
+light) echo "(<uint32 0>,)" ;;
+*) echo "Error: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer '"'"'org.freedesktop.portal.Desktop'"'"': startup job failed" >&2; exit 1 ;;
+esac'
         fake "$BIN" getent 'echo "probe:x:1000:1000::/home/probe:/usr/bin/zsh"'
         fake "$BIN" dconf "echo \"'prefer-dark'\""
         fake "$BIN" systemd-detect-virt '[[ -z "${FAKE_NOT_VM:-}" ]]'
@@ -97,6 +107,6 @@ run_doctor() {
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
-        FAKE_NOT_VM="${FAKE_NOT_VM:-}" \
+        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

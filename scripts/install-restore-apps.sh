@@ -202,6 +202,9 @@ restore_apps() {
     deploy_app_file "$DOTS_DIR/config/mimeapps.list" "$conf_home/mimeapps.list"
     deploy_app_file "$DOTS_DIR/config/applications/dots-nvim.desktop" \
         "$data_home/applications/dots-nvim.desktop"
+    # Started by ~/.xinitrc so xdg-desktop-portal can start (see the unit).
+    deploy_app_file "$DOTS_DIR/config/systemd/user/dots-session.target" \
+        "$conf_home/systemd/user/dots-session.target"
 
     # Re-paints the wallpaper after every autorandr switch. Copied like the
     # rest, for a different reason: `autorandr --save` writes profiles into

@@ -108,6 +108,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - Notifications were drawn on top of the status bar. dunst now places them
   below it (`offset = (12, 36)`). Existing installs pick this up on the next
   wallpaper or theme change.
+- No desktop portal worked in a dwm session, so GTK4/libadwaita apps stayed
+  light and apps got no portal file chooser. `xdg-desktop-portal` only
+  starts once `graphical-session.target` is active, and startx/ly + dwm never
+  activated it. `~/.xinitrc` now starts a new `dots-session.target`, which
+  does. A `~/.xinitrc` you already had is never edited; the installer and
+  `docs/THEMING.md` (Desktop portal) give the lines to add. Log out and back
+  in afterwards. `dots doctor` now asks the portal whether it answers, rather
+  than trusting the stored dconf preference.
 - GTK3 apps (Thunar, and Flatpak GTK3 apps) were light, not dark. Every theme
   names `Adwaita-dark`, which GTK4 has built in but GTK 3.24 does not. On
   Fedora it came from `gnome-themes-extra`, which Fedora 44 retired, so GTK3

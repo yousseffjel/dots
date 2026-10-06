@@ -1,0 +1,23 @@
+# dots — the dwm session, as systemd sees it.
+#
+# Started by ~/.xinitrc right before dwm and stopped when the session ends
+# (scripts/install-session.sh writes that file). Its one job is to pull in
+# graphical-session.target, which a full desktop (GNOME, KDE) activates and a
+# startx/ly + dwm session otherwise never does. Units that say
+# Requisite=graphical-session.target refuse to start without it — most
+# importantly xdg-desktop-portal, so without this target NO portal works:
+# no dark-mode preference for GTK4/libadwaita apps, no portal file chooser.
+#
+# graphical-session.target has RefuseManualStart=yes, so it cannot be started
+# directly; BindsTo= starts it as a dependency and, with its
+# StopWhenUnneeded=yes, stops it again when this target stops. The pattern is
+# the one sway and i3 document for window-manager sessions.
+#
+# Copied (not linked) into ~/.config/systemd/user by install-restore-apps.sh:
+# linking that directory would swallow the user's own units.
+[Unit]
+Description=dots dwm session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target

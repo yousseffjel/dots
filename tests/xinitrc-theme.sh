@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs the generated ~/.xinitrc against a sandbox HOME and asserts what it does
-# about the theme before `exec dwm`.
+# about the theme before `exec dwm`, and the systemd session target around
+# dwm (started first, stopped after, never in dwm's way).
 #
 # WHY. The first real install (Fedora 44 Server VM, 2026-10-05) came up on
 # dwm's compiled-in colours with no wallpaper: a headless install cannot theme
@@ -45,7 +46,9 @@ if cmp -s "$SB/xinitrc.shipped" "$SB/xinitrc"; then
 fi
 
 # $1 case; $2 "cache" to seed the theme cache; $3 "fehbg" to seed ~/.fehbg;
-# $4 dots mode: ok | fail | absent. Prints the call log, one call per line.
+# $4 dots mode: ok | fail | absent; $5 systemctl mode: absent (default) | ok |
+# fail (the start fails); $6 "hup" makes dwm HUP the xinitrc shell, the way a
+# dying X server does. Prints the call log, one call per line.
 run_case() {
     local home="$SB/$1" fake="$SB/$1/fakebin" log="$SB/$1/calls.log"
     mkdir -p "$fake" "$home/.local/bin" "$home/cache"
@@ -63,6 +66,13 @@ run_case() {
         ok) printf '#!/bin/sh\necho "dots $*" >>"%s"\n' "$log" >"$home/.local/bin/dots" ;;
         fail) printf '#!/bin/sh\necho "dots $*" >>"%s"\nexit 1\n' "$log" >"$home/.local/bin/dots" ;;
         absent) ;;
+    esac
+    # shellcheck disable=SC2016 # $PPID belongs to the fake
+    [[ "${6:-}" == hup ]] && printf '#!/bin/sh\necho "dwm $*" >>"%s"\nkill -HUP $PPID\n' "$log" >"$fake/dwm"
+    # shellcheck disable=SC2016 # $* belongs to the fakes
+    case "${5:-absent}" in
+        ok) printf '#!/bin/sh\necho "systemctl $*" >>"%s"\n' "$log" >"$fake/systemctl" ;;
+        fail) printf '#!/bin/sh\necho "systemctl $*" >>"%s"\ncase "$*" in *start*) exit 1 ;; esac\n' "$log" >"$fake/systemctl" ;;
     esac
     chmod +x "$fake"/* "$home/.local/bin"/* "$home/.fehbg" 2>/dev/null || true
     env -i PATH="$fake" HOME="$home" XDG_CACHE_HOME="$home/cache" /bin/sh "$SB/xinitrc"
@@ -101,6 +111,32 @@ expect "no dots command at all: dwm still starts" \
     "dwm " \
     "$(run_case no-dots '' '' absent)"
 
+blue "==> the session target around dwm"
+ST='systemctl --user import-environment DISPLAY XAUTHORITY
+systemctl --user daemon-reload
+systemctl --user start dots-session.target'
+expect "systemd: target started before dwm, stopped after it exits" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ' 'systemctl --user stop dots-session.target')" \
+    "$(run_case target cache '' ok ok)"
+expect "the start fails: dwm still starts, nothing to stop" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ')" \
+    "$(run_case target-fails cache '' ok fail)"
+# On bash — Fedora's /bin/sh — the EXIT trap fires on a fatal HUP even without
+# the template's `trap 'exit 0' HUP INT TERM`, so this case cannot tell that
+# line is there (mutation-tested 2026-10-06: dropping it survives). The line is
+# for strict POSIX shells such as dash, where an untrapped signal skips EXIT.
+expect "X dies (HUP to the session shell): the target is still stopped" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ' 'systemctl --user stop dots-session.target')" \
+    "$(run_case target-hup cache '' ok ok hup)"
+unit="$DOTS_DIR/config/systemd/user/dots-session.target"
+if grep -qx 'BindsTo=graphical-session.target' "$unit" && grep -q 'dots-session.target' "$SB/xinitrc.shipped" \
+    && grep -qF 'config/systemd/user/dots-session.target' "$DOTS_DIR/scripts/install-restore-apps.sh"; then
+    green "  ok: the unit binds graphical-session.target, and restore deploys the one the template starts"
+else
+    red "  the unit, the template and the deploy line disagree about dots-session.target"
+    rc=1
+fi
+
 blue "==> report on an existing ~/.xinitrc"
 report() {
     (
@@ -120,10 +156,37 @@ else
     rc=1
 fi
 printf '#!/bin/sh\nexec dwm\n' >"$SB/old-xinitrc"
-if grep -q -- 'never restores the dots theme' <<<"$(report "$SB/old-xinitrc")"; then
-    green "  ok: a pre-2026-10-05 ~/.xinitrc is reported"
+out="$(report "$SB/old-xinitrc")"
+if grep -q -- 'never restores the dots theme' <<<"$out" && grep -q -- 'never starts dots-session.target' <<<"$out"; then
+    green "  ok: a pre-2026-10-05 ~/.xinitrc is reported, for both"
 else
-    red "  an ~/.xinitrc with no theme step was NOT reported"
+    red "  an ~/.xinitrc with neither step was NOT reported for both"
+    rc=1
+fi
+# What the installer generated between 2026-10-05 and 2026-10-06: the theme
+# block, no session target. Built from the shipped template, not by hand.
+sed '/^# The systemd side of the session/,/^fi$/d' "$SB/xinitrc.shipped" >"$SB/pre-portal-xinitrc"
+out="$(report "$SB/pre-portal-xinitrc")"
+if ! grep -q 'dots-session.target' "$SB/pre-portal-xinitrc" && grep -q -- 'never starts dots-session.target' <<<"$out" \
+    && ! grep -q -- 'never restores the dots theme' <<<"$out"; then
+    green "  ok: a themed but pre-portal ~/.xinitrc gets only the session-target lines"
+else
+    red "  the pre-portal ~/.xinitrc report is wrong: $out"
+    rc=1
+fi
+
+# The paste lines live twice — printed by the installer, documented for anyone
+# who never re-runs it. Every printed line must appear in the doc's block.
+missing=0
+while IFS= read -r line; do
+    grep -qxF "$line" "$DOTS_DIR/docs/THEMING.md" || {
+        red "  docs/THEMING.md lacks the paste line: $line"
+        missing=1
+    }
+done < <(report "$SB/old-xinitrc" | sed -n '/never starts dots-session.target/,$p' | sed -n 's/^          //p')
+if ((missing == 0)); then
+    green "  ok: docs/THEMING.md carries every session-target paste line"
+else
     rc=1
 fi
 

@@ -11,6 +11,8 @@
 #     different advice, a VM-only daemon off a VM is skipped, dwm-lock is
 #     found as xss-lock;
 #   * no X session, not Fedora: whole sections skip instead of failing;
+#   * the desktop portal: graphical-session.target, then a real ReadOne of
+#     color-scheme (dark ok; light, dead, no target warn; no X skips);
 #   * the GTK3 theme name: missing -> warn, a GTK built-in -> ok;
 #   * flatpak: a missing grant or remote warns, a grant set the user's own
 #     way is ok, no flatpak at all skips;
@@ -55,6 +57,7 @@ make_home
 tsv() { run_doctor --tsv >"$SB/out.tsv" 2>&1 && echo 0 >"$SB/rc" || echo $? >"$SB/rc"; }
 rc_is() { [[ "$(cat "$SB/rc")" == "$1" ]]; }
 row() { grep -qE "^$1	$2	$3	" "$SB/out.tsv"; }
+no_row() { ! row "$@"; }
 none_of() { ! grep -qE "^($1)	" "$SB/out.tsv"; }
 detail() { grep -E "^[a-z]+	[a-z]+	$1	" "$SB/out.tsv" | cut -f4; }
 
@@ -131,6 +134,24 @@ DISPLAY_SET="" tsv
 check "no X: one skip for the whole session section" \
     test "$(grep -c $'\tsession\t' "$SB/out.tsv")" -eq 1
 check "no X: still exit 0" rc_is 0
+
+blue "==> desktop portal"
+tsv
+check "healthy: the portal answers dark" row ok theme portal
+FAKE_PORTAL=dead tsv
+check "a portal that does not answer warns, quoting why" grep -q 'startup job failed' <(detail portal)
+FAKE_PORTAL=light tsv
+check "a portal answering light warns" row warn theme portal
+FAKE_GST=inactive tsv
+check "no graphical-session.target, no dots-session.target in ~/.xinitrc: names the fix" \
+    grep -q 'does not start dots-session.target' <(detail session-target)
+check "...and does not also ask the portal" no_row '[a-z]+' theme portal
+printf 'systemctl --user start dots-session.target\n' >"$H/.xinitrc"
+FAKE_GST=inactive tsv
+check ".xinitrc already starts it: just log out and in" grep -q 'log out and back in' <(detail session-target)
+rm -f "$H/.xinitrc"
+DISPLAY_SET="" tsv
+check "no X: the portal check skips" row skip theme portal
 
 blue "==> GTK3 theme"
 SHIM="$H/.local/share/themes/Adwaita-dark"
