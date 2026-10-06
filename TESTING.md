@@ -218,6 +218,14 @@ for adding CI; new docs you add are linted normally.
   re-runs, a key changed after install, `--dry-run` both ways, and that
   `portals.conf` names the gtk backend and is linked by `symlinks.sh`.
 
+- **`tests/dmenu-path-cache.sh`** — the vendored `dmenu_path`
+  (pathcache-local patch) against the real `stest`, compiled from
+  `suckless/dmenu/stest.c`. A directory that joins `PATH` but is older than
+  the cache must be listed. An unpatched copy (the shipped script minus the
+  new condition) must miss it, so the test can tell them apart. An unchanged
+  `PATH` is served from the cache, and a pre-patch cache with no `.path` file
+  is rebuilt once. Skipped in yellow without a C compiler.
+
 - **`tests/gtk3-adwaita-dark-shim.sh`** — the GTK3 `Adwaita-dark` shim
   (`restore_gtk3_shim` / `uninstall_theme`) on a sealed PATH: deployed byte
   for byte with one THEME row, re-runs, a user's own `Adwaita-dark` kept and

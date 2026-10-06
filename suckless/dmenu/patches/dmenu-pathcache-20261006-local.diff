@@ -1,0 +1,23 @@
+diff --git a/suckless/dmenu/dmenu_path b/suckless/dmenu/dmenu_path
+index 3a7cda7..628f980 100755
+--- a/suckless/dmenu/dmenu_path
++++ b/suckless/dmenu/dmenu_path
+@@ -2,12 +2,17 @@
+ 
+ cachedir="${XDG_CACHE_HOME:-"$HOME/.cache"}"
+ cache="$cachedir/dmenu_run"
++# pathcache-local patch: the PATH the cache was built for. stest -n alone only
++# notices a directory NEWER than the cache, so one that joins PATH later (and
++# is older than the cache) would never be scanned.
++pathfile="$cache.path"
+ 
+ [ ! -e "$cachedir" ] && mkdir -p "$cachedir"
+ 
+ IFS=:
+-if stest -dqr -n "$cache" $PATH; then
++if stest -dqr -n "$cache" $PATH || [ "$(cat "$pathfile" 2>/dev/null)" != "$PATH" ]; then
+ 	stest -flx $PATH | sort -u | tee "$cache"
++	printf '%s\n' "$PATH" >"$pathfile"
+ else
+ 	cat "$cache"
+ fi

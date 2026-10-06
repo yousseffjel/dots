@@ -110,6 +110,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- dmenu (`Mod` + `p`) never listed commands from a directory added to `PATH`
+  after its cache was built, until something in that directory changed. That
+  is how the Flatpak launchers stayed hidden. `dmenu_path` now also rebuilds
+  when `PATH` itself changed. It reaches an existing install with the next
+  `scripts/install-suckless.sh`; until then, `rm ~/.cache/dmenu_run` has the
+  same effect.
 - Notifications were drawn on top of the status bar. dunst now places them
   below it (`offset = (12, 36)`). Existing installs pick this up on the next
   wallpaper or theme change.

@@ -48,3 +48,26 @@ convention across their `.Xresources` entries instead of dwm using a
 
 **Build verified**: `make clean && make` — clean compile with
 `-std=c99 -pedantic -Wall`, zero warnings.
+
+## dmenu-pathcache-20261006-local.diff
+
+**Source**: written for this repo (2026-10-06); no upstream patch. Touches
+`dmenu_path` only — no C, so no conflict with the other patches.
+
+**The bug**: upstream `dmenu_path` rebuilds `~/.cache/dmenu_run` only when
+`stest -dqr -n "$cache" $PATH` finds a PATH directory *newer than the cache*.
+A directory that **joins** PATH after the cache was written, and is older than
+it, is never scanned until something inside it changes. Found on the Fedora 44
+VM: `~/.local/share/flatpak/exports/bin` (mtime 13:11) was added to PATH by
+`config/zsh/.zshenv`; the cache dated from 13:13, so `dmenu_run` never listed
+the Flatpak apps even though dwm's own PATH had the directory.
+
+**The fix**: also rebuild when `$PATH` differs from the PATH the cache was
+built for, recorded in `$cache.path` after each rebuild. An install that
+predates the patch has no `.path` file yet, so its first run rebuilds once —
+which is what clears the stale cache. A PATH that merely changes order also
+triggers one rebuild; the output is `sort -u`'d, so that costs one rescan and
+nothing else.
+
+**Verified**: `tests/dmenu-path-cache.sh` runs this script and the unpatched
+one against the real `stest`, compiled from this directory's `stest.c`.
