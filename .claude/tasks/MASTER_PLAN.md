@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-05
+Last Updated: 2026-10-06
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -72,6 +72,15 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-06 — **Flatpak integration (scope E,
+  `scope-e-flatpak-integration.md`)**. Flathub plus four read-only overrides,
+  each reverted only while still as written. The VM check found two older
+  bugs and both are fixed: GTK3 `Adwaita-dark` was unresolvable on Fedora 44,
+  so all GTK3 apps were light (vendored shim; VM-verified dark), and no
+  desktop portal could start in a dwm session (`dots-session.target`).
+  Flatpak launchers are on PATH for dmenu. **Unverified on the VM:** the
+  portal (the code had not been pushed when the VM pulled), Mod+p listing
+  Flatpak apps, and the Bibata cursor inside a Flatpak window.
 - 2026-10-06 — **GTK2 theme, desktop portal, `dots doctor`** ("what is next"
   items 4 + 5, as the user re-picked them). GTK2 apps are themed from the
   wallpaper via `~/.gtkrc-2.0`. xdg-desktop-portal-gtk + `prefer-dark`

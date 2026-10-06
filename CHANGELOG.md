@@ -66,6 +66,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   still comes from it. `GTK_THEME` is deliberately not set, because it
   breaks the layout of GTK4/libadwaita apps. `dots doctor` checks the
   overrides and the remote.
+- Flatpak app launchers are on every zsh's `PATH`: the user and system
+  `flatpak/exports/bin` directories, after everything else, listed by app ID
+  (`org.xfce.mousepad`). dmenu (`Mod` + `p`) lists them when the session
+  itself was started through your login zsh, the same condition that puts
+  `~/.config/dwm/bin` on dwm's `PATH`. Log out and back in to pick it up.
 - `dots doctor`: a read-only health report covering:
   - the install: manifest, links, login shell, the login service;
   - every package list, with each missing desktop package's consequence;

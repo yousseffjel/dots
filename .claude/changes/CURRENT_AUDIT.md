@@ -1855,3 +1855,35 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - `dunst-clear-bar`: dunst `offset` y 12 → 36 in `config/dunst/dunstrc` and
   `dunst.dcol` (lockstep), so popups sit below dwm's ~21px top bar. Found on
   the Fedora 44 VM. Reviewer READY first round; suite unchanged, all green.
+
+## 2026-10-06 — Flatpak integration (scope E): four slots, two pre-existing bugs found
+
+- `flatpak-integration`: `flatpak` (extra.lst), with Flathub added `--user`
+  (rule-4 exception #2, user-authorised) and three read-only `flatpak
+  override --user` grants. The grants are written only when absent and
+  reverted only while unchanged. flatpak cannot unset one grant, so uninstall
+  edits the override keyfile itself, checked byte for byte against the real
+  flatpak 1.18.4. `GTK_THEME` was chosen, then dropped (it breaks
+  libadwaita).
+- The VM check then found both test apps **light**, from two bugs that
+  predate Flatpak:
+  - `gtk3-adwaita-dark-shim`: GTK 3.24 has no built-in `Adwaita-dark`, and
+    Fedora 44 retired gnome-themes-extra, so every GTK3 app had been light
+    since 2026-08-12. The fix vendors that package's one-line shim and adds a
+    fourth grant, `xdg-data/themes:ro`. The name was kept because GTK4
+    aliases it. **VM-verified: Thunar and Flatpak Mousepad are dark.**
+  - `portal-session-target`: xdg-desktop-portal has
+    `Requisite=graphical-session.target`, which a dwm session never
+    activated, so no portal had ever run. The fix adds
+    `dots-session.target` (BindsTo), started from `~/.xinitrc`. An existing
+    `.xinitrc` gets paste lines, held equal to `docs/THEMING.md` by a test.
+- `flatpak-exports-path` (Micro): Flatpak launchers on zsh's PATH for dmenu.
+- `dots doctor` gained checks for the GTK3 theme, the Flatpak grants and
+  remote, and the portal actually answering. The dconf line no longer
+  overclaims.
+- Incident: a test's `cp -a` of a sealed-PATH dir plus `fake cp` nearly
+  overwrote /usr/bin/cp (only permissions stopped it). `fake()` now removes
+  its target first.
+- Suite 38 → 40 tests. Mutation testing per slot; one documented survivor
+  (the HUP trap is untestable on bash). The portal fix is NOT yet on the VM:
+  main was unpushed when the VM pulled. See the four dated logs of 2026-10-06.
