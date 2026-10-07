@@ -50,7 +50,8 @@ if cmp -s "$SB/xinitrc.shipped" "$SB/xinitrc"; then
     exit 1
 fi
 
-# $1 case; $2 "cache" to seed the theme cache; $3 "fehbg" to seed ~/.fehbg;
+# $1 case; $2 "cache" to seed the theme cache, "cache+cursor" to add the
+# xcursor file theme_write_xcursor_resources writes; $3 "fehbg" to seed ~/.fehbg;
 # $4 dots mode: ok | fail | absent; $5 systemctl mode: absent (default) | ok |
 # fail (the start fails); $6 "hup" makes dwm HUP the xinitrc shell, the way a
 # dying X server does. Prints the call log, one call per line.
@@ -66,7 +67,8 @@ run_case() {
     # shellcheck disable=SC2016
     printf '#!/bin/sh\necho "timeout $1" >>"%s"\nshift\nexec "$@"\n' "$log" >"$fake/timeout"
     printf '#!/bin/sh\necho 4242\n' >"$fake/id"
-    [[ "$2" == cache ]] && { mkdir -p "$home/cache/dots/theme" && : >"$home/cache/dots/theme/xresources"; }
+    [[ "$2" == cache* ]] && { mkdir -p "$home/cache/dots/theme" && : >"$home/cache/dots/theme/xresources"; }
+    [[ "$2" == cache+cursor ]] && : >"$home/cache/dots/theme/xcursor"
     [[ "$3" == fehbg ]] && printf '#!/bin/sh\necho fehbg >>"%s"\n' "$log" >"$home/.fehbg"
     case "$4" in
         ok) printf '#!/bin/sh\necho "dots $*" >>"%s"\n' "$log" >"$home/.local/bin/dots" ;;
@@ -108,6 +110,9 @@ blue "==> theme step in the generated ~/.xinitrc"
 expect "cache + wallpaper: merge, re-apply, then dwm" \
     "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' fehbg 'dwm ' "$END")" \
     "$(run_case cached cache fehbg ok)"
+expect "cache + cursor: the cursor merges after the colours, before dwm" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'xrdb -merge HOME/cache/dots/theme/xcursor' fehbg 'dwm ' "$END")" \
+    "$(run_case cursor cache+cursor fehbg ok)"
 expect "cache, no wallpaper: merge only, then dwm" \
     "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'dwm ' "$END")" \
     "$(run_case cached-nowall cache '' ok)"

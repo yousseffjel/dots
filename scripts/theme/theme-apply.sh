@@ -61,7 +61,7 @@ list_themes() {
 }
 
 # Render the theme's non-colour half — GTK theme name, icons, cursor, font —
-# into settings.ini and xsettingsd.conf, before apply-templates/reload run so
+# into settings.ini, xsettingsd.conf and the two non-GTK cursor outputs, before apply-templates/reload run so
 # the reload's `pkill -HUP xsettingsd` serves the new values.
 #
 # CLOBBER=1 is the only difference from the installer's call: an install must
@@ -82,6 +82,8 @@ apply_identity() {
     THEME_IDENTITY_CLOBBER=1
     theme_write_gtk_ini
     theme_write_xsettingsd_conf
+    theme_write_cursor_default
+    theme_write_xcursor_resources
 }
 
 MODE=""

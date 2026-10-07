@@ -110,6 +110,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- The mouse cursor no longer changes shape between GTK apps such as Firefox
+  and the rest of the desktop. The theme's cursor reached GTK only, so the
+  wallpaper, the dwm bar, st and alacritty drew the X default. It is now also
+  set as the XDG default cursor theme and as `Xcursor.theme`/`Xcursor.size` X
+  resources, and a theme switch updates all of them. An existing `~/.xinitrc`
+  gets one paste line for the size; `dots doctor` checks the two agree.
 - Logging out no longer floods the login screen with
   `xsel: Can't open display` errors. `clipmenud` outlived X and looped on
   failing clipboard calls. The generated `~/.xinitrc` now stops it when the

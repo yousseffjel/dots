@@ -96,6 +96,9 @@ fi
 dots_theme_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 if [ -r "$dots_theme_cache/xresources" ]; then
 	command -v xrdb >/dev/null 2>&1 && xrdb -merge "$dots_theme_cache/xresources"
+	# The cursor theme for dwm and other non-GTK clients (Xcursor.theme/size).
+	[ -r "$dots_theme_cache/xcursor" ] && command -v xrdb >/dev/null 2>&1 &&
+		xrdb -merge "$dots_theme_cache/xcursor"
 	[ -x "$HOME/.fehbg" ] && "$HOME/.fehbg"
 elif [ -x "$HOME/.local/bin/dots" ]; then
 	# First login after a headless install: nothing has themed this desktop yet.

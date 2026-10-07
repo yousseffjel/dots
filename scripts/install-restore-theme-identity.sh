@@ -7,8 +7,10 @@
 # The seam is deliberate rather than mechanical: the parent file's remaining job
 # is *placement* — deploy a static config, claim a path in the manifest, back up
 # what the engine is about to overwrite. This file's job is *rendering*: one
-# source (theme.conf, the non-colour half of the theme) into two outputs whose
-# only difference is syntax. Adding a third toolkit format belongs here.
+# source (theme.conf, the non-colour half of the theme) into one output per
+# consumer — settings.ini and xsettingsd.conf for GTK, the XDG default cursor
+# theme and the Xcursor X resources for everything else. Adding another toolkit
+# format belongs here.
 #
 # Not palette work. Nothing here re-renders on a wallpaper change — that is what
 # config/theme/templates/always/ is for. See theme_write_xsettingsd_conf's
@@ -153,4 +155,64 @@ Xft/RGBA "rgb"
 EOF
     green "wrote   $xs_conf"
     manifest_append_row THEME theme "$xs_conf"
+}
+
+# The cursor for everything that is NOT GTK. settings.ini and xsettingsd only
+# reach GTK apps; libXcursor — dwm (the root window and the bar), st,
+# alacritty — reads neither, and fell back to the distro default cursor, so the
+# pointer changed shape on its way from Firefox onto the wallpaper. Two outputs
+# below, because libXcursor consults them in this order: the Xcursor.* X
+# resources, then the XDG "default" theme. The resources carry the size too.
+#
+# (A) The XDG "default" cursor theme — the fallback every cursor consumer
+# reads, Qt and processes started outside X included. The DIRECTORY is the
+# claimed path, not the index.theme inside it: uninstall rm -rf's a THEME row,
+# and claiming the file would strand an empty icons/default/ behind it. An
+# icons/default/ we did not create — another desktop's, or the user's — is
+# never touched; libXcursor still gets the theme from (B) in that case.
+theme_write_cursor_default() {
+    local dir="${XDG_DATA_HOME:-$HOME/.local/share}/icons/default"
+    local cursor
+    [[ -f "$DOTS_DIR/$THEME_CONF_REL" ]] || return 0
+    cursor="$(theme_conf_get cursor_theme)"
+    [[ -n "$cursor" ]] || return 0
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would write $dir/index.theme"
+        return 0
+    fi
+    theme_identity_may_write "$dir" || return 0
+    mkdir -p "$dir"
+    printf '[Icon Theme]\nName=Default\nComment=dots: the cursor theme from theme.conf\nInherits=%s\n' \
+        "$cursor" >"$dir/index.theme"
+    green "wrote   $dir/index.theme"
+    manifest_has_path THEME "$dir" || manifest_append_row THEME theme "$dir"
+}
+
+# (B) Xcursor.theme / Xcursor.size, written next to the engine's xresources and
+# merged after it — by reload.sh on every apply and by ~/.xinitrc at login. A
+# separate file rather than a line in xresources.dcol: that template re-renders
+# from the palette on every wallpaper change and knows nothing of theme.conf.
+# Not claimed in the manifest: ~/.cache/dots/theme is wholly generated, and
+# uninstall removes the directory whole. Same cpp rule as xresources.dcol — no
+# apostrophe and no slash-star in this file, or the merge fails.
+theme_write_xcursor_resources() {
+    local out="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/xcursor"
+    local cursor size
+    [[ -f "$DOTS_DIR/$THEME_CONF_REL" ]] || return 0
+    cursor="$(theme_conf_get cursor_theme)"
+    size="$(theme_conf_get cursor_size)"
+    [[ -n "$cursor" ]] || return 0
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would write $out"
+        return 0
+    fi
+    mkdir -p "$(dirname "$out")"
+    {
+        printf '! Generated from theme.conf by install-restore-theme-identity.sh - DO NOT EDIT.\n'
+        printf 'Xcursor.theme: %s\n' "$cursor"
+        [[ -z "$size" ]] || printf 'Xcursor.size: %s\n' "$size"
+    } >"$out"
+    green "wrote   $out"
 }

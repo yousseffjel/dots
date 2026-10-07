@@ -97,6 +97,10 @@ if [[ -f "$XRESOURCES" ]]; then
     if command -v xrdb >/dev/null 2>&1; then
         if run_bounded xrdb -merge "$XRESOURCES"; then
             say green "xrdb    merged $XRESOURCES"
+            # The non-GTK cursor (theme.conf, via theme-apply.sh). Before the
+            # dwm HUP below: dwm sets the root-window cursor once, at startup.
+            [[ ! -f "$cacheDir/xcursor" ]] || run_bounded xrdb -merge "$cacheDir/xcursor" \
+                || red "xrdb    merge of $cacheDir/xcursor FAILED — the cursor keeps its old theme"
         else
             red "xrdb    merge FAILED — downstream apps keep their old colors"
         fi

@@ -38,7 +38,8 @@ done; exit $rc'
 -f) for d in ${FAKE_DOWN:-}; do [[ "$2" == *"/)$d( "* ]] && exit 1; done; exit 0 ;;
 *) exit 1 ;;
 esac'
-        fake "$BIN" xrdb 'echo "dwm.normbgcolor:	#1e1e2e"'
+        fake "$BIN" xrdb 'echo "dwm.normbgcolor:	#1e1e2e"
+[[ -z "${FAKE_XCURSOR:-}" ]] || echo "Xcursor.theme:	$FAKE_XCURSOR"'
         fake "$BIN" pamixer 'echo 40'
         fake "$BIN" nmcli 'echo connected'
         fake "$BIN" systemctl 'case "$*" in
@@ -78,15 +79,15 @@ make_home() {
         manifest_set_meta version "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION")"
         manifest_append_row SERVICE ly@tty2.service
     )
-    # The Flatpak grants and remote, the GTK3 settings.ini and the
-    # Adwaita-dark shim — each written by the installer's own function.
+    # The Flatpak grants and remote, the GTK3 settings.ini, the Adwaita-dark
+    # shim and the XDG default cursor theme — each written by the installer's own function.
     # shellcheck disable=SC2016 # the -c script expands in the sandbox shell
     env -i PATH="$BIN" HOME="$H" XDG_DATA_HOME="$H/.local/share" XDG_STATE_HOME="$H/.local/state" \
         XDG_CONFIG_HOME="$H/.config" DOTS_DIR="$DOTS_DIR" DRY_RUN=0 "$(type -P bash)" -c 'set -euo pipefail
         green() { :; }; yellow() { echo "$*" >&2; }; blue() { :; }
         source "$0/scripts/global_fn.sh"; source "$0/scripts/install-restore-flatpak.sh"
         source "$0/scripts/install-restore-theme.sh"; CONF_HOME="$XDG_CONFIG_HOME"
-        restore_flatpak; theme_write_gtk_ini; restore_gtk3_shim' "$DOTS_DIR" >/dev/null
+        restore_flatpak; theme_write_gtk_ini; restore_gtk3_shim; theme_write_cursor_default' "$DOTS_DIR" >/dev/null
     ln -s "$DOTS_DIR/scripts/dots" "$H/.local/bin/dots"
     local src dst
     while IFS=$'\t' read -r src dst; do
@@ -107,6 +108,6 @@ run_doctor() {
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
-        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" \
+        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

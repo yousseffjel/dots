@@ -91,6 +91,27 @@ check_session() {
     else
         report warn "$s" xresources "no dwm.* X resources — dwm runs on compiled-in colours; run: dots theme dark"
     fi
+    check_cursor "$res"
+}
+
+# Does the cursor dwm and other non-GTK clients load match GTK's? Asks X (the
+# merged Xcursor.theme), then the XDG default theme libXcursor falls back to —
+# never just whether dots wrote a file. $1 is the `xrdb -query` output.
+check_cursor() {
+    local s=session want got idx
+    want="$(sed -n '/^gtk-cursor-theme-name=/{s/^gtk-cursor-theme-name=//p;q;}' \
+        "${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini" 2>/dev/null || true)"
+    [[ -n "$want" ]] || return 0
+    got="$(sed -n '/^Xcursor\.theme:/{s/^Xcursor\.theme:[[:space:]]*//p;q;}' <<<"$1")"
+    idx="${XDG_DATA_HOME:-$HOME/.local/share}/icons/default/index.theme"
+    if [[ -z "$got" ]]; then
+        got="$(sed -n '/^Inherits=/{s/^Inherits=//p;q;}' "$idx" 2>/dev/null || true)"
+    fi
+    if [[ "$got" == "$want" ]]; then
+        report ok "$s" cursor "dwm and non-GTK apps use the same cursor as GTK ($want)"
+    else
+        report warn "$s" cursor "non-GTK cursor is '${got:-the X default}', GTK uses $want — run: dots theme dark, then log out and in"
+    fi
 }
 
 check_theme() {

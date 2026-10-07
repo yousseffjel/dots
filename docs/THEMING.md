@@ -419,6 +419,33 @@ the wallpaper-driven accent colours. Those are `gtk.css`, which GTK re-reads on
 its own. If you are chasing a GTK app that ignores a new palette, xsettingsd is
 not the lever.
 
+### The cursor outside GTK
+
+`settings.ini` and xsettingsd reach GTK apps only. dwm (the wallpaper and the
+bar), st and alacritty load their cursor through libXcursor, which reads
+neither, so until 2026-10-07 the pointer changed shape on its way from Firefox
+onto the wallpaper. Two more identity outputs carry `theme.conf`'s
+`cursor_theme` there, in the order libXcursor consults them:
+
+- **`Xcursor.theme` / `Xcursor.size`** — `~/.cache/dots/theme/xcursor`,
+  written by `theme_write_xcursor_resources` and merged after `xresources`,
+  by `reload.sh` (before dwm is HUPed: dwm sets the root-window cursor only
+  at startup) and by `~/.xinitrc` at login. The only output that sets the
+  size. An `~/.xinitrc` from before this gets one paste line from the
+  installer:
+
+  ```sh
+  c="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"; [ -r "$c/xcursor" ] && xrdb -merge "$c/xcursor"
+  ```
+
+- **`~/.local/share/icons/default/index.theme`** — the XDG "default" theme
+  (`Inherits=`), the fallback for everything else, Qt included; it needs no
+  `.xinitrc` at all. The **directory** is the manifest's `THEME` row, so
+  uninstall removes it whole. One that already exists and is not ours is never
+  touched.
+
+Check with `xrdb -query | grep Xcursor`, or `dots doctor`.
+
 ## Static themes
 
 `themes/<name>/` holds:

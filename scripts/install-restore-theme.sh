@@ -208,6 +208,8 @@ restore_theme() {
     restore_gtk3_shim
     theme_write_gtk_ini
     theme_write_xsettingsd_conf
+    theme_write_cursor_default
+    theme_write_xcursor_resources
     theme_claim_engine_target "$CONF_HOME/gtk-3.0/gtk.css"
     theme_claim_engine_target "$HOME/.gtkrc-2.0"
     theme_claim_fastfetch

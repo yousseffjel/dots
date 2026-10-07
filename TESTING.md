@@ -371,6 +371,17 @@ the two new globals itself, while the installer sets neither and relies on the
 shipped defaults, so flipping a default stayed green. **A test that supplies a
 default never tests it.**
 
+- **`tests/cursor-x11.sh`** — the cursor for everything that is not GTK
+  (2026-10-07). The cursor theme used to reach `settings.ini` and xsettingsd
+  only, so dwm, st and alacritty drew the X default while Firefox drew Bibata —
+  silent, like the `cursor-theme.sh` coupling above. Runs the shipped writers against a probe
+  theme: both outputs follow the selected theme, an installer re-run claims
+  nothing twice, an `icons/default/` that is not ours survives either mode, the
+  generated X resources survive xrdb's cpp pass, and the report for an existing
+  `~/.xinitrc` asks for exactly the cursor line `docs/THEMING.md` documents.
+  Mutation-checked (guard, claimed path, size line, report branch, call sites).
+  Needs only bash + coreutils.
+
 ## Testing a full install in a disposable Fedora environment
 
 CI does this on every push that touches the installer or what it deploys

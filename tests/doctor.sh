@@ -167,6 +167,19 @@ check "plain Adwaita is built in, ok without a theme dir" grep -q 'built into GT
 cp "$SB/ini.bak" "$INI"
 mv "$SB/shim.bak" "$SHIM"
 
+blue "==> non-GTK cursor"
+want="$(sed -n 's/^gtk-cursor-theme-name=//p' "$INI")"
+check "the installer's index.theme alone is ok" grep -q "same cursor as GTK ($want)" <(detail cursor)
+FAKE_XCURSOR=Other-Cursor tsv
+check "an Xcursor.theme unlike GTK's warns, naming it" grep -q "'Other-Cursor', GTK uses $want" <(detail cursor)
+IDX="$H/.local/share/icons/default/index.theme"
+mv "$IDX" "$SB/idx.bak"
+FAKE_XCURSOR="$want" tsv
+check "a matching Xcursor.theme is ok on its own" row ok session cursor
+tsv
+check "neither set: warns, the X default" grep -q "'the X default'" <(detail cursor)
+mv "$SB/idx.bak" "$IDX"
+
 blue "==> flatpak"
 G="$H/.local/share/flatpak/overrides/global"
 cp "$G" "$SB/global.bak"
