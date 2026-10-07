@@ -347,7 +347,11 @@ when the session ends. The same exit step (2026-10-07) also stops
 `clipmenud`, the clipboard daemon. It is a shell loop over `clipnotify` and
 `xsel` and holds no X connection of its own, so it outlives X. Once X is gone
 both commands fail instantly in an endless loop, which floods the login TTY with
-`xsel: Can't open display` after every logout. If you had a `~/.xinitrc` before
+`xsel: Can't open display` after every logout. It stops two more that outlive
+X: the night-light daemon (also a shell loop) and `dwmblocks`, which only
+notices X is gone on its next bar update. A quick re-login used to find the old
+copies still running, so `autostart.sh` started neither, and once they died the
+bar was empty (`dwm-6.8`) and night light was off. If you had a `~/.xinitrc` before
 installing, replace its `exec dwm`, and any `dots-session.target` block above
 it, with:
 
@@ -356,6 +360,8 @@ dots_session_target=
 dots_session_end() {
   pkill -u "$(id -u)" -x clipmenud
   pkill -u "$(id -u)" -x clipnotify
+  pkill -u "$(id -u)" -x dwmblocks
+  pkill -u "$(id -u)" -f '/dwm-nightlight daemon$'
   [ -z "$dots_session_target" ] || systemctl --user stop dots-session.target
 }
 trap dots_session_end EXIT

@@ -14,7 +14,10 @@
 #
 # 2026-10-07: logging out of the VM left clipmenud — a shell loop holding no X
 # connection — spinning on failed clipnotify/xsel calls, flooding ly's TTY.
-# Every exit path must now end in dots_session_end, which stops it.
+# Every exit path must now end in dots_session_end, which stops it. Later the
+# same day a quick re-login came up with an empty bar: the old dwmblocks and
+# night-light daemon were still alive, so autostart.sh started neither. They
+# are stopped there too.
 #
 # HOW. The shipped function's output is RUN by /bin/sh with PATH holding only
 # fakes (xrdb, dwm, timeout, pkill, id, and a dots in the sandbox's
@@ -104,7 +107,9 @@ expect() {
 
 # What dots_session_end does on every exit path, before stopping the target.
 END='pkill -u 4242 -x clipmenud
-pkill -u 4242 -x clipnotify'
+pkill -u 4242 -x clipnotify
+pkill -u 4242 -x dwmblocks
+pkill -u 4242 -f /dwm-nightlight daemon$'
 
 blue "==> theme step in the generated ~/.xinitrc"
 expect "cache + wallpaper: merge, re-apply, then dwm" \
@@ -152,74 +157,6 @@ if grep -qx 'BindsTo=graphical-session.target' "$unit" && grep -q 'dots-session.
     green "  ok: the unit binds graphical-session.target, and restore deploys the one the template starts"
 else
     red "  the unit, the template and the deploy line disagree about dots-session.target"
-    rc=1
-fi
-
-blue "==> report on an existing ~/.xinitrc"
-report() {
-    (
-        # Called indirectly from session_xinitrc_report. Both codes are
-        # disabled for the 0.10.0 rename - see tests/autostart-daemons.sh.
-        # shellcheck disable=SC2317,SC2329
-        green() { printf '%s\n' "$*"; }
-        # shellcheck disable=SC2317,SC2329
-        yellow() { printf '%s\n' "$*"; }
-        session_xinitrc_report "$1"
-    )
-}
-if grep -q -- '^ok ' <<<"$(report "$SB/xinitrc.shipped")"; then
-    green "  ok: the generated file is recognised"
-else
-    red "  the generated ~/.xinitrc is reported as not restoring the theme"
-    rc=1
-fi
-printf '#!/bin/sh\nexec dwm\n' >"$SB/old-xinitrc"
-out="$(report "$SB/old-xinitrc")"
-if grep -q -- 'never restores the dots theme' <<<"$out" && grep -q -- 'never starts dots-session.target' <<<"$out" \
-    && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
-    green "  ok: a pre-2026-10-05 ~/.xinitrc is reported, for both"
-else
-    red "  an ~/.xinitrc with neither step was NOT reported for both"
-    rc=1
-fi
-# What the installer generated between 2026-10-05 and 2026-10-06: the theme
-# block, no session target. Built from the shipped template, not by hand.
-{ sed '/^# Session end/,$d' "$SB/xinitrc.shipped" && echo 'exec dwm'; } >"$SB/pre-portal-xinitrc"
-out="$(report "$SB/pre-portal-xinitrc")"
-if ! grep -q 'dots-session.target' "$SB/pre-portal-xinitrc" && grep -q -- 'never starts dots-session.target' <<<"$out" \
-    && ! grep -q -- 'never restores the dots theme' <<<"$out"; then
-    green "  ok: a themed but pre-portal ~/.xinitrc gets only the session-target lines"
-else
-    red "  the pre-portal ~/.xinitrc report is wrong: $out"
-    rc=1
-fi
-
-# 2026-10-06 to 2026-10-07: a session target, no session-end step. Its exact
-# block is gone from the template, so only its marker is reproduced.
-{ sed '$d' "$SB/pre-portal-xinitrc" && printf '%s\n' \
-    'systemctl --user start dots-session.target && { dwm; exit 0; }' 'exec dwm'; } >"$SB/pre-cleanup-xinitrc"
-out="$(report "$SB/pre-cleanup-xinitrc")"
-# shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
-if grep -q -- 'never stops clipmenud at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x clipmenud' <<<"$out" \
-    && ! grep -q -- 'never starts dots-session.target' <<<"$out" && ! grep -q -- 'never restores' <<<"$out"; then
-    green "  ok: a pre-cleanup ~/.xinitrc gets only the session-end lines"
-else
-    red "  the pre-cleanup ~/.xinitrc report is wrong: $out"
-    rc=1
-fi
-
-# The paste lines live twice — printed by the installer, documented for anyone
-# who never re-runs it. Every printed line must appear in the doc's block.
-missing=0
-while IFS= read -r line; do
-    grep -qxF "$line" "$DOTS_DIR/docs/THEMING.md" || {
-        red "  docs/THEMING.md lacks the paste line: $line"
-        missing=1
-    }
-done < <(report "$SB/old-xinitrc" | sed -n '/never starts dots-session.target/,$p' | sed -n 's/^          //p')
-if ((missing == 0)); then
-    green "  ok: docs/THEMING.md carries every session-target paste line"
-else
     rc=1
 fi
 

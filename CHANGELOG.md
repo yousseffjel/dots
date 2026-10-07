@@ -110,6 +110,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- Logging out and quickly back in no longer leaves the bar empty (`dwm-6.8`)
+  and night light off. The previous session's `dwmblocks` and night-light
+  daemon outlived X for a while, so the new session found them, started
+  neither, and they died moments later. The generated `~/.xinitrc` now stops
+  both when the session ends; an existing one gets the updated block to paste.
 - The mouse cursor no longer changes shape between GTK apps such as Firefox
   and the rest of the desktop. The theme's cursor reached GTK only, so the
   wallpaper, the dwm bar, st and alacritty drew the X default. It is now also

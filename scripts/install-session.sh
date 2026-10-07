@@ -76,7 +76,14 @@ install_session_autostart() {
 # install-restore-theme.sh can only theme a running X session: apply the dark
 # theme once, which writes the cache for every later login. Bounded by timeout
 # so a wedged theme run delays the session instead of preventing it.
+#
+# Two parts, purely for the 60-line function cap; tests call only this one.
 session_xinitrc_template() {
+    session_xinitrc_template_theme
+    session_xinitrc_template_session
+}
+
+session_xinitrc_template_theme() {
     cat <<'EOF'
 #!/bin/sh
 # Started by startx, and by ly (its xinitrc session). dwm runs in the
@@ -109,16 +116,29 @@ elif [ -x "$HOME/.local/bin/dots" ]; then
 	fi
 fi
 unset dots_theme_cache
+EOF
+}
+
+# The session tail: the end-of-session cleanup, the systemd session target, dwm.
+session_xinitrc_template_session() {
+    cat <<'EOF'
 
 # Session end, however X ends: a signal is turned into a normal exit so the
 # EXIT trap runs, which is why dwm is never exec'd. clipmenud (autostart.sh)
 # holds no X connection — it is a shell loop over clipnotify and xsel — so it
 # outlives X, and from then on both fail instantly, forever, flooding the login
-# TTY. Every other autostart daemon is an X client and dies with the server.
+# TTY. dwm-nightlight's daemon is a shell loop too, and dwmblocks is an X
+# client that only notices the server is gone on its next bar write. Either one
+# surviving into the next login is worse than noise: autostart.sh starts each
+# only when it is not already running, finds the old copy, starts nothing, and
+# the old copy then dies — an empty bar ("dwm-6.8") and no night light. Every
+# other autostart daemon waits on its X connection and dies with the server.
 dots_session_target=
 dots_session_end() {
 	pkill -u "$(id -u)" -x clipmenud >/dev/null 2>&1
 	pkill -u "$(id -u)" -x clipnotify >/dev/null 2>&1
+	pkill -u "$(id -u)" -x dwmblocks >/dev/null 2>&1
+	pkill -u "$(id -u)" -f '/dwm-nightlight daemon$' >/dev/null 2>&1
 	[ -z "$dots_session_target" ] || systemctl --user stop dots-session.target >/dev/null 2>&1
 }
 trap dots_session_end EXIT

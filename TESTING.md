@@ -172,15 +172,20 @@ for adding CI; new docs you add are linted normally.
   `dots`, and asserts the theme step: merge the cache and run `~/.fehbg` when
   a cache exists, `dots theme dark` on a first login, and dwm in every case,
   including when the theme apply fails. Every exit path, a HUP included, must
-  end with `pkill` of `clipmenud` and `clipnotify`. With a fake `systemctl`, it also checks that
+  end with `pkill` of `clipmenud`, `clipnotify`, `dwmblocks` and the
+  night-light daemon. With a fake `systemctl`, it also checks that
   `dots-session.target` is started before dwm and stopped after it exits,
   including when the shell is HUP'd as a dying X server does. A failed start
-  still runs dwm. The paste lines for an existing `~/.xinitrc` must all
-  appear in `docs/THEMING.md`. A pre-portal `.xinitrc`, derived from the
-  shipped template, gets only those lines. So does a 2026-10-06 one that
-  starts the target but has no session-end step. The host's `/etc/X11/xinit/xinitrc.d` is
-  swapped for an empty dir in the copy that runs, so its fragments are never
-  sourced.
+  still runs dwm. The host's `/etc/X11/xinit/xinitrc.d` is swapped for an
+  empty dir in the copy that runs, so its fragments are never sourced.
+- **`tests/xinitrc-report.sh`** — split out of `xinitrc-theme.sh` at the
+  250-line cap: what the installer prints for a `~/.xinitrc` the user already
+  has. Each earlier generation of the file — pre-portal, a 2026-10-06 one with
+  no session-end step, one whose session end stops only `clipmenud` — is
+  rebuilt from the shipped template and must get only the block it lacks, and
+  every session paste line must appear in `docs/THEMING.md`. Also holds the
+  night-light `pkill -f` pattern equal to `dwm-nightlight`'s own
+  `DAEMON_PATTERN`; a drifted pattern would match nothing, silently.
 - **`tests/tmux-tpm-lockstep.sh`** — the TPM plugin directory is derived in
   two places, `TPM_DIR` in `scripts/install-restore.sh` (which pre-clones it)
   and `config/tmux/conf.d/30-plugins.conf` (which tells tmux where to look).
