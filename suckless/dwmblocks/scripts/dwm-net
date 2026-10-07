@@ -10,7 +10,7 @@
 # The Wi-Fi signal is read with `--rescan no`. A plain `nmcli device wifi`
 # may trigger a scan, which takes seconds and would run every 30 s here.
 #
-# Left-click opens nmtui in a terminal.
+# Left-click opens nmtui in a terminal that dwm floats (class dots-nmtui).
 #
 # DWM_NET_SYSFS overrides /sys/class/net, for tests/dwm-net.sh only.
 
@@ -32,13 +32,14 @@ sysfs="${DWM_NET_SYSFS:-/sys/class/net}"
 
 case "$BUTTON" in
 1)
+	# dots-nmtui is the class dwm's rules[] floats it by
+	# (suckless/dwm/config.def.h). alacritty and st spell the flag differently.
 	if command -v nmtui >/dev/null 2>&1; then
-		for term in alacritty st; do
-			if command -v "$term" >/dev/null 2>&1; then
-				"$term" -e nmtui >/dev/null 2>&1 &
-				break
-			fi
-		done
+		if command -v alacritty >/dev/null 2>&1; then
+			alacritty --class dots-nmtui -e nmtui >/dev/null 2>&1 &
+		elif command -v st >/dev/null 2>&1; then
+			st -c dots-nmtui -e nmtui >/dev/null 2>&1 &
+		fi
 	fi
 	;;
 esac

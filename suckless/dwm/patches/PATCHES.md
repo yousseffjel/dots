@@ -11,6 +11,60 @@ xresources patch onward.
 2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
 are mutually exclusive — see that entry.
 
+## dwm-preserveonrestart-20261007-local.diff
+
+**Source**: modelled on the upstream preserveonrestart patch
+(`dwm.suckless.org/patches/preserveonrestart/`), written against this tree
+rather than applied — "local" for the same reason as the entries below. It
+differs from upstream on purpose:
+
+- **Saved once, on the restart path** (`savestate()` just before `execvp()` in
+  `main()`), not on every tag change. Upstream writes `_NET_CLIENT_INFO` from
+  each function that mutates `c->tags`; with dynamicscratchpads that is half
+  a dozen call sites, and every future one would need remembering.
+- **Private atoms, not advertised**: `_DWM_CLIENT_INFO` per window and
+  `_DWM_VIEW` on the root. Upstream's `_NET_CLIENT_INFO` is not an EWMH atom
+  and does not belong in `_NET_SUPPORTED`.
+- **More state**: tags, monitor, floating flag and floating geometry per
+  window (upstream: tags and monitor), plus each monitor's view, the selected
+  monitor and the focused window. The view is restored through `view()`, so
+  pertag's per-tag layout and mfact follow it.
+- **Read once**: both properties are fetched with `delete = True`.
+
+**Why**: `scripts/theme/reload.sh` SIGHUPs dwm on every wallpaper change and
+theme switch (restartsig re-exec). Without this, `scan()` re-managed every
+window through `applyrules()`, which knows nothing about the old instance:
+all windows piled onto the starting view, stashed scratchpads came back out,
+floating windows were tiled and focus was lost. `tests/dwm-runtime.sh`
+(`check_preserve`, in `tests/lib/dwm-runtime-restart.sh`) failed 7/7 on the
+tree before this diff and passes 7/7 after it.
+
+**Interactions**: SCRATCHPAD_MASK (dynamicscratchpads) is accepted as a saved
+tag set on its own; any other value must lie inside TAGMASK, or the window
+keeps what `applyrules()` gave it. Floating geometry is restored before
+`manage()`'s clamp, so an off-screen position still lands on the monitor.
+
+## dwm-dropterm-20261007-local.diff
+
+**Source**: written for this tree, no upstream patch. Builds on
+dynamicscratchpads instead of the retired static `scratchpads`, so the two
+mutually exclusive tag bits stay one.
+
+**What**: `dropterm()` on `Mod4+grave` — spawn `droptermcmd` when no client is
+marked `isdropterm`; stash it (SCRATCHPAD_MASK) when it is showing and focused;
+otherwise move it to the focused monitor's view, re-place it top-centre
+(`droptermgeom()`, sized by `droptermw`/`droptermh`) and focus it.
+`applyrules()` marks the client when its class OR instance equals
+`droptermclass`, because terminals differ in which one their class flag sets,
+and makes it floating without a `rules[]` entry.
+
+**Interactions**: while stashed it is an ordinary scratchpad client, so
+`Alt+minus` cycles it with the rest and preserveonrestart keeps it stashed
+across a restart (diff above — apply that one first; this diff's `manage()`
+hunk reads its `loadclientinfo()` return value). Super is sxhkd's space
+except for dwm's three Super chords (`Shift+x`, `v`, `grave`) — keep
+`config/sxhkd/sxhkdrc` off them.
+
 ## dwm-dynamicscratchpads-20260807-local.diff
 
 **Source**: adapted from the upstream dynamicscratchpads patch

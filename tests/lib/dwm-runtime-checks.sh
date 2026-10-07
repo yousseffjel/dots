@@ -148,28 +148,13 @@ check_pertag() {
 # none, so the restart never happened and the section always warned — which
 # was wrongly blamed on signal delivery in the sandbox.
 #
-# How a restart is detected: delete root's _NET_SUPPORTING_WM_CHECK BEFORE
-# the kill, then wake dwm with a throwaway root property, and wait for the
-# check property to come back. Only setup() sets it, so it reappears only
-# once a fresh instance has re-initialised. The order matters: deleting after
-# the kill would race any stray event that restarts dwm first — the delete
-# would then remove the NEW instance's property and fail a good run. Comparing the check window's ID
-# before and after does NOT work: execvp() keeps the PID, the old X
-# connection closes on exec, and the new one usually gets the same client
-# slot — so the new check window often has the very same ID (2 of 3
-# container runs, 2026-10-06).
+# The restart itself, and how its completion is detected, is restart_dwm
+# in dwm-runtime-x.sh.
 check_restartsig() {
     local color_b="#654321" win2 got
     blue "==> restartsig (SIGHUP reload)"
     printf 'dwm.selbordercolor: %s\n' "$color_b" | xrdb -merge -
-    xprop -root -remove _NET_SUPPORTING_WM_CHECK
-    kill -HUP "$DWM_PID"
-    xprop -root -f _DOTS_TEST_WAKE 8s -set _DOTS_TEST_WAKE 1
-    for _ in $(seq 1 50); do
-        xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+' && break
-        sleep 0.1
-    done
-    if ! xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+'; then
+    if ! restart_dwm; then
         fail "SIGHUP never triggered a restart (_NET_SUPPORTING_WM_CHECK never came back)"
         return 0
     fi

@@ -53,9 +53,23 @@ static const Rule rules[] = {
 	 *	WM_CLASS(STRING) = instance, class
 	 *	WM_NAME(STRING) = title
 	 */
-	/* class      instance    title       tags mask     isfloating   isfullscreen   monitor */
-	{ "Gimp",     NULL,       NULL,       0,            1,           0,             -1 },
-	{ "Firefox",  NULL,       NULL,       1 << 8,       0,           0,             -1 },
+	/* Classes below were read with xprop on Fedora 44 (2026-10-07), not
+	 * guessed; matching is strstr() and case-sensitive. A tool that opens a
+	 * _NET_WM_WINDOW_TYPE_DIALOG window (blueman-manager, the lxpolkit
+	 * prompt) floats without a rule — updatewindowtype() does it. The
+	 * drop-down terminal (droptermclass) floats in applyrules() itself.
+	 *
+	 * There is deliberately no Firefox rule. The stock one sent "Firefox" to
+	 * tag 9, but Firefox's class is "org.mozilla.firefox", so it never
+	 * matched — and Firefox opening where you are is the wanted behaviour. */
+	/* class                   instance  title  tags mask  isfloating  isfullscreen  monitor */
+	{ "Gimp",                  NULL,     NULL,  0,         1,          0,            -1 },
+	{ "pavucontrol",           NULL,     NULL,  0,         1,          0,            -1 },
+	{ "Gpick",                 NULL,     NULL,  0,         1,          0,            -1 },
+	{ "org.gnome.FileRoller",  NULL,     NULL,  0,         1,          0,            -1 },
+	{ "Nm-connection-editor",  NULL,     NULL,  0,         1,          0,            -1 },
+	/* nmtui, opened by a left-click on the NET block (dwmblocks/scripts/dwm-net) */
+	{ "dots-nmtui",            NULL,     NULL,  0,         1,          0,            -1 },
 };
 
 /* layout(s) */
@@ -101,6 +115,14 @@ static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont,
 static const char *termcmd[]  = { "alacritty", NULL };
 static const char *powermenucmd[] = { "dwm-powermenu", NULL };
 static const char *clipmenucmd[]  = { "dwm-clipmenu", NULL };
+/* dropterm: Super+grave toggles one drop-down terminal, spawning it the
+ * first time. dwm finds it again by this class (dwm.c applyrules()), so the
+ * name must be the one droptermcmd passes. Size is a fraction of the
+ * monitor's window area; it hangs from the top edge, centred. */
+static const char droptermclass[] = "dots-dropterm";
+static const float droptermw = 0.6f;
+static const float droptermh = 0.45f;
+static const char *droptermcmd[] = { "alacritty", "--class", droptermclass, NULL };
 
 /* --- keybinds that are NOT here ---------------------------------------
  * Media, volume, mic, brightness, the theming engine (wallpaper select /
@@ -169,6 +191,7 @@ static const Key keys[] = {
 	{ MODKEY|ControlMask|ShiftMask, XK_q,      quit,           {1} },
 	{ Mod4Mask|ShiftMask,           XK_x,      spawn,          {.v = powermenucmd } },
 	{ Mod4Mask,                     XK_v,      spawn,          {.v = clipmenucmd } },
+	{ Mod4Mask,                     XK_grave,  dropterm,       {.v = droptermcmd } },
 };
 
 /* button definitions */

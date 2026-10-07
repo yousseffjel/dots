@@ -38,6 +38,7 @@ rebuild — see the note under Launching.
 | `Mod` + `Shift` + `Return` | Terminal (`alacritty`) |
 | `Super` + `Shift` + `x` | Power menu (`dwm-powermenu`) |
 | `Super` + `v` | Clipboard history (`dwm-clipmenu`) |
+| `Super` + `grave` | Drop-down terminal (see Scratchpads) |
 
 **st is still installed** as the fallback terminal for a machine with no
 working GL — alacritty is GPU-accelerated and will refuse to start without
@@ -102,6 +103,7 @@ applications.
 | `Mod` + `Shift` + `-` | Stash the focused window into the scratchpad |
 | `Mod` + `-` | Show / hide the current scratchpad window; keep pressing to cycle |
 | `Mod` + `=` | Drop the current window out of the scratchpad set |
+| `Super` + `grave` | Drop-down terminal: show / hide it; the first press starts it |
 
 A stashed window is hidden from every tag — its whole tag set becomes a
 single reserved bit above the nine real tags, so no ordinary tag view brings
@@ -131,6 +133,22 @@ Two behaviours worth knowing, both inherited from the upstream patch:
 - **The cycle is per-monitor.** Stashed windows are looked up in the current
   monitor's client list, so a window stashed on one monitor is not reachable
   by `Mod` + `-` from another. Stash and restore on the same monitor.
+
+**The drop-down terminal** (`Super` + `grave`, the key left of `1`) is one
+alacritty window with class `dots-dropterm`, hanging from the top of the
+screen, 60% wide. The first press starts it; after that the same key stashes
+it when it is showing and focused, and otherwise brings it to the current tag
+— from any monitor — and focuses it. While stashed it is an ordinary
+scratchpad window, so `Mod` + `-` cycles it with the others. Its size and the
+terminal it runs are `droptermw`, `droptermh` and `droptermcmd` in
+`config.def.h`.
+
+**A dwm restart keeps all of this.** A wallpaper change or theme switch
+restarts dwm (`kill -HUP`), and so does `Mod` + `Ctrl` + `Shift` + `q`. Each
+window keeps its tags, monitor and floating size, stashed windows stay
+stashed, and the tag you were viewing and the focused window come back
+(`preserveonrestart`, 2026-10-07). Before that, every restart piled all
+windows onto tag 1 and un-stashed the scratchpads.
 
 > **Changed 2026-08-07.** This replaces three fixed scratchpads that spawned
 > pre-declared commands: `Mod`+`y` (an `st` terminal), `Mod`+`u` (`ranger`)

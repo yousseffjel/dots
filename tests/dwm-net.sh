@@ -12,6 +12,8 @@
 #     back to the kernel's operstate, skipping lo;
 #   * the Wi-Fi signal is read with `--rescan no` — a scan every 30 s would
 #     stall the bar for seconds.
+#   * a left-click opens nmtui with class dots-nmtui — the class dwm's
+#     rules[] floats — in alacritty, or st when alacritty is absent.
 #
 # The fake nmcli output copies the real `-t` shape: ':'-separated fields, a
 # literal ':' inside a field escaped as '\:', loopback reported as
@@ -111,6 +113,27 @@ blue "nothing connected"
 printf '%s\n' 'ethernet:unavailable:' 'wifi:disconnected:' 'loopback:connected (externally):lo' >"$SB/status"
 net
 check "loopback does not count" is "NET off"
+
+blue "left-click"
+# shellcheck disable=SC2016
+for t in alacritty st nmtui; do fake "$SB/fake" "$t" 'echo "${0##*/} $*" >>"$LOG"'; done
+# click — the block run as dwmblocks runs it on a left-click; the terminal is
+# backgrounded, so wait for its line rather than racing it.
+click() {
+    : >"$LOG"
+    env -i HOME="$SB/home" BUTTON=1 LOG="$LOG" DWM_NET_SYSFS="$SB/sys" \
+        PATH="$SB/fake:$SB/real" /bin/sh "$SUT" >/dev/null 2>&1
+    for _ in $(seq 1 20); do
+        grep -q nmtui "$LOG" && break
+        sleep 0.05
+    done
+    OUT="$(grep -v '^nmcli' "$LOG" || true)"
+}
+click
+check "alacritty, with the class dwm floats" is "alacritty --class dots-nmtui -e nmtui"
+rm "$SB/fake/alacritty"
+click
+check "st fallback, same class via -c" is "st -c dots-nmtui -e nmtui"
 
 blue "fallbacks"
 : >"$SB/status"

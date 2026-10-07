@@ -1,0 +1,131 @@
+--- a/suckless/dwm/config.def.h
++++ b/suckless/dwm/config.def.h
+@@ -101,6 +101,14 @@
+ static const char *termcmd[]  = { "alacritty", NULL };
+ static const char *powermenucmd[] = { "dwm-powermenu", NULL };
+ static const char *clipmenucmd[]  = { "dwm-clipmenu", NULL };
++/* dropterm: Super+grave toggles one drop-down terminal, spawning it the
++ * first time. dwm finds it again by this class (dwm.c applyrules()), so the
++ * name must be the one droptermcmd passes. Size is a fraction of the
++ * monitor's window area; it hangs from the top edge, centred. */
++static const char droptermclass[] = "dots-dropterm";
++static const float droptermw = 0.6f;
++static const float droptermh = 0.45f;
++static const char *droptermcmd[] = { "alacritty", "--class", droptermclass, NULL };
+ 
+ /* --- keybinds that are NOT here ---------------------------------------
+  * Media, volume, mic, brightness, the theming engine (wallpaper select /
+@@ -169,6 +177,7 @@
+ 	{ MODKEY|ControlMask|ShiftMask, XK_q,      quit,           {1} },
+ 	{ Mod4Mask|ShiftMask,           XK_x,      spawn,          {.v = powermenucmd } },
+ 	{ Mod4Mask,                     XK_v,      spawn,          {.v = clipmenucmd } },
++	{ Mod4Mask,                     XK_grave,  dropterm,       {.v = droptermcmd } },
+ };
+ 
+ /* button definitions */
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -111,6 +111,7 @@
+ 	int bw, oldbw;
+ 	unsigned int tags;
+ 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
++	int isdropterm;
+ 	Client *next;
+ 	Client *snext;
+ 	Monitor *mon;
+@@ -194,6 +195,8 @@
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
++static void dropterm(const Arg *arg);
++static void droptermgeom(Client *c);
+ static void drawbar(Monitor *m);
+ static void drawbars(void);
+ static int drawstatusbar(Monitor *m, int bh, char* text);
+@@ -382,6 +385,11 @@
+ 	XGetClassHint(dpy, c->win, &ch);
+ 	class    = ch.res_class ? ch.res_class : broken;
+ 	instance = ch.res_name  ? ch.res_name  : broken;
++	/* dropterm: recognised by class OR instance, since terminals differ in
++	 * which one their --class/-c flag sets. Always floating, never a rule. */
++	c->isdropterm = !strcmp(class, droptermclass) || !strcmp(instance, droptermclass);
++	if (c->isdropterm)
++		c->isfloating = 1;
+ 
+ 	for (i = 0; i < LENGTH(rules); i++) {
+ 		r = &rules[i];
+@@ -391,7 +399,7 @@
+ 		{
+ 			isfullscreen = r->isfullscreen;
+ 			
+-			c->isfloating = r->isfloating;
++			c->isfloating = r->isfloating || c->isdropterm;
+ 			c->tags |= r->tags;
+ 
+ 			for (m = mons; m && m->num != r->monitor; m = m->next);
+@@ -1035,6 +1043,54 @@
+ 	return ret;
+ }
+ 
++/* dropterm: one terminal toggled in and out of the dynamic scratchpad.
++ * None running -> spawn it (applyrules() marks it when it maps). Showing
++ * and focused -> stash it as SCRATCHPAD_MASK, exactly as scratchpad_hide()
++ * would. Otherwise -> bring it to the focused monitor's current view, back
++ * in its drop-down position, and focus it. Because it is an ordinary
++ * scratchpad client while stashed, Alt+minus cycles it too and
++ * preserveonrestart keeps it stashed across a restart. */
++void
++dropterm(const Arg *arg)
++{
++	Client *c = NULL;
++	Monitor *m;
++
++	for (m = mons; m && !c; m = m->next)
++		for (c = m->clients; c && !c->isdropterm; c = c->next);
++	if (!c) {
++		spawn(arg);
++		return;
++	}
++	if (c == selmon->sel && ISVISIBLE(c)) {
++		c->tags = SCRATCHPAD_MASK;
++		focus(NULL);
++		arrange(c->mon);
++		return;
++	}
++	if (c->mon != selmon)
++		sendmon(c, selmon);
++	c->tags = selmon->tagset[selmon->seltags];
++	c->isfloating = 1;
++	droptermgeom(c);
++	focus(c);
++	arrange(selmon);
++}
++
++/* Top-centre of the client's monitor, sized by droptermw/droptermh. Sets the
++ * fields only; the next arrange() -> showhide() -> resize() applies them. */
++void
++droptermgeom(Client *c)
++{
++	Monitor *m = c->mon;
++	int w = m->ww * droptermw, h = m->wh * droptermh;
++
++	c->w = w - 2 * borderpx;
++	c->h = h - 2 * borderpx;
++	c->x = m->wx + (m->ww - w) / 2;
++	c->y = m->wy;
++}
++
+ void
+ drawbar(Monitor *m)
+ {
+@@ -1481,7 +1537,9 @@
+ 		c->mon = selmon;
+ 		applyrules(c);
+ 	}
+-	loadclientinfo(c);
++	/* A dropterm with no saved geometry is a fresh spawn: place it. */
++	if (!loadclientinfo(c) && c->isdropterm)
++		droptermgeom(c);
+ 
+ 	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww)
+ 		c->x = c->mon->wx + c->mon->ww - WIDTH(c);

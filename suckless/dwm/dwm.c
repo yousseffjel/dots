@@ -80,6 +80,7 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
 enum { Manager, Xembed, XembedInfo, XLast }; /* Xembed atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+enum { DwmClientInfo, DwmView, DwmLast }; /* preserveonrestart atoms */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
 enum XResType { STRING, INTEGER, FLOAT }; /* xresources value types */
@@ -110,6 +111,7 @@ struct Client {
 	int bw, oldbw;
 	unsigned int tags;
 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+	int isdropterm;
 	Client *next;
 	Client *snext;
 	Monitor *mon;
@@ -193,6 +195,8 @@ static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
+static void dropterm(const Arg *arg);
+static void droptermgeom(Client *c);
 static void drawbar(Monitor *m);
 static void drawbars(void);
 static int drawstatusbar(Monitor *m, int bh, char* text);
@@ -212,6 +216,7 @@ static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
 static void incnmaster(const Arg *arg);
 static void keypress(XEvent *e);
+static int loadclientinfo(Client *c);
 static void killclient(const Arg *arg);
 static void manage(Window w, XWindowAttributes *wa);
 static void mappingnotify(XEvent *e);
@@ -231,7 +236,10 @@ static void resizeclient(Client *c, int x, int y, int w, int h);
 static void resizemouse(const Arg *arg);
 static void resizerequest(XEvent *e);
 static void restack(Monitor *m);
+static void restorestate(void);
 static void run(void);
+static void saveclientinfo(Client *c);
+static void savestate(void);
 static void runautostart(void);
 static void scan(void);
 static void scratchpad_hide(const Arg *arg);
@@ -325,7 +333,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
 	[ResizeRequest] = resizerequest,
 	[UnmapNotify] = unmapnotify
 };
-static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast];
+static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast], dwmatom[DwmLast];
 static int restart = 0;
 static int running = 1;
 static Cur *cursor[CurLast];
@@ -377,6 +385,11 @@ applyrules(Client *c)
 	XGetClassHint(dpy, c->win, &ch);
 	class    = ch.res_class ? ch.res_class : broken;
 	instance = ch.res_name  ? ch.res_name  : broken;
+	/* dropterm: recognised by class OR instance, since terminals differ in
+	 * which one their --class/-c flag sets. Always floating, never a rule. */
+	c->isdropterm = !strcmp(class, droptermclass) || !strcmp(instance, droptermclass);
+	if (c->isdropterm)
+		c->isfloating = 1;
 
 	for (i = 0; i < LENGTH(rules); i++) {
 		r = &rules[i];
@@ -386,7 +399,7 @@ applyrules(Client *c)
 		{
 			isfullscreen = r->isfullscreen;
 			
-			c->isfloating = r->isfloating;
+			c->isfloating = r->isfloating || c->isdropterm;
 			c->tags |= r->tags;
 
 			for (m = mons; m && m->num != r->monitor; m = m->next);
@@ -1030,6 +1043,54 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	return ret;
 }
 
+/* dropterm: one terminal toggled in and out of the dynamic scratchpad.
+ * None running -> spawn it (applyrules() marks it when it maps). Showing
+ * and focused -> stash it as SCRATCHPAD_MASK, exactly as scratchpad_hide()
+ * would. Otherwise -> bring it to the focused monitor's current view, back
+ * in its drop-down position, and focus it. Because it is an ordinary
+ * scratchpad client while stashed, Alt+minus cycles it too and
+ * preserveonrestart keeps it stashed across a restart. */
+void
+dropterm(const Arg *arg)
+{
+	Client *c = NULL;
+	Monitor *m;
+
+	for (m = mons; m && !c; m = m->next)
+		for (c = m->clients; c && !c->isdropterm; c = c->next);
+	if (!c) {
+		spawn(arg);
+		return;
+	}
+	if (c == selmon->sel && ISVISIBLE(c)) {
+		c->tags = SCRATCHPAD_MASK;
+		focus(NULL);
+		arrange(c->mon);
+		return;
+	}
+	if (c->mon != selmon)
+		sendmon(c, selmon);
+	c->tags = selmon->tagset[selmon->seltags];
+	c->isfloating = 1;
+	droptermgeom(c);
+	focus(c);
+	arrange(selmon);
+}
+
+/* Top-centre of the client's monitor, sized by droptermw/droptermh. Sets the
+ * fields only; the next arrange() -> showhide() -> resize() applies them. */
+void
+droptermgeom(Client *c)
+{
+	Monitor *m = c->mon;
+	int w = m->ww * droptermw, h = m->wh * droptermh;
+
+	c->w = w - 2 * borderpx;
+	c->h = h - 2 * borderpx;
+	c->x = m->wx + (m->ww - w) / 2;
+	c->y = m->wy;
+}
+
 void
 drawbar(Monitor *m)
 {
@@ -1393,6 +1454,48 @@ keypress(XEvent *e)
 			keys[i].func(&(keys[i].arg));
 }
 
+/* preserveonrestart: take back what savestate() recorded on this window
+ * before the previous instance re-exec'd. The property is deleted as it is
+ * read, so it can never outlive the restart it was written for. A window
+ * with no record (every newly opened one) keeps what applyrules() gave it.
+ * Returns 1 when a record was applied. */
+int
+loadclientinfo(Client *c)
+{
+	Atom type;
+	int format, applied = 0;
+	unsigned long n, extra, saved;
+	unsigned char *p = NULL;
+	long *d;
+	Monitor *m;
+
+	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 7L, True,
+		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
+		return 0;
+	if (type == XA_CARDINAL && format == 32 && n == 7) {
+		d = (long *)p;
+		saved = (unsigned long)d[0];
+		/* A stash is SCRATCHPAD_MASK alone; anything else must be real tags. */
+		if (saved == SCRATCHPAD_MASK || (saved & TAGMASK && !(saved & ~TAGMASK)))
+			c->tags = saved;
+		for (m = mons; m && m->num != d[1]; m = m->next);
+		if (m)
+			c->mon = m;
+		/* Any client can write this property on its own window, so a
+		 * geometry that could not have come from savestate() is ignored. */
+		if (d[2] && d[5] > 0 && d[6] > 0) {
+			c->isfloating = 1;
+			c->x = d[3];
+			c->y = d[4];
+			c->w = d[5];
+			c->h = d[6];
+		}
+		applied = 1;
+	}
+	XFree(p);
+	return applied;
+}
+
 void
 killclient(const Arg *arg)
 {
@@ -1434,6 +1537,9 @@ manage(Window w, XWindowAttributes *wa)
 		c->mon = selmon;
 		applyrules(c);
 	}
+	/* A dropterm with no saved geometry is a fresh spawn: place it. */
+	if (!loadclientinfo(c) && c->isdropterm)
+		droptermgeom(c);
 
 	if (c->x + WIDTH(c) > c->mon->wx + c->mon->ww)
 		c->x = c->mon->wx + c->mon->ww - WIDTH(c);
@@ -1832,6 +1938,46 @@ restack(Monitor *m)
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
+/* preserveonrestart: bring back the view each monitor showed, the selected
+ * monitor and the focused window, as savestate() left them on the root
+ * window. Runs once, after scan() has re-managed every window. */
+void
+restorestate(void)
+{
+	Atom type;
+	int format;
+	unsigned long n, extra, i;
+	unsigned char *p = NULL;
+	long *d;
+	Monitor *m;
+	Client *c;
+
+	if (XGetWindowProperty(dpy, root, dwmatom[DwmView], 0L, 64L, True,
+		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
+		return;
+	if (type == XA_CARDINAL && format == 32 && n >= 2) {
+		d = (long *)p;
+		/* Through view(), not by assigning tagset: pertag keys its per-tag
+		 * layout and mfact off the view it is told about. */
+		for (m = mons, i = 2; m && i < n; m = m->next, i++) {
+			/* view() reads an empty set as "toggle back", so skip it. */
+			if (!((unsigned long)d[i] & TAGMASK))
+				continue;
+			selmon = m;
+			view(&((Arg) { .ui = (unsigned int)d[i] & TAGMASK }));
+		}
+		for (m = mons; m && m->num != d[0]; m = m->next);
+		selmon = m ? m : mons;
+		if ((c = wintoclient((Window)d[1])) && ISVISIBLE(c)) {
+			focus(c);
+			restack(c->mon);
+		} else {
+			focus(NULL);
+		}
+	}
+	XFree(p);
+}
+
 void
 run(void)
 {
@@ -1920,6 +2066,50 @@ runautostart(void)
 
 	free(pathpfx);
 	free(path);
+}
+
+/* preserveonrestart: record a window's tags, monitor and floating geometry
+ * on the window itself, where the next instance's manage() finds it. */
+void
+saveclientinfo(Client *c)
+{
+	long data[] = { (long)c->tags, c->mon->num, c->isfloating,
+		c->x, c->y, c->w, c->h };
+
+	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)data, LENGTH(data));
+}
+
+/* preserveonrestart: called on the restart path only, just before execvp().
+ * Every SIGHUP restart (scripts/theme/reload.sh sends one on each wallpaper
+ * change) used to hand the next instance nothing, so scan() put every window
+ * on the starting view, un-stashed scratchpads, re-tiled floating windows and
+ * dropped focus. The root property holds the selected monitor, the focused
+ * window, then each monitor's view in list order. */
+void
+savestate(void)
+{
+	Monitor *m;
+	Client *c;
+	unsigned long n = 2, i = 2;
+	long *v;
+
+	for (m = mons; m; m = m->next) {
+		n++;
+		for (c = m->clients; c; c = c->next)
+			saveclientinfo(c);
+	}
+	v = ecalloc(n, sizeof(long));
+	v[0] = selmon->num;
+	v[1] = selmon->sel ? (long)selmon->sel->win : 0;
+	for (m = mons; m; m = m->next)
+		v[i++] = m->tagset[m->seltags];
+	XChangeProperty(dpy, root, dwmatom[DwmView], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)v, n);
+	free(v);
+	/* execvp() follows: anything still buffered would be lost with the
+	 * connection. */
+	XSync(dpy, False);
 }
 
 void
@@ -2223,6 +2413,9 @@ setup(void)
 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+	/* preserveonrestart: private, so deliberately not in _NET_SUPPORTED */
+	dwmatom[DwmClientInfo] = XInternAtom(dpy, "_DWM_CLIENT_INFO", False);
+	dwmatom[DwmView] = XInternAtom(dpy, "_DWM_VIEW", False);
 	xatom[Manager] = XInternAtom(dpy, "MANAGER", False);
 	xatom[Xembed] = XInternAtom(dpy, "_XEMBED", False);
 	xatom[XembedInfo] = XInternAtom(dpy, "_XEMBED_INFO", False);
@@ -3115,9 +3308,13 @@ main(int argc, char *argv[])
 		die("pledge");
 #endif /* __OpenBSD__ */
 	scan();
+	restorestate();
 	runautostart();
 	run();
-	if(restart) execvp(argv[0], argv);
+	if(restart) {
+		savestate();
+		execvp(argv[0], argv);
+	}
 	cleanup();
 	XCloseDisplay(dpy);
 	return EXIT_SUCCESS;

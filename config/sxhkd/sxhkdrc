@@ -8,12 +8,13 @@
 #   dwm   (suckless/dwm/config.def.h, compiled in) — window management:
 #         tags, layouts, focus, monitors, scratchpads, quit/restart, plus
 #         Mod+p (dmenu), Mod+Shift+Return (terminal), Super+Shift+x
-#         (powermenu) and Super+v (clipmenu).
+#         (powermenu), Super+v (clipmenu) and Super+grave (the drop-down
+#         terminal, a dwm function rather than a spawn).
 #   sxhkd (this file, reloadable) — everything else: media, volume, mic,
 #         brightness, theming, screenshots, app launchers.
 #
 # Every binding here is an XF86* media key, or Print, or lives in the Super
-# space avoiding the two Super chords dwm already owns. Before adding a
+# space avoiding the three Super chords dwm already owns. Before adding a
 # binding, check it against keys[] in config.def.h.
 #
 # Changing dwm's bindings needs a recompile; changing this file needs only
@@ -172,7 +173,7 @@ super + d
 # --- help --------------------------------------------------------------
 # Every keybinding in a searchable dmenu list, read from KEYBINDINGS.md.
 # Super+/ checked free against both grabbers (dwm's only Super keys are
-# Shift+x and v).
+# Shift+x, v and grave).
 super + slash
 	dwm-keys
 

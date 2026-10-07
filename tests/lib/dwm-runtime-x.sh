@@ -95,17 +95,61 @@ border_pixel() {
     "$MAGICK" "$TMP/px.png" -format '%[hex:p{0,0}]' info: 2>/dev/null | tr 'a-f' 'A-F'
 }
 
-# Width of the focused window. Falls back to 0 rather than an empty string on
-# any failure, so a broken xdotool call surfaces as a clear FAIL comparison
-# instead of an opaque arithmetic error aborting the whole script under set -e.
+# Width of the focused window (see win_width for the 0 fallback).
 master_width() {
-    local w
-    w="$(xdotool getactivewindow getwindowgeometry --shell 2>/dev/null | awk -F= '/^WIDTH/{print $2}')"
-    printf '%s' "${w:-0}"
+    win_width "$(xdotool getactivewindow 2>/dev/null || true)"
 }
 
 # Upper-cased "#RRGGBB" -> "RRGGBB", the shape border_pixel prints.
 hex_of() {
     local want="${1#\#}"
     printf '%s' "${want^^}"
+}
+
+# SIGHUPs dwm the way scripts/theme/reload.sh does and waits until the
+# re-exec'd instance has run setup(). Returns 1 if it never came back.
+#
+# How a restart is detected: delete root's _NET_SUPPORTING_WM_CHECK BEFORE
+# the kill, then wake dwm with a throwaway root property, and wait for the
+# check property to come back. Only setup() sets it, so it reappears only
+# once a fresh instance has re-initialised. The order matters: deleting after
+# the kill would race any stray event that restarts dwm first — the delete
+# would then remove the NEW instance's property and fail a good run.
+# Comparing the check window's ID before and after does NOT work: execvp()
+# keeps the PID, the old X connection closes on exec, and the new one usually
+# gets the same client slot — so the new check window often has the very
+# same ID (2 of 3 container runs, 2026-10-06).
+#
+# The wake is needed because dwm acts on SIGHUP only at its NEXT X event (see
+# check_restartsig). setup() runs BEFORE scan(), so a caller that inspects
+# recovered windows must still poll for them to settle.
+restart_dwm() {
+    xprop -root -remove _NET_SUPPORTING_WM_CHECK
+    kill -HUP "$DWM_PID"
+    xprop -root -f _DOTS_TEST_WAKE 8s -set _DOTS_TEST_WAKE 1
+    for _ in $(seq 1 50); do
+        xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+' && return 0
+        sleep 0.1
+    done
+    return 1
+}
+
+# True when dwm is showing <win>: mapped, and not parked off-screen. dwm hides
+# a window that is not on the current view by moving it to x = -2 * width
+# (showhide()), it never unmaps it — so map state alone says nothing.
+is_shown() {
+    local info x
+    info="$(xwininfo -id "$1" 2>/dev/null)" || return 1
+    grep -q 'Map State: IsViewable' <<<"$info" || return 1
+    x="$(awk -F: '/Absolute upper-left X/{gsub(/ /,"",$2); print $2}' <<<"$info")"
+    ((${x:--1} >= 0))
+}
+
+# Width of <win> in pixels. Falls back to 0 rather than an empty string on
+# any failure, so a broken xdotool call surfaces as a clear FAIL comparison
+# instead of an opaque arithmetic error aborting the whole script under set -e.
+win_width() {
+    local w
+    w="$(xdotool getwindowgeometry --shell "$1" 2>/dev/null | awk -F= '/^WIDTH/{print $2}')"
+    printf '%s' "${w:-0}"
 }
