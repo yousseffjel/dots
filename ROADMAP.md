@@ -312,7 +312,7 @@ mpv                       # media player
 | `x11/.xinitrc` | Session startup | `xrdb -merge`, autostart, `exec dwm` (loop for restart) |
 | `x11/.Xresources` | Colors, fonts, DPI | Read by dwm/st via xresources patch; pywal writes here |
 | `x11/.xprofile` | Env vars | `QT_QPA_PLATFORMTHEME=qt5ct`, locale, PATH |
-| `x11/autostart.sh` | Autostart daemons | ✅ wired, written by `scripts/install-session-template.sh`. **The `DAEMONS` array in `tests/autostart-daemons.sh` is the list** — it is not restated here, because the count in this cell said "six" long after it was nine. `dunst` needs no line: D-Bus activates it. Deliberately still unwired: `~/.fehbg` (the theming engine sets the wallpaper instead), nm-applet, redshift. |
+| `x11/autostart.sh` | Autostart daemons | ✅ wired, written by `scripts/install-session-template*.sh`. **The `DAEMONS` array in `tests/autostart-daemons.sh` is the list** — it is not restated here, because the count in this cell said "six" long after it was nine. `dunst` needs no line: D-Bus activates it. Deliberately still unwired: `~/.fehbg` (the theming engine sets the wallpaper instead) and redshift (night light is gammastep, via `dwm-nightlight`). nm-applet was on this list until 2026-10-07; it now starts while NetworkManager runs. |
 | `picom/picom.conf` | Compositor | vsync on, shadows, fade, opacity rules |
 | `dunst/dunstrc` | Notifications | themed colors, urgency levels, keybind actions |
 | `dwm/bin/` (dmenu scripts) | Launcher/menus/clipboard | dmenu theming lives in `suckless/dwm/config.def.h` (compile-time); `dwm-powermenu`/`dwm-clipmenu` scripts | ✅ have |

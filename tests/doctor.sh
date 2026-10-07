@@ -2,6 +2,8 @@
 # `dots doctor` (scripts/doctor.sh) against a sandbox that looks like a
 # healthy install, then with one thing broken at a time. Checked:
 #   * healthy: exit 0, no warn or fail, in both formats;
+#   * notifications: dunst asked over D-Bus; do-not-disturb left on and a
+#     dunst that does not answer both warn; nothing is asked outside dwm;
 #   * the two formats come from one code path: same statuses, same order;
 #   * a missing desktop.lst package FAILS with that line's consequence text;
 #     a missing extra.lst package only warns;
@@ -94,7 +96,12 @@ check "found the DAEMON_PROCESS table" test -n "$keys"
 for k in $keys; do
     check "DAEMON_PROCESS[$k] is reported" grep -qx "$k" <(printf '%s\n' "${DAEMONS[@]}")
 done
-for k in spice-vdagent blueman-applet; do
+# daemon_applies' case labels, read from the function rather than listed here:
+# a hand-written copy went stale the first time a daemon was added to it.
+applies="$(sed -n '/^daemon_applies()/,/^}/p' "$DOTS_DIR/scripts/doctor-session.sh" \
+    | sed -n 's/^ *\([a-z][a-z-]*\)).*/\1/p')"
+check "found daemon_applies' cases" test -n "$applies"
+for k in $applies; do
     check "daemon_applies' $k is reported" grep -qx "$k" <(printf '%s\n' "${DAEMONS[@]}")
 done
 
@@ -130,10 +137,27 @@ FAKE_DOWN=xss-lock tsv
 check "dwm-lock without xss-lock warns" row warn session daemon-dwm-lock
 FAKE_DOWN=spice-vdagent FAKE_NOT_VM=1 tsv
 check "spice-vdagent off a VM is skipped" row skip session daemon-spice-vdagent
+FAKE_DOWN=nm-applet tsv
+check "nm-applet without NetworkManager is skipped" row skip session daemon-nm-applet
+FAKE_UP=NetworkManager FAKE_DOWN=nm-applet tsv
+check "nm-applet down while NetworkManager runs warns" row warn session daemon-nm-applet
 DISPLAY_SET="" tsv
 check "no X: one skip for the whole session section" \
     test "$(grep -c $'\tsession\t' "$SB/out.tsv")" -eq 1
 check "no X: still exit 0" rc_is 0
+
+blue "==> notifications (dunst)"
+tsv
+check "healthy: dunst answers" row ok session notifications
+check "xdg-user-dirs-update is a one-shot, never 'running' or 'not started'" \
+    grep -q 'runs once at login' <(detail daemon-xdg-user-dirs-update)
+FAKE_DUNST=true tsv
+check "do not disturb left on warns, naming the key" grep -q 'Super+Shift+n' <(detail notifications)
+check "...as a warn, not a fail" row warn session notifications
+FAKE_DUNST=dead tsv
+check "a dunst that does not answer warns" grep -q 'does not answer' <(detail notifications)
+FAKE_NO_DWM=1 tsv
+check "no dwm session: no notification row at all" no_row '[a-z]+' session notifications
 
 blue "==> desktop portal"
 tsv

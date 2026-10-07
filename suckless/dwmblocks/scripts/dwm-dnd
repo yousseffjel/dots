@@ -1,0 +1,37 @@
+#!/bin/sh
+# Do-not-disturb indicator: `DND` while dunst is paused, and NOTHING otherwise.
+# dwmblocks appends its delimiter only to blocks that printed something
+# (dwmblocks.c getcmd), so while notifications flow this block takes no space.
+#
+# Interval 0 -- signal-driven only. Super+Shift+n (config/sxhkd/sxhkdrc)
+# toggles the pause and sends `pkill -RTMIN+12 dwmblocks`; dwmblocks still
+# renders it once at startup. Pausing by any other route (`dunstctl` from a
+# shell) shows up at the next signal or restart, the same trade the VOL/MIC/
+# GAMMA blocks make.
+#
+# Left-click turns DND off: the mutation happens before the read below, so
+# the click itself re-renders the block empty.
+#
+# dunstctl asks dunst over D-Bus, which starts dunst if it is not running --
+# the notification daemon is D-Bus activated anyway. Every call is wrapped in
+# `timeout`: dwmblocks runs blocks synchronously, so a wedged bus would freeze
+# the whole bar.
+
+# Shared palette, with a fallback so the block still renders if it is missing.
+colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
+[ -r "$colors" ] || colors="${0%/*}/dwm-colors"
+[ -r "$colors" ] || colors="$HOME/.local/bin/dwm-colors"
+[ -r "$colors" ] && . "$colors"
+: "${STATUS_MUTED:=^c#888888^}"
+: "${STATUS_RESET:=^d^}"
+
+DUNST_TIMEOUT=2
+
+command -v dunstctl >/dev/null 2>&1 || exit 0
+
+case "$BUTTON" in
+1) timeout "$DUNST_TIMEOUT" dunstctl set-paused false >/dev/null 2>&1 ;;
+esac
+
+[ "$(timeout "$DUNST_TIMEOUT" dunstctl is-paused 2>/dev/null)" = "true" ] || exit 0
+printf '%sDND%s\n' "$STATUS_MUTED" "$STATUS_RESET"

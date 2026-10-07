@@ -5,9 +5,9 @@
 # same cap: install-session.sh keeps the orchestration (decide whether to write,
 # write it, report if it already exists), this file is the content it writes.
 #
-# Four parts purely for the 60-line function cap — the compositor, the rest of
-# "what paints the screen", "interaction and devices", then "services not on
-# PATH". Callers use
+# Five parts purely for the 60-line function cap — the compositor, the rest of
+# "what paints the screen", "interaction and devices", the desktop applets
+# (their own file), then "services not on PATH". Callers use
 # session_autostart_template; tests/autostart-daemons.sh calls only that and
 # session_autostart_report, never the parts, so re-splitting costs it nothing.
 #
@@ -15,10 +15,18 @@
 # install-session-report.sh AND a name in that test's DAEMONS roster — see
 # CLAUDE.md rule 6. The test fails the build if either is missing.
 #
-# Sourced by install-session.sh only. Assumes the caller has already
+# Sourced by install-session.sh and by tests. Assumes the caller has already
 # `set -euo pipefail`.
+#
+# The desktop applets (part four) live in install-session-template-applets.sh,
+# split at the 250-line cap (2026-10-07). Sourced here, resolved from
+# BASH_SOURCE like install-restore-theme.sh's sibling, so every caller of this
+# file gets the whole template without knowing about the split.
+SESSION_TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=install-session-template-applets.sh
+source "$SESSION_TEMPLATE_DIR/install-session-template-applets.sh"
 
-# The autostart.sh body, on stdout — four parts so none exceeds the 60-line
+# The autostart.sh body, on stdout — five parts so none exceeds the 60-line
 # function cap. The original seam was "daemons on PATH, then services named by
 # absolute path"; the PATH half then reached 57 of 60 and was split again on a
 # second seam: what paints the screen, then what serves interaction and devices.
@@ -33,6 +41,7 @@ session_autostart_template() {
     session_autostart_compositor
     session_autostart_display
     session_autostart_daemons
+    session_autostart_applets
     session_autostart_services
 }
 
@@ -176,32 +185,10 @@ if command -v udiskie >/dev/null 2>&1 && ! pgrep -x udiskie >/dev/null 2>&1; the
 	udiskie --automount --notify --smart-tray &
 fi
 
-# PolicyKit authentication agent — the dialog that asks for a password when a
-# GUI program needs privileges: mounting a system disk from thunar, a package
-# or partition tool, some NetworkManager operations. With no agent running
-# those requests are simply denied, usually with no prompt and no error, so
-# the feature looks broken rather than unauthorized.
-#
-# A desktop environment starts this from /etc/xdg/autostart. dwm has no session
-# manager and nothing here reads that directory, so the line below is the only
-# thing that ever launches it.
-if command -v lxpolkit >/dev/null 2>&1 && ! pgrep -x lxpolkit >/dev/null 2>&1; then
-	lxpolkit &
-fi
-
-# Bluetooth tray icon (pairing, connecting, file transfer). blueman ships an
-# /etc/xdg/autostart entry, but nothing in a dwm session reads that directory.
-# Started only when an adapter exists: without one the applet still runs and
-# puts a dead icon in the tray. The bar's BT block works either way.
-if command -v blueman-applet >/dev/null 2>&1 && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] \
-	&& ! pgrep -x blueman-applet >/dev/null 2>&1; then
-	blueman-applet &
-fi
-
 EOF
 }
 
-# Part four: services NOT on PATH, spelled out in full. Grouped for that
+# Part five: services NOT on PATH, spelled out in full. Grouped for that
 # reason as much as for the line cap — an absolute path is a portability
 # liability, so the ones to re-check on a new distro are all in one place.
 #

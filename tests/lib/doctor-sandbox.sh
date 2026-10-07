@@ -33,7 +33,7 @@ make_fakes() {
     case " ${FAKE_MISSING:-} " in *" $p "*) echo "no package provides $p"; rc=1 ;; *) echo "$p-1.0" ;; esac
 done; exit $rc'
         fake "$BIN" pgrep 'case "$1" in
--x) [[ "$2" == dwm && -z "${FAKE_NO_DWM:-}" ]] ;;
+-x) [[ ( "$2" == dwm && -z "${FAKE_NO_DWM:-}" ) || " ${FAKE_UP:-} " == *" $2 "* ]] ;;
 -a) echo "42 picom --backend xrender" ;;
 -f) for d in ${FAKE_DOWN:-}; do [[ "$2" == *"/)$d( "* ]] && exit 1; done; exit 0 ;;
 *) exit 1 ;;
@@ -55,6 +55,8 @@ light) echo "(<uint32 0>,)" ;;
 esac'
         fake "$BIN" getent 'echo "probe:x:1000:1000::/home/probe:/usr/bin/zsh"'
         fake "$BIN" dconf "echo \"'prefer-dark'\""
+        # is-paused: false / true (do not disturb), or "dead" = no answer.
+        fake "$BIN" dunstctl 'case "${FAKE_DUNST:-false}" in dead) exit 1 ;; *) echo "${FAKE_DUNST:-false}" ;; esac'
         fake "$BIN" systemd-detect-virt '[[ -z "${FAKE_NOT_VM:-}" ]]'
     }
     fake_flatpak "$BIN/flatpak" "$SB/fp"
@@ -108,6 +110,6 @@ run_doctor() {
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
-        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" \
+        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

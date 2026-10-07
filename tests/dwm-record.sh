@@ -18,7 +18,9 @@
 #   * Escape at dmenu or in slop starts nothing;
 #   * a stale pid naming some other process is never signalled;
 #   * an ffmpeg that dies at once is reported (exit 1) and leaves no state;
-#   * no DISPLAY is exit 1.
+#   * no DISPLAY is exit 1;
+#   * without DOTS_RECORD_DIR it records into the XDG videos dir, and falls
+#     back to ~/Videos when xdg-user-dir answers $HOME or is missing.
 
 set -euo pipefail
 
@@ -94,12 +96,14 @@ check() {
     fi
 }
 
-# rec [args] — PICK, DISPLAY and FFMPEG_DIES come from the caller's env.
+# rec [args] — PICK, DISPLAY, FFMPEG_DIES, FAKE_XDG and REC_DIR (the
+# DOTS_RECORD_DIR to pass; set it empty to reach the default) come from the
+# caller's env.
 rec() {
     RC=0
     env -i HOME="$SB" LOG="$LOG" SB="$SB" PICK="${PICK:-}" DISPLAY="${DISP-:9}" \
         FFMPEG_DIES="${FFMPEG_DIES:-}" XDG_RUNTIME_DIR="$SB/run" \
-        DOTS_RECORD_DIR="$SB/videos" PATH="$SB/fake:$SB/real" \
+        FAKE_XDG="${FAKE_XDG:-}" DOTS_RECORD_DIR="${REC_DIR-$SB/videos}" PATH="$SB/fake:$SB/real" \
         "$(type -P bash)" "$SUT" "$@" >/dev/null 2>&1 || RC=$?
 }
 logged() { grep -qE -- "$1" "$LOG"; }
@@ -163,6 +167,26 @@ check "reported" logged '^notify .*Recording failed'
 check "no state left" state_clear
 DISP="" PICK=full rec
 check "no DISPLAY: exit 1" test "$RC" -eq 1
+
+blue "where it records without DOTS_RECORD_DIR"
+# Answers FAKE_XDG, else $HOME — what the real one says for a directory
+# ~/.config/user-dirs.dirs does not name.
+# shellcheck disable=SC2016
+fake "$SB/fake" xdg-user-dir 'printf "%s\n" "${FAKE_XDG:-$HOME}"'
+default_dir() { # default_dir <expected dir> — start, check, stop
+    : >"$LOG"
+    PICK=full REC_DIR='' rec
+    logged "libvpx-vp9 .*$1/dots-recording-.*\.webm$"
+    local ok=$?
+    rec
+    return "$ok"
+}
+FAKE_XDG="$SB/Vidéos"
+check "the XDG videos dir (localised: Vidéos/recordings)" default_dir "$SB/Vidéos/recordings"
+FAKE_XDG=
+check "xdg-user-dir answering \$HOME means ~/Videos, not ~" default_dir "$SB/Videos/recordings"
+rm "$SB/fake/xdg-user-dir"
+check "no xdg-user-dir: ~/Videos/recordings" default_dir "$SB/Videos/recordings"
 
 if [[ $FAILS -gt 0 ]]; then
     red "$FAILS check(s) failed"

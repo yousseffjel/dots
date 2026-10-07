@@ -15,6 +15,14 @@
 # green/yellow helpers.
 #
 # usage: source "$SCRIPT_DIR/install-session-report.sh"
+#
+# The applets' half of the daemon list (session_autostart_report_more) lives in
+# install-session-report-applets.sh, split at the 250-line cap (2026-10-07) —
+# sourced here from BASH_SOURCE, so the doctor and the tests that source this
+# file still get the whole report.
+SESSION_REPORT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=install-session-report-applets.sh
+source "$SESSION_REPORT_DIR/install-session-report-applets.sh"
 
 # One daemon's entry in the report below. Green when $autostart already
 # mentions $name; otherwise a yellow "kept" header followed by each remaining
@@ -115,38 +123,6 @@ session_autostart_report() {
         'the viewer window and the host clipboard is not shared.'
 
     session_autostart_report_more "$autostart"
-}
-
-# The rest of the list — split off purely for the 60-line function cap, the
-# same way session_autostart_template is split into parts. Callers (and
-# tests/autostart-daemons.sh) only ever call session_autostart_report.
-# shellcheck disable=SC2016,SC2088
-session_autostart_report_more() {
-    local autostart="$1"
-
-    session_report_daemon "$autostart" lxpolkit \
-        'add this line yourself:  command -v lxpolkit >/dev/null && ! pgrep -x lxpolkit >/dev/null && lxpolkit &' \
-        'without it no PolicyKit agent runs, so any GUI action needing' \
-        'privileges (mounting a system disk, partition or package tools) is' \
-        'denied with no password prompt and often no error at all.' \
-        'If your autostart.sh still has the old polkit-gnome block, delete it:' \
-        'that package is retired on Fedora 43 and 44, so its [ -x ] guards' \
-        'never match and the block has been doing nothing.'
-
-    session_report_daemon "$autostart" blueman-applet \
-        'add this line yourself:  command -v blueman-applet >/dev/null && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] && ! pgrep -x blueman-applet >/dev/null && blueman-applet &' \
-        'without it there is no bluetooth tray icon; pairing still works' \
-        'from blueman-manager (left-click the BT block).'
-
-    session_report_daemon "$autostart" dwm-lock \
-        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
-        'without it the screen never locks on idle or on suspend.' \
-        'Super+l still works — it falls back to calling slock directly.'
-
-    session_report_daemon "$autostart" dwm-nightlight \
-        'add this line yourself:  command -v gammastep >/dev/null && "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &' \
-        'without it there is no night light, and Super+n only applies it once' \
-        'until the next brightness key.'
 }
 
 # Report on a ~/.xinitrc the user already has. Never edits it, for the same

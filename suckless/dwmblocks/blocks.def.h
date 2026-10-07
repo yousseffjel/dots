@@ -17,10 +17,12 @@
 //
 // INTERVAL 0 MEANS SIGNAL-DRIVEN ONLY -- never polled. getallcmds() still runs
 // every block once at startup, so those blocks are populated immediately; from
-// then on they refresh solely when something sends their signal. gamma, mic and
-// vol use this: config/sxhkd/sxhkdrc fires `pkill -RTMIN+<sig> dwmblocks` after
-// changing the value. Break that pairing and the block silently never updates
-// again. The senders live in sxhkdrc -- signals 6, 7 and 8 are spoken for.
+// then on they refresh solely when something sends their signal: every
+// interval-0 block below is paired with a key in config/sxhkd/sxhkdrc that fires
+// `pkill -RTMIN+<sig> dwmblocks` after changing the value. Break that pairing and
+// the block silently never updates again -- tests/blocks-info.sh fails the build
+// instead, reading both files, so the list is not restated here. Pick a new
+// block's signal from the ones the table below does not use.
 //
 // Signal 11 belongs to dwm-net (added 2026-10-05, after the clock took 10),
 // so it sits out of order in the column: the number only has to be unique.
@@ -49,6 +51,8 @@ static const Block blocks[] = {
 	{"",		"$HOME/.local/bin/dwm-net",			30,			11},
 
 	{"",		"$HOME/.local/bin/dwm-bluetooth",		30,			9},
+
+	{"",		"$HOME/.local/bin/dwm-dnd",			0,			12},
 
 	{"",		"$HOME/.local/bin/dwm-clock",			60,			10},
 };

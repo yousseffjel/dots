@@ -13,6 +13,8 @@
 #     the block, then waits for Enter;
 #   * BT: n/a without bluetoothctl or an adapter, off when unpowered, the
 #     connected count, `on` with none; left opens blueman-manager;
+#   * DND: empty (no bar space) unless dunst is paused; left resumes, and
+#     the same run renders the block gone;
 #   * block_bin prefers PATH, falls back to ~/.config/dwm/bin, fails cleanly;
 #     block_term fails cleanly with no terminal at all, and the class it
 #     gives a terminal is one config.def.h's rules[] floats.
@@ -113,6 +115,51 @@ check "left: blueman-manager" logged "blueman-manager "
 rm "$SB/fake/bluetoothctl"
 block dwm-bluetooth
 check "no bluetoothctl" is "BT n/a"
+
+blue "DND"
+# dunstctl answers is-paused from a state file; set-paused writes it.
+# shellcheck disable=SC2016
+fake "$SB/fake" dunstctl 'echo "dunstctl $*" >>"$LOG"
+case "$1" in
+is-paused) cat "'"$SB"'/paused" ;;
+set-paused) echo "$2" >"'"$SB"'/paused" ;;
+esac'
+echo false >"$SB/paused"
+block dwm-dnd
+check "notifications flowing: prints nothing (no bar space)" test -z "$RAW"
+echo true >"$SB/paused"
+block dwm-dnd
+check "paused: DND" is "DND"
+block dwm-dnd 1
+check "left: resumes notifications" logged "dunstctl set-paused false"
+check "left: the same run renders it gone" test -z "$RAW"
+# For this one run, a timeout that records what it wraps: every dunstctl call
+# must go through it, or a wedged bus freezes the whole bar.
+# shellcheck disable=SC2016
+fake "$SB/fake" timeout 'echo "timeout $*" >>"$LOG"; shift; exec "$@"'
+block dwm-dnd
+check "every dunstctl call is wrapped in timeout" \
+    test "$(grep -c '^dunstctl' "$LOG")" = "$(grep -c '^timeout [0-9]* dunstctl' "$LOG")"
+check "...and there was a call to wrap" grep -q '^dunstctl is-paused' "$LOG"
+# shellcheck disable=SC2016
+fake "$SB/fake" timeout 'shift; exec "$@"'
+rm "$SB/fake/dunstctl"
+block dwm-dnd
+check "no dunstctl: nothing" test -z "$RAW"
+
+blue "signal-only blocks have a sender"
+# A block with interval 0 is never polled: it changes only when something
+# sends its signal, which for these is an sxhkd key. Read both sides — the
+# blocks from blocks.def.h, the senders from sxhkdrc — so a new signal-only
+# block without its pkill, or a key that lost it, fails here instead of
+# freezing a bar entry.
+sigs="$(awk -F'\t+' '/^\t\{"/ { gsub(/[},]/, "", $5); if ($4 + 0 == 0) print $5 }' \
+    "$DOTS_DIR/suckless/dwmblocks/blocks.def.h")"
+check "found the signal-only blocks" test -n "$sigs"
+for sig in $sigs; do
+    check "signal $sig is sent by an sxhkd binding" \
+        grep -q "pkill -RTMIN+$sig dwmblocks" "$DOTS_DIR/config/sxhkd/sxhkdrc"
+done
 
 blue "dwm-blockutil"
 util() { # util <PATH> <snippet> — the helper sourced as a block sources it

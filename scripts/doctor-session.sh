@@ -13,15 +13,17 @@ BT_SYSFS="${DOTS_DOCTOR_BT_SYSFS:-/sys/class/bluetooth}"
 # (empty = not a daemon, nothing to look for). Every key must be a name
 # session_autostart_report reports — tests/doctor.sh fails the build if one
 # is renamed or dropped there and left stale here.
-declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="")
+declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="" ["xdg-user-dirs-update"]="")
 
 # daemon_applies <name> — false for a daemon autostart.sh deliberately does
-# not start on this machine. Mirrors the two conditions in
-# install-session-template.sh; tests/doctor.sh holds the names to the report.
+# not start on this machine. Mirrors the conditions in the autostart template
+# (install-session-template*.sh); tests/doctor.sh reads these case labels and
+# holds each one to the report.
 daemon_applies() {
     case "$1" in
         spice-vdagent) systemd-detect-virt --vm --quiet 2>/dev/null ;;
         blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
+        nm-applet) pgrep -x NetworkManager >/dev/null 2>&1 ;;
         *) return 0 ;;
     esac
 }
@@ -62,7 +64,7 @@ check_daemons() {
         elif pgrep -f "(^|/)$proc( |\$)" >/dev/null 2>&1; then
             report ok session "daemon-$name" "$name is running"
         elif ! daemon_applies "$name"; then
-            report skip session "daemon-$name" "$name: not needed here (no VM / no bluetooth adapter)"
+            report skip session "daemon-$name" "$name: not needed here (no VM / no bluetooth adapter / no NetworkManager)"
         elif [[ ! -f "$AUTOSTART" ]] || contains "$name" "${unmentioned[@]}"; then
             report warn session "daemon-$name" "$name is not started: $AUTOSTART does not mention it — run scripts/install-suckless.sh --skip-deps and paste the line it prints"
         else

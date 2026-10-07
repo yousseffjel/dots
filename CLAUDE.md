@@ -38,6 +38,7 @@ dots/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
 │   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
+│   │                    # dwm-lib-xdg.sh is SOURCED (644, so dmenu never lists it): where screenshot/record save
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
 │   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table
@@ -76,12 +77,15 @@ dots/
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)
+│   ├── install-session-template-applets.sh # sourced by the template: the desktop-applet part (polkit, blueman, nm-applet, xdg-user-dirs)
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
+│   ├── install-session-report-applets.sh # sourced by the report: the second half of its daemon list
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
-│   │                           # checks in doctor-checks.sh / doctor-session.sh, every list read from its source
+│   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-portal.sh /
+│   │                           # doctor-notify.sh (dunst answers, DND left on), every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh
 ├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
@@ -146,7 +150,7 @@ for current state.
 
 **Also done, superseding earlier "pending" entries (roster Epic, 2026-08-06/07 — scope file `.claude/tasks/scope-b-app-roster-finalization.md`):**
 - **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
-- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 11 blocks plus the systray (NET added 2026-10-05); picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
+- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 12 blocks plus the systray (NET added 2026-10-05; DND, empty unless dunst is paused, 2026-10-07); picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
 - **README.md is no longer a stub** — it carries the CI badge and the pre-commit setup.
 
 **Roster gap-fill Epic closed 2026-08-12** (scope file
@@ -276,7 +280,7 @@ new pattern.
 5. **Suckless patches are vendored as `.diff` files under `suckless/<program>/patches/`**, named `<patch>-<version-or-date>-<hash>.diff`, **as a record — nothing applies them.** The vendored `.c`/`.h` sources are already patched — each diff was merged into them once, when it was vendored (some by a clean `patch -p1`, the ones that conflicted by hand, as each `PATCHES.md` entry records) — the build is plain `make`, and no `patch(1)` or `git apply` call exists in `scripts/`, `tests/`, `.github/` or any suckless `Makefile`. `suckless/<program>/patches/PATCHES.md` is the authority on what each patch is and how it was merged. A change to a patched behaviour therefore goes into the sources **and** its `.diff` + `PATCHES.md` entry in the same commit, so the tree could be rebuilt from upstream plus the recorded diffs; the `*-local.diff` files are diffs captured against this tree because they could not apply cleanly on top of the others. Don't turn this into a build-time apply step — the `*-local` diffs are exactly why that cannot work. (Until 2026-09-28 this rule claimed `install-suckless.sh` applied the diffs at build time; it never did.)
 6. **`install-suckless.sh` never overwrites user customizations** — `autostart.sh` and `.xinitrc` are treated as user-owned once they exist; preserve that guarantee in any change to the build/install flow.
 
-    **Adding an autostart entry is a three-place change**, and all three are enforced: the launch line in one of the `session_autostart_*` parts (all in `install-session-template.sh`, split off from `install-session.sh` at the 250-line cap), a matching `session_report_daemon` call (`install-session-report.sh`) so existing installs — whose `autostart.sh` is user-owned and never rewritten — are told what to paste, and the name in `DAEMONS` in `tests/autostart-daemons.sh`. That test RUNS both sides rather than parsing them and has caught an unpaired entry unprompted more than once, so skipping any of the three fails the build rather than shipping a daemon nobody launches. The template is split into parts purely for the 60-line function cap; the test calls only `session_autostart_template` and `session_autostart_report`, so splitting it again costs the test nothing. **Do not re-add an enumerated daemon list anywhere else** — the user-facing "wrote autostart.sh" message used to carry one and had already gone stale.
+    **Adding an autostart entry is a three-place change**, and all three are enforced: the launch line in one of the `session_autostart_*` parts (in `install-session-template.sh`, split off from `install-session.sh` at the 250-line cap, and the desktop-applet part in `install-session-template-applets.sh`, split again 2026-10-07), a matching `session_report_daemon` call (`install-session-report.sh` or its `-applets.sh` sibling) so existing installs — whose `autostart.sh` is user-owned and never rewritten — are told what to paste, and the name in `DAEMONS` in `tests/autostart-daemons.sh`. That test RUNS both sides rather than parsing them and has caught an unpaired entry unprompted more than once, so skipping any of the three fails the build rather than shipping a daemon nobody launches. The template is split into parts purely for the 60-line function cap; the test calls only `session_autostart_template` and `session_autostart_report`, so splitting it again costs the test nothing. **Do not re-add an enumerated daemon list anywhere else** — the user-facing "wrote autostart.sh" message used to carry one and had already gone stale.
 
     **`~/.xinitrc` also starts `dots-session.target`** (2026-10-06), which binds `graphical-session.target`. Without it `xdg-desktop-portal` (`Requisite=graphical-session.target`) never starts in a dwm session, so no portal works at all — the xdg-portal-gtk work shipped that way and nothing noticed, because `dots doctor` checked only the dconf key. `scripts/doctor-portal.sh` now asks the portal itself. Existing `.xinitrc` files get `session_xinitrc_report_session`'s paste lines, which `tests/xinitrc-report.sh` holds equal to `docs/THEMING.md` § Desktop portal.
 

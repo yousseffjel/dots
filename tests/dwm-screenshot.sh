@@ -55,13 +55,16 @@ mkbin() {
     local dir="$TMP/$1" t
     shift
     seal_path "$dir" bash awk mktemp rm mv mkdir date cat
-    for t in maim slop xclip xprop dmenu notify-send xrdb; do
+    for t in maim slop xclip xprop dmenu notify-send xrdb xdg-user-dir; do
         [[ " $* " == *" $t "* ]] && continue
         case "$t" in
             # Writes "PNG" into its last argument, or nothing when FAKE_EMPTY.
             maim) fake "$dir" maim "echo \"maim \${*:1:\$#-1}\" >>'$LOG'; [[ -n \"\${FAKE_EMPTY:-}\" ]] || echo PNG >\"\${*: -1}\"" ;;
             # Prints FAKE_GEOM (empty = the user pressed Escape).
             slop) fake "$dir" slop "echo \"slop \$*\" >>'$LOG'; printf '%s' \"\${FAKE_GEOM-}\"; [[ -n \"\${FAKE_GEOM-}\" ]]" ;;
+            # Answers FAKE_XDG, else $HOME — what the real one says for a
+            # directory user-dirs.dirs does not name.
+            xdg-user-dir) fake "$dir" xdg-user-dir "printf '%s\\n' \"\${FAKE_XDG:-\$HOME}\"" ;;
             xprop) fake "$dir" xprop "echo \"_NET_ACTIVE_WINDOW(WINDOW): window id # \${FAKE_WIN:-0x0}\"" ;;
             xrdb) fake "$dir" xrdb "[[ -n \"\${FAKE_SEL:-}\" ]] && printf 'dwm.normbordercolor:\t#111111\ndwm.selbordercolor:\t%s\n' \"\$FAKE_SEL\"; exit 0" ;;
             # Answers successive prompts from FAKE_MENU ("a|b"); "ESC" = Escape.
@@ -74,6 +77,7 @@ IFS='|' read -ra a <<<\"\${FAKE_MENU:-}\"; ans=\"\${a[\$n]:-ESC}\"; [[ \"\$ans\"
 mkbin all
 mkbin no-xclip xclip
 mkbin no-maim maim
+mkbin no-xdg xdg-user-dir
 
 # run <bin> [VAR=val...] -- <args...>; sets RC and ERR; fresh log/menu/shots.
 run() {
@@ -93,6 +97,28 @@ run() {
 }
 has() { grep -qF -- "$1" "$LOG"; }
 shots() { find "$SHOTS" -type f 2>/dev/null | wc -l; }
+
+blue "==> where a shot lands without DOTS_SCREENSHOT_DIR"
+# An empty value is "unset" to ${VAR:-default}, so this reaches the default.
+landed() { find "$TMP/home/$1" -name 'dots-screenshot-*.png' 2>/dev/null | grep -q .; }
+rm -rf "${TMP:?}/home" && mkdir -p "$TMP/home"
+run all DOTS_SCREENSHOT_DIR= FAKE_XDG="$TMP/home/Bilder" -- --full --file
+if landed Bilder/screenshots; then pass "the XDG pictures dir (localised: Bilder/screenshots)"; else fail "not in Bilder/screenshots: $(find "$TMP/home" -type f)"; fi
+rm -rf "${TMP:?}/home" && mkdir -p "$TMP/home"
+run all DOTS_SCREENSHOT_DIR= -- --full --file
+if landed Pictures/screenshots; then pass "xdg-user-dir answering \$HOME means ~/Pictures, not ~"; else fail "\$HOME answer: $(find "$TMP/home" -type f)"; fi
+rm -rf "${TMP:?}/home" && mkdir -p "$TMP/home"
+run no-xdg DOTS_SCREENSHOT_DIR= -- --full --file
+if landed Pictures/screenshots; then pass "no xdg-user-dir: ~/Pictures/screenshots"; else fail "no xdg-user-dir: $(find "$TMP/home" -type f)"; fi
+# A lone copy with no dwm-lib-xdg.sh beside it (a partial install) must still
+# save — to the fixed fallback — rather than die on an undefined function.
+rm -rf "${TMP:?}/home" && mkdir -p "$TMP/home" "$TMP/solo"
+cp "$SUT" "$TMP/solo/"
+SUT_REAL="$SUT"
+SUT="$TMP/solo/${SUT##*/}"
+run all DOTS_SCREENSHOT_DIR= FAKE_XDG="$TMP/home/Bilder" -- --full --file
+SUT="$SUT_REAL"
+if [[ $RC -eq 0 ]] && landed Pictures/screenshots; then pass "no dwm-lib-xdg.sh: still saves, to ~/Pictures/screenshots"; else fail "no helper: rc=$RC $ERR"; fi
 
 blue "==> modes reach maim correctly"
 run all -- --full --file

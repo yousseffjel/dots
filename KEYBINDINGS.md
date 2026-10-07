@@ -191,7 +191,7 @@ windows onto tag 1 and un-stashed the scratchpads.
 
 ## Status bar
 
-Eleven blocks, left to right, then dwm's native systray furthest right. Each is a
+Twelve blocks, left to right, then dwm's native systray furthest right. Each is a
 script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 `make install-scripts` and listed in `suckless/dwmblocks/blocks.def.h`.
 
@@ -207,7 +207,8 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
 | 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal |
 | 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
-| 11 | `` | Day, date and time | 60 s | left → this month's calendar |
+| 11 | `DND` | Shown **only** while notifications are paused; otherwise empty and takes no space | **on change only** | left → resume notifications |
+| 12 | `` | Day, date and time | 60 s | left → this month's calendar |
 
 **The bar behaves like the keys** (2026-10-07). A click or scroll that changes
 a level shows the same `dwm-osd` pop-up as the volume, mic and brightness
@@ -228,8 +229,8 @@ Enter, so a failed upgrade can be read.
 > scripts/install-suckless.sh --skip-deps
 > ```
 
-**`NET` needs a dwmblocks rebuild with a fresh `blocks.h` on an existing
-install.** The block list is compiled in, and `blocks.h` is generated from
+**`NET` and `DND` need a dwmblocks rebuild with a fresh `blocks.h` on an
+existing install.** The block list is compiled in, and `blocks.h` is generated from
 `blocks.def.h` once and then left alone:
 
 ```sh
@@ -237,12 +238,14 @@ rm -f suckless/dwmblocks/blocks.h
 scripts/install-suckless.sh --skip-deps
 ```
 
-**Blocks 6-8 are never polled.** They run once at startup and then only when
-something sends their signal — `config/sxhkd/sxhkdrc` fires
-`pkill -RTMIN+6/7/8 dwmblocks` after every gamma, mic and volume change. That
-is what keeps three of the eleven blocks off the CPU entirely. The cost is that
-changing any of those values by some *other* route (`pamixer` straight from a
-shell, say) leaves the bar showing a stale figure until the next keypress.
+**`GAMMA`, `MIC`, `VOL` and `DND` are never polled.** They run once at startup
+and then only when something sends their signal — `config/sxhkd/sxhkdrc` fires
+`pkill -RTMIN+6/7/8 dwmblocks` after every gamma, mic and volume change, and
+`-RTMIN+12` after `Super` + `Shift` + `n`. That keeps them off the CPU
+entirely (`tests/blocks-info.sh` holds every signal-only block in
+`blocks.def.h` to a sender in `sxhkdrc`). The cost is that changing any of
+those values by some *other* route (`pamixer` or `dunstctl` straight from a
+shell, say) leaves the bar stale until the next keypress.
 
 > **`GAMMA` is not a backlight.** This target is a desktop GPU with no
 > `/sys/class/backlight`, so `dwm-brightness` scales the output signal with
@@ -367,7 +370,9 @@ screenshot>          dest>
 ```
 
 Escape at either prompt aborts and captures nothing. `file` and `both` write
-to `~/Pictures/screenshots`, overridable with `DOTS_SCREENSHOT_DIR`, named
+to `screenshots/` inside your pictures folder — `xdg-user-dir PICTURES`,
+so a localised or moved one is honoured, else `~/Pictures` — overridable
+with `DOTS_SCREENSHOT_DIR`, named
 `dots-screenshot-YYYYmmdd-HHMMSS.png`.
 
 `Shift` + `Print` deliberately does **not** also keep a file. Region grabs are
@@ -401,8 +406,9 @@ dwm-screenshot --full --both          # no prompts at all
 | --- | --- |
 | `Super` + `r` | Start a recording (pick full screen or a region), or stop the one running (`dwm-record`) |
 
-Recordings are VP9 video in WebM, with no audio, saved to
-`~/Videos/recordings`. Fedora's `ffmpeg-free` cannot encode H.264, so
+Recordings are VP9 video in WebM, with no audio, saved to `recordings/`
+inside your videos folder (`xdg-user-dir VIDEOS`, else `~/Videos`;
+`DOTS_RECORD_DIR` overrides). Fedora's `ffmpeg-free` cannot encode H.264, so
 convert one if a site insists on MP4. Stopping lets ffmpeg finish the file
 cleanly, so it plays even if you stop mid-motion.
 
@@ -449,6 +455,17 @@ calls `slock` directly instead, so the key never silently does nothing.
 > with `pgrep -x xss-lock`. As with sxhkd, `install-suckless.sh` will not add
 > the launch line to an `autostart.sh` you already had — it prints the line
 > for you to paste. `Super` + `l` keeps working either way.
+
+### Notifications
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `Shift` + `n` | Do not disturb on / off (dunst holds notifications, shows them on resume) |
+| `Super` + `Ctrl` + `n` | Re-show the last closed notification; repeat to go further back |
+
+While do-not-disturb is on, the bar shows `DND` (click it to resume), and
+`dots doctor` warns — a pause left on silently swallows every notification.
+dunst keeps the last 20 (`history_length` in `config/dunst/dunstrc`).
 
 ### Applications
 

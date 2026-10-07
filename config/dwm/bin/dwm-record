@@ -26,7 +26,12 @@ set -euo pipefail
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
-OUT_DIR="${DOTS_RECORD_DIR:-$HOME/Videos/recordings}"
+# xdg_dir (dwm-lib-xdg.sh); a missing helper degrades to the fixed fallback.
+# shellcheck source=dwm-lib-xdg.sh
+source "${BASH_SOURCE[0]%/*}/dwm-lib-xdg.sh" 2>/dev/null || xdg_dir() { printf '%s' "$2"; }
+
+# recordings/ in the XDG videos dir; DOTS_RECORD_DIR overrides it all.
+OUT_DIR="${DOTS_RECORD_DIR:-$(xdg_dir VIDEOS "$HOME/Videos")/recordings}"
 NAME_FMT="dots-recording-%Y%m%d-%H%M%S.webm"
 STATE_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/dwm-record"
 FRAMERATE=30
