@@ -20,7 +20,7 @@ repos:
   # Matches this repo's chosen style: 4-space indent, indent switch/case
   # arms, binary ops (&&/||) placed before a line break. See TESTING.md.
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1-1
+    rev: v3.14.1-1
     hooks:
       - id: shfmt
         args: ["-i", "4", "-ci", "-bn", "-w"]
