@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-06
+Last Updated: 2026-10-07
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -9,7 +9,16 @@ when slots run concurrently.
 
 ## Active
 
-*(none — scope-d closed 2026-09-28; see Recently Closed)*
+- **Epic: scope-f — desktop integration pass** (opened 2026-10-07).
+  Scope file `.claude/tasks/scope-f-desktop-integration.md` — locked
+  decisions live there.
+  - [x] 1 — `dwm-rules-scratchpad`: F1 F2 A1 F5 — `e44d331` (F5 became
+        preserveonrestart: every wallpaper change used to scatter the desktop)
+  - [x] 2 — `bar-integration`: I2 I3 I4 A2 — `2efa910` (found: dnf5 header
+        in the UPD list)
+  - [x] 3 — `session-integration`: F3 I1 I5 — `d19069f` (+ DND block,
+        doctor dunst check; I6 closed)
+  - [ ] 4 — `vm-verify`: F4 + everything above on the Fedora VM
 
 ---
 

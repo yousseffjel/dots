@@ -1902,3 +1902,47 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   GTK4, dark), `Mod+p` lists `org.xfce.mousepad`, and the Bibata cursor is
   unchanged over a Flatpak window (user report, no screenshot possible).
   **Every scope E item is now verified on the VM.**
+
+## 2026-10-07 — session-end cleanup, X11 cursor, scope F opened, slot 1 merged
+
+- `xinitrc-clipmenud-cleanup`: the generated `~/.xinitrc` runs one
+  `dots_session_end` EXIT trap on every path. It stops clipmenud/clipnotify,
+  and stops `dots-session.target` only if this script started it. dwm is no
+  longer `exec`'d, so the trap can run.
+- `cursor-theme-x11`: the cursor theme reaches non-GTK X clients too
+  (`icons/default/index.theme` + an `Xcursor.*` resource file, merged before
+  the dwm HUP and at login).
+- `session-end-orphan-daemons`: `dots_session_end` also stops dwmblocks and
+  the dwm-nightlight daemon. Without that, a quick re-login left the bar empty.
+- **Scope F opened** (`.claude/tasks/scope-f-desktop-integration.md`):
+  a desktop integration pass in four slots.
+- **Slot 1 `dwm-rules-scratchpad` merged** (`e44d331`):
+  - preserveonrestart: a dwm restart — one per wallpaper change — no longer
+    piles every window onto one tag, un-stashes scratchpads, re-tiles
+    floating windows or drops focus.
+  - dropterm: `Super+grave` drop-down terminal.
+  - The dead Firefox rule is gone.
+  - Float rules from xprop-verified classes; nmtui opens floating.
+  - dwm roster 13 → 15 diffs. Suite 43/43; mutations 13/13.
+- **Not yet on the VM**: slot 1 needs a push, then
+  `git pull && scripts/install-suckless.sh` and a re-login there (slot 4).
+- **Slot 2 `bar-integration` merged** (`2efa910`):
+  - Bar clicks now behave like the keys: pop-ups on VOL, MIC and GAMMA;
+    GAMMA scrolls and toggles night light.
+  - htop on CPU, MEM and TEMP; right-click on UPD runs the upgrade.
+  - One `dots-float-` rule floats every block terminal (helper:
+    `dwm-blockutil`).
+  - Fixed: dnf5's "Upgrades" header showed in the UPD list.
+  - All twelve blocks are now tested. Suite 46/46; mutations 16/16.
+  - Unproven: the blocks under dash (CI's /bin/sh), and on the VM.
+- **Slot 3 `session-integration` merged** (`d19069f`):
+  - nm-applet and xdg-user-dirs-update in autostart (rule 6, all three
+    places). Screenshots and recordings use the XDG dirs.
+  - `Super+Shift+n` DND toggle, `Super+Ctrl+n` notification history, and a
+    12th bar block `DND`, empty unless paused.
+  - `dots doctor` asks dunst and warns on DND left on.
+  - The session template and report split into `-applets.sh` siblings,
+    proven byte-identical.
+  - Suite 46/46; mutations 13/14 (one by-design survivor).
+  - Reviewer: three WARNs, all stale docs, fixed.
+  - `dwm-screenshot` is at 250 lines: its next change must split it.
