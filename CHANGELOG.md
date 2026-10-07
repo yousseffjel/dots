@@ -110,6 +110,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- Logging out no longer floods the login screen with
+  `xsel: Can't open display` errors. `clipmenud` outlived X and looped on
+  failing clipboard calls. The generated `~/.xinitrc` now stops it when the
+  session ends. An existing `~/.xinitrc` is never rewritten: the installer
+  prints the block to paste in, and `docs/THEMING.md` carries the same block.
 - CI's `build-suckless` job had failed on both Fedora images since
   2026-09-08 although every check in `tests/dwm-runtime.sh` passed: its
   cleanup called `pkill`, which the CI container lacks, and that "command not

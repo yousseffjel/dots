@@ -65,7 +65,7 @@ install_session_autostart() {
 #
 # The theme block is HERE, not in autostart.sh, and it must stay here. dwm
 # reads its colours from the X resource database once, at startup — so the
-# merge has to land before `exec dwm` to take effect without a restart. And the
+# merge has to land before dwm starts to take effect without a restart. And the
 # only way to make a RUNNING dwm re-read them is reload.sh's `kill -HUP`, which
 # re-execs dwm (restartsig), which re-runs autostart.sh (runautostart() is
 # called on every start): a theme step in autostart.sh would loop the session
@@ -107,24 +107,34 @@ elif [ -x "$HOME/.local/bin/dots" ]; then
 fi
 unset dots_theme_cache
 
+# Session end, however X ends: a signal is turned into a normal exit so the
+# EXIT trap runs, which is why dwm is never exec'd. clipmenud (autostart.sh)
+# holds no X connection — it is a shell loop over clipnotify and xsel — so it
+# outlives X, and from then on both fail instantly, forever, flooding the login
+# TTY. Every other autostart daemon is an X client and dies with the server.
+dots_session_target=
+dots_session_end() {
+	pkill -u "$(id -u)" -x clipmenud >/dev/null 2>&1
+	pkill -u "$(id -u)" -x clipnotify >/dev/null 2>&1
+	[ -z "$dots_session_target" ] || systemctl --user stop dots-session.target >/dev/null 2>&1
+}
+trap dots_session_end EXIT
+trap 'exit 0' HUP INT TERM
+
 # The systemd side of the session. dots-session.target pulls in
 # graphical-session.target, without which xdg-desktop-portal refuses to start
 # (see ~/.config/systemd/user/dots-session.target): no dark mode for GTK4 apps,
 # no portal file chooser. DISPLAY is handed to the user manager first so the
-# portal can open windows. Stopped when this script exits, however X ends — a
-# signal is turned into a normal exit so the EXIT trap runs. If systemd is
-# missing or the start fails, dwm starts exactly as before.
+# portal can open windows. Stopped by dots_session_end. If systemd is missing
+# or the start fails, dwm starts exactly as before.
 if command -v systemctl >/dev/null 2>&1 &&
 	systemctl --user import-environment DISPLAY XAUTHORITY >/dev/null 2>&1 &&
 	systemctl --user daemon-reload >/dev/null 2>&1 &&
 	systemctl --user start dots-session.target >/dev/null 2>&1; then
-	trap 'systemctl --user stop dots-session.target >/dev/null 2>&1' EXIT
-	trap 'exit 0' HUP INT TERM
-	dwm
-	exit 0
+	dots_session_target=1
 fi
 
-exec dwm
+dwm
 EOF
 }
 
@@ -137,13 +147,13 @@ install_session_xinitrc() {
     fi
 
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would write ~/.xinitrc (theme restore + exec dwm)"
+        blue "  (dry-run) would write ~/.xinitrc (theme restore + session + dwm)"
         return 0
     fi
 
     session_xinitrc_template >"$xinitrc"
     chmod 755 "$xinitrc"
-    green "wrote   ~/.xinitrc (theme restore + exec dwm)"
+    green "wrote   ~/.xinitrc (theme restore + session + dwm)"
 }
 
 install_session() {

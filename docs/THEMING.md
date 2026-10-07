@@ -314,7 +314,7 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
 ### At login
 
 dwm reads its colours once, at startup, so the theme has to be in the X
-resource database **before** `exec dwm`. The `~/.xinitrc` the installer
+resource database **before** dwm starts. The `~/.xinitrc` the installer
 writes does that: with a cache under `~/.cache/dots/theme/` it merges
 `xresources` and runs `~/.fehbg`; with no cache yet — every headless
 install, since the installer can only theme a running X session — it runs
@@ -343,18 +343,27 @@ dwm session that only works if `~/.xinitrc` starts **`dots-session.target`**:
 Until 2026-10-06 nothing did this, and *no* portal worked in a dwm session.
 
 The `~/.xinitrc` the installer writes starts the target before dwm and stops it
-when the session ends. If you had a `~/.xinitrc` before installing, replace its
-`exec dwm` with:
+when the session ends. The same exit step (2026-10-07) also stops
+`clipmenud`, the clipboard daemon. It is a shell loop over `clipnotify` and
+`xsel` and holds no X connection of its own, so it outlives X. Once X is gone
+both commands fail instantly in an endless loop, which floods the login TTY with
+`xsel: Can't open display` after every logout. If you had a `~/.xinitrc` before
+installing, replace its `exec dwm`, and any `dots-session.target` block above
+it, with:
 
 ```sh
+dots_session_target=
+dots_session_end() {
+  pkill -u "$(id -u)" -x clipmenud
+  pkill -u "$(id -u)" -x clipnotify
+  [ -z "$dots_session_target" ] || systemctl --user stop dots-session.target
+}
+trap dots_session_end EXIT
+trap 'exit 0' HUP INT TERM
 systemctl --user import-environment DISPLAY XAUTHORITY
 systemctl --user daemon-reload
-if systemctl --user start dots-session.target; then
-  trap 'systemctl --user stop dots-session.target' EXIT
-  trap 'exit 0' HUP INT TERM
-  dwm; exit 0
-fi
-exec dwm
+systemctl --user start dots-session.target && dots_session_target=1
+dwm
 ```
 
 then log out and back in. `dots doctor` checks both halves:
