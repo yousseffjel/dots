@@ -13,6 +13,10 @@
 # saving that every laptop applet implies and this cannot deliver, so the block
 # says GAMMA and means it.
 #
+# Clicks: scroll steps the gamma up/down (dwm-brightness, the same command
+# the brightness keys run) and shows the dwm-osd pop-up; left toggles night
+# light (dwm-nightlight), backgrounded because it notifies and re-applies.
+#
 # Interval 0 -- signal-driven only, never polled. sxhkd fires
 # `pkill -RTMIN+6 dwmblocks` after each change. dwmblocks still renders it once
 # at startup via getallcmds(), so the bar is populated before the first change.
@@ -28,9 +32,15 @@ colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
 : "${STATUS_ACCENT1:=^c#5294e2^}"
 : "${STATUS_RESET:=^d^}"
 
+# Shared click helpers (block_bin, block_term, block_osd) -- see dwm-blockutil.
+util="${0%/*}/dwm-blockutil"
+[ -r "$util" ] || util="$HOME/.local/bin/dwm-blockutil"
+[ -r "$util" ] && . "$util"
+
 # Prefer PATH so a user override wins, then the known install location. Not
 # the other way round: this block is spawned by dwmblocks, whose PATH comes
-# from the X session and may not carry ~/.config/dwm/bin at all.
+# from the X session and may not carry ~/.config/dwm/bin at all. Deliberately
+# NOT block_bin: rendering must not depend on dwm-blockutil, only clicks may.
 bright=$(command -v dwm-brightness 2>/dev/null)
 [ -n "$bright" ] || bright="${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-brightness"
 
@@ -38,6 +48,23 @@ if [ ! -x "$bright" ]; then
 	printf '%sGAMMA%s n/a\n' "$STATUS_ACCENT1" "$STATUS_RESET"
 	exit 0
 fi
+
+case "$BUTTON" in
+1)
+	# The whole group is detached, not just the toggle: a background subshell
+	# would otherwise keep the block's stdout -- the pipe dwmblocks reads --
+	# open until the toggle (which notifies) finished.
+	{ nl=$(block_bin dwm-nightlight) && "$nl" toggle; } >/dev/null 2>&1 &
+	;;
+4)
+	"$bright" up >/dev/null 2>&1
+	block_osd brightness
+	;;
+5)
+	"$bright" down >/dev/null 2>&1
+	block_osd brightness
+	;;
+esac
 
 pct=$("$bright" get 2>/dev/null)
 

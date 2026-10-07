@@ -12,7 +12,7 @@
 #     back to the kernel's operstate, skipping lo;
 #   * the Wi-Fi signal is read with `--rescan no` — a scan every 30 s would
 #     stall the bar for seconds.
-#   * a left-click opens nmtui with class dots-nmtui — the class dwm's
+#   * a left-click opens nmtui with class dots-float-nmtui — which dwm's
 #     rules[] floats — in alacritty, or st when alacritty is absent.
 #
 # The fake nmcli output copies the real `-t` shape: ':'-separated fields, a
@@ -130,10 +130,10 @@ click() {
     OUT="$(grep -v '^nmcli' "$LOG" || true)"
 }
 click
-check "alacritty, with the class dwm floats" is "alacritty --class dots-nmtui -e nmtui"
+check "alacritty, with the class dwm floats" is "alacritty --class dots-float-nmtui -e nmtui"
 rm "$SB/fake/alacritty"
 click
-check "st fallback, same class via -c" is "st -c dots-nmtui -e nmtui"
+check "st fallback, same class via -c" is "st -c dots-float-nmtui -e nmtui"
 
 blue "fallbacks"
 : >"$SB/status"

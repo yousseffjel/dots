@@ -5,7 +5,8 @@
 # `pkill -RTMIN+7 dwmblocks` after XF86AudioMicMute. dwmblocks still renders it
 # once at startup via getallcmds().
 #
-# Left-click toggles mute. The mutation happens before the read below, so one
+# Left-click toggles mute and shows the dwm-osd pop-up, as the mic key does.
+# The mutation happens before the read below, so one
 # run both applies the change and prints the result.
 #
 # Every pamixer call here carries --default-source. Dropping it from even one
@@ -29,8 +30,16 @@ if ! command -v pamixer >/dev/null 2>&1; then
 	exit 0
 fi
 
+# Shared click helpers (block_bin, block_term, block_osd) -- see dwm-blockutil.
+util="${0%/*}/dwm-blockutil"
+[ -r "$util" ] || util="$HOME/.local/bin/dwm-blockutil"
+[ -r "$util" ] && . "$util"
+
 case "$BUTTON" in
-1) pamixer --default-source --toggle-mute >/dev/null 2>&1 ;;
+1)
+	pamixer --default-source --toggle-mute >/dev/null 2>&1
+	block_osd mic
+	;;
 esac
 
 if [ "$(pamixer --default-source --get-mute 2>/dev/null)" = "true" ]; then

@@ -1,5 +1,6 @@
 #!/bin/sh
-# CPU package temperature, straight from /sys/class/hwmon.
+# CPU package temperature, straight from /sys/class/hwmon. Left-click opens
+# htop.
 #
 # Read from sysfs rather than shelling out to `sensors`, so this needs no
 # lm_sensors package and costs a couple of virtual-file reads. That matters:
@@ -24,6 +25,16 @@ colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
 : "${STATUS_WARN:=^c#d9a05b^}"
 : "${STATUS_URGENT:=^c#cc5555^}"
 : "${STATUS_RESET:=^d^}"
+
+# Left-click: htop in a terminal dwm floats. The block itself re-renders as
+# usual -- dwmblocks re-runs it for the click. The helpers (dwm-blockutil) are
+# sourced only for a click: this block is polled, and the bar's polled blocks
+# are kept to the reads they need.
+if [ "$BUTTON" = 1 ] && command -v htop >/dev/null 2>&1; then
+	util="${0%/*}/dwm-blockutil"
+	[ -r "$util" ] || util="$HOME/.local/bin/dwm-blockutil"
+	[ -r "$util" ] && . "$util" && block_term htop htop
+fi
 
 # coretemp = Intel, k10temp = AMD, zenpower = AMD third-party module,
 # cpu_thermal = ARM SoCs.

@@ -68,8 +68,11 @@ static const Rule rules[] = {
 	{ "Gpick",                 NULL,     NULL,  0,         1,          0,            -1 },
 	{ "org.gnome.FileRoller",  NULL,     NULL,  0,         1,          0,            -1 },
 	{ "Nm-connection-editor",  NULL,     NULL,  0,         1,          0,            -1 },
-	/* nmtui, opened by a left-click on the NET block (dwmblocks/scripts/dwm-net) */
-	{ "dots-nmtui",            NULL,     NULL,  0,         1,          0,            -1 },
+	/* Every terminal a status-bar click opens (nmtui, htop, the dnf upgrade):
+	 * block_term in dwmblocks/scripts/dwm-blockutil gives each the class
+	 * dots-float-<tool>, and strstr() makes this one rule match them all, so a
+	 * new pop-up needs no rebuild. */
+	{ "dots-float-",           NULL,     NULL,  0,         1,          0,            -1 },
 };
 
 /* layout(s) */

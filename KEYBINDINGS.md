@@ -197,17 +197,26 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 
 | # | Block | Shows | Refreshes | Clicks |
 | --- | --- | --- | --- | --- |
-| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification |
+| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification, right → `sudo dnf upgrade --refresh` in a terminal |
 | 2 | `DISK` | Free space on `/` | 5 min | left → open `/` in thunar |
-| 3 | `TEMP` | CPU package temperature | 5 s | — |
-| 4 | `CPU` | CPU utilisation | 2 s | — |
-| 5 | `MEM` | Used / total RAM | 10 s | — |
-| 6 | `GAMMA` | Screen gamma level | **on change only** | — |
-| 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute |
-| 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5% |
+| 3 | `TEMP` | CPU package temperature | 5 s | left → htop |
+| 4 | `CPU` | CPU utilisation | 2 s | left → htop |
+| 5 | `MEM` | Used / total RAM | 10 s | left → htop |
+| 6 | `GAMMA` | Screen gamma level | **on change only** | left → night light on / off, scroll → gamma ±, with the pop-up |
+| 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute, with the pop-up |
+| 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
 | 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal |
 | 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
 | 11 | `` | Day, date and time | 60 s | left → this month's calendar |
+
+**The bar behaves like the keys** (2026-10-07). A click or scroll that changes
+a level shows the same `dwm-osd` pop-up as the volume, mic and brightness
+keys. Every terminal a click opens (`nmtui`, `htop`, the upgrade) floats: its
+class is `dots-float-<tool>`, and one `dots-float-` rule in `config.def.h`
+matches them all. The terminal is alacritty, or st without it. The helpers
+live in `dwm-blockutil`, sourced by the blocks the way `dwm-colors` is. The
+upgrade terminal refreshes `UPD` the moment dnf finishes and stays open until
+Enter, so a failed upgrade can be read.
 
 > **Scroll on the bar needs a dwm rebuild on an existing install.** dwm bound
 > `ClkStatusText` for Button1/2/3 only, so a scroll was discarded before any

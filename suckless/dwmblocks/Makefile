@@ -57,7 +57,7 @@ install-scripts:
 	mkdir -p ${SCRIPTDIR}
 	cp -f scripts/dwm-* ${SCRIPTDIR}
 	@for f in scripts/dwm-*; do chmod 755 "${SCRIPTDIR}/`basename $$f`"; done
-	chmod 644 ${SCRIPTDIR}/dwm-colors
+	chmod 644 ${SCRIPTDIR}/dwm-colors ${SCRIPTDIR}/dwm-blockutil
 
 uninstall-scripts:
 	@for f in scripts/dwm-*; do rm -f "${SCRIPTDIR}/`basename $$f`"; done

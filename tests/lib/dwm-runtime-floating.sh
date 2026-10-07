@@ -48,6 +48,9 @@ check_float_rules() {
     sleep 0.2
     while read -r cls; do
         n=$((n + 1))
+        # A rule ending in '-' is a prefix (rules[] match by strstr): open a
+        # window of a class that merely STARTS with it, as block_term does.
+        [[ "$cls" != *- ]] || cls="${cls}probe"
         setsid xterm -class "$cls" -title "dwm-runtime-$$-rule" -e sleep 300 >>"$TMP/xterm.log" 2>&1 &
         win=
         for _ in $(seq 1 50); do

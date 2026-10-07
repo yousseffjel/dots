@@ -8,6 +8,7 @@
 # change.
 #
 # Clicks: left toggles mute, right opens pavucontrol, scroll adjusts by 5%.
+# Left and scroll also show the dwm-osd pop-up, exactly as the volume keys do.
 # Every mutation happens BEFORE the value is read below, so a single run both
 # applies the change and prints the result -- the click is itself the signal
 # that re-ran this script, so there is no second refresh to wait for.
@@ -26,6 +27,11 @@ colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
 
 STEP=5
 
+# Shared click helpers (block_bin, block_term, block_osd) -- see dwm-blockutil.
+util="${0%/*}/dwm-blockutil"
+[ -r "$util" ] || util="$HOME/.local/bin/dwm-blockutil"
+[ -r "$util" ] && . "$util"
+
 if ! command -v pamixer >/dev/null 2>&1; then
 	printf '%sVOL%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
@@ -35,14 +41,23 @@ fi
 # Lowering deliberately does not -- turning a muted system down should not
 # make it audible. Same rule as config/sxhkd/sxhkdrc's volume bindings.
 case "$BUTTON" in
-1) pamixer --toggle-mute >/dev/null 2>&1 ;;
+1)
+	pamixer --toggle-mute >/dev/null 2>&1
+	block_osd volume
+	;;
 3)
 	if command -v pavucontrol >/dev/null 2>&1; then
 		pavucontrol >/dev/null 2>&1 &
 	fi
 	;;
-4) pamixer --unmute --increase "$STEP" >/dev/null 2>&1 ;;
-5) pamixer --decrease "$STEP" >/dev/null 2>&1 ;;
+4)
+	pamixer --unmute --increase "$STEP" >/dev/null 2>&1
+	block_osd volume
+	;;
+5)
+	pamixer --decrease "$STEP" >/dev/null 2>&1
+	block_osd volume
+	;;
 esac
 
 if [ "$(pamixer --get-mute 2>/dev/null)" = "true" ]; then
