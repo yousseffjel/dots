@@ -2084,3 +2084,13 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   every theme. Mutations 7/7, reviewer READY.
 - Still to check on the VM: `dots update`, reboot, then confirm the border is
   blue.
+
+## 2026-10-12 — ly border verified on the VM
+
+- The user ran `git pull` + `dots update` (`20b77eb`) and rebooted: **ly's
+  border is now drawn blue** for the dark theme, where it was white before
+  `ly-console-colours`. The theme switch inside the restore stage wrote it
+  (`wrote theme dark -> /etc/ly/config.ini`), and the services stage then
+  found it current (`already has theme dark`), so the idempotence path also
+  ran live. Super keys, big clock and hidden version were already verified.
+  Nothing from today is left unverified on the VM.

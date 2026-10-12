@@ -83,7 +83,7 @@ the same time and **not** queued — raise them separately if wanted.
   - [x] `ignore-header-backups`: `*.h.pre-*` gitignored.
   - [x] `ly-console-colours` (`6c79fdd`): border drawn white on the VT — mapped
         to the hue-nearest console colour.
-  Open: re-check the ly border colour on the VM. Super keys verified there.
+  ✅ All verified on the VM 2026-10-12: Super keys, ly clock/version, blue border.
 - 2026-10-12 — **Epic: scope-g — polish, per-tag restart, release 0.2.0 —
   ALL 3 SLOTS MERGED.** Scope file `.claude/tasks/scope-g-release-0.2.0.md`.
   - [x] 1 — `polish-bundle` (`65e1dcd`)
