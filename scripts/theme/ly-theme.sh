@@ -11,8 +11,8 @@
 # be another root write.
 #
 # WHAT is written — four keys, edited in place, nothing appended:
-#   fg                   = the theme's txt1   (dwm.normfgcolor)
-#   border_fg            = the theme's 1xa7   (dwm.selbordercolor)
+#   fg                   = the theme's txt1   (dwm.normfgcolor)     } as console
+#   border_fg            = the theme's 1xa7   (dwm.selbordercolor)  } colours
 #   bigclock             = en
 #   hide_version_string  = true
 # The first time a key is changed its original line is saved to
@@ -67,6 +67,38 @@ done
 # dcol_value <palette> <key> — the bare hex of dcol_<key>.
 dcol_value() {
     sed -n "s/^dcol_$2=\"\([0-9A-Fa-f]\{6\}\)\"$/\1/p" "$1"
+}
+
+# console_colour <RRGGBB> — the console colour nearest in hue, as the RGB the
+# kernel maps exactly to its bright variant.
+#
+# WHY. ly draws on a Linux VT, which has 16 colours. vt.c's rgb_foreground()
+# sets each of red/green/blue only when that component exceeds half the
+# largest one, so a soft accent like #9A9AE6 sets all three and is drawn
+# WHITE — every shipped theme's border was, on the VM (2026-10-12). Choosing
+# by hue keeps the theme's colour family; each value below has exactly one
+# component above half the maximum (two for yellow/cyan/magenta) and a
+# maximum above 0xAA, which is what vt.c reads as "that colour, bright".
+# A colour with little saturation (under 1/5) is white, as the eye sees it.
+console_colour() {
+    local r=$((16#${1:0:2})) g=$((16#${1:2:2})) b=$((16#${1:4:2})) max min d h
+    max=$((r > g ? (r > b ? r : b) : (g > b ? g : b)))
+    min=$((r < g ? (r < b ? r : b) : (g < b ? g : b)))
+    d=$((max - min))
+    if ((d * 5 < max || max == 0)); then
+        printf 'FFFFFF\n'
+        return 0
+    fi
+    if ((max == r)); then
+        h=$(((60 * (g - b) / d + 360) % 360))
+    elif ((max == g)); then
+        h=$((120 + 60 * (b - r) / d))
+    else
+        h=$((240 + 60 * (r - g) / d))
+    fi
+    # Nearest of the six hues, 60 degrees apart, red first.
+    local -a hues=(FF5555 FFFF55 55FF55 55FFFF 5555FF FF55FF)
+    printf '%s\n' "${hues[$((((h + 30) / 60) % 6))]}"
 }
 
 # set_key <file> <key> <line> — replace the key's line; 1 if ly has no such key.
@@ -155,6 +187,8 @@ if [[ -z "$fg" || -z "$border" ]]; then
     red "$PALETTE has no dcol_txt1 / dcol_1xa7"
     exit 1
 fi
+fg="$(console_colour "$fg")"
+border="$(console_colour "$border")"
 
 # write_config saves these before the FIRST change only, so a later switch
 # never records our own values as "the original". Only keys ly has are kept.

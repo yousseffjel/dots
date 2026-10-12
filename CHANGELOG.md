@@ -18,9 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
-- **The ly login screen follows the theme.** Its text and border take the
-  active static theme's colours (the same as dwm's text and focused border),
-  with a big clock and no version string. Written at install and on every
+- **The ly login screen follows the theme.** Its border takes the console
+  colour nearest the active static theme's accent (the same accent as dwm's
+  focused border — a Linux console has 16 colours, so a theme's exact hex
+  would draw white), with a big clock and no version string. Written at install and on every
   `dots theme <name>`, which asks for sudo in a terminal and, from the theme
   keybinding, sends a notification instead of hanging on a prompt. `dots
   login-theme` applies it by hand; `dots uninstall` restores ly's own values.

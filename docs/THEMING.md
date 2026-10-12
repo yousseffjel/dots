@@ -495,8 +495,8 @@ identity as it was.
 
 | Key | Value | Same as |
 | --- | --- | --- |
-| `fg` | `0x00` + the theme's `txt1` | `dwm.normfgcolor` |
-| `border_fg` | `0x00` + the theme's `1xa7` | `dwm.selbordercolor` |
+| `fg` | the theme's `txt1`, as a console colour | `dwm.normfgcolor` |
+| `border_fg` | the theme's `1xa7`, as a console colour | `dwm.selbordercolor` |
 | `bigclock` | `en` | — |
 | `hide_version_string` | `true` | — |
 
@@ -519,9 +519,19 @@ kept, and because it is the package's `%config(noreplace)` an ly upgrade keeps
 our edit and drops its new defaults beside it as `config.ini.rpmnew`. A key a
 future ly no longer has is reported and skipped, never appended.
 
-**On a Linux console the colours are approximate.** ly runs in 24-bit mode
-(`full_color = true`), and the kernel's VT has only its 16-colour palette, so
-each colour is drawn as the nearest of those — close to the theme, not exact.
+**On a Linux console a theme colour becomes one of 16.** ly runs in 24-bit
+mode, but the kernel's VT draws only its 16-colour palette, and its rule
+(`rgb_foreground()` in `drivers/tty/vt/vt.c`) lights red, green or blue only
+when that component is over half the largest one. Every shipped accent is a
+soft pastel (`#9A9AE6` in dark) with all three over half, so written as-is
+each border was drawn **white** — seen on the VM, 2026-10-12. `ly-theme.sh`
+therefore picks the console colour nearest the accent's hue and writes the RGB
+the kernel maps exactly to its bright variant: dark, nord and tokyo-night get
+a bright blue border, gruvbox a bright red one. A grey (under 1/5 saturation)
+stays white. `tests/ly-theme.sh` checks every theme against its own copy of
+the kernel's rule. Exact theme colours would need the console's palette
+itself recoloured (`setvtrgb`), which was rejected: it changes every TTY,
+tty1's rescue login included.
 
 ### The no-clobber rule
 

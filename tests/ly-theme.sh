@@ -50,6 +50,46 @@ check() {
 has_line() { grep -qx -- "$2" "$1"; }
 same() { [[ "$(<"$1")" == "$(<"$2")" ]]; }
 palette() { sed -n "s/^dcol_$2=\"\([0-9A-F]*\)\"$/\1/p" "$DOTS_DIR/themes/$1/colors.dcol"; }
+value() { sed -n "s/^$1 = 0x00\([0-9A-F]\{6\}\)$/\1/p" "$CONF"; }
+
+# vt_colour <RRGGBB> — what a Linux VT draws: rgb_foreground() in the
+# kernel's drivers/tty/vt/vt.c, restated here independently of the SUT so the
+# test checks the screen, not the SUT's own table. Prints "<hue> <bright>":
+# hue bits 4 red, 2 green, 1 blue (7 = white); bright 1 when max > 0xAA.
+vt_colour() {
+    local r=$((16#${1:0:2})) g=$((16#${1:2:2})) b=$((16#${1:4:2})) max hue=0
+    max=$((r > g ? (r > b ? r : b) : (g > b ? g : b)))
+    ((r > max / 2)) && hue=$((hue | 4))
+    ((g > max / 2)) && hue=$((hue | 2))
+    ((b > max / 2)) && hue=$((hue | 1))
+    printf '%s %s\n' "$hue" "$((max > 0xAA ? 1 : 0))"
+}
+# hue_deg <RRGGBB> — the HSV hue in degrees, in awk (floating point), a
+# different computation from the SUT's integer one.
+hue_deg() {
+    # Components converted by bash: strtonum is gawk-only, and CI's awk is mawk.
+    awk -v r=$((16#${1:0:2})) -v g=$((16#${1:2:2})) -v b=$((16#${1:4:2})) 'BEGIN {
+        mx = r; if (g > mx) mx = g; if (b > mx) mx = b
+        mn = r; if (g < mn) mn = g; if (b < mn) mn = b
+        d = mx - mn
+        if (mx == r) x = 60 * (g - b) / d; else if (mx == g) x = 120 + 60 * (b - r) / d; else x = 240 + 60 * (r - g) / d
+        printf "%d\n", (x + 360) % 360 }'
+}
+# drawn_in_family <theme> — border_fg is drawn bright, NOT white, and the hue
+# the console draws is the one nearest the accent's (within 30 degrees).
+drawn_in_family() {
+    local accent shown hue bright drawn want dist
+    local -A vt_deg=([4]=0 [6]=60 [2]=120 [3]=180 [1]=240 [5]=300)
+    accent="$(palette "$1" 1xa7)"
+    shown="$(value border_fg)"
+    read -r hue bright < <(vt_colour "$shown")
+    [[ -n "$shown" && $hue -ne 7 && $hue -ne 0 && $bright -eq 1 ]] || return 1
+    drawn="${vt_deg[$hue]}"
+    want="$(hue_deg "$accent")"
+    dist=$(((drawn - want + 360) % 360))
+    ((dist > 180)) && dist=$((360 - dist))
+    ((dist <= 30))
+}
 # Lines that differ from the fixture, position by position.
 changed() { awk 'NR==FNR { a[FNR] = $0; next } a[FNR] != $0' "$FIXTURE" "$CONF"; }
 only_managed_changed() {
@@ -86,8 +126,8 @@ blue "==> a theme: four lines, from its own palette"
 fresh
 run dark
 check "exit 0" test "$RC" -eq 0
-check "fg = dark's txt1" has_line "$CONF" "fg = 0x00$(palette dark txt1)"
-check "border_fg = dark's 1xa7" has_line "$CONF" "border_fg = 0x00$(palette dark 1xa7)"
+check "fg: dark's txt1 is drawn white, bright" test "$(vt_colour "$(value fg)")" = "7 1"
+check "border_fg: dark's accent drawn bright, in its family, not white ($(value border_fg))" drawn_in_family dark
 check "bigclock = en" has_line "$CONF" "bigclock = en"
 check "hide_version_string = true" has_line "$CONF" "hide_version_string = true"
 check "nothing else changed (fixture line count kept, only the 4 keys differ)" only_managed_changed
@@ -95,6 +135,17 @@ check "the originals were saved" has_line "$ORIG" "border_fg = 0x00FFFFFF"
 check "...all four, even fg, which dark leaves as it was" test "$(wc -l <"$ORIG")" -eq 4
 check "a LY manifest row claims the file" grep -qP "^LY\t\Q$CONF\E\t" "$H/.local/state/dots/manifest"
 check "no sudo for a writable file" test ! -e "$LOG"
+
+blue "==> every theme's border survives the console (the 2026-10-12 VM bug)"
+for theme in "$DOTS_DIR"/themes/*/; do
+    theme="$(basename "$theme")"
+    run "$theme"
+    raw="$(palette "$theme" 1xa7)"
+    check "$theme: written as-is ($raw), the console would draw it white" \
+        test "$(vt_colour "$raw" | cut -d' ' -f1)" -eq 7
+    check "$theme: as written ($(value border_fg)) it is drawn in its own colour" drawn_in_family "$theme"
+done
+run dark
 
 blue "==> a re-run writes nothing"
 chmod a-w "$CONF"
@@ -107,7 +158,7 @@ chmod u+w "$CONF"
 mkdir -p "$H/.cache/dots/theme"
 echo nord >"$H/.cache/dots/theme/theme.set"
 run
-check "no argument: the active theme (nord)" has_line "$CONF" "border_fg = 0x00$(palette nord 1xa7)"
+check "no argument: the active theme (nord)" grep -q "theme nord" <<<"$OUT"
 check "the saved originals are still ly's own" has_line "$ORIG" "border_fg = 0x00FFFFFF"
 
 blue "==> --dry-run"
