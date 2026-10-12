@@ -1989,3 +1989,35 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   live checks are complete except the sudo prompt in the UPD upgrade
   terminal. Cosmetic, open: the doctor's daemon_applies skip text names
   all three conditions instead of the one that applies.
+
+## 2026-10-12 — scope G opened; slot 1 polish-bundle merged
+
+- **Scope G** (`.claude/tasks/scope-g-release-0.2.0.md`): polish, per-tag
+  restart, and release 0.2.0 last.
+- **`polish-bundle` merged** (`65e1dcd`):
+  - an existing `.xinitrc` gets only its missing session-end lines;
+  - `dots doctor` names the one reason a daemon is skipped;
+  - the wallpaper keys use the XDG pictures dir, seed a missing default
+    folder, and notify on every failure (they used to fail silently from
+    sxhkd);
+  - `dwm-screenshot` (250 → 177 + `dwm-lib-screenshot.sh`) and
+    `doctor-session.sh` (259 → 179 + `doctor-daemons.sh`) are split at the
+    cap.
+
+  Suite 47/47, mutations 9/9. Queue item "watch the first CI run" closed.
+- **Slot 2 `pertag-restart` merged** (`2dbfcf5`): a dwm restart now also keeps
+  each tag's layout, mfact, nmaster and bar, and Mod+Tab's history
+  (`preservepertag`, dwm roster 17). The first draft restored the wrong
+  "previous tag": Mod+Tab swaps the tagset slots. Suite 47/47, mutations
+  6/6, Xvfb only.
+- **Slot 3 `release-0.2.0` merged** (`695f1d5`). **VERSION is 0.2.0.**
+  - `dots update`: pull with fast-forward only, then re-run the installer,
+    refusing anything unsafe before changing a thing.
+  - Migration 0.1.0 → 0.2.0: refreshes generated headers that match a past
+    default and keeps edited ones.
+  - The first tests of migrate.sh.
+  - On the dev host, its own dwm `config.h` and dwmblocks `blocks.h` would
+    be refreshed.
+  - Suite 50/50, mutations 16/16.
+  - Scope G closed. Not yet done: tags, push, a live `dots update` on the
+    VM.

@@ -9,7 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-*(none — scope-f closed 2026-10-12; see Recently Closed)*
+*(none — scope-g closed 2026-10-12; see Recently Closed)*
 
 ---
 
@@ -26,7 +26,9 @@ when slots run concurrently.
 - ~~**`@resurrect-dir` hardcodes `$HOME/.local/state`**~~ ✅ **Done 2026-09-28**
   — plus the same bug in `tmux-palette`, now guarded tree-wide by
   `tests/tmux-xdg-paths.sh`.
-- **Watch the first CI run after 2026-08-10.** The `lint` and `build-suckless`
+- ~~**Watch the first CI run after 2026-08-10.**~~ ✅ **Closed 2026-10-12** —
+  lint and build-suckless have been green on every run since (e.g. `68cfb53`).
+  Original entry: The `lint` and `build-suckless`
   jobs were rewired to invoke `tests/lint.sh --strict` and `tests/build.sh`
   without CI ever executing once. Two things are unproven: that
   `npm install -g` works without sudo on a GitHub-hosted runner, and that
@@ -71,6 +73,14 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-12 — **Epic: scope-g — polish, per-tag restart, release 0.2.0 —
+  ALL 3 SLOTS MERGED.** Scope file `.claude/tasks/scope-g-release-0.2.0.md`.
+  - [x] 1 — `polish-bundle` (`65e1dcd`)
+  - [x] 2 — `pertag-restart` (`2dbfcf5`)
+  - [x] 3 — `release-0.2.0` (`695f1d5`): VERSION 0.2.0, `dots update`,
+        the first real migration, the first tests of migrate.sh
+  Open: tags (v0.1.0 at d997704, v0.2.0), and a live `dots update` on the VM.
 
 - 2026-10-12 — **Epic: scope-f — desktop integration pass — ALL 4 SLOTS
   MERGED.** Scope file `.claude/tasks/scope-f-desktop-integration.md`.
