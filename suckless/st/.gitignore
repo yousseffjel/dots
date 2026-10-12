@@ -1,3 +1,4 @@
 config.h
+config.h.pre-*
 *.o
 st

@@ -1,4 +1,5 @@
 blocks.h
+blocks.h.pre-*
 *.o
 dwmblocks
 dwmblocks-nox

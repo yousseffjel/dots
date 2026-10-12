@@ -74,6 +74,14 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-12 — **ad-hoc: Super modkey + ly login theme — both slots merged**
+  (`aadcf5f`).
+  - [x] `super-modkey` (`d604000`): every binding on Super; build-time refresh
+        of unedited stale suckless headers; `tests/key-collisions.sh`.
+  - [x] `ly-theme` (`ca5f15f`): `dots login-theme`; install + static switch;
+        uninstall restores ly's values.
+  - [x] `ignore-header-backups`: `*.h.pre-*` gitignored.
+  Open: verify both on the VM (`dots update`, re-login, look at ly).
 - 2026-10-12 — **Epic: scope-g — polish, per-tag restart, release 0.2.0 —
   ALL 3 SLOTS MERGED.** Scope file `.claude/tasks/scope-g-release-0.2.0.md`.
   - [x] 1 — `polish-bundle` (`65e1dcd`)

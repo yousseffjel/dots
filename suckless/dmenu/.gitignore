@@ -1,4 +1,5 @@
 config.h
+config.h.pre-*
 *.o
 dmenu
 stest

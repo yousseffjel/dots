@@ -2047,3 +2047,25 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   hidden bar and Alt+Tab survive a dwm restart.
 - Scope G has nothing left unverified on the VM. Still open: tags, 0.2.1,
   bare metal.
+
+## 2026-10-12 — super-modkey + ly-theme merged; header backups ignored
+
+- **`super-modkey` merged** (`d604000`): dwm `MODKEY` is `Mod4Mask`. sxhkd
+  moved firefox to Super+Shift+b, lock to Super+Escape, the monitor menu to
+  Super+Shift+d and emoji to Super+;. `tests/key-collisions.sh` fails on a
+  chord grabbed twice. Each build now regenerates an unedited stale
+  `config.h`/`blocks.h` (`scripts/install-suckless-headers.sh`), so existing
+  installs get the change with no release. Reviewer READY on round 3.
+- **`ly-theme` merged** (`ca5f15f`): `scripts/theme/ly-theme.sh` /
+  `dots login-theme` writes fg, border_fg, bigclock and hide_version_string
+  into `/etc/ly/config.ini`. It runs at install and on a static theme switch,
+  uses `sudo -n` with no TTY, and is restored by uninstall. Tested against a
+  real ly 1.4.0 fixture. Reviewer READY, first round.
+- **Merge** (`aadcf5f`): CHANGELOG and CURRENT.md conflicts resolved by hand.
+  The first merged suite run failed `dwm-runtime` on a stale in-tree dwm
+  (binary 2026-09-28, config.h still Mod1). The new refresh, run on that tree,
+  set both unedited headers aside correctly; after the rebuild the suite is
+  53/53. Its backups were untracked noise, so they are now gitignored
+  (`ignore-header-backups`).
+- **Not yet on the VM**: `dots update` there should refresh config.h, prompt
+  for sudo for ly, and give Super after a re-login.
