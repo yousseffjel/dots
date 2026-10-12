@@ -2035,3 +2035,15 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   installer when they differ, also on an ahead-only branch and in `--dry-run`.
   Suite 50/50, mutations 5/5 (a sixth exposed a redundant guard, removed),
   reviewer READY. Under `[Unreleased]`; 0.2.1 needs an empty migration file.
+
+## 2026-10-12 — scope G verified live on the VM
+
+- **`dots update` proven on the VM** (`9a25ddd`): after a hand `git pull`,
+  `--dry-run` said "nothing to pull, but the last install ran from bcb0b2b,
+  the checkout is at 9a25ddd — would re-run the installer"; `dots update`
+  re-ran it (migrations "already at 0.2.0", sudo prompt, rebuild, dwm HUP);
+  a second run said "already up to date (0.2.0) — nothing to install".
+- **Per-tag restart verified by hand** by the user: layouts, mfact, the
+  hidden bar and Alt+Tab survive a dwm restart.
+- Scope G has nothing left unverified on the VM. Still open: tags, 0.2.1,
+  bare metal.

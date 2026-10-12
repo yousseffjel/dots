@@ -80,7 +80,8 @@ the same time and **not** queued — raise them separately if wanted.
   - [x] 2 — `pertag-restart` (`2dbfcf5`)
   - [x] 3 — `release-0.2.0` (`695f1d5`): VERSION 0.2.0, `dots update`,
         the first real migration, the first tests of migrate.sh
-  Open: tags (v0.1.0 at d997704, v0.2.0), and a live `dots update` on the VM.
+  Open: tags (v0.1.0 at d997704, v0.2.0). ~~A live `dots update` on the VM~~ —
+  ✅ done 2026-10-12, and per-tag restart verified by hand there.
   - [x] follow-up `update-stale-install` (`9c5599d`): `dots update` re-runs the
         installer when the install is older than the checkout. VM upgraded to
         0.2.0 by hand the same day; doctor green.
