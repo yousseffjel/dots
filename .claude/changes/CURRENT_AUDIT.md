@@ -1946,3 +1946,46 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   - Suite 46/46; mutations 13/14 (one by-design survivor).
   - Reviewer: three WARNs, all stale docs, fixed.
   - `dwm-screenshot` is at 250 lines: its next change must split it.
+
+## 2026-10-12 — scope F closed: vm-verify
+
+- **Slot 4 `vm-verify` merged** (`dffc91e`). Slots 1-3 were checked live on
+  the Fedora 44 VM in a real dwm session and all passed:
+  - restart preservation;
+  - the dropdown terminal with the real alacritty;
+  - float rules with the real apps;
+  - every bar click;
+  - nm-applet and the XDG dirs;
+  - screenshots;
+  - DND and notification history;
+  - the 2026-10-07 logout/re-login/cursor items.
+
+  The VM found four defects, all fixed:
+  - dwm saw SIGHUP/SIGTERM only at its next X event (logout 20-25 s) →
+    `wakeonsignal` self-pipe;
+  - xss-lock dumped core at every logout → stopped in `dots_session_end`;
+  - the doctor hid a one-shot missing from autostart.sh;
+  - `NetworkManager-tui` was never declared, so the NET click did
+    nothing.
+
+  CHANGELOG `[Unreleased]` was back-filled for all of scope F. Suite 46/46.
+  The "floating tray icons" were virt-manager's fullscreen toolbar.
+- **Open:** the four fixes need a pull + rebuild on the VM to be seen live.
+  Bare metal and a real GPU are still untested.
+- **Live on the VM after pull + rebuild (2026-10-12 11:51):**
+  - logouts at 11:51:30 and 11:51:40 ran the edited `~/.xinitrc` (one
+    pasted xss-lock line): no xss-lock core dump (the 11:51:12 one was a
+    session started before the edit);
+  - session end → ly took about 1 s (D1);
+  - `dots doctor` flagged `pkg-NetworkManager-tui` as missing on this
+    older install. That is the desktop tier working as designed:
+    `install-suckless.sh` installs no packages.
+- Still unseen: `pkexec true` floating, the sudo prompt in the upgrade
+  terminal.
+- **12:11, same VM:** after `sudo dnf install NetworkManager-tui`,
+  `dots doctor` passes every check (desktop.lst 39/39). `pkexec true`
+  raised lxpolkit's dialog floating and dark-themed (GTK2 via
+  .gtkrc-2.0), and cancelling gave "Not authorized", as expected. Scope F's
+  live checks are complete except the sudo prompt in the UPD upgrade
+  terminal. Cosmetic, open: the doctor's daemon_applies skip text names
+  all three conditions instead of the one that applies.

@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-07
+Last Updated: 2026-10-12
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -9,16 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-- **Epic: scope-f — desktop integration pass** (opened 2026-10-07).
-  Scope file `.claude/tasks/scope-f-desktop-integration.md` — locked
-  decisions live there.
-  - [x] 1 — `dwm-rules-scratchpad`: F1 F2 A1 F5 — `e44d331` (F5 became
-        preserveonrestart: every wallpaper change used to scatter the desktop)
-  - [x] 2 — `bar-integration`: I2 I3 I4 A2 — `2efa910` (found: dnf5 header
-        in the UPD list)
-  - [x] 3 — `session-integration`: F3 I1 I5 — `d19069f` (+ DND block,
-        doctor dunst check; I6 closed)
-  - [ ] 4 — `vm-verify`: F4 + everything above on the Fedora VM
+*(none — scope-f closed 2026-10-12; see Recently Closed)*
 
 ---
 
@@ -80,6 +71,22 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-12 — **Epic: scope-f — desktop integration pass — ALL 4 SLOTS
+  MERGED.** Scope file `.claude/tasks/scope-f-desktop-integration.md`.
+  - [x] 1 — `dwm-rules-scratchpad` (`e44d331`): preserveonrestart (every
+        wallpaper change used to scatter the desktop), dropterm, float rules
+  - [x] 2 — `bar-integration` (`2efa910`): bar clicks match the keys; all
+        blocks tested
+  - [x] 3 — `session-integration` (`d19069f`): nm-applet, xdg-user-dirs,
+        DND block + keys, doctor dunst check
+  - [x] 4 — `vm-verify` (`dffc91e`): everything above passed live on the
+        Fedora 44 VM, which found four more defects, all fixed:
+        wakeonsignal (logout took 20-25 s), xss-lock core dump at logout,
+        doctor one-shot ordering, NetworkManager-tui undeclared. Also
+        back-filled the CHANGELOG lines no slot had written.
+  Still to see live on the VM: those four fixes (after a pull + rebuild),
+  `pkexec true` floating, the sudo prompt in the upgrade terminal.
 
 - 2026-10-06 — **Flatpak integration (scope E,
   `scope-e-flatpak-integration.md`)**. Flathub plus four read-only overrides,
