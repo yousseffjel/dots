@@ -141,12 +141,10 @@ check_pertag() {
 # Runs LAST, after every focus-dependent check, and verifies against a FRESH
 # window rather than one that predates the restart — see check_fullscreen.
 #
-# dwm acts on SIGHUP only at its NEXT X event: sighup() just clears
-# `running`, and run() sits blocked in XNextEvent() until something arrives.
-# A live desktop produces events constantly (every status-bar update is a
-# root PropertyNotify), so a reload is near-instant there; this test produced
-# none, so the restart never happened and the section always warned — which
-# was wrongly blamed on signal delivery in the sandbox.
+# History: this section was advisory until 2026-10-06 because the restart
+# "never happened" — blamed on signal delivery, really dwm acting on SIGHUP
+# only at its next X event. The test then woke dwm with a fake event; since
+# 2026-10-12 dwm wakes itself (wakeonsignal) and the test sends none.
 #
 # The restart itself, and how its completion is detected, is restart_dwm
 # in dwm-runtime-x.sh.

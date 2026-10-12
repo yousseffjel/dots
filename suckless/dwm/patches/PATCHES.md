@@ -11,7 +11,34 @@ xresources patch onward.
 2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
 are mutually exclusive — see that entry.
 
-## dwm-preserveonrestart-20261007-local.diff
+## dwm-wakeonsignal-20261012-local.diff
+
+**Source**: written for this tree; no upstream patch. A self-pipe in the
+classic form: `quit()` writes one byte to a non-blocking, close-on-exec pipe,
+and `run()` waits with `select()` on both the X connection and that pipe
+instead of blocking in `XNextEvent()`.
+
+**Why**: the SIGHUP/SIGTERM handlers (restartsig) only call `quit()`, which
+clears `running`; a loop blocked in `XNextEvent()` saw that at the NEXT X
+event. An idle desktop may send none for many seconds. On the Fedora 44 VM
+(2026-10-12) a power-menu logout (`pkill -TERM -x dwm`) took 20-25 s, and a
+`kill -HUP` restart, which every wallpaper change sends via
+`scripts/theme/reload.sh`, took 6.1 s. `tests/dwm-runtime.sh` had hidden this
+since 2026-10-06 by setting a throwaway root property after each kill; that
+workaround is gone, and `check_sigterm` asserts an exit with no X event.
+
+**Why not `pselect()` with the signals blocked**: the mask would be inherited
+by every client `spawn()` forks and by `popen()`'s `pidof`, so programs started
+from dwm would ignore SIGHUP/SIGTERM. The pipe changes no mask. On Linux
+`select()` is also never restarted after a handler, so the pipe matters only
+for the race where a signal lands between the `running` check and the wait.
+That race is why mutation W2 (no write) survives: no test can hit that window
+on demand.
+
+**Interactions**: `quit()` saves and restores `errno` and makes only
+async-signal-safe calls, because the handlers reach it. The restart path's
+`execvp()` closes both ends (FD_CLOEXEC), and the new instance makes its own.
+
 
 **Source**: modelled on the upstream preserveonrestart patch
 (`dwm.suckless.org/patches/preserveonrestart/`), written against this tree

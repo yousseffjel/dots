@@ -110,8 +110,7 @@ hex_of() {
 # re-exec'd instance has run setup(). Returns 1 if it never came back.
 #
 # How a restart is detected: delete root's _NET_SUPPORTING_WM_CHECK BEFORE
-# the kill, then wake dwm with a throwaway root property, and wait for the
-# check property to come back. Only setup() sets it, so it reappears only
+# the kill, and wait for the check property to come back. Only setup() sets it, so it reappears only
 # once a fresh instance has re-initialised. The order matters: deleting after
 # the kill would race any stray event that restarts dwm first — the delete
 # would then remove the NEW instance's property and fail a good run.
@@ -120,13 +119,16 @@ hex_of() {
 # gets the same client slot — so the new check window often has the very
 # same ID (2 of 3 container runs, 2026-10-06).
 #
-# The wake is needed because dwm acts on SIGHUP only at its NEXT X event (see
-# check_restartsig). setup() runs BEFORE scan(), so a caller that inspects
-# recovered windows must still poll for them to settle.
+# NO X event is sent to wake dwm, deliberately. Until 2026-10-12 this helper
+# set a throwaway root property after the kill, because dwm acted on SIGHUP
+# only at its next X event — and that workaround hid the same stall from every
+# user: a power-menu logout took 20-25 s on the Fedora VM. dwm now wakes itself
+# (the wakeonsignal diff), and an idle Xvfb sends nothing, so a regression
+# shows up here as a restart that never comes. setup() runs BEFORE scan(), so
+# a caller that inspects recovered windows must still poll for them to settle.
 restart_dwm() {
     xprop -root -remove _NET_SUPPORTING_WM_CHECK
     kill -HUP "$DWM_PID"
-    xprop -root -f _DOTS_TEST_WAKE 8s -set _DOTS_TEST_WAKE 1
     for _ in $(seq 1 50); do
         xprop -root _NET_SUPPORTING_WM_CHECK 2>/dev/null | grep -qE '0x[0-9a-fA-F]+' && return 0
         sleep 0.1

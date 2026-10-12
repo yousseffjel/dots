@@ -10,7 +10,8 @@
 # The Wi-Fi signal is read with `--rescan no`. A plain `nmcli device wifi`
 # may trigger a scan, which takes seconds and would run every 30 s here.
 #
-# Left-click opens nmtui in a terminal that dwm floats (block_term).
+# Left-click opens nmtui in a terminal that dwm floats (block_term), else
+# nm-connection-editor, else a notification naming the missing package.
 #
 # DWM_NET_SYSFS overrides /sys/class/net, for tests/dwm-net.sh only.
 
@@ -36,7 +37,19 @@ SSID_MAX=16
 sysfs="${DWM_NET_SYSFS:-/sys/class/net}"
 
 case "$BUTTON" in
-1) command -v nmtui >/dev/null 2>&1 && block_term nmtui nmtui ;;
+1)
+	# nmtui ships in NetworkManager-tui, separate from NetworkManager itself
+	# (found missing on the Fedora VM, 2026-10-12). Without it fall back to
+	# nm-connection-editor, which dwm's rules[] floats; with neither, say so
+	# rather than leave the click silently dead.
+	if command -v nmtui >/dev/null 2>&1; then
+		block_term nmtui nmtui
+	elif command -v nm-connection-editor >/dev/null 2>&1; then
+		nm-connection-editor >/dev/null 2>&1 &
+	elif command -v notify-send >/dev/null 2>&1; then
+		notify-send -u low "Network" "No network tool: install NetworkManager-tui (nmtui)"
+	fi
+	;;
 esac
 
 on() { printf '%sNET%s %s\n' "$STATUS_ACCENT4" "$STATUS_RESET" "$1"; }

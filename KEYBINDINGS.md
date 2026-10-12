@@ -205,7 +205,7 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 6 | `GAMMA` | Screen gamma level | **on change only** | left → night light on / off, scroll → gamma ±, with the pop-up |
 | 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute, with the pop-up |
 | 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
-| 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal |
+| 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
 | 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
 | 11 | `DND` | Shown **only** while notifications are paused; otherwise empty and takes no space | **on change only** | left → resume notifications |
 | 12 | `` | Day, date and time | 60 s | left → this month's calendar |

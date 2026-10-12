@@ -1,0 +1,107 @@
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+index 956d768..a2394f1 100644
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -21,6 +21,7 @@
+  * To understand everything else, start reading main().
+  */
+ #include <errno.h>
++#include <fcntl.h>
+ #include <locale.h>
+ #include <signal.h>
+ #include <stdarg.h>
+@@ -28,6 +29,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <sys/select.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/wait.h>
+@@ -336,6 +338,10 @@ static void (*handler[LASTEvent]) (XEvent *) = {
+ static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast], dwmatom[DwmLast];
+ static int restart = 0;
+ static int running = 1;
++/* wakeonsignal: quit() writes one byte here so run() leaves its wait at once.
++ * Both ends are close-on-exec, so neither a spawned client nor the restart's
++ * execvp() inherits them. */
++static int wakepipe[2] = { -1, -1 };
+ static Cur *cursor[CurLast];
+ static Clr **scheme;
+ static Display *dpy;
+@@ -1764,8 +1770,15 @@ propertynotify(XEvent *e)
+ void
+ quit(const Arg *arg)
+ {
++	int saved = errno;
++
+ 	if(arg->i) restart = 1;
+ 	running = 0;
++	/* Also reached from the SIGHUP/SIGTERM handlers, so only
++	 * async-signal-safe calls, and errno is left as the handler found it. */
++	if (wakepipe[1] != -1 && write(wakepipe[1], "q", 1) == -1)
++		; /* full pipe: a wake byte is already pending, which is enough */
++	errno = saved;
+ }
+ 
+ Monitor *
+@@ -1982,11 +1995,39 @@ void
+ run(void)
+ {
+ 	XEvent ev;
+-	/* main event loop */
++	fd_set fds;
++	char buf[64];
++	int xfd = ConnectionNumber(dpy);
++	int nfds = (xfd > wakepipe[0] ? xfd : wakepipe[0]) + 1;
++
++	/* main event loop.
++	 *
++	 * wakeonsignal: the SIGHUP/SIGTERM handlers only clear `running`, and a
++	 * loop blocked in XNextEvent() noticed that at the NEXT X event, which an
++	 * idle desktop may not send for many seconds: a logout from the power
++	 * menu took 20-25 s and a theme restart 6 s on the Fedora VM. So wait on
++	 * the X connection AND the wake pipe quit() writes to. A signal landing
++	 * between the `running` check and select() still leaves its byte in the
++	 * pipe, so select() returns at once — no race, no signal mask to leak
++	 * into spawned clients. */
+ 	XSync(dpy, False);
+-	while (running && !XNextEvent(dpy, &ev))
+-		if (handler[ev.type])
+-			handler[ev.type](&ev); /* call handler */
++	while (running) {
++		while (running && XPending(dpy)) {
++			XNextEvent(dpy, &ev);
++			if (handler[ev.type])
++				handler[ev.type](&ev); /* call handler */
++		}
++		if (!running)
++			break;
++		FD_ZERO(&fds);
++		FD_SET(xfd, &fds);
++		FD_SET(wakepipe[0], &fds);
++		if (select(nfds, &fds, NULL, NULL, NULL) == -1 && errno != EINTR)
++			die("dwm: select:");
++		if (FD_ISSET(wakepipe[0], &fds))
++			while (read(wakepipe[0], buf, sizeof buf) > 0)
++				;
++	}
+ }
+ 
+ void
+@@ -2380,6 +2421,15 @@ setup(void)
+ 	/* clean up any zombies (inherited from .xinitrc etc) immediately */
+ 	while (waitpid(-1, NULL, WNOHANG) > 0);
+ 
++	/* wakeonsignal: before the handlers, so a signal can always wake run().
++	 * Non-blocking: quit() must never stall in a handler, and run() drains
++	 * the read end without waiting. */
++	if (pipe(wakepipe) == -1)
++		die("dwm: pipe:");
++	for (i = 0; i < 2; i++) {
++		fcntl(wakepipe[i], F_SETFD, FD_CLOEXEC);
++		fcntl(wakepipe[i], F_SETFL, O_NONBLOCK);
++	}
+ 	signal(SIGHUP, sighup);
+ 	signal(SIGTERM, sigterm);
+ 

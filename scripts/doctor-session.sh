@@ -59,6 +59,10 @@ check_daemons() {
         [[ -v "DAEMON_PROCESS[$name]" ]] && proc="${DAEMON_PROCESS[$name]}"
         if ! command -v "$name" >/dev/null 2>&1 && [[ ! -x "$HOME/.config/dwm/bin/$name" ]]; then
             report skip session "daemon-$name" "$name: not installed"
+        elif [[ -z "$proc" ]] && { [[ ! -f "$AUTOSTART" ]] || contains "$name" "${unmentioned[@]}"; }; then
+            # A one-shot leaves no process, so "not mentioned" is the only
+            # evidence it never runs — checked before the skip below swallows it.
+            report warn session "daemon-$name" "$name never runs: $AUTOSTART does not mention it — run scripts/install-suckless.sh --skip-deps and paste the line it prints"
         elif [[ -z "$proc" ]]; then
             report skip session "daemon-$name" "$name: runs once at login, nothing to check"
         elif pgrep -f "(^|/)$proc( |\$)" >/dev/null 2>&1; then
@@ -232,7 +236,7 @@ check_system() {
         if [[ "$state" == connected* ]]; then
             report ok "$s" network "network: $state"
         else
-            report warn "$s" network "network: ${state:-NetworkManager not answering} — run nmtui to connect"
+            report warn "$s" network "network: ${state:-NetworkManager not answering} — run nmtui (NetworkManager-tui) or nm-connection-editor to connect"
         fi
     fi
     if [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]]; then

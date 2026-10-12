@@ -99,8 +99,31 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - Dependabot for GitHub Actions and pre-commit hook versions. A bot bump of a
   linter stays red until CI's copy of that pin moves with it.
 
+- `Super` + `` ` `` (grave) toggles a drop-down terminal at the top of the
+  screen, starting it the first time; while hidden it is a scratchpad like
+  any other (`Mod` + `-` cycles it).
+- The status bar answers clicks the way the keys do: scrolling or clicking
+  VOL, MIC and GAMMA shows the same pop-up; scrolling GAMMA changes it and a
+  left-click toggles night light; CPU, MEM and TEMP open htop; a right-click
+  on UPD runs `sudo dnf upgrade --refresh` in a terminal and refreshes the
+  count when it finishes. Every terminal a click opens floats.
+- Do not disturb: `Super` + `Shift` + `n` pauses notifications and a `DND`
+  block appears in the bar (click it to resume); `Super` + `Ctrl` + `n`
+  re-shows the last one. `dots doctor` warns while it is left on. An
+  existing install needs `rm suckless/dwmblocks/blocks.h` before rebuilding.
+- The network tray icon (`nm-applet`) starts at login while NetworkManager
+  runs, and `xdg-user-dirs-update` runs at every login. Screenshots and
+  recordings now go into your pictures and videos folders, as named by
+  `xdg-user-dir` (localised or moved ones included). An existing
+  `autostart.sh` gets the lines to paste from `install-suckless.sh`.
+- `NetworkManager-tui` (in `desktop.lst`): the NET block's left-click needs
+  its `nmtui`, which plain NetworkManager does not include.
+
 ### Changed
 
+- pavucontrol, gpick, File Roller and nm-connection-editor open floating.
+  The stock dwm rule that meant to send Firefox to tag 9 is gone; it never
+  matched Firefox's real window class.
 - `tests/lint.sh` lints every tracked shell script at any depth.
   `scripts/theme/` and `scripts/migrations/` had never been linted.
 - `tests/dwm-runtime.sh` was split under the 250-line cap, into
@@ -110,6 +133,23 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- Every wallpaper change or theme switch restarts dwm, and each restart
+  moved every window onto one tag, brought hidden scratchpads back and
+  re-tiled floating windows. Tags, the view, scratchpads, floating size and
+  focus now survive a restart.
+- Logging out from the power menu took 20-25 seconds on an idle desktop,
+  and a wallpaper-change restart could lag by several: dwm noticed the
+  signal only at its next X event. It now acts at once.
+- The screen-lock daemon (`xss-lock`) crashed with a core dump at every
+  logout. The session's exit step now stops it while X is still up; an
+  existing `~/.xinitrc` gets one line to paste.
+- Left-clicking the NET block did nothing on a fresh install, because
+  `nmtui` was never installed. It is now, and the click falls back to
+  nm-connection-editor, then to a notification, instead of doing nothing.
+- The UPD block's update list showed dnf5's `Upgrades` header as if it were
+  a package.
+- `dots doctor` reported a login-time step missing from `autostart.sh`
+  (`autorandr`, `xdg-user-dirs-update`) as "runs once" instead of warning.
 - Logging out and quickly back in no longer leaves the bar empty (`dwm-6.8`)
   and night light off. The previous session's `dwmblocks` and night-light
   daemon outlived X for a while, so the new session found them, started

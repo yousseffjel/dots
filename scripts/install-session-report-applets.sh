@@ -29,7 +29,7 @@ session_autostart_report_more() {
     session_report_daemon "$autostart" nm-applet \
         'add this line yourself:  command -v nm-applet >/dev/null && pgrep -x NetworkManager >/dev/null && ! pgrep -x nm-applet >/dev/null && nm-applet &' \
         'without it there is no network tray icon; Wi-Fi still works from' \
-        'nmtui (left-click the NET block).'
+        'nmtui or nm-connection-editor (left-click the NET block).'
 
     session_report_daemon "$autostart" xdg-user-dirs-update \
         'add this line yourself:  command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update &' \

@@ -138,16 +138,19 @@ session_autostart_report() {
 #     TTY at logout (2026-10-07);
 #   * a dwmblocks pkill inside it — without it a quick re-login finds the old
 #     dwmblocks and night-light daemon, starts neither, and the bar stays empty
-#     once they die (2026-10-07, later the same day).
-# The last three share one paste block: the cleanup replaces the session tail.
+#     once they die (2026-10-07, later the same day);
+#   * an xss-lock pkill inside it — without it xss-lock aborts with a core
+#     dump at every logout when X vanishes under it (2026-10-12).
+# The last four share one paste block: the cleanup replaces the session tail.
 session_xinitrc_report() {
-    local xinitrc="$1" theme=0 cursor=0 session=0 ended=0 blocks=0
+    local xinitrc="$1" theme=0 cursor=0 session=0 ended=0 blocks=0 xsslock=0
     grep -q 'dots/theme' "$xinitrc" && theme=1
     grep -q '/xcursor' "$xinitrc" && cursor=1
     grep -q 'dots-session.target' "$xinitrc" && session=1
     grep -q 'dots_session_end' "$xinitrc" && ended=1
     grep -q 'pkill.*dwmblocks' "$xinitrc" && blocks=1
-    if ((theme && cursor && session && ended && blocks)); then
+    grep -q 'pkill.*xss-lock' "$xinitrc" && xsslock=1
+    if ((theme && cursor && session && ended && blocks && xsslock)); then
         green "ok      ~/.xinitrc exists, restores the dots theme and starts and ends the session"
         return 0
     fi
@@ -165,6 +168,10 @@ session_xinitrc_report() {
         session_xinitrc_report_session 'never stops dwmblocks at logout' \
             'after a quick re-login the bar can stay empty ("dwm-6.8") and night' \
             'light off: the old copies are found, so no new ones start.'
+    elif ((!xsslock)); then
+        session_xinitrc_report_session 'never stops xss-lock at logout' \
+            'without it xss-lock aborts with a core dump every time X closes' \
+            '(harmless, but each one is a crash report).'
     fi
 }
 
@@ -203,6 +210,7 @@ session_xinitrc_report_session() {
     yellow '            pkill -u "$(id -u)" -x clipnotify'
     yellow '            pkill -u "$(id -u)" -x dwmblocks'
     yellow "            pkill -u \"\$(id -u)\" -f '/dwm-nightlight daemon\$'"
+    yellow '            pkill -u "$(id -u)" -x xss-lock'
     yellow '            [ -z "$dots_session_target" ] || systemctl --user stop dots-session.target'
     yellow '          }'
     yellow '          trap dots_session_end EXIT'

@@ -132,6 +132,10 @@ cp "$H/.local/share/dwm/autostart.sh" "$SB/autostart.bak"
 grep -v '^sxhkd ' "$SB/autostart.bak" >"$H/.local/share/dwm/autostart.sh"
 FAKE_DOWN=sxhkd tsv
 check "a daemon autostart.sh never starts says so" grep -q 'does not mention' <(detail daemon-sxhkd)
+grep -v 'xdg-user-dirs-update' "$SB/autostart.bak" >"$H/.local/share/dwm/autostart.sh"
+tsv
+check "a one-shot autostart.sh never runs warns, not 'runs once'" \
+    grep -q 'never runs: .* does not mention' <(detail daemon-xdg-user-dirs-update)
 cp "$SB/autostart.bak" "$H/.local/share/dwm/autostart.sh"
 FAKE_DOWN=xss-lock tsv
 check "dwm-lock without xss-lock warns" row warn session daemon-dwm-lock

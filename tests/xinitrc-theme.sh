@@ -109,7 +109,8 @@ expect() {
 END='pkill -u 4242 -x clipmenud
 pkill -u 4242 -x clipnotify
 pkill -u 4242 -x dwmblocks
-pkill -u 4242 -f /dwm-nightlight daemon$'
+pkill -u 4242 -f /dwm-nightlight daemon$
+pkill -u 4242 -x xss-lock'
 
 blue "==> theme step in the generated ~/.xinitrc"
 expect "cache + wallpaper: merge, re-apply, then dwm" \

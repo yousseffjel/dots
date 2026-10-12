@@ -74,6 +74,9 @@ ffmpeg-free  # the Super+r screen recorder cannot start (unless RPM Fusion's ffm
 # files only; the binary side is xclip, already listed above.
 unicode-emoji  # the Super+. emoji picker has no list to show and exits with a notification
 
+# status-bar clicks (suckless/dwmblocks/scripts)
+NetworkManager-tui  # left-click on the NET block opens nm-connection-editor instead of nmtui, or only a notification without network-manager-applet (verified on packages.fedoraproject.org for f43/f44 and by dnf on the Fedora 44 VM, 2026-10-12)
+
 # --- media and volume keys ---
 playerctl  # the XF86Audio play/next/prev/stop keys do nothing
 pamixer  # volume and mic keys do nothing, and both status blocks go blank

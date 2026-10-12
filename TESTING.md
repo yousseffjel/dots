@@ -97,8 +97,10 @@ for adding CI; new docs you add are linted normally.
   (as test-only tooling, not `packages/build.lst` — a real install
   never needs a virtual framebuffer); **skips loudly** if any are missing
   or dwm hasn't been built, same reasoning as `tests/dwm-colorpicker.sh`.
-  restartsig was advisory until 2026-10-06; it never passed because dwm acts
-  on `SIGHUP` only at its next X event and the test sent none. Its X
+  restartsig was advisory until 2026-10-06; it never passed because dwm then
+  acted on `SIGHUP` only at its next X event and the test sent none. Since
+  2026-10-12 dwm wakes itself (`wakeonsignal`), and the test deliberately
+  sends no event, so that stall cannot return unnoticed. Its X
   helpers and check sections live in `tests/lib/dwm-runtime-{x,checks}.sh`
   (split at the 250-line cap). **`tests/lib/` holds sourced helpers, never
   tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file

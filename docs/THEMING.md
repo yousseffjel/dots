@@ -351,7 +351,9 @@ both commands fail instantly in an endless loop, which floods the login TTY with
 X: the night-light daemon (also a shell loop) and `dwmblocks`, which only
 notices X is gone on its next bar update. A quick re-login used to find the old
 copies still running, so `autostart.sh` started neither, and once they died the
-bar was empty (`dwm-6.8`) and night light was off. If you had a `~/.xinitrc` before
+bar was empty (`dwm-6.8`) and night light was off. Since 2026-10-12 it also
+stops `xss-lock` (the screen-lock daemon) while X is still up: left to die
+with X, it aborts with a core dump at every logout. If you had a `~/.xinitrc` before
 installing, replace its `exec dwm`, and any `dots-session.target` block above
 it, with:
 
@@ -362,6 +364,7 @@ dots_session_end() {
   pkill -u "$(id -u)" -x clipnotify
   pkill -u "$(id -u)" -x dwmblocks
   pkill -u "$(id -u)" -f '/dwm-nightlight daemon$'
+  pkill -u "$(id -u)" -x xss-lock
   [ -z "$dots_session_target" ] || systemctl --user stop dots-session.target
 }
 trap dots_session_end EXIT

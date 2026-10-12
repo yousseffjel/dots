@@ -131,14 +131,19 @@ session_xinitrc_template_session() {
 # client that only notices the server is gone on its next bar write. Either one
 # surviving into the next login is worse than noise: autostart.sh starts each
 # only when it is not already running, finds the old copy, starts nothing, and
-# the old copy then dies — an empty bar ("dwm-6.8") and no night light. Every
-# other autostart daemon waits on its X connection and dies with the server.
+# the old copy then dies — an empty bar ("dwm-6.8") and no night light.
+# xss-lock (dwm-lock's daemon) is the opposite case: it DOES die with X, but by
+# aborting with a core dump, every logout (seen on the Fedora VM, 2026-10-12).
+# This trap runs after dwm exits and before xinit stops X, so a plain SIGTERM
+# here lets it exit cleanly. Every other autostart daemon waits on its X
+# connection and dies quietly with the server.
 dots_session_target=
 dots_session_end() {
 	pkill -u "$(id -u)" -x clipmenud >/dev/null 2>&1
 	pkill -u "$(id -u)" -x clipnotify >/dev/null 2>&1
 	pkill -u "$(id -u)" -x dwmblocks >/dev/null 2>&1
 	pkill -u "$(id -u)" -f '/dwm-nightlight daemon$' >/dev/null 2>&1
+	pkill -u "$(id -u)" -x xss-lock >/dev/null 2>&1
 	[ -z "$dots_session_target" ] || systemctl --user stop dots-session.target >/dev/null 2>&1
 }
 trap dots_session_end EXIT

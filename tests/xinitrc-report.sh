@@ -95,6 +95,17 @@ else
     red "  the pre-dwmblocks ~/.xinitrc report is wrong: $out"
     rc=1
 fi
+# 2026-10-12: a session end that stops everything except xss-lock.
+grep -v -e '-x xss-lock' "$SB/xinitrc.shipped" >"$SB/pre-xsslock-xinitrc"
+out="$(report "$SB/pre-xsslock-xinitrc")"
+# shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
+if grep -q -- 'never stops xss-lock at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x xss-lock' <<<"$out" \
+    && ! grep -q -- 'never stops dwmblocks' <<<"$out" && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
+    green "  ok: a session end without the xss-lock stop gets the updated lines"
+else
+    red "  the pre-xss-lock ~/.xinitrc report is wrong: $out"
+    rc=1
+fi
 # pkill -f must match the daemon's own self-detection pattern, or the stop
 # silently matches nothing. Both sides read from the shipped files.
 want="$(sed -n "s/^DAEMON_PATTERN='\(.*\)'$/\1/p" "$DOTS_DIR/config/dwm/bin/dwm-nightlight")"

@@ -26,8 +26,10 @@
 #
 # Every assertion is a hard failure, restartsig (SIGHUP reload) included.
 # restartsig was advisory until 2026-10-06 because it never passed — blamed
-# on signal delivery in the sandbox, but really because dwm acts on SIGHUP
-# only at its next X event and the test sent none. See check_restartsig() in
+# on signal delivery in the sandbox, but really because dwm then acted on
+# SIGHUP only at its next X event and the test sent none. dwm itself was fixed
+# on 2026-10-12 (wakeonsignal); the test now sends no event on purpose, and
+# check_sigterm asserts it. See check_restartsig() in
 # tests/lib/dwm-runtime-checks.sh. Promoted after 5/5 passes on fedora:latest,
 # then 3/3 on each of fedora:latest and fedora:43 (CI's two images).
 #
@@ -138,9 +140,10 @@ check_float_rules
 check_dropterm
 check_restartsig
 check_preserve
+check_sigterm
 
 if ((rc != 0)); then
     red "✗ dwm-runtime is broken"
     exit 1
 fi
-green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, restartsig and preserveonrestart all hold"
+green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, restartsig, preserveonrestart and wakeonsignal all hold"

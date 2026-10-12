@@ -118,3 +118,24 @@ preserve_still_usable() {
         fail "Alt+minus did not bring the stashed S back after the restart"
     fi
 }
+
+# 9. wakeonsignal: SIGTERM (what dwm-powermenu's logout sends) ends dwm at once
+#    on an idle display. Before the fix dwm sat in XNextEvent() until some X
+#    event arrived — a 20-25 s logout on the Fedora VM. Runs LAST: it ends dwm.
+check_sigterm() {
+    local start elapsed
+    blue "==> wakeonsignal (SIGTERM ends dwm with no X event)"
+    start="$(date +%s%N)"
+    kill -TERM "$DWM_PID"
+    for _ in $(seq 1 30); do
+        kill -0 "$DWM_PID" 2>/dev/null || break
+        sleep 0.05
+    done
+    elapsed=$((($(date +%s%N) - start) / 1000000))
+    if kill -0 "$DWM_PID" 2>/dev/null; then
+        fail "dwm still running ${elapsed} ms after SIGTERM on an idle display — it waits for an X event again"
+    else
+        pass "dwm exited ${elapsed} ms after SIGTERM, with no X event to wake it"
+        DWM_PID=
+    fi
+}
