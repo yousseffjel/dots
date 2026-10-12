@@ -81,6 +81,9 @@ the same time and **not** queued — raise them separately if wanted.
   - [x] 3 — `release-0.2.0` (`695f1d5`): VERSION 0.2.0, `dots update`,
         the first real migration, the first tests of migrate.sh
   Open: tags (v0.1.0 at d997704, v0.2.0), and a live `dots update` on the VM.
+  - [x] follow-up `update-stale-install` (`9c5599d`): `dots update` re-runs the
+        installer when the install is older than the checkout. VM upgraded to
+        0.2.0 by hand the same day; doctor green.
 
 - 2026-10-12 — **Epic: scope-f — desktop integration pass — ALL 4 SLOTS
   MERGED.** Scope file `.claude/tasks/scope-f-desktop-integration.md`.

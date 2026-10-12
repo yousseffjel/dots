@@ -2021,3 +2021,17 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   - Suite 50/50, mutations 16/16.
   - Scope G closed. Not yet done: tags, push, a live `dots update` on the
     VM.
+
+## 2026-10-12 — VM upgrade to 0.2.0; update-stale-install merged
+
+- **The VM is on 0.2.0.** The user pulled by hand and ran `install-fedora.sh`.
+  The migration 0.1.0 → 0.2.0 ran (every header already current) and
+  `dots doctor` was all green. The 0.1.0 install had no `dots update`, so the
+  update path itself was not exercised. Per-tag restart is still unchecked by
+  hand on the VM.
+- **`update-stale-install` merged** (`9c5599d`): `dots update` said "already
+  up to date" after a hand `git pull`, the only way a 0.1.0 install gets it.
+  It now compares the manifest's installed commit with HEAD and re-runs the
+  installer when they differ, also on an ahead-only branch and in `--dry-run`.
+  Suite 50/50, mutations 5/5 (a sixth exposed a redundant guard, removed),
+  reviewer READY. Under `[Unreleased]`; 0.2.1 needs an empty migration file.
