@@ -3,7 +3,7 @@
 # against the REAL KEYBINDINGS.md — and through it, guards that document.
 #
 # What is asserted:
-#   * the list holds rows from both owners (dwm and sxhkd), Mod shown as Alt,
+#   * the list holds rows from both owners (dwm and sxhkd), Mod shown as Super,
 #     with their section names, and nothing from the status-bar table;
 #   * EVERY binding in config/sxhkd/sxhkdrc appears in the list. dwm-keys
 #     reads KEYBINDINGS.md at runtime, so a key added to sxhkdrc without a
@@ -52,9 +52,9 @@ listed() { grep -qE "$1" "$MENU"; }
 blue "the menu"
 PATH="$SB/fake:$SB/real" "$(type -P bash)" "$SUT"
 check "the menu is not empty (the negative checks below need rows)" test -s "$MENU"
-check "a dwm row, Mod shown as Alt" listed '^Alt\+p +dmenu_run'
+check "a dwm row, Mod shown as Super" listed '^Super\+p +dmenu_run'
 check "an sxhkd row with its section" listed '^Super\+w .*\[Theming engine\]$'
-check "a mouse row" listed '^Alt\+left-drag '
+check "a mouse row" listed '^Super\+left-drag '
 # The status-bar table's first column is a block number (or '#'): that is
 # what would leak in as a "key" if a table were not closed at its end.
 unlisted() { ! grep -qE "$1" "$MENU"; }
@@ -73,6 +73,7 @@ norm() {
             slash) part="/" ;;
             period) part="." ;;
             comma) part="," ;;
+            semicolon) part=";" ;;
             minus) part="-" ;;
             equal) part="=" ;;
         esac

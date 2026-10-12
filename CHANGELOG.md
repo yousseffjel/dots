@@ -16,6 +16,23 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Changed
+
+- **Every keybinding is on Super.** dwm's `MODKEY` is now `Mod4Mask`, so the
+  window-management keys moved from Alt to Super (`Super` + `p`, `Super` +
+  `1`–`9`, `Super` + `h`/`l`, …). Four sxhkd keys moved out of dwm's way:
+  firefox `Super` + `Shift` + `b`, lock `Super` + `Escape`, monitor menu
+  `Super` + `Shift` + `d`, emoji `Super` + `;`. Alt now reaches applications —
+  tmux's `Alt` + `h`/`j`/`k`/`l`, `Alt` + `1`–`9` and `Alt` + `Tab` were
+  swallowed by dwm until now. `tests/key-collisions.sh` fails the build when
+  dwm and sxhkd grab the same chord.
+- Each suckless build now regenerates a `config.h` / `blocks.h` you never
+  edited when its `*.def.h` has changed (the old copy is kept as
+  `<name>.pre-<timestamp>`); an edited one is kept and the build prints the
+  `diff` to merge by. Until now only the 0.1.0 → 0.2.0 migration did this, so
+  any later `config.def.h` change — this one included — never reached an
+  existing install.
+
 ### Fixed
 
 - `dots update` said "already up to date" whenever its own pull brought

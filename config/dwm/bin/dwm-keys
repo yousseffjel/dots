@@ -12,8 +12,8 @@
 # lands in the repo and KEYBINDINGS.md sits three levels up. The same trick
 # `dots` uses, for the same reason. DWM_KEYS_DOC overrides it, for tests.
 #
-# Display only: picking a line does nothing. `Mod` is shown as `Alt`, which
-# is what dwm's MODKEY (Mod1Mask) is on every keyboard this targets.
+# Display only: picking a line does nothing. `Mod` is shown as `Super`, which
+# is what dwm's MODKEY (Mod4Mask) is.
 #
 # usage: dwm-keys
 set -euo pipefail
@@ -51,7 +51,7 @@ entries() {
             gsub(/`/, "", key); gsub(/`/, "", act)
             gsub(/^ +| +$/, "", key); gsub(/^ +| +$/, "", act)
             gsub(/ \+ /, "+", key)
-            sub(/^Mod\+/, "Alt+", key)
+            sub(/^Mod\+/, "Super+", key)
             printf "%-" w "s %s  [%s]\n", key, act, section
         }
     ' "$doc"

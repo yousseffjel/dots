@@ -5,7 +5,7 @@
 # patches: xresources (colour loading from the X resource database), pertag
 # (per-tag mfact persistence), actualfullscreen (real _NET_WM_STATE),
 # restartsig (SIGHUP reload — see the note near that section), dropterm and
-# dynamicscratchpads (Super+grave; stash and Alt+minus), preserveonrestart
+# dynamicscratchpads (Super+grave; stash and Super+minus), preserveonrestart
 # (a restart keeps tags, view, stash, floating and focus), preservepertag
 # (and each tag's layout, mfact, nmaster, bar, and Mod+Tab's history) and
 # wakeonsignal (SIGHUP/SIGTERM act with no X event). It also opens a window

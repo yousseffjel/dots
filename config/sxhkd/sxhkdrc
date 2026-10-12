@@ -7,15 +7,17 @@
 #
 #   dwm   (suckless/dwm/config.def.h, compiled in) — window management:
 #         tags, layouts, focus, monitors, scratchpads, quit/restart, plus
-#         Mod+p (dmenu), Mod+Shift+Return (terminal), Super+Shift+x
+#         Super+p (dmenu), Super+Shift+Return (terminal), Super+Shift+x
 #         (powermenu), Super+v (clipmenu) and Super+grave (the drop-down
 #         terminal, a dwm function rather than a spawn).
 #   sxhkd (this file, reloadable) — everything else: media, volume, mic,
 #         brightness, theming, screenshots, app launchers.
 #
-# Every binding here is an XF86* media key, or Print, or lives in the Super
-# space avoiding the three Super chords dwm already owns. Before adding a
-# binding, check it against keys[] in config.def.h.
+# Both live in the Super space: dwm's MODKEY is Mod4Mask (Super) since
+# 2026-10-12, so every Super chord here must avoid every MODKEY chord in
+# keys[] — h/j/k/l, b, d, i, m, t, f, p, comma, period, the digits and more.
+# tests/key-collisions.sh reads both files and fails the build on an overlap;
+# run it before adding a binding rather than checking by eye.
 #
 # Changing dwm's bindings needs a recompile; changing this file needs only
 # Super+Ctrl+r. That asymmetry is the reason the split exists.
@@ -81,7 +83,7 @@ XF86MonBrightnessDown
 
 # Night light on/off (dwm-nightlight). Its daemon also owns the gamma while
 # it runs, so the two brightness keys above go through it — see the header
-# of config/dwm/bin/dwm-nightlight. Super+n is free in both grabbers.
+# of config/dwm/bin/dwm-nightlight.
 super + n
 	dwm-nightlight toggle
 
@@ -89,8 +91,7 @@ super + n
 # Do not disturb: a paused dunst holds new notifications and shows them all
 # on resume. The DND block (signal 12, suckless/dwmblocks/scripts/dwm-dnd)
 # shows the state — it is signal-only, so the pkill is load-bearing, exactly
-# as for the volume keys. Both chords checked free against dwm (its Super
-# keys are Shift+x, v and grave) and against this file's Super+n.
+# as for the volume keys.
 super + shift + n
 	dunstctl set-paused toggle; pkill -RTMIN+12 dwmblocks
 # Re-show the most recently closed notification; repeat to walk further back
@@ -118,7 +119,8 @@ super + ctrl + w
 # Mod+p away through dmenu, and a launcher key per application is how a
 # keymap becomes unmemorable.
 
-super + b
+# Super+b is dwm's bar toggle, so the browser takes Shift.
+super + shift + b
 	firefox
 
 super + e
@@ -150,7 +152,7 @@ shift + Print
 # --- screen recording --------------------------------------------------
 # One key toggles: with nothing recording it asks full | region and starts;
 # while recording, the same key stops it. Files go to ~/Videos/recordings.
-# Super+r is free in both grabbers (super + ctrl + r is the sxhkd reload).
+# (super + ctrl + r is the sxhkd reload.)
 super + r
 	dwm-record
 
@@ -163,16 +165,13 @@ super + r
 #
 # The daemon is started from ~/.local/share/dwm/autostart.sh, not from here —
 # see scripts/install-session.sh.
-
-super + l
+#
+# Super+Escape, not the usual Super+l: l is dwm's grow-the-master key.
+super + Escape
 	dwm-lock
 
 # --- colour and displays -----------------------------------------------------
-# Both keys were checked free against BOTH grabbers before being added: dwm
-# compiles only Mod4Mask|ShiftMask XK_x (powermenu) and Mod4Mask XK_v
-# (clipmenu) — MODKEY itself is Mod1Mask (Alt), so dwm's window-management
-# binds do not contend for the Super namespace at all. A key grabbed by both
-# dwm and sxhkd dies with no error in either log, so this check is not optional.
+# Super+d is dwm's fewer-masters key, so the display menu takes Shift.
 
 # Sample the pixel under the pointer; hex to the clipboard, swatch via dunst.
 super + c
@@ -180,18 +179,17 @@ super + c
 
 # Monitor layout menu: autorandr profiles when saved, then presets derived
 # from whatever xrandr reports as connected.
-super + d
+super + shift + d
 	dwm-display
 
 # --- help --------------------------------------------------------------
 # Every keybinding in a searchable dmenu list, read from KEYBINDINGS.md.
-# Super+/ checked free against both grabbers (dwm's only Super keys are
-# Shift+x, v and grave).
 super + slash
 	dwm-keys
 
 # --- emoji -------------------------------------------------------------
-# Pick an emoji in dmenu; it is copied to the clipboard. Super+. is the
-# emoji key on other desktops too, and is free in both grabbers.
-super + period
+# Pick an emoji in dmenu; it is copied to the clipboard. Other desktops use
+# Super+. but that is dwm's next-monitor key; Super+; is the usual second
+# choice (it is the emoji key on Windows alongside Super+.).
+super + semicolon
 	dwm-emoji

@@ -67,26 +67,26 @@ check_preserve() {
 # setup problem, reported as one rather than as seven dwm failures.
 preserve_layout() {
     local a b c f s
-    xdotool key --clearmodifiers alt+3
+    xdotool key --clearmodifiers super+3
     sleep 0.2
     a="$(spawn_win)"
-    xdotool key --clearmodifiers alt+5
+    xdotool key --clearmodifiers super+5
     sleep 0.2
     s="$(spawn_win)"
     sleep 0.2
-    xdotool key --clearmodifiers alt+shift+minus
-    xdotool key --clearmodifiers alt+4
+    xdotool key --clearmodifiers super+shift+minus
+    xdotool key --clearmodifiers super+4
     sleep 0.2
     f="$(spawn_win)"
     sleep 0.2
-    xdotool key --clearmodifiers alt+shift+space
+    xdotool key --clearmodifiers super+shift+space
     sleep 0.2
     xdotool windowsize "$f" 200 150
     b="$(spawn_win)"
     c="$(spawn_win)"
     sleep 0.2
     # C is newest, so it is master and focused; one step down the stack is B.
-    xdotool key --clearmodifiers alt+j
+    xdotool key --clearmodifiers super+j
     sleep 0.3
     if [[ -z "$a" || -z "$b" || -z "$c" || -z "$f" || -z "$s" ]] || [[ "$(xdotool getactivewindow)" != "$b" ]]; then
         fail "could not build the pre-restart layout (focus is not on B) — test setup, not dwm"
@@ -97,25 +97,25 @@ preserve_layout() {
 
 # After the restart, the tags and the stash still WORK, not just look right.
 preserve_still_usable() {
-    xdotool key --clearmodifiers alt+3
+    xdotool key --clearmodifiers super+3
     sleep 0.3
     if is_shown "$P_A"; then
         pass "A shows when tag 3 is viewed"
     else
         fail "A does not show on tag 3 after the restart"
     fi
-    # Alt+minus cycles every stashed window, and an earlier section may have
+    # Super+minus cycles every stashed window, and an earlier section may have
     # left another one (the dropterm) ahead of S: a press shows the next one,
     # the press after re-stashes it. Four presses reach S from any position.
     for _ in 1 2 3 4; do
-        xdotool key --clearmodifiers alt+minus
+        xdotool key --clearmodifiers super+minus
         sleep 0.3
         is_shown "$P_S" && break
     done
     if is_shown "$P_S"; then
-        pass "the stash still works: Alt+minus brings S back"
+        pass "the stash still works: Super+minus brings S back"
     else
-        fail "Alt+minus did not bring the stashed S back after the restart"
+        fail "Super+minus did not bring the stashed S back after the restart"
     fi
 }
 

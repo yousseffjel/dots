@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dwm-display — dmenu-driven monitor layout switcher.
 #
-# Bound to Super+d in config/sxhkd/sxhkdrc. Offers autorandr's saved profiles
+# Bound to Super+Shift+d in config/sxhkd/sxhkdrc. Offers autorandr's saved profiles
 # first when autorandr is installed, then a set of xrandr presets derived from
 # whatever is actually connected.
 #

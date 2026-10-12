@@ -120,11 +120,11 @@ otherwise move it to the focused monitor's view, re-place it top-centre
 and makes it floating without a `rules[]` entry.
 
 **Interactions**: while stashed it is an ordinary scratchpad client, so
-`Alt+minus` cycles it with the rest and preserveonrestart keeps it stashed
+`Super+minus` cycles it with the rest and preserveonrestart keeps it stashed
 across a restart (diff above — apply that one first; this diff's `manage()`
-hunk reads its `loadclientinfo()` return value). Super is sxhkd's space
-except for dwm's three Super chords (`Shift+x`, `v`, `grave`) — keep
-`config/sxhkd/sxhkdrc` off them.
+hunk reads its `loadclientinfo()` return value). Since 2026-10-12 dwm's
+`MODKEY` is Super too, so dwm and `config/sxhkd/sxhkdrc` share one key space;
+`tests/key-collisions.sh` fails the build if they grab the same chord.
 
 ## dwm-dynamicscratchpads-20260807-local.diff
 

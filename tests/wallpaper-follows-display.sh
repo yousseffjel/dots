@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The wallpaper follows display changes (added 2026-10-05): the autorandr
 # postswitch hook config/autorandr/postswitch.d/10-dots-wallpaper, and the
-# re-paint config/dwm/bin/dwm-display (Super+d) does after a layout.
+# re-paint config/dwm/bin/dwm-display (Super+Shift+d) does after a layout.
 #
 # WHY. feh paints the root window at the screen size of that moment. At every
 # login ~/.xinitrc paints it, THEN autostart's `autorandr --change` switches

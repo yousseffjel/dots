@@ -48,7 +48,7 @@ picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is re
 glx-utils  # autostart.sh cannot probe the GL renderer, so picom always runs on the slower xrender backend, even on a real GPU
 dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
 libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
-xss-lock  # the screen never locks on idle or on suspend; only the manual Super+l keybind still works
+xss-lock  # the screen never locks on idle or on suspend; only the manual Super+Escape keybind still works
 xsettingsd  # GTK apps get no XSETTINGS: Xft DPI, antialiasing and hinting fall back to each toolkit's own defaults, and a themes/dark/theme.conf edit needs an app restart instead of a theme reload
 udiskie  # USB sticks and SD cards never auto-mount: thunar-volman only does it while Thunar is running, and nothing daemonises Thunar, so removable media has to be mounted by hand
 autorandr  # display profiles are never applied: plugging in an external monitor leaves the layout untouched, and the profile saved by autorandr --save is only reachable by running it by hand
@@ -72,7 +72,7 @@ ffmpeg-free  # the Super+r screen recorder cannot start (unless RPM Fusion's ffm
 # --- emoji picker, keybound ---
 # Verified on mdapi.fedoraproject.org for f43 and f44 (2026-10-05). Data
 # files only; the binary side is xclip, already listed above.
-unicode-emoji  # the Super+. emoji picker has no list to show and exits with a notification
+unicode-emoji  # the Super+; emoji picker has no list to show and exits with a notification
 
 # status-bar clicks (suckless/dwmblocks/scripts)
 NetworkManager-tui  # left-click on the NET block opens nm-connection-editor instead of nmtui, or only a notification without network-manager-applet (verified on packages.fedoraproject.org for f43/f44 and by dnf on the Fedora 44 VM, 2026-10-12)
@@ -117,4 +117,4 @@ lxpolkit  # no PolicyKit agent: any GUI action needing privileges is denied with
 # backs a key that does nothing at all when the package is missing, and says
 # nothing about why. See config/sxhkd/sxhkdrc.
 thunar  # the file-manager keybind (super + e) opens nothing, and Thunar is also the mime handler for directories
-firefox  # the browser keybind (super + b) opens nothing, and firefox is the default handler for http/https
+firefox  # the browser keybind (super + shift + b) opens nothing, and firefox is the default handler for http/https

@@ -1059,7 +1059,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
  * and focused -> stash it as SCRATCHPAD_MASK, exactly as scratchpad_hide()
  * would. Otherwise -> bring it to the focused monitor's current view, back
  * in its drop-down position, and focus it. Because it is an ordinary
- * scratchpad client while stashed, Alt+minus cycles it too and
+ * scratchpad client while stashed, Mod+minus cycles it too and
  * preserveonrestart keeps it stashed across a restart. */
 void
 dropterm(const Arg *arg)

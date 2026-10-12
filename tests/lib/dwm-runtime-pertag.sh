@@ -30,28 +30,28 @@ leftmost_width() {
 # PT_E. Returns 1 (after a fail) when tag 1 could not be widened.
 pertag_build_layout() {
     local w1 w7 e
-    xdotool key --clearmodifiers alt+7
+    xdotool key --clearmodifiers super+7
     sleep 0.2
     spawn_win >/dev/null
     spawn_win >/dev/null
     sleep 0.2
-    for _ in 1 2 3; do xdotool key --clearmodifiers alt+l; done
+    for _ in 1 2 3; do xdotool key --clearmodifiers super+l; done
     sleep 0.3
     w7="$(leftmost_width)"
-    xdotool key --clearmodifiers alt+8
+    xdotool key --clearmodifiers super+8
     sleep 0.2
     spawn_win >/dev/null
     spawn_win >/dev/null
     sleep 0.2
-    xdotool key --clearmodifiers alt+m
-    xdotool key --clearmodifiers alt+6
+    xdotool key --clearmodifiers super+m
+    xdotool key --clearmodifiers super+6
     sleep 0.2
     e="$(spawn_win)"
     sleep 0.2
-    xdotool key --clearmodifiers alt+b
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+b
+    xdotool key --clearmodifiers super+1
     sleep 0.3
-    for _ in 1 2 3; do xdotool key --clearmodifiers alt+l; done
+    for _ in 1 2 3; do xdotool key --clearmodifiers super+l; done
     sleep 0.4
     w1="$(leftmost_width)"
     if ((w1 < 760)); then
@@ -80,14 +80,14 @@ check_pertag_restart() {
         fail "tag 1's master went $w1 -> $w1b px — the start view's pertag state was not applied"
     fi
     # Before the restart: tag 6, then tag 1. Mod+Tab must still go back to 6.
-    xdotool key --clearmodifiers alt+Tab
+    xdotool key --clearmodifiers super+Tab
     sleep 0.4
     if is_shown "$e"; then
         pass "Mod+Tab still returns to the tag viewed before (6)"
     else
         fail "Mod+Tab after the restart did not return to tag 6 — prevtag was lost"
     fi
-    xdotool key --clearmodifiers alt+7
+    xdotool key --clearmodifiers super+7
     sleep 0.4
     w7b="$(leftmost_width)"
     if ((w7 > 0 && w7b >= w7 - 5 && w7b <= w7 + 5)); then
@@ -95,7 +95,7 @@ check_pertag_restart() {
     else
         fail "tag 7's master went $w7 -> $w7b px — its mfact was reset"
     fi
-    xdotool key --clearmodifiers alt+8
+    xdotool key --clearmodifiers super+8
     sleep 0.4
     w8b="$(leftmost_width)"
     if ((w8b > 1200)); then
@@ -103,7 +103,7 @@ check_pertag_restart() {
     else
         fail "tag 8 is ${w8b}px wide — its monocle layout was reset to tile"
     fi
-    xdotool key --clearmodifiers alt+6
+    xdotool key --clearmodifiers super+6
     sleep 0.4
     eval "$(xdotool getwindowgeometry --shell "$e" 2>/dev/null)"
     y6="${Y:-?}"
@@ -112,7 +112,7 @@ check_pertag_restart() {
     else
         fail "tag 6's window is at y=$y6 — its hidden bar came back"
     fi
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
 }
 
@@ -127,7 +127,7 @@ check_pertag_fresh_restart() {
     a="$(spawn_win)"
     b="$(spawn_win)"
     sleep 0.3
-    for _ in 1 2 3; do xdotool key --clearmodifiers alt+l; done
+    for _ in 1 2 3; do xdotool key --clearmodifiers super+l; done
     sleep 0.3
     w="$(leftmost_width)"
     if ! restart_dwm; then
@@ -141,7 +141,7 @@ check_pertag_fresh_restart() {
     else
         fail "tag 1's master went $w -> $wb px on a fresh session's restart"
     fi
-    for _ in 1 2 3; do xdotool key --clearmodifiers alt+h; done
+    for _ in 1 2 3; do xdotool key --clearmodifiers super+h; done
     xdotool windowkill "$a" 2>/dev/null || true
     xdotool windowkill "$b" 2>/dev/null || true
     sleep 0.5

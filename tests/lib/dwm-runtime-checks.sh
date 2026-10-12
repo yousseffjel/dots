@@ -74,14 +74,14 @@ check_fullscreen() {
     blue "==> actualfullscreen"
     xdotool windowfocus "$WIN1"
     sleep 0.2
-    xdotool key --clearmodifiers alt+shift+f
+    xdotool key --clearmodifiers super+shift+f
     sleep 0.4
     if xprop -id "$WIN1" _NET_WM_STATE | grep -q _NET_WM_STATE_FULLSCREEN; then
-        pass "alt+shift+f sets _NET_WM_STATE_FULLSCREEN on the focused window"
+        pass "super+shift+f sets _NET_WM_STATE_FULLSCREEN on the focused window"
     else
         fail "_NET_WM_STATE_FULLSCREEN was not set after the fullscreen keybind"
     fi
-    xdotool key --clearmodifiers alt+shift+f
+    xdotool key --clearmodifiers super+shift+f
     sleep 0.4
     if xprop -id "$WIN1" _NET_WM_STATE | grep -q _NET_WM_STATE_FULLSCREEN; then
         fail "_NET_WM_STATE_FULLSCREEN was not cleared by toggling again"
@@ -94,19 +94,19 @@ check_fullscreen() {
 check_pertag() {
     local tag1_base tag1_adjusted tag2_default tag1_recheck threshold=40
     blue "==> pertag (per-tag mfact)"
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
     spawn_win >/dev/null
     sleep 0.2
     tag1_base="$(master_width)"
 
-    xdotool key --clearmodifiers alt+l
-    xdotool key --clearmodifiers alt+l
-    xdotool key --clearmodifiers alt+l
+    xdotool key --clearmodifiers super+l
+    xdotool key --clearmodifiers super+l
+    xdotool key --clearmodifiers super+l
     sleep 0.2
     tag1_adjusted="$(master_width)"
 
-    xdotool key --clearmodifiers alt+2
+    xdotool key --clearmodifiers super+2
     sleep 0.2
     spawn_win >/dev/null
     sleep 0.2
@@ -114,12 +114,12 @@ check_pertag() {
     sleep 0.2
     tag2_default="$(master_width)"
 
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
     tag1_recheck="$(master_width)"
 
     if ((tag1_adjusted - tag1_base > threshold)); then
-        pass "alt+l on tag1 widens the master column ($tag1_base -> $tag1_adjusted px)"
+        pass "super+l on tag1 widens the master column ($tag1_base -> $tag1_adjusted px)"
     else
         fail "master column did not widen on tag1 ($tag1_base -> $tag1_adjusted px)"
     fi

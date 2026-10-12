@@ -161,7 +161,7 @@ for current state.
 **Roster gap-fill Epic closed 2026-08-12** (scope file
 `.claude/tasks/scope-c-roster-gap-fill.md` — locked decisions live there):
 xsettingsd, udiskie, autorandr, `dwm-colorpicker` (`Super+c`) and `dwm-display`
-(`Super+d`). **ROADMAP §3's status column was reconciled at the same time and
+(`Super+Shift+d`). **ROADMAP §3's status column was reconciled at the same time and
 §9 is entirely done** — treat `MASTER_PLAN.md` as the queue, not ROADMAP.
 Two §3 rows were left open *by decision*, not omission, and **both have since
 landed at the user's request**: the blue-light filter (`dwm-nightlight`,

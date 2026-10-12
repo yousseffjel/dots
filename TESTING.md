@@ -151,7 +151,7 @@ for adding CI; new docs you add are linted normally.
   absent. It then runs the real restore stage in a sandboxed `$HOME` (the
   `tests/lib/install-symmetry.sh` helpers) and asserts the hook lands in
   `$XDG_CONFIG_HOME/autorandr/postswitch.d/`: executable, a copy not a
-  symlink, and claimed in the manifest. It also covers the Super+d half:
+  symlink, and claimed in the manifest. It also covers the Super+Shift+d half:
   `dwm-display` re-paints after a layout and leaves the wallpaper alone when
   the layout fails. This part was split out of `tests/dwm-display.sh` at the
   250-line cap. Every `dwm-display` run in both files uses a sandbox `HOME`,

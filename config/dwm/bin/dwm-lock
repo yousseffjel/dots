@@ -5,7 +5,7 @@
 #
 #   dwm-lock --daemon   arm X's idle timers, then hand the screen to xss-lock.
 #                       The single line ~/.local/share/dwm/autostart.sh runs.
-#   dwm-lock            lock right now. Super+l in config/sxhkd/sxhkdrc, and
+#   dwm-lock            lock right now. Super+Escape in config/sxhkd/sxhkdrc, and
 #                       dwm-powermenu's Lock entry.
 #
 # WHY xss-lock AND NOT xautolock. xss-lock hooks both X's MIT-SCREEN-SAVER
@@ -49,12 +49,12 @@ missing_slock() {
 }
 
 # Arm X's screensaver and DPMS timers. Best-effort throughout: every failure
-# here costs the idle path only, and locking on suspend or on Super+l keeps
+# here costs the idle path only, and locking on suspend or on Super+Escape keeps
 # working, so none of it is worth aborting the session start for.
 arm_timers() {
     if ! have xset; then
         yellow "dwm-lock: xset not installed — idle timers not armed"
-        yellow "          (locking on suspend and on Super+l is unaffected)"
+        yellow "          (locking on suspend and on Super+Escape is unaffected)"
         return 0
     fi
 

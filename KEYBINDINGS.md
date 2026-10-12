@@ -13,12 +13,19 @@ edit here — nothing keeps them in sync automatically.
 **The two key sets must stay disjoint.** dwm and sxhkd both call `XGrabKey()`
 on the root window. If both claim the same keysym and modifier, it goes to
 whichever grabbed it first and the other silently gets nothing — no error, no
-log line. Check the tables below before adding a binding to either file.
+log line. `tests/key-collisions.sh` reads both files and fails the build on
+an overlap, so run it after adding a binding to either one.
 
-Two modifiers are in play:
+Every binding is on **Super** (`Mod4Mask`, the Windows/Command key):
 
-- **Mod** = `Mod1Mask` = **Alt** (`#define MODKEY Mod1Mask`)
-- **Super** = `Mod4Mask` = the Windows/Command key
+- **Mod** = dwm's `MODKEY` = `Mod4Mask` = **Super** (`#define MODKEY Mod4Mask`).
+  The dwm tables say `Mod` so they still read right if you change it.
+- **Super** = the same key, written out in the sxhkd tables and for the three
+  dwm chords `config.def.h` spells as `Mod4Mask`.
+
+Alt is left to applications — tmux's `Alt` + `h`/`j`/`k`/`l`, `Alt` + `1`–`9`
+and `Alt` + `Tab` used to be swallowed by dwm and now reach tmux. Until
+2026-10-12 `MODKEY` was `Mod1Mask` (Alt).
 
 dwm spawns programs with `execvp` and no shell, so its bindings use bare
 command names resolved through `PATH`. `~/.config/dwm/bin` is on `PATH` via
@@ -46,13 +53,13 @@ it. There is no keybinding for st; run `st` from dmenu (`Mod` + `p`) if
 alacritty ever fails to launch. Both read the same wallpaper-derived
 palette, so they look alike.
 
-> **Changing the terminal or the fonts requires a rebuild, and one extra
-> step.** `suckless/*/config.h` is generated from `config.def.h` on the
-> first build and then left alone, so an existing install keeps its old
-> values. Delete the stale headers first:
+> **Changing the terminal, the fonts or a key requires a rebuild.**
+> `suckless/*/config.h` is generated from `config.def.h`. Each build
+> regenerates a `config.h` you never edited (it matches some past
+> `config.def.h` in git) and keeps one you did, printing the command that
+> shows what to merge — the old copy is kept as `config.h.pre-<timestamp>`:
 >
 > ```sh
-> rm -f suckless/{dwm,dmenu,st}/config.h
 > scripts/install-suckless.sh --skip-deps
 > ```
 
@@ -419,7 +426,7 @@ cleanly, so it plays even if you stop mid-motion.
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `l` | Lock the screen now |
+| `Super` + `Escape` | Lock the screen now |
 
 The screen also locks by itself:
 
@@ -449,7 +456,7 @@ holds the one launch line.
 
 **Why `xss-lock` and not `xautolock`:** it hooks systemd-logind as well as X's
 screensaver, so it also locks on suspend, which xautolock structurally cannot
-do. That is also why `Super` + `l` goes through `loginctl lock-session` when
+do. That is also why `Super` + `Escape` goes through `loginctl lock-session` when
 the daemon is up — logind's own record of whether the session is locked stays
 truthful, and every trigger ends in the same locker. With no daemon running it
 calls `slock` directly instead, so the key never silently does nothing.
@@ -457,7 +464,7 @@ calls `slock` directly instead, so the key never silently does nothing.
 > **If the screen never locks on its own, the daemon is not running.** Check
 > with `pgrep -x xss-lock`. As with sxhkd, `install-suckless.sh` will not add
 > the launch line to an `autostart.sh` you already had — it prints the line
-> for you to paste. `Super` + `l` keeps working either way.
+> for you to paste. `Super` + `Escape` keeps working either way.
 
 ### Notifications
 
@@ -474,7 +481,7 @@ dunst keeps the last 20 (`history_length` in `config/dunst/dunstrc`).
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `b` | Firefox |
+| `Super` + `Shift` + `b` | Firefox |
 | `Super` + `e` | Thunar |
 
 Only the two daily drivers get a dedicated key — everything else is one
@@ -497,7 +504,7 @@ and cost a reload to change.
 | Keys | Action |
 | --- | --- |
 | `Super` + `c` | Sample the pixel under the pointer — hex to the clipboard, swatch via dunst |
-| `Super` + `d` | Monitor layout menu — autorandr profiles, then presets from the connected outputs |
+| `Super` + `Shift` + `d` | Monitor layout menu — autorandr profiles, then presets from the connected outputs |
 
 `Super` + `c` is `config/dwm/bin/dwm-colorpicker`: `xdotool` reads the pointer
 position, `maim` grabs a 1×1 capture there, and ImageMagick reads the hex out
@@ -505,7 +512,7 @@ of it. There is no `xcolor` package in Fedora — only `texlive-xcolor`, which i
 a LaTeX package — so the script *is* the picker. `gpick` is in
 `packages/extra.lst` for when you want a full palette tool instead.
 
-`Super` + `d` is `config/dwm/bin/dwm-display`. Its presets are derived from
+`Super` + `Shift` + `d` is `config/dwm/bin/dwm-display`. Its presets are derived from
 `xrandr` at run time, never hardcoded, because output names differ per machine
 (`eDP-1` vs `eDP1` vs `LVDS-1`). With a single monitor connected it offers only
 that monitor; the extend/mirror entries appear when there is something to
@@ -528,7 +535,7 @@ from the cheat sheet too. `tests/dwm-keys.sh` fails the build when a key in
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `.` | Emoji picker — search by name or group; the pick is copied to the clipboard (`dwm-emoji`) |
+| `Super` + `;` | Emoji picker — search by name or group; the pick is copied to the clipboard (`dwm-emoji`) |
 
 The list is Unicode's own, from the `unicode-emoji` package, so it matches
 the installed release. Colour glyphs need `google-noto-emoji-fonts`

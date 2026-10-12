@@ -21,7 +21,7 @@ choice=$(printf '%s\n' lock logout suspend reboot shutdown \
 
 case "$choice" in
     # dwm-lock, not slock directly: it routes through logind while the
-    # xss-lock daemon is up, and falls back to slock when it is not. Super+l
+    # xss-lock daemon is up, and falls back to slock when it is not. Super+Escape
     # takes the same path.
     lock)     exec dwm-lock ;;
     logout)   pkill -TERM -x dwm ;;

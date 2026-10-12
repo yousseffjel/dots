@@ -3,7 +3,7 @@
 #
 # feh paints the root window at the size the screen had at that moment, so
 # any later switch (autostart's `autorandr --change` at login, a monitor
-# hotplug, a profile loaded from Super+d) leaves it covering only the old
+# hotplug, a profile loaded from Super+Shift+d) leaves it covering only the old
 # area, with black beyond. ~/.fehbg re-runs feh at the new size.
 #
 # autorandr runs every executable in ~/.config/autorandr/postswitch.d/ in

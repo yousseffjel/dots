@@ -44,7 +44,7 @@ check_float_rules() {
         fail "read no floating classes out of rules[] — the parser no longer matches config.def.h"
         return 0
     fi
-    xdotool key --clearmodifiers alt+6
+    xdotool key --clearmodifiers super+6
     sleep 0.2
     while read -r cls; do
         n=$((n + 1))
@@ -69,7 +69,7 @@ check_float_rules() {
         sleep 0.2
     done <<<"$classes"
     ((n >= 6)) || fail "only $n floating rules found; expected at least the six in config.def.h"
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
 }
 
@@ -84,7 +84,7 @@ check_dropterm() {
 # to the window id; returns 1 (after a fail) when nothing appeared.
 dropterm_first_press() {
     local d w y spawned
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
     xdotool key --clearmodifiers super+grave
     d=
@@ -136,7 +136,7 @@ dropterm_toggle() {
         pass "the second press stashes it"
     fi
 
-    xdotool key --clearmodifiers alt+2
+    xdotool key --clearmodifiers super+2
     sleep 0.2
     xdotool key --clearmodifiers super+grave
     sleep 0.3
@@ -160,6 +160,6 @@ dropterm_toggle() {
 
     xdotool key --clearmodifiers super+grave
     sleep 0.3
-    xdotool key --clearmodifiers alt+1
+    xdotool key --clearmodifiers super+1
     sleep 0.2
 }

@@ -135,12 +135,16 @@ else
 fi
 
 # --- build + install ---------------------------------------------------------
+# shellcheck source=install-suckless-headers.sh
+source "$SCRIPT_DIR/install-suckless-headers.sh"
 for prog in "${PROGRAMS[@]}"; do
     dir="$SUCKLESS_DIR/$prog"
     if [[ ! -f "$dir/Makefile" ]]; then
         yellow "skip    $prog (no Makefile at $dir)"
         continue
     fi
+    # Before make, which only generates a header that is absent.
+    refresh_generated_headers "$dir"
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would build and install $prog"
         continue
@@ -194,6 +198,5 @@ green "✓ suckless install complete"
 yellow "  - start the session with:  startx"
 yellow "  - lock the screen with:    slock"
 yellow "  - rebuild after a config edit:  scripts/install-suckless.sh --skip-deps"
-yellow "  - dwm/st/dmenu/slock read config.h / blocks.h, which are generated from"
-yellow "    their *.def.h once and then left alone — delete the generated file"
-yellow "    to pick up upstream default changes"
+yellow "  - dwm/st/dmenu/slock read config.h / blocks.h, generated from their *.def.h;"
+yellow "    each build regenerates one you never edited and keeps one you did"
