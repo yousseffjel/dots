@@ -148,7 +148,10 @@ restarts dwm (`kill -HUP`), and so does `Mod` + `Ctrl` + `Shift` + `q`. Each
 window keeps its tags, monitor and floating size, stashed windows stay
 stashed, and the tag you were viewing and the focused window come back
 (`preserveonrestart`, 2026-10-07). Before that, every restart piled all
-windows onto tag 1 and un-stashed the scratchpads.
+windows onto tag 1 and un-stashed the scratchpads. Since 2026-10-12 each tag
+also keeps its own layout, master size (`Mod` + `h`/`l`), master count
+(`Mod` + `i`/`d`) and bar visibility (`Mod` + `b`), and `Mod` + `Tab` still
+returns to the tag you were on before (`preservepertag`).
 
 > **Changed 2026-08-07.** This replaces three fixed scratchpads that spawned
 > pre-declared commands: `Mod`+`y` (an `st` terminal), `Mod`+`u` (`ranger`)

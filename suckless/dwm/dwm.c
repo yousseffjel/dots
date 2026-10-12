@@ -82,7 +82,7 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
 enum { Manager, Xembed, XembedInfo, XLast }; /* Xembed atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
-enum { DwmClientInfo, DwmView, DwmLast }; /* preserveonrestart atoms */
+enum { DwmClientInfo, DwmView, DwmPertag, DwmLast }; /* preserveonrestart atoms */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
 enum XResType { STRING, INTEGER, FLOAT }; /* xresources value types */
@@ -219,6 +219,9 @@ static void grabkeys(void);
 static void incnmaster(const Arg *arg);
 static void keypress(XEvent *e);
 static int loadclientinfo(Client *c);
+static void loadpertag(void);
+static int layoutindex(const Layout *l);
+static void applycurtag(Monitor *m);
 static void killclient(const Arg *arg);
 static void manage(Window w, XWindowAttributes *wa);
 static void mappingnotify(XEvent *e);
@@ -242,6 +245,7 @@ static void restorestate(void);
 static void run(void);
 static void saveclientinfo(Client *c);
 static void savestate(void);
+static void savepertag(void);
 static void runautostart(void);
 static void scan(void);
 static void scratchpad_hide(const Arg *arg);
@@ -368,6 +372,7 @@ struct Pertag {
 	unsigned int sellts[LENGTH(tags) + 1]; /* selected layouts */
 	const Layout *ltidxs[LENGTH(tags) + 1][2]; /* matrix of tags and layouts indexes  */
 	int showbars[LENGTH(tags) + 1]; /* display bar for the current tag */
+	unsigned int restoredprevset; /* preservepertag: saved other tagset, 0 = none */
 };
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
@@ -1965,6 +1970,9 @@ restorestate(void)
 	Monitor *m;
 	Client *c;
 
+	/* preservepertag: before the view loop, so view() switches into tags
+	 * that already carry their saved layout, mfact and bar. */
+	loadpertag();
 	if (XGetWindowProperty(dpy, root, dwmatom[DwmView], 0L, 64L, True,
 		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
 		return;
@@ -1977,6 +1985,13 @@ restorestate(void)
 			if (!((unsigned long)d[i] & TAGMASK))
 				continue;
 			selmon = m;
+			/* preservepertag: replay the history — the previous view first —
+			 * so Mod+Tab (the other tagset slot) and pertag's prevtag come
+			 * back exactly as view() would have left them. */
+			if (m->pertag->restoredprevset
+			&& m->pertag->restoredprevset != ((unsigned long)d[i] & TAGMASK))
+				view(&((Arg) { .ui = m->pertag->restoredprevset }));
+			m->pertag->restoredprevset = 0;
 			view(&((Arg) { .ui = (unsigned int)d[i] & TAGMASK }));
 		}
 		for (m = mons; m && m->num != d[0]; m = m->next);
@@ -1989,6 +2004,92 @@ restorestate(void)
 		}
 	}
 	XFree(p);
+}
+
+/* preservepertag: the index of l in layouts[], for a value that survives
+ * execvp() where the pointer would not. Unknown layouts map to the first. */
+int
+layoutindex(const Layout *l)
+{
+	unsigned int i;
+
+	for (i = 0; i < LENGTH(layouts); i++)
+		if (l == &layouts[i])
+			return i;
+	return 0;
+}
+
+/* preservepertag: take back each monitor's per-tag state that savepertag()
+ * left on the root window. Every value is checked — a client can write a
+ * root property too — and a tag with any bad value keeps its defaults. The
+ * current tag's values are then applied directly: a fresh dwm starts on
+ * tag 1, and restoring a saved view of tag 1 is a no-op in view(). */
+void
+loadpertag(void)
+{
+	Atom type;
+	int format, t, nt = LENGTH(tags) + 1, per = 2 + 6 * (LENGTH(tags) + 1);
+	unsigned long n, extra, base;
+	unsigned char *p = NULL;
+	long *d, *e;
+	Monitor *m;
+
+	if (XGetWindowProperty(dpy, root, dwmatom[DwmPertag], 0L, 4096L, True,
+		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
+		return;
+	if (type != XA_CARDINAL || format != 32) {
+		XFree(p);
+		return;
+	}
+	d = (long *)p;
+	for (m = mons, base = 0; m && base + per <= n; m = m->next, base += per) {
+		/* d[base]: curtag (informational); d[base + 1]: the other tagset
+		 * slot, which must be a real, non-empty tag set. */
+		if (d[base] < 0 || d[base] >= nt || !(d[base + 1] & TAGMASK)
+		|| ((unsigned long)d[base + 1] & ~(unsigned long)TAGMASK))
+			continue;
+		for (t = 0; t < nt; t++) {
+			e = d + base + 2 + 6 * t;
+			if (e[0] < 0 || e[0] > 64 || e[1] < 50 || e[1] > 950
+			|| (e[2] != 0 && e[2] != 1) || e[3] < 0 || e[3] >= (long)LENGTH(layouts)
+			|| e[4] < 0 || e[4] >= (long)LENGTH(layouts) || (e[5] != 0 && e[5] != 1))
+				continue;
+			m->pertag->nmasters[t] = e[0];
+			m->pertag->mfacts[t] = e[1] / 1000.0;
+			m->pertag->sellts[t] = e[2];
+			m->pertag->ltidxs[t][0] = &layouts[e[3]];
+			m->pertag->ltidxs[t][1] = &layouts[e[4]];
+			m->pertag->showbars[t] = e[5];
+		}
+		m->pertag->restoredprevset = d[base + 1];
+		applycurtag(m);
+	}
+	XFree(p);
+}
+
+/* The current tag's pertag values onto the monitor itself, as view() does
+ * when it switches — for the case where it does not switch. */
+void
+applycurtag(Monitor *m)
+{
+	unsigned int ct = m->pertag->curtag;
+	Monitor *prev = selmon;
+
+	m->nmaster = m->pertag->nmasters[ct];
+	m->mfact = m->pertag->mfacts[ct];
+	m->sellt = m->pertag->sellts[ct];
+	m->lt[m->sellt] = m->pertag->ltidxs[ct][m->sellt];
+	m->lt[m->sellt ^ 1] = m->pertag->ltidxs[ct][m->sellt ^ 1];
+	if (m->showbar != m->pertag->showbars[ct]) {
+		/* togglebar() is the one place that moves the bar and the systray;
+		 * it flips showbar and the pertag entry together, so it lands on
+		 * the saved value. */
+		selmon = m;
+		m->pertag->showbars[ct] = m->showbar;
+		togglebar(NULL);
+		selmon = prev;
+	}
+	arrange(m);
 }
 
 void
@@ -2148,9 +2249,43 @@ savestate(void)
 	XChangeProperty(dpy, root, dwmatom[DwmView], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *)v, n);
 	free(v);
+	savepertag();
 	/* execvp() follows: anything still buffered would be lost with the
 	 * connection. */
 	XSync(dpy, False);
+}
+
+/* preservepertag: each monitor's curtag, its other tagset slot, then per tag (index 0 is
+ * the all-tags view) nmaster, mfact x1000, sellt, both layout indexes and
+ * showbar — what the pertag patch keeps per tag and a restart used to lose. */
+void
+savepertag(void)
+{
+	Monitor *m;
+	unsigned long n = 0, i = 0;
+	int t, nt = LENGTH(tags) + 1;
+	long *v;
+
+	for (m = mons; m; m = m->next)
+		n += 2 + 6 * nt;
+	v = ecalloc(n, sizeof(long));
+	for (m = mons; m; m = m->next) {
+		v[i++] = m->pertag->curtag;
+		/* Not pertag's prevtag: Mod+Tab swaps the two tagset slots, so the
+		 * slot that is not showing is what makes it come back. */
+		v[i++] = m->tagset[m->seltags ^ 1];
+		for (t = 0; t < nt; t++) {
+			v[i++] = m->pertag->nmasters[t];
+			v[i++] = (long)(m->pertag->mfacts[t] * 1000 + 0.5);
+			v[i++] = m->pertag->sellts[t];
+			v[i++] = layoutindex(m->pertag->ltidxs[t][0]);
+			v[i++] = layoutindex(m->pertag->ltidxs[t][1]);
+			v[i++] = m->pertag->showbars[t];
+		}
+	}
+	XChangeProperty(dpy, root, dwmatom[DwmPertag], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)v, n);
+	free(v);
 }
 
 void
@@ -2466,6 +2601,7 @@ setup(void)
 	/* preserveonrestart: private, so deliberately not in _NET_SUPPORTED */
 	dwmatom[DwmClientInfo] = XInternAtom(dpy, "_DWM_CLIENT_INFO", False);
 	dwmatom[DwmView] = XInternAtom(dpy, "_DWM_VIEW", False);
+	dwmatom[DwmPertag] = XInternAtom(dpy, "_DWM_PERTAG", False);
 	xatom[Manager] = XInternAtom(dpy, "MANAGER", False);
 	xatom[Xembed] = XInternAtom(dpy, "_XEMBED", False);
 	xatom[XembedInfo] = XInternAtom(dpy, "_XEMBED_INFO", False);

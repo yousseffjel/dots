@@ -142,6 +142,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- A dwm restart (every wallpaper change) reset each tag's layout, master
+  size, master count and bar to the defaults, and `Mod` + `Tab` forgot the
+  previous tag. All of it now survives.
 - The wallpaper keys did nothing visible on a fresh install with no
   wallpaper folder (sxhkd discards error output). Every failure is now a
   notification.

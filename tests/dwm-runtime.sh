@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # First-ever execution of the built dwm binary in this repo's test suite.
 # Starts Xvfb, runs the real suckless/dwm/dwm binary against it, and asserts
-# real EWMH root-window state plus the runtime behaviour of seven vendored
+# real EWMH root-window state plus the runtime behaviour of the vendored
 # patches: xresources (colour loading from the X resource database), pertag
 # (per-tag mfact persistence), actualfullscreen (real _NET_WM_STATE),
 # restartsig (SIGHUP reload — see the note near that section), dropterm and
-# dynamicscratchpads (Super+grave; stash and Alt+minus), and
-# preserveonrestart (a restart keeps tags, view, stash, floating and focus).
-# It also opens a window of every floating class in config.def.h's rules[]
-# and checks it floats. (No patch count here: the last one written went stale.)
+# dynamicscratchpads (Super+grave; stash and Alt+minus), preserveonrestart
+# (a restart keeps tags, view, stash, floating and focus), preservepertag
+# (and each tag's layout, mfact, nmaster, bar, and Mod+Tab's history) and
+# wakeonsignal (SIGHUP/SIGTERM act with no X event). It also opens a window
+# of every floating class in config.def.h's rules[] and checks it floats.
+# No patch count: the last one written here went stale twice.
 #
 # Wired into `build-suckless` (CI) rather than a new job, per scope-d locked
 # decision 3 (.claude/tasks/scope-d-verification-harvest.md): that job
@@ -43,7 +45,7 @@
 #
 # Split at the 250-line cap (2026-09-28, again 2026-10-07): the X helpers live
 # in tests/lib/dwm-runtime-x.sh and the sections in tests/lib/dwm-runtime-
-# {checks,floating,restart}.sh. All sourced, never globbed as tests.
+# {checks,floating,restart,pertag}.sh. All sourced, never globbed as tests.
 
 set -euo pipefail
 
@@ -62,6 +64,8 @@ source "$SCRIPT_DIR/lib/dwm-runtime-x.sh"
 source "$SCRIPT_DIR/lib/dwm-runtime-checks.sh"
 # shellcheck source=lib/dwm-runtime-restart.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-restart.sh"
+# shellcheck source=lib/dwm-runtime-pertag.sh
+source "$SCRIPT_DIR/lib/dwm-runtime-pertag.sh"
 # shellcheck source=lib/dwm-runtime-floating.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-floating.sh"
 
@@ -132,6 +136,7 @@ install_fake_alacritty
 start_dwm
 
 # Order is load-bearing: see the header on why restartsig runs last.
+check_pertag_fresh_restart
 check_ewmh
 check_xresources
 check_fullscreen
@@ -140,10 +145,11 @@ check_float_rules
 check_dropterm
 check_restartsig
 check_preserve
+check_pertag_restart
 check_sigterm
 
 if ((rc != 0)); then
     red "✗ dwm-runtime is broken"
     exit 1
 fi
-green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, restartsig, preserveonrestart and wakeonsignal all hold"
+green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, restartsig, preserveonrestart (incl. pertag) and wakeonsignal all hold"

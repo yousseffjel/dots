@@ -11,6 +11,40 @@ xresources patch onward.
 2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
 are mutually exclusive — see that entry.
 
+## dwm-preservepertag-20261012-local.diff
+
+**Source**: written for this tree; extends preserveonrestart (below) to the
+state the pertag patch keeps per tag. Apply after preserveonrestart and
+wakeonsignal.
+
+**What**: `savepertag()`, called from `savestate()`, writes `_DWM_PERTAG` on
+the root window. For each monitor, in list order, it records `curtag`, the
+monitor's OTHER tagset slot, and then for every tag (index 0 is the all-tags
+view): nmaster, mfact x1000, sellt, both layouts as indexes into `layouts[]`
+(pointers do not survive `execvp()`), and showbar. `restorestate()` calls
+`loadpertag()` before its view loop. That validates every value (tag bounds,
+mfact 0.05-0.95, layout index < LENGTH(layouts), booleans); a tag with any
+bad value keeps its defaults. `applycurtag()` then puts the current tag's
+values on the monitor, and the view loop replays the history, `view(other
+slot)` and then `view(saved view)`.
+
+**Why**: preserveonrestart kept tags, view, stash, floating geometry and
+focus, but every restart (one per wallpaper change) reset each tag's
+layout, mfact, nmaster and bar to the defaults.
+
+**Two traps, both tested** (`check_pertag_restart`):
+- **A fresh dwm starts on tag 1.** Restoring a saved view of tag 1 is a
+  no-op in `view()`, so nothing applied that tag's values. `applycurtag()`
+  exists for this case.
+- **`Mod+Tab` swaps the two `tagset` slots; it never reads pertag's
+  `prevtag`.** A first draft restored `prevtag` and Mod+Tab still went
+  nowhere. Replaying the history fixes both.
+
+**Format choice**: the other tagset lives in the new property, not in
+`_DWM_VIEW`. A rebuilt dwm is often first started by an OLD binary's
+restart, and changing `_DWM_VIEW`'s layout would make the new binary misread
+the old one's data. A property the old binary never writes is simply absent.
+
 ## dwm-wakeonsignal-20261012-local.diff
 
 **Source**: written for this tree; no upstream patch. A self-pipe in the
