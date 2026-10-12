@@ -2069,3 +2069,18 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   (`ignore-header-backups`).
 - **Not yet on the VM**: `dots update` there should refresh config.h, prompt
   for sudo for ly, and give Super after a re-login.
+
+## 2026-10-12 — VM check of super-modkey + ly-theme; ly-console-colours merged
+
+- **On the VM** the user ran `dots update`, which printed `refresh
+  suckless/dwm/config.h` and `wrote theme dark -> /etc/ly/config.ini`, then
+  rebooted. **Super keys work.** ly shows the big clock and no version string,
+  **but the border was white.**
+- **`ly-console-colours` merged** (`6c79fdd`). The VT draws a 24-bit colour as
+  one of 16 and lights red, green or blue only above half the largest
+  component, so every pastel accent became white. ly-theme.sh now writes the
+  bright console colour nearest the accent's hue: blue for dark, nord and
+  tokyo-night, red for gruvbox. The test restates vt.c's rule and checks
+  every theme. Mutations 7/7, reviewer READY.
+- Still to check on the VM: `dots update`, reboot, then confirm the border is
+  blue.
