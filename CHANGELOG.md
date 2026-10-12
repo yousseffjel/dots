@@ -16,8 +16,21 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
 ### Added
 
+- `dots update`: pulls the repo (fast-forward only) and re-runs the
+  installer, which migrates, installs newly declared packages, rebuilds and
+  prints any lines your own `autostart.sh`/`.xinitrc` still need. It refuses
+  a dirty tree, a detached HEAD, a missing upstream or a diverged branch
+  without touching anything; `--dry-run` lists what would come in.
+- The first real migration, 0.1.0 → 0.2.0. It refreshes the suckless
+  headers an old build generated (`config.h`, dwmblocks' `blocks.h`), so an
+  existing install picks up the new keys, window rules and the DND block. A
+  header you edited is kept, and the migration names the upstream changes
+  to merge into it. Nothing is deleted: a refreshed header is renamed
+  `*.pre-0.2.0`.
 - A default wallpaper. A static theme apply renders a gradient from the
   theme's own colours, so a fresh install is no longer a black screen. A
   wallpaper you set yourself is never replaced, and no image is committed

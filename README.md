@@ -61,15 +61,16 @@ written by `install-fedora.sh`).
   package — that may still need a migration step on an existing install
   (e.g. seeding a new directory). Add a
   `scripts/migrations/<from>-to-<to>.sh` script whenever a minor bump
-  needs one; see `scripts/migrations/0.1.0-to-0.2.0.sh` for the template
-  and naming convention.
+  needs one; `scripts/migrations/0.1.0-to-0.2.0.sh` (the first real one)
+  shows the shape and naming convention.
 - **Major** (`0.x.y` → `1.0.0`, or any breaking bump): changes that
   restructure how configs are deployed — renaming/moving a symlinked
   directory, changing what `symlinks.sh` links where, changing the
   manifest's own row format — anything an existing install can't just
   pick up passively and needs an explicit migration for.
 
-Pulling a version bump on an existing install: run `scripts/migrate.sh`
-(or just re-run `install-fedora.sh`, which calls it automatically) to
-bring the manifest's recorded version forward. See `docs/UNINSTALL.md`
+Pulling a version bump on an existing install: run `dots update`. It
+pulls (fast-forward only) and re-runs `install-fedora.sh`, which runs
+`scripts/migrate.sh` before anything else and so brings the manifest's
+recorded version forward. `dots update --dry-run` shows what would come in. See `docs/UNINSTALL.md`
 for reversing an install entirely.

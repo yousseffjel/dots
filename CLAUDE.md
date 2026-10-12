@@ -84,6 +84,8 @@ dots/
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
+│   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers)
+│   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
 │   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
 │   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on),
@@ -126,10 +128,11 @@ just the suckless programs standalone (also `--dry-run`-aware); `scripts/symlink
 (re)links shell config without touching packages (also `--dry-run`-aware).
 
 After an install, **`dots` is the single user-facing command** (symlinked to
-`~/.local/bin/dots`): `dots theme`, `dots wallpaper`, `dots version`,
-`dots doctor`, `dots uninstall`. It only forwards — every target script stays independently
-runnable, and `dots --help` renders its list from the one table in
-`scripts/dots`. It deliberately breaks rule 3: because it is reached through a
+`~/.local/bin/dots`) — `dots theme`, `dots doctor`, `dots update` and the
+rest; `dots --help` is the list, rendered from the one SUBCOMMANDS table in
+`scripts/dots` (this paragraph used to restate it and went stale when
+`update` was added, 2026-10-12). It only forwards — every target script
+stays independently runnable. It deliberately breaks rule 3: because it is reached through a
 symlink, `cd "$(dirname "${BASH_SOURCE[0]}")"` would resolve `~/.local/bin`
 rather than the repo, so it uses `readlink -f` instead.
 
