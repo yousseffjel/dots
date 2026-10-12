@@ -85,6 +85,8 @@ report() {
 source "$SCRIPT_DIR/doctor-checks.sh"
 # shellcheck source=doctor-session.sh
 source "$SCRIPT_DIR/doctor-session.sh"
+# shellcheck source=doctor-daemons.sh
+source "$SCRIPT_DIR/doctor-daemons.sh"
 # shellcheck source=doctor-portal.sh
 source "$SCRIPT_DIR/doctor-portal.sh"
 # shellcheck source=doctor-notify.sh

@@ -38,7 +38,8 @@ dots/
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
 │   ├── dwm/bin/         # dmenu-driven scripts: dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
-│   │                    # dwm-lib-xdg.sh is SOURCED (644, so dmenu never lists it): where screenshot/record save
+│   │                    # dwm-lib-*.sh are SOURCED (644, so dmenu never lists them): -xdg (where screenshot,
+│   │                    #  record and wallpaper.sh save/read), -screenshot (dwm-screenshot's capture half)
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
 │   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table
@@ -84,8 +85,9 @@ dots/
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
-│   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-portal.sh /
-│   │                           # doctor-notify.sh (dunst answers, DND left on), every list read from its source
+│   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
+│   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on),
+│   │                           # every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh
 ├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)

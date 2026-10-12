@@ -9,8 +9,12 @@
 # reload.sh. Every stage is a separate script so each is testable and
 # replaceable on its own; this is just the user-facing front door.
 #
-# Wallpaper directory defaults to ~/Pictures/wallpapers, overridable with
-# DOTS_WALLPAPER_DIR.
+# Wallpaper directory: wallpapers/ inside the XDG pictures dir (`xdg-user-dir
+# PICTURES`, so a localised or moved one is honoured; else ~/Pictures),
+# overridable with DOTS_WALLPAPER_DIR. The default one is created on first use
+# and seeded with the theme's generated wallpaper, so --select and --random
+# always have something. Run from a key (sxhkd discards stderr), so every
+# failure is also a notification — it used to fail with no visible sign.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +24,11 @@ green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
-WALLPAPER_DIR="${DOTS_WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
+# xdg_dir is shared with dwm-screenshot / dwm-record; a missing helper (a
+# partial install, or a test's copy of scripts/ alone) means ~/Pictures.
+# shellcheck source=../../config/dwm/bin/dwm-lib-xdg.sh
+source "$SCRIPT_DIR/../../config/dwm/bin/dwm-lib-xdg.sh" 2>/dev/null || xdg_dir() { printf '%s' "$2"; }
+WALLPAPER_DIR="${DOTS_WALLPAPER_DIR:-$(xdg_dir PICTURES "$HOME/Pictures")/wallpapers}"
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 
 # Usage text lives in this file's header (lines 3-7), not in a string here, so
@@ -35,6 +43,28 @@ notify() {
     # Notifications are a nicety, never a dependency.
     command -v notify-send >/dev/null 2>&1 || return 0
     notify-send -a "dots-theme" -i preferences-desktop-wallpaper "$@" || true
+}
+
+# fail <message> [hint] — stderr for a terminal, a notification for a key.
+fail() {
+    red "$1"
+    [[ -z "${2:-}" ]] || yellow "  $2"
+    notify -u normal "Wallpaper" "$1${2:+
+$2}"
+    exit 1
+}
+
+# The default dir only: create it and copy in the newest wallpaper the theme
+# engine generated (wallpaper-default.sh), if there is one. Never a dir the
+# user named with DOTS_WALLPAPER_DIR, never into a dir that already existed.
+seed_wallpaper_dir() {
+    local f newest=""
+    mkdir -p "$WALLPAPER_DIR"
+    for f in "$cacheDir"/wallpapers/*.png; do
+        [[ -f "$f" ]] || continue
+        if [[ -z "$newest" || "$f" -nt "$newest" ]]; then newest="$f"; fi
+    done
+    [[ -z "$newest" ]] || cp -n "$newest" "$WALLPAPER_DIR/"
 }
 
 # Only formats feh can actually set as a background.
@@ -70,29 +100,27 @@ case "${1:-}" in
 esac
 
 if [[ "$MODE" != "path" && ! -d "$WALLPAPER_DIR" ]]; then
-    red "wallpaper directory not found: $WALLPAPER_DIR"
-    yellow "  create it, or set DOTS_WALLPAPER_DIR, or pass an image path"
-    exit 1
+    if [[ -n "${DOTS_WALLPAPER_DIR:-}" ]]; then
+        fail "wallpaper directory not found: $WALLPAPER_DIR" "create it, or unset DOTS_WALLPAPER_DIR"
+    fi
+    seed_wallpaper_dir
 fi
 
 case "$MODE" in
     random)
         mapfile -t WALLS < <(list_wallpapers)
         if [[ ${#WALLS[@]} -eq 0 ]]; then
-            red "no images in $WALLPAPER_DIR"
-            exit 1
+            fail "no images in $WALLPAPER_DIR" "add some — .jpg .png .webp .bmp"
         fi
         TARGET="${WALLS[RANDOM % ${#WALLS[@]}]}"
         ;;
     select)
         if ! command -v dmenu >/dev/null 2>&1; then
-            red "dmenu not installed — cannot use --select"
-            exit 1
+            fail "dmenu not installed — cannot use --select"
         fi
         mapfile -t WALLS < <(list_wallpapers)
         if [[ ${#WALLS[@]} -eq 0 ]]; then
-            red "no images in $WALLPAPER_DIR"
-            exit 1
+            fail "no images in $WALLPAPER_DIR" "add some — .jpg .png .webp .bmp"
         fi
         # Show basenames, resolve back to the full path afterwards, so the
         # menu stays readable on deep directory trees.
@@ -107,21 +135,18 @@ case "$MODE" in
             fi
         done
         if [[ -z "$TARGET" ]]; then
-            red "no wallpaper matched: $choice"
-            exit 1
+            fail "no wallpaper matched: $choice"
         fi
         ;;
 esac
 
 if [[ ! -f "$TARGET" ]]; then
-    red "not a file: $TARGET"
-    exit 1
+    fail "not a file: $TARGET"
 fi
 TARGET="$(realpath "$TARGET")"
 
 if ! command -v feh >/dev/null 2>&1; then
-    red "feh not installed — cannot set the wallpaper"
-    exit 1
+    fail "feh not installed — cannot set the wallpaper"
 fi
 
 blue "==> $TARGET"
@@ -129,8 +154,7 @@ blue "==> $TARGET"
 # feh writes ~/.fehbg as a side effect; reload.sh re-runs it later to
 # repaint the root window after the compositor restarts.
 if ! feh --no-fehbg --bg-fill "$TARGET"; then
-    red "feh failed to set the wallpaper"
-    exit 1
+    fail "feh failed to set the wallpaper"
 fi
 # --no-fehbg above, then write ~/.fehbg ourselves: feh's own version
 # embeds the absolute path with no quoting robustness, and reload.sh

@@ -141,7 +141,9 @@ session_autostart_report() {
 #     once they die (2026-10-07, later the same day);
 #   * an xss-lock pkill inside it — without it xss-lock aborts with a core
 #     dump at every logout when X vanishes under it (2026-10-12).
-# The last four share one paste block: the cleanup replaces the session tail.
+# The last four share one paste block (the cleanup replaces the session tail)
+# while dots_session_end is missing; once it exists, a missing dwmblocks or
+# xss-lock stop gets only its own lines (session_xinitrc_report_stops).
 session_xinitrc_report() {
     local xinitrc="$1" theme=0 cursor=0 session=0 ended=0 blocks=0 xsslock=0
     grep -q 'dots/theme' "$xinitrc" && theme=1
@@ -164,15 +166,34 @@ session_xinitrc_report() {
         session_xinitrc_report_session 'never stops clipmenud at logout' \
             'without it clipmenud outlives X and floods the login TTY with' \
             '"xsel: Can'"'"'t open display" errors.'
-    elif ((!blocks)); then
-        session_xinitrc_report_session 'never stops dwmblocks at logout' \
-            'after a quick re-login the bar can stay empty ("dwm-6.8") and night' \
-            'light off: the old copies are found, so no new ones start.'
-    elif ((!xsslock)); then
-        session_xinitrc_report_session 'never stops xss-lock at logout' \
-            'without it xss-lock aborts with a core dump every time X closes' \
-            '(harmless, but each one is a crash report).'
+    else
+        session_xinitrc_report_stops "$blocks" "$xsslock"
     fi
+}
+
+# The file already has dots_session_end and lacks only some of its stops, so
+# print only those lines — not the whole block (on the Fedora VM, 2026-10-12,
+# the full block was printed for one missing line). $1 $2: whether the
+# dwmblocks and xss-lock stops are already there.
+# shellcheck disable=SC2016
+session_xinitrc_report_stops() {
+    if (($1 == 0)); then
+        yellow "kept    ~/.xinitrc (exists, never stops dwmblocks at logout)"
+        yellow '        after a quick re-login the bar can stay empty ("dwm-6.8") and night'
+        yellow '        light off: the old copies are found, so no new ones start.'
+    fi
+    if (($2 == 0)); then
+        yellow "kept    ~/.xinitrc (exists, never stops xss-lock at logout)"
+        yellow '        without it xss-lock aborts with a core dump every time X closes'
+        yellow '        (harmless, but each one is a crash report).'
+    fi
+    yellow '        Add inside dots_session_end(), above its systemctl line:'
+    if (($1 == 0)); then
+        yellow '            pkill -u "$(id -u)" -x dwmblocks'
+        yellow "            pkill -u \"\$(id -u)\" -f '/dwm-nightlight daemon\$'"
+    fi
+    (($2)) || yellow '            pkill -u "$(id -u)" -x xss-lock'
+    yellow '        then log out and back in.'
 }
 
 # The paste-in lines a ~/.xinitrc needs; split out for the 60-line cap.

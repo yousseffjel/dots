@@ -90,7 +90,7 @@ cmp -s "$SB/h" "$SB/t" || diff "$SB/h" "$SB/t" | head -5
 check "human output ends with the verdict" grep -q 'all checks passed' "$SB/out.human"
 
 blue "==> each DAEMON_PROCESS key is a daemon the installer reports"
-keys="$(sed -n 's/^declare -A DAEMON_PROCESS=(\(.*\))$/\1/p' "$DOTS_DIR/scripts/doctor-session.sh" \
+keys="$(sed -n 's/^declare -A DAEMON_PROCESS=(\(.*\))$/\1/p' "$DOTS_DIR/scripts/doctor-daemons.sh" \
     | grep -o '\["[^"]*"\]' | tr -d '[]"')"
 check "found the DAEMON_PROCESS table" test -n "$keys"
 for k in $keys; do
@@ -98,11 +98,14 @@ for k in $keys; do
 done
 # daemon_applies' case labels, read from the function rather than listed here:
 # a hand-written copy went stale the first time a daemon was added to it.
-applies="$(sed -n '/^daemon_applies()/,/^}/p' "$DOTS_DIR/scripts/doctor-session.sh" \
+applies="$(sed -n '/^daemon_applies()/,/^}/p' "$DOTS_DIR/scripts/doctor-daemons.sh" \
     | sed -n 's/^ *\([a-z][a-z-]*\)).*/\1/p')"
 check "found daemon_applies' cases" test -n "$applies"
 for k in $applies; do
     check "daemon_applies' $k is reported" grep -qx "$k" <(printf '%s\n' "${DAEMONS[@]}")
+    # shellcheck disable=SC2016 # $1 $2 are the inner bash's arguments
+    check "daemon_applies' $k has its own skip reason" bash -c '
+        source "$1"; [[ "$(daemon_skip_reason "$2")" != "not needed on this machine" ]]' _ "$DOTS_DIR/scripts/doctor-daemons.sh" "$k"
 done
 
 blue "==> packages"
@@ -143,6 +146,8 @@ FAKE_DOWN=spice-vdagent FAKE_NOT_VM=1 tsv
 check "spice-vdagent off a VM is skipped" row skip session daemon-spice-vdagent
 FAKE_DOWN=nm-applet tsv
 check "nm-applet without NetworkManager is skipped" row skip session daemon-nm-applet
+# shellcheck disable=SC2016 # $1 is the inner bash's argument
+check "...naming that reason, and only that one" bash -c '[[ "$1" == *"(NetworkManager is not running)" ]]' _ "$(detail daemon-nm-applet)"
 FAKE_UP=NetworkManager FAKE_DOWN=nm-applet tsv
 check "nm-applet down while NetworkManager runs warns" row warn session daemon-nm-applet
 DISPLAY_SET="" tsv

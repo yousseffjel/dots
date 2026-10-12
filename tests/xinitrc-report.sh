@@ -89,8 +89,9 @@ grep -v -e '-x dwmblocks' -e 'dwm-nightlight' "$SB/xinitrc.shipped" >"$SB/pre-bl
 out="$(report "$SB/pre-blocks-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
 if grep -q -- 'never stops dwmblocks at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x dwmblocks' <<<"$out" \
-    && ! grep -q -- 'never stops clipmenud' <<<"$out" && ! grep -q -- 'never starts dots-session.target' <<<"$out"; then
-    green "  ok: a session end without dwmblocks gets the updated session-end lines"
+    && ! grep -q -- 'never stops clipmenud' <<<"$out" && ! grep -q -- 'never starts dots-session.target' <<<"$out" \
+    && ! grep -qF -- 'pkill -u "$(id -u)" -x clipmenud' <<<"$out"; then
+    green "  ok: a session end without dwmblocks gets only the missing lines"
 else
     red "  the pre-dwmblocks ~/.xinitrc report is wrong: $out"
     rc=1
@@ -100,8 +101,9 @@ grep -v -e '-x xss-lock' "$SB/xinitrc.shipped" >"$SB/pre-xsslock-xinitrc"
 out="$(report "$SB/pre-xsslock-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
 if grep -q -- 'never stops xss-lock at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x xss-lock' <<<"$out" \
-    && ! grep -q -- 'never stops dwmblocks' <<<"$out" && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
-    green "  ok: a session end without the xss-lock stop gets the updated lines"
+    && ! grep -q -- 'never stops dwmblocks' <<<"$out" && ! grep -q -- 'never stops clipmenud' <<<"$out" \
+    && [[ "$(grep -c 'pkill -u' <<<"$out")" == 1 ]]; then
+    green "  ok: a session end without the xss-lock stop gets that ONE line, not the block"
 else
     red "  the pre-xss-lock ~/.xinitrc report is wrong: $out"
     rc=1

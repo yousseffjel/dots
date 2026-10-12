@@ -552,5 +552,7 @@ Each is a passthrough to the script that implements it
 (`scripts/theme/wallpaper.sh`, `scripts/theme/theme-apply.sh`), which can still
 be run directly. `dots --help` lists every subcommand.
 
-Wallpapers are read from `~/Pictures/wallpapers` by default; override with
-`DOTS_WALLPAPER_DIR`.
+Wallpapers are read from `wallpapers/` in your pictures folder (`xdg-user-dir PICTURES`, so a
+localised or moved one is honoured; else `~/Pictures`) by default; override with
+`DOTS_WALLPAPER_DIR`. The default folder is created on first use with the
+theme's generated wallpaper in it, and a problem shows as a notification.

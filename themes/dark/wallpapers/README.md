@@ -11,8 +11,8 @@ theme's palette whenever no wallpaper of your own is set (see
 
 ## Where wallpapers actually go
 
-`scripts/theme/wallpaper.sh` reads from `~/Pictures/wallpapers` by
-default. Override with `DOTS_WALLPAPER_DIR`:
+`scripts/theme/wallpaper.sh` reads from `wallpapers/` in the XDG pictures
+folder (`xdg-user-dir PICTURES`, else `~/Pictures`) by default. Override with `DOTS_WALLPAPER_DIR`:
 
 ```sh
 export DOTS_WALLPAPER_DIR="$HOME/media/walls"

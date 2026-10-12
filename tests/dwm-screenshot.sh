@@ -114,11 +114,17 @@ if landed Pictures/screenshots; then pass "no xdg-user-dir: ~/Pictures/screensho
 # save — to the fixed fallback — rather than die on an undefined function.
 rm -rf "${TMP:?}/home" && mkdir -p "$TMP/home" "$TMP/solo"
 cp "$SUT" "$TMP/solo/"
+cp "${SUT%/*}/dwm-lib-screenshot.sh" "$TMP/solo/" # required; only the XDG helper is left out
 SUT_REAL="$SUT"
 SUT="$TMP/solo/${SUT##*/}"
 run all DOTS_SCREENSHOT_DIR= FAKE_XDG="$TMP/home/Bilder" -- --full --file
 SUT="$SUT_REAL"
 if [[ $RC -eq 0 ]] && landed Pictures/screenshots; then pass "no dwm-lib-xdg.sh: still saves, to ~/Pictures/screenshots"; else fail "no helper: rc=$RC $ERR"; fi
+rm "$TMP/solo/dwm-lib-screenshot.sh"
+SUT="$TMP/solo/${SUT##*/}"
+run all -- --full --file
+SUT="$SUT_REAL"
+if [[ $RC -eq 1 ]] && has "-u critical Screenshot failed"; then pass "no dwm-lib-screenshot.sh: exit 1 with a notification, not a silent key"; else fail "missing capture lib: rc=$RC log=$(cat "$LOG")"; fi
 
 blue "==> modes reach maim correctly"
 run all -- --full --file

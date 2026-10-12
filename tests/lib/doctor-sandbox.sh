@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/sealed-path.sh"
 # shellcheck source=fake-flatpak.sh
 source "$(dirname "${BASH_SOURCE[0]}")/fake-flatpak.sh"
 
-# The daemon names, read the way doctor-session.sh reads them: from the
+# The daemon names, read the way doctor-daemons.sh reads them: from the
 # installer's report against a file that mentions nothing.
 daemon_names() {
     (

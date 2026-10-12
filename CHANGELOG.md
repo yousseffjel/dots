@@ -121,6 +121,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Changed
 
+- Wallpapers are read from `wallpapers/` in your pictures folder, as
+  `xdg-user-dir` names it (else `~/Pictures`), like screenshots and
+  recordings. That folder is created on first use with the theme's
+  generated wallpaper in it, so `Super` + `w` always has something to offer.
+- When an existing `~/.xinitrc` already has the session-end step,
+  `install-suckless.sh` now prints only the lines it lacks instead of the
+  whole block.
+- `dots doctor` names the one reason a daemon is not needed here (not a VM,
+  no bluetooth adapter, NetworkManager not running) instead of all three.
 - pavucontrol, gpick, File Roller and nm-connection-editor open floating.
   The stock dwm rule that meant to send Firefox to tag 9 is gone; it never
   matched Firefox's real window class.
@@ -133,6 +142,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- The wallpaper keys did nothing visible on a fresh install with no
+  wallpaper folder (sxhkd discards error output). Every failure is now a
+  notification.
 - Every wallpaper change or theme switch restarts dwm, and each restart
   moved every window onto one tag, brought hidden scratchpads back and
   re-tiled floating windows. Tags, the view, scratchpads, floating size and

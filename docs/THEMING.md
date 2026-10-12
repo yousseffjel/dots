@@ -93,8 +93,12 @@ scripts/theme/theme-apply.sh --list
 scripts/theme/reload.sh        # re-signal everything, no regen (no subcommand)
 ```
 
-Wallpapers come from `~/Pictures/wallpapers`; override with
-`DOTS_WALLPAPER_DIR`.
+Wallpapers come from `wallpapers/` in your pictures folder (`xdg-user-dir PICTURES`, so a
+localised or moved one is honoured; else `~/Pictures`); override with
+`DOTS_WALLPAPER_DIR`. The default folder is created on first use and seeded
+with the generated default wallpaper below, so `Super` + `w` always has
+something to offer. Every failure is also a notification, since the keys run
+it through sxhkd, which discards error output.
 
 ### The generated default wallpaper
 
