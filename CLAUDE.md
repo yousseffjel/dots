@@ -90,7 +90,8 @@ dots/
 │   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
 │   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on),
 │   │                           # every list read from its source
-│   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh
+│   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
+│                               # ly-theme.sh (`dots login-theme`: four keys of root's /etc/ly/config.ini; sudo, never prompted without a TTY)
 ├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
 │   ├── build.lst        # suckless build deps — read by install-suckless.sh ONLY, not install-pkg.sh
@@ -104,6 +105,7 @@ dots/
 ├── tests/               # the suite; `ls tests/*.sh` is the list, deliberately not restated here.
 │                        # CI globs it, so a new test is picked up with no wiring.
 │                        # tests/lib/ holds SOURCED helpers, outside that depth-1 glob — never tests.
+│                        # tests/fixtures/ holds captured real-tool files (ly's config.ini), same reason.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / install-dry-run
 │                        # install-container.yml — the only job that RUNS install-fedora.sh (~30 min/leg, paths-filtered)
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md

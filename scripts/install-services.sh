@@ -154,6 +154,13 @@ if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
     else
         yellow "could not enable $LY_UNIT — run manually:  sudo systemctl enable $LY_UNIT"
     fi
+    # The login screen's colours, from the active static theme (themes/dark on
+    # a first install). Its own script, because a theme switch runs it too;
+    # it never aborts this stage — a refusal is a yellow line, not a failure.
+    ly_args=()
+    [[ $DRY_RUN -eq 1 ]] && ly_args+=(--dry-run)
+    "$DOTS_DIR/scripts/theme/ly-theme.sh" "${ly_args[@]}" \
+        || yellow "ly login screen not themed — run:  dots login-theme"
 fi
 
 green "✓ services stage complete"
