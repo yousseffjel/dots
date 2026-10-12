@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The two theme uninstall steps: removing what the installer deployed
-# (uninstall_theme) and putting back what it backed up (uninstall_theme_backups).
+# The theme uninstall steps: removing what the installer deployed
+# (uninstall_theme), putting back what it backed up (uninstall_theme_backups),
+# and restoring the ly login screen (uninstall_ly).
 #
 # Moved out of uninstall_steps.sh on 2026-09-28, which sat at 235 of the
 # 250-line cap when the second function was needed — the same reason
@@ -110,4 +111,22 @@ uninstall_theme_backups() {
             red "  failed to restore $pre from $bak"
         fi
     done
+}
+
+# The ly login screen. Its config is a root-owned file of ly's own, so it is
+# never removed: scripts/theme/ly-theme.sh --restore writes back the original
+# lines it saved before its first change. Before uninstall_packages, which may
+# remove ly — rpm would then keep our edited copy as config.ini.rpmsave.
+uninstall_ly() {
+    blue "=== ly login screen ==="
+    if [[ -z "$(manifest_rows LY)" ]]; then
+        blue "  no LY rows in manifest — nothing to restore"
+    elif confirm "Restore the ly login screen's original colours (needs sudo)?"; then
+        local args=(--restore)
+        [[ $DRY_RUN -eq 1 ]] && args+=(--dry-run)
+        "$DOTS_DIR/scripts/theme/ly-theme.sh" "${args[@]}" \
+            || red "  could not restore ly's config — run:  scripts/theme/ly-theme.sh --restore"
+    else
+        yellow "  skipped ly login screen"
+    fi
 }

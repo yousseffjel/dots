@@ -169,6 +169,7 @@ fake "$BIN" notify-send ':'
 check "theme-apply.sh dark exits 0" env -i PATH="$BIN:/usr/bin:/bin" LOG="$LOG" HOME="$H" \
     XDG_CACHE_HOME="$H/.cache" XDG_CONFIG_HOME="$H/.config" \
     XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
+    DOTS_LY_CONFIG="$H/no-ly/config.ini" \
     bash "$REPO/scripts/theme/theme-apply.sh" dark
 check "reload.sh found .fehbg already written" grep -qx 'reload fehbg=yes' "$LOG"
 check "the wallpaper is the dark one" grep -qF "$H/$WALLS/dark.png" "$H/.fehbg"

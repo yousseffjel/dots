@@ -12,7 +12,7 @@ name: install-container
 #      keeping it separate from the fast inspection jobs in ci.yml makes the
 #      distinction visible in the Actions list.
 #
-# KNOWN, ACCEPTED DEBT: the assert step below is a ~110-line inline bash body,
+# KNOWN, ACCEPTED DEBT: the assert step below is a ~140-line inline bash body,
 # well past this repo's 60-line convention, and `tests/lint.sh` does NOT lint
 # bash embedded in YAML (it covers scripts/, tests/ and root *.sh). It is
 # shellcheck-clean as of 2026-08-13, but only because it was extracted and
@@ -225,6 +225,17 @@ jobs:
             done < <(grep '^SERVICE' "$manifest")
           else
             note "no SERVICE row in the manifest — systemctl enable never succeeded (wrong unit name?)"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::ly login screen themed"
+          # The services stage runs scripts/theme/ly-theme.sh after enabling ly.
+          # This is the only place it writes the REAL /etc/ly/config.ini of a
+          # real ly package; tests/ly-theme.sh covers it against a fixture.
+          if grep -q '^LY' "$manifest" 2>/dev/null && grep -qx 'bigclock = en' /etc/ly/config.ini; then
+            echo "OK: /etc/ly/config.ini themed, LY row recorded"
+          else
+            note "ly config not themed (no LY row, or no 'bigclock = en' in /etc/ly/config.ini)"
           fi
           echo "::endgroup::"
 

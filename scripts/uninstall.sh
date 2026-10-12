@@ -123,6 +123,8 @@ uninstall_dconf
 # Before uninstall_packages too: removing the flatpak package would leave no
 # binary to delete the remote with.
 uninstall_flatpak
+# Before uninstall_packages, which may remove ly.
+uninstall_ly
 uninstall_packages
 uninstall_services
 uninstall_shell

@@ -16,6 +16,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Added
+
+- **The ly login screen follows the theme.** Its text and border take the
+  active static theme's colours (the same as dwm's text and focused border),
+  with a big clock and no version string. Written at install and on every
+  `dots theme <name>`, which asks for sudo in a terminal and, from the theme
+  keybinding, sends a notification instead of hanging on a prompt. `dots
+  login-theme` applies it by hand; `dots uninstall` restores ly's own values.
+
 ### Fixed
 
 - `dots update` said "already up to date" whenever its own pull brought

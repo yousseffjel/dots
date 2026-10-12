@@ -176,6 +176,15 @@ else
     # Remember the active theme so a future session can report it.
     mkdir -p "$cacheDir"
     printf '%s\n' "$THEME" >"$cacheDir/theme.set"
+    # The ly login screen: one root-owned file, so sudo. Asked for in a
+    # terminal; from a keybinding ly-theme.sh exits 3 rather than prompt.
+    ly_rc=0
+    "$SCRIPT_DIR/ly-theme.sh" "$THEME" || ly_rc=$?
+    if [[ $ly_rc -eq 3 ]]; then
+        notify "Login screen not themed" "It needs sudo. In a terminal: dots login-theme $THEME"
+    elif [[ $ly_rc -ne 0 ]]; then
+        yellow "ly      login screen not themed (ly-theme.sh exited $ly_rc)"
+    fi
     notify "Theme applied" "$THEME"
     green "✓ theme applied: $THEME"
 fi

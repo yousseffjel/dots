@@ -485,6 +485,44 @@ groups where `wallpaper.sh` processes only `always/`:
 `theme.conf` is optional. A theme without one changes colours and leaves the
 identity as it was.
 
+- **The ly login screen** — see below. A static switch only; `--wallbash` never
+  touches it.
+
+### The login screen (ly)
+
+`scripts/theme/ly-theme.sh` (`dots login-theme [<theme>]`) writes four keys of
+`/etc/ly/config.ini`, in place, and nothing else:
+
+| Key | Value | Same as |
+| --- | --- | --- |
+| `fg` | `0x00` + the theme's `txt1` | `dwm.normfgcolor` |
+| `border_fg` | `0x00` + the theme's `1xa7` | `dwm.selbordercolor` |
+| `bigclock` | `en` | — |
+| `hide_version_string` | `true` | — |
+
+No animation, by decision: it costs CPU on the TTY for as long as the login
+screen is up. The background stays ly's `0x00000000`, which means "the
+terminal's own"; ly's colours are `0xSSRRGGBB`, the first byte being style
+bits (bold, underline, …), not alpha.
+
+It runs from the installer's services stage (the active theme, else `dark`) and
+from every `theme-apply.sh <name>`. The file is root's, so it needs sudo: in a
+terminal you are asked, and from `Super+Ctrl+w` — where nobody can type a
+password — it tries `sudo -n` and otherwise leaves ly alone and sends a
+notification naming the command to run. Wallbash palettes are never written:
+each wallpaper change would be another root write.
+
+The first change saves ly's original lines to
+`~/.local/state/dots/ly-config.orig`, and `dots uninstall` writes them back. The
+file is replaced with `cp` onto itself, so its owner, mode and SELinux label are
+kept, and because it is the package's `%config(noreplace)` an ly upgrade keeps
+our edit and drops its new defaults beside it as `config.ini.rpmnew`. A key a
+future ly no longer has is reported and skipped, never appended.
+
+**On a Linux console the colours are approximate.** ly runs in 24-bit mode
+(`full_color = true`), and the kernel's VT has only its 16-colour palette, so
+each colour is drawn as the nearest of those — close to the theme, not exact.
+
 ### The no-clobber rule
 
 The identity writers refuse any `settings.ini` or `xsettingsd.conf` the manifest
@@ -581,7 +619,8 @@ itself.
 
 `dots uninstall` (or `scripts/uninstall.sh`) removes deployed theme files
 (tracked in the manifest as `THEME` rows) and the whole generated
-`~/.cache/dots/theme` cache. `~/.fehbg` is left alone — it records the user's
+`~/.cache/dots/theme` cache, and writes ly's original login-screen lines back
+(the `LY` row; see "The login screen" above). `~/.fehbg` is left alone — it records the user's
 wallpaper choice and is normally feh's own file.
 
 The vendored cursor theme is a `THEME` row too, so it comes out with the rest.

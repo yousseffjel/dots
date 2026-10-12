@@ -45,6 +45,8 @@ export XDG_CONFIG_HOME="$TMP/home/.config"
 export XDG_STATE_HOME="$TMP/home/.local/state"
 export XDG_CACHE_HOME="$TMP/home/.cache"
 export XDG_DATA_HOME="$TMP/home/.local/share"
+# theme-apply.sh themes ly too; never the host's /etc/ly (tests/ly-theme.sh owns that path).
+export DOTS_LY_CONFIG="$TMP/no-ly/config.ini"
 mkdir -p "$HOME"
 
 # global_fn.sh supplies red/green/blue, so this file deliberately does NOT

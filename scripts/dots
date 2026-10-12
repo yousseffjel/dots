@@ -41,6 +41,7 @@ SUBCOMMANDS=(
     "version:scripts/version.sh:print repo, installed and component versions"
     "doctor:scripts/doctor.sh:check the install and the running desktop (read-only)"
     "update:scripts/update.sh:pull the repo and re-run the installer (migrations, packages, rebuild)"
+    "login-theme:scripts/theme/ly-theme.sh:theme the ly login screen from a static theme (sudo)"
     "uninstall:scripts/uninstall.sh:reverse the install, manifest-driven"
 )
 
@@ -52,7 +53,7 @@ usage() {
     for entry in "${SUBCOMMANDS[@]}"; do
         name="${entry%%:*}"
         desc="${entry##*:}"
-        printf '  %-10s %s\n' "$name" "$desc"
+        printf '  %-12s %s\n' "$name" "$desc"
     done
     echo
     echo "Arguments after the subcommand are passed through untouched;"
