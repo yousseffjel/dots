@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-12-release-0.2.0.md
+Last log: .claude/changes/2026-10-12-update-stale-install.md
