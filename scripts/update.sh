@@ -11,10 +11,20 @@
 # Refuses — before touching anything — a dirty tracked tree, a detached HEAD,
 # a branch with no upstream, and an upstream that is not a fast-forward:
 # each of those needs a decision this script must not make for you.
+#
+# "Up to date" means the INSTALL is, not just the checkout: the manifest
+# records the commit the installer last ran from, and when that is not HEAD
+# (a `git pull` done by hand — which is how every 0.1.0 install gets this
+# script in the first place) the installer is re-run even with nothing to
+# pull. Each install stage stamps that commit as it starts, so an install
+# that failed partway still reads as current: re-run install-fedora.sh.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# shellcheck source=scripts/global_fn.sh
+source "$SCRIPT_DIR/global_fn.sh"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -50,6 +60,40 @@ preflight() {
             "commit or stash them first (git -C $DOTS_DIR status shows them)"
 }
 
+# 0 when the last install ran from HEAD. A missing manifest, or a commit git
+# cannot resolve (the installer writes "unknown" without git), is stale.
+install_is_current() {
+    local c
+    c="$(manifest_get_meta commit)"
+    [[ -n "$c" ]] || return 1
+    [[ "$(gitd rev-parse -q --verify "$c^{commit}" 2>/dev/null)" == "$(gitd rev-parse HEAD)" ]]
+}
+
+stale_reason() {
+    local c
+    c="$(manifest_get_meta commit)"
+    echo "the last install ran from ${c:-no recorded commit}, the checkout is at $(gitd rev-parse --short HEAD)"
+}
+
+run_installer() {
+    blue "==> re-running the installer"
+    exec "$DOTS_DIR/scripts/install-fedora.sh" "$@"
+}
+
+# Nothing was pulled: install only if the install is behind the checkout.
+# $1 is what to say when it is not, $2 what to lead with when it is.
+finish_unpulled() {
+    local current="$1" stale="$2"
+    shift 2
+    if install_is_current; then
+        green "$current"
+        yellow "  to re-apply the install anyway: scripts/install-fedora.sh"
+        exit 0
+    fi
+    yellow "$stale, but $(stale_reason)"
+    run_installer "$@"
+}
+
 main() {
     local dry=0 arg old new before args=()
     for arg in "$@"; do
@@ -68,11 +112,13 @@ main() {
     gitd fetch --quiet || fail "git fetch failed — check the network and the remote"
 
     if ((dry)); then
-        if [[ -z "$(gitd rev-list HEAD..'@{u}')" ]]; then
+        if [[ -n "$(gitd rev-list HEAD..'@{u}')" ]]; then
+            blue "would bring in, then re-run the installer:"
+            gitd log --oneline HEAD..'@{u}'
+        elif install_is_current; then
             green "already up to date ($(tr -d '[:space:]' <"$DOTS_DIR/VERSION"))"
         else
-            blue "would bring in:"
-            gitd log --oneline HEAD..'@{u}'
+            yellow "nothing to pull, but $(stale_reason) — would re-run the installer"
         fi
         exit 0
     fi
@@ -83,8 +129,8 @@ main() {
     # can also mean an untracked file in the way, which needs its own hint.
     if ! gitd merge-base --is-ancestor HEAD '@{u}'; then
         if gitd merge-base --is-ancestor '@{u}' HEAD; then
-            green "nothing to pull — your branch is ahead of its upstream ($old)"
-            exit 0
+            finish_unpulled "nothing to pull — your branch is ahead of its upstream ($old)" \
+                "nothing to pull (your branch is ahead of its upstream)" "${args[@]}"
         fi
         fail "your branch and its upstream have diverged — not merging for you" \
             "look at: git -C $DOTS_DIR log --oneline --graph HEAD...@{u}"
@@ -92,15 +138,11 @@ main() {
     gitd merge --ff-only --quiet '@{u}' \
         || fail "git could not fast-forward (see its message above) — nothing was installed"
     if [[ "$(gitd rev-parse HEAD)" == "$before" ]]; then
-        green "already up to date ($old) — nothing to install"
-        yellow "  to re-apply the install anyway: scripts/install-fedora.sh"
-        exit 0
+        finish_unpulled "already up to date ($old) — nothing to install" "nothing to pull" "${args[@]}"
     fi
     new="$(tr -d '[:space:]' <"$DOTS_DIR/VERSION")"
     green "updated $old -> $new ($(gitd rev-list --count "$before"..HEAD) commits)"
-
-    blue "==> re-running the installer"
-    exec "$DOTS_DIR/scripts/install-fedora.sh" "${args[@]}"
+    run_installer "${args[@]}"
 }
 
 # Called last, so bash has parsed the whole file before running any of it:

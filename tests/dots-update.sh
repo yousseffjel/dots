@@ -10,7 +10,10 @@
 #   * --dry-run lists what would come in and changes nothing;
 #   * refused, with HEAD untouched: dirty tracked files, a detached HEAD, no
 #     upstream, a diverged branch;
-#   * a branch that is only AHEAD has nothing to pull — exit 0, not "diverged".
+#   * a branch that is only AHEAD has nothing to pull — exit 0, not "diverged";
+#   * a checkout pulled BY HAND (how a 0.1.0 install gets update.sh at all)
+#     has nothing to pull but an install from an older commit: the installer
+#     runs, and --dry-run says it would. So does a missing manifest.
 # shellcheck disable=SC2016 # the bash -c bodies take $1/$2 as their own arguments
 set -euo pipefail
 
@@ -40,16 +43,24 @@ ORIGIN="$TMP/origin.git"
 INST="$TMP/install"
 DEV="$TMP/dev"
 LOG="$TMP/installer.log"
+MANIFEST="$TMP/.local/state/dots/manifest"
 g() { git -C "$1" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "${@:2}" >/dev/null 2>&1; }
 
-# A fresh origin with one commit, cloned as the "install".
+# A fresh origin with one commit, cloned as the "install". The stub installer
+# stamps the manifest's commit the way every real install stage does.
 mkrepos() {
-    rm -rf "$ORIGIN" "$INST" "$DEV" "$LOG"
+    rm -rf "$ORIGIN" "$INST" "$DEV" "$LOG" "$MANIFEST"
     git init -q --bare -b main "$ORIGIN"
     git clone -q "$ORIGIN" "$DEV" 2>/dev/null
     mkdir -p "$DEV/scripts"
-    cp "$DOTS_DIR/scripts/update.sh" "$DEV/scripts/"
-    printf '#!/bin/sh\necho "installer $*" >>"%s"\n' "$LOG" >"$DEV/scripts/install-fedora.sh"
+    cp "$DOTS_DIR/scripts/update.sh" "$DOTS_DIR/scripts/global_fn.sh" "$DEV/scripts/"
+    cat >"$DEV/scripts/install-fedora.sh" <<EOF
+#!/bin/sh
+echo "installer \$*" >>"$LOG"
+d="\$HOME/.local/state/dots"
+mkdir -p "\$d"
+printf 'META\tcommit\t%s\n' "\$(git -C "\$(dirname "\$0")/.." rev-parse --short HEAD)" >"\$d/manifest"
+EOF
     chmod 755 "$DEV/scripts/install-fedora.sh"
     echo 0.1.0 >"$DEV/VERSION"
     g "$DEV" add -A
@@ -85,6 +96,25 @@ check "exit 0" test "$RC" -eq 0
 check "the installer did NOT run" test ! -e "$LOG"
 check "says so" grep -q 'already up to date' <<<"$OUT"
 
+blue "==> pulled by hand: nothing to pull, but the install is older"
+upstream 0.2.1
+g "$INST" pull -q --ff-only
+update --dry-run
+check "--dry-run: names both commits and says it would install" \
+    bash -c '[[ $1 == 0 && $2 == *"nothing to pull"*"would re-run the installer"* ]]' _ "$RC" "$OUT"
+check "--dry-run: installer not run" test ! -e "$LOG"
+update --skip-suckless
+check "exit 0" test "$RC" -eq 0
+check "says why" grep -q "nothing to pull, but the last install ran from .*, the checkout is at $(git -C "$INST" rev-parse --short HEAD)" <<<"$OUT"
+check "the installer ran, with the argument passed through" grep -qx 'installer --skip-suckless' "$LOG"
+rm -f "$LOG"
+update
+check "and afterwards it is up to date: installer NOT run" test ! -e "$LOG"
+rm -f "$MANIFEST"
+update
+check "no manifest at all: the installer runs" bash -c '[[ $1 == 0 && $2 == *"no recorded commit"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+rm -f "$LOG"
+
 blue "==> --dry-run"
 upstream 0.3.0
 before="$(git -C "$INST" rev-parse HEAD)"
@@ -118,7 +148,10 @@ g "$INST" commit -qm ahead
 update
 check "only ahead of upstream: exit 0, nothing pulled, not called diverged" \
     bash -c '[[ $1 == 0 && $2 == *ahead* && $2 != *diverged* ]]' _ "$RC" "$OUT"
-check "...installer not run" test ! -e "$LOG"
+check "...but the local commit was never installed, so the installer ran" test -e "$LOG"
+rm -f "$LOG"
+update
+check "...and a second run installs nothing" bash -c '[[ $1 == 0 && $2 == *ahead* ]] && test ! -e "$3"' _ "$RC" "$OUT" "$LOG"
 upstream 0.4.0
 echo local >"$INST/local.txt"
 g "$INST" add local.txt
@@ -133,4 +166,4 @@ if ((rc != 0)); then
     red "✗ dots update"
     exit 1
 fi
-green "✓ dots update: fast-forward + installer, refusals change nothing"
+green "✓ dots update: fast-forward + installer, a stale install re-installed, refusals change nothing"

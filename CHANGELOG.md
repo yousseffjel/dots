@@ -16,6 +16,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Fixed
+
+- `dots update` said "already up to date" whenever its own pull brought
+  nothing in, even when the install was from an older commit — which is
+  every 0.1.0 install, since those get `update.sh` from a `git pull` done by
+  hand. It now compares the commit the manifest says was installed with the
+  checkout and re-runs the installer when they differ; `--dry-run` says so.
+
 ## [0.2.0] - 2026-10-12
 
 ### Added
