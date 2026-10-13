@@ -88,6 +88,12 @@ wireplumber  # pipewire has no session manager, so devices are never linked
 
 # --- fonts ---
 cascadia-code-nf-fonts  # every Nerd Font glyph renders as tofu in the prompt, the eza --icons aliases and fastfetch
+# Arabic. config/fontconfig/fonts.conf prefers these for lang=ar behind the
+# Latin families; without them fontconfig picks whatever Arabic face happens
+# to be installed (often none on Server, so every Arabic glyph is tofu).
+# Fedora ships only the variable (-vf-) builds as the maintained packages.
+google-noto-sans-arabic-vf-fonts  # Arabic text in GTK apps, the browser, dmenu and the dwm title falls back to tofu or a random face
+google-noto-naskh-arabic-vf-fonts  # Arabic serif text (documents, serif web pages) falls back to the sans face or tofu
 
 # --- cursor theme ---
 # GNU tar's -J filters through the EXTERNAL xz binary rather than linking

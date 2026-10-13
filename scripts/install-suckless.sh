@@ -97,7 +97,7 @@ install_deps() {
         blue "==> installing build deps (pacman)"
         "${SUDO[@]}" pacman -S --needed --noconfirm \
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
-            freetype2 fontconfig ncurses
+            freetype2 fontconfig fribidi ncurses
     elif command -v dnf >/dev/null 2>&1; then
         local build_lst="$DOTS_DIR/packages/build.lst"
         if [[ ! -f "$build_lst" ]]; then
@@ -118,11 +118,11 @@ install_deps() {
         "${SUDO[@]}" apt-get update -y
         "${SUDO[@]}" apt-get install -y build-essential libx11-dev libxft-dev \
             libxinerama-dev libxext-dev libxrandr-dev libcrypt-dev \
-            libfontconfig1-dev libfreetype6-dev ncurses-bin
+            libfontconfig1-dev libfreetype6-dev libfribidi-dev ncurses-bin
     else
         yellow "no pacman, dnf or apt-get — skipping dependency install."
         yellow "  needed: a C toolchain, Xlib, Xft, Xinerama, Xext, Xrandr,"
-        yellow "  libcrypt, fontconfig, tic(1)"
+        yellow "  libcrypt, fontconfig, fribidi, tic(1)"
     fi
 }
 

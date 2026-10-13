@@ -62,6 +62,9 @@ directives given in-chat; the decisions they settled are recorded under
    icons), as does `60-aliases.zsh`'s pre-existing `eza --icons`. Without a
    packaged Nerd Font a fresh Fedora install renders tofu. Caskaydia drives
    the prompt/terminal, JetBrains Mono stays for UI surfaces.
+   **Superseded 2026-10-13 (`fonts-arabic`):** the UI font moved to Noto
+   Sans 10 at the user's request, with Noto Sans Arabic behind it — see
+   `docs/FONTS.md`. `jetbrains-mono-fonts-all` stays installed, unreferenced.
 15. **The font family string is `Cascadia Code NF`, not `CaskaydiaCove
    Nerd Font`.** Corrected 2026-08-07 during sub-task 3. Fedora's
    `cascadia-code-nf-fonts` ships *Microsoft's* Nerd-Font release

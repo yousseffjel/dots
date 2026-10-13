@@ -5,6 +5,34 @@ lineheight, mousesupport, numbers) were already baked into
 `dmenu.c`/`config.def.h` before this project started tracking merge
 notes — this file starts from the xresources patch onward.
 
+## dmenu-bidi-20261013-local.diff
+
+**Source**: adapted from upstream's
+[bidi](https://tools.suckless.org/dmenu/patches/bidi/) patch
+(`dmenu-bidi-20210723-b34d318.diff`, by Eyal Yardeni Seelig), captured
+against this tree — the companion of dwm's `dwm-bidi-20261013-local.diff`,
+which has the full rationale.
+
+**What**: the same `bidi()` (fribidi reorder + Arabic shaping) applied to
+each item in `drawitem()` and to the input line in `drawmenu()`. `config.mk`
+gains `FRIBIDIINC`/`FRIBIDILIBS`. `config.def.h` adds
+`"Noto Sans Arabic:size=10"` as a second `fonts[]` entry; `-fn` replaces only
+`fonts[0]`, so every `dwm-*` menu keeps the Arabic face for the presentation
+forms Cascadia lacks.
+
+**Where it departs from upstream**: upstream's output buffer was `BUFSIZ`
+bytes for a `BUFSIZ`-byte input, which Arabic overflows (2-byte letters,
+3-byte forms). Here input is cut at `BIDI_MAX` (`BUFSIZ - 1`) bytes — far
+past anything `drw_text` can show — the output holds 4 bytes per codepoint,
+the input copy is zero-padded, and the buffers are static rather than ~96 KB
+of stack per call. Pure ASCII returns untouched, so every typed QWERTY query
+draws exactly as before.
+
+**Known limit**: only the drawn copy is reordered. Matching and the cursor
+work on the logical text, so inside an RTL run the cursor sits at its
+logical offset, not under the visual character. Typing is QWERTY-only here,
+so that run only appears in pasted text.
+
 ## dmenu-xresources-20260805-local.diff
 
 **Source**: adapted from the upstream dmenu xresources patch

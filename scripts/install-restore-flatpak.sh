@@ -41,8 +41,8 @@ FLATPAK_GRANTS=(
     # settings.ini (theme identity) and the wallpaper-derived gtk.css, so
     # Flatpak GTK3 apps pick up the accent colours like native ones.
     "xdg-config/gtk-3.0:ro"
-    # dots ships no fontconfig today; this makes a user's own rendering
-    # tweaks reach sandboxed apps too.
+    # config/fontconfig (symlinked by symlinks.sh): the Arabic fallback order
+    # and rendering rules, so sandboxed apps pick the same faces as native ones.
     "xdg-config/fontconfig:ro"
     # The GTK3 Adwaita-dark shim (install-restore-gtk3-shim.sh). The runtime
     # has no theme by that name either, so without it sandboxed GTK3 apps

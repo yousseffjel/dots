@@ -26,12 +26,14 @@ static unsigned int border_width = 2;
  * Note: do not add a colour-emoji fallback here. Xft hands dmenu a colour
  * bitmap glyph it cannot render and the process dies with BadLength unless the
  * allow-color-font patch is applied on top.
- * Single entry on purpose: this must match dwm's `dmenufont` exactly. dwm's
- * bar carries an extra "monospace" fallback because it renders the status
- * blocks' Nerd glyphs; a launcher showing command names does not need one,
- * and fontconfig already substitutes if the family is absent. */
+ * The first entry must match dwm's `dmenufont` exactly, and is the one -fn
+ * replaces. The second is NOT replaced by -fn, so every dwm-* menu keeps it:
+ * Cascadia has the base Arabic letters but not the presentation forms
+ * (U+FE70-FEFF) bidi() shapes them into, and naming the Arabic face here makes
+ * the fallback deterministic instead of fontconfig's per-glyph pick. */
 static const char *fonts[] = {
-	"Cascadia Code NF:size=10"
+	"Cascadia Code NF:size=10",
+	"Noto Sans Arabic:size=10"
 };
 static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
 

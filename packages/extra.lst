@@ -94,9 +94,11 @@ pipewire-jack-audio-connection-kit
 spice-vdagent
 
 # fonts & theming
-# jetbrains-mono-fonts-all is for plain UI surfaces, which need no glyphs —
-# the Nerd Font itself (cascadia-code-nf-fonts) is in desktop.lst, since
-# without it the prompt, eza and fastfetch all render tofu.
+# jetbrains-mono-fonts-all was the GTK UI font until 2026-10-13, when
+# theme.conf moved to Noto Sans (docs/FONTS.md). Nothing in this repo names it
+# now; it stays as an installed coding face for editors. The Nerd Font itself
+# (cascadia-code-nf-fonts) is in desktop.lst, since without it the prompt,
+# eza and fastfetch all render tofu.
 #
 # Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
 # and themes/dark/theme.conf selects Adwaita-dark, which is pure CSS (a GTK4
@@ -104,6 +106,11 @@ spice-vdagent
 jetbrains-mono-fonts-all
 google-noto-emoji-fonts
 google-noto-sans-fonts
+# The Latin halves of config/fontconfig/fonts.conf's serif and monospace
+# aliases (Noto Sans above is the sans one, and the UI font in theme.conf).
+# Missing either only means the next system default renders that generic.
+google-noto-serif-vf-fonts
+google-noto-sans-mono-vf-fonts
 papirus-icon-theme
 adwaita-icon-theme
 # Desktop portal. config/xdg-desktop-portal/portals.conf names the gtk

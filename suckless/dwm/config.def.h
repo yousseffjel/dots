@@ -15,9 +15,12 @@ static const int topbar             = 1;        /* 0 means bottom bar */
  * ryanoasis/nerd-fonts patch that calls the same typeface "CaskaydiaCove
  * Nerd Font". The bar needs the Nerd glyph range for the status blocks, so
  * a wrong family here falls through fontconfig to plain monospace and every
- * icon renders as tofu. The second entry is the fallback dwm walks when a
- * codepoint is missing from the first. */
-static const char *fonts[]          = { "Cascadia Code NF:size=10", "monospace:size=10" };
+ * icon renders as tofu. dwm walks the later entries, in order, for a
+ * codepoint the first lacks. Noto Sans Arabic is named explicitly because
+ * Cascadia has the base Arabic letters but not the presentation forms
+ * (U+FE70-FEFF) bidi() shapes window titles into; leaving it to fontconfig's
+ * per-glyph fallback picks whatever face ranks first, per glyph. */
+static const char *fonts[]          = { "Cascadia Code NF:size=10", "Noto Sans Arabic:size=10", "monospace:size=10" };
 static const char dmenufont[]       = "Cascadia Code NF:size=10";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";

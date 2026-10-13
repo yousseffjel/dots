@@ -44,6 +44,7 @@
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
+#include <fribidi.h>
 
 #include "drw.h"
 #include "util.h"
@@ -184,6 +185,7 @@ static void arrange(Monitor *m);
 static void arrangemon(Monitor *m);
 static void attach(Client *c);
 static void attachstack(Client *c);
+static const char *bidi(const char *str);
 static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
@@ -380,6 +382,45 @@ struct Pertag {
 struct NumTags { char limitexceeded[LENGTH(tags) > 30 ? -1 : 1]; };
 
 /* function implementations */
+
+/* Reorders str into visual order and shapes Arabic into its joined
+ * presentation forms (fribidi_log2vis applies FRIBIDI_FLAGS_ARABIC), since Xft
+ * draws codepoints left to right as given and does neither. Returns str itself
+ * when it is pure ASCII — no strong RTL character can occur — otherwise a
+ * static buffer valid until the next call.
+ *
+ * Sized for Client.name, the longest string drawn: at most 255 bytes in, so at
+ * most 255 codepoints, each re-encoded in at most 4 bytes. The upstream bidi
+ * patch wrote into a buffer the size of its input, which a long Arabic title
+ * overflows (2-byte letters become 3-byte presentation forms). The input copy
+ * is zero-padded because fribidi's UTF-8 decoder reads a lead byte's
+ * continuation bytes without checking len, and a 255-byte truncation can cut
+ * a sequence in half. */
+const char *
+bidi(const char *str)
+{
+	static char out[4 * 255 + 1];
+	char in[255 + 4] = { 0 };
+	FriBidiChar logical[255], visual[255];
+	FriBidiParType base = FRIBIDI_PAR_ON;
+	FriBidiStrIndex len;
+	size_t n;
+	const char *p;
+
+	for (p = str; *p && !(*p & 0x80); p++)
+		;
+	if (!*p)
+		return str;
+	n = strlen(str);
+	len = n > 255 ? 255 : (FriBidiStrIndex)n;
+	memcpy(in, str, len);
+	len = fribidi_charset_to_unicode(FRIBIDI_CHAR_SET_UTF8, in, len, logical);
+	if (!fribidi_log2vis(logical, len, &base, visual, NULL, NULL, NULL))
+		return str;
+	fribidi_unicode_to_charset(FRIBIDI_CHAR_SET_UTF8, visual, len, out);
+	return out;
+}
+
 void
 applyrules(Client *c)
 {
@@ -1145,7 +1186,7 @@ drawbar(Monitor *m)
 	if ((w = m->ww - tw - stw - x) > bh) {
 		if (m->sel) {
 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
-			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
+			drw_text(drw, x, 0, w, bh, lrpad / 2, bidi(m->sel->name), 0);
 			if (m->sel->isfloating)
 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
 		} else {
