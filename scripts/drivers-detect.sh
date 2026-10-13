@@ -8,7 +8,7 @@
 # driver per PCI function. Each source has a test override, like
 # DWM_NET_SYSFS in dwm-net:
 #
-#   DOTS_SYSFS      /sys                         (tests/fixtures/sysfs/<case>)
+#   DOTS_SYSFS      /sys      (tests build a fake tree; also covers dmi + power_supply)
 #   DOTS_CPUINFO    /proc/cpuinfo
 #   DOTS_PCI_IDS    /usr/share/hwdata/pci.ids    (names only; may be absent)
 #   DOTS_VIRT       systemd-detect-virt's answer ("none" on bare metal)
@@ -47,6 +47,56 @@ drivers_virtual_gpu() {
         1af4 | 1b36 | 1234 | 15ad | 80ee | 1414) return 0 ;;
     esac
     return 1
+}
+
+# drivers_chassis_type — the SMBIOS chassis type number, or nothing.
+drivers_chassis_type() {
+    local f
+    f="$(drivers_sysfs)/class/dmi/id/chassis_type"
+    [[ -r "$f" ]] && tr -dc '0-9' <"$f"
+    return 0
+}
+
+# drivers_system_battery — the first power_supply that powers THIS machine,
+# or nothing. A wireless mouse or headset battery is a power_supply too, with
+# type Battery, but the kernel marks it scope=Device; a laptop's own battery
+# has no scope or scope=System.
+drivers_system_battery() {
+    local ps scope
+    for ps in "$(drivers_sysfs)"/class/power_supply/*; do
+        [[ "$(cat "$ps/type" 2>/dev/null || true)" == Battery ]] || continue
+        scope="$(cat "$ps/scope" 2>/dev/null || true)"
+        [[ "$scope" == Device ]] && continue
+        echo "${ps##*/}"
+        return 0
+    done
+    return 0
+}
+
+# drivers_chassis — laptop, desktop or unknown. Laptop when the firmware says
+# so (chassis types 8 Portable, 9 Laptop, 10 Notebook, 14 Sub Notebook,
+# 31 Convertible, 32 Detachable) OR when a system battery exists, because
+# some firmware reports a laptop as "Other" or "Desktop". unknown (QEMU says
+# 1, "Other") gets the desktop behaviour everywhere: nothing laptop-only is
+# installed on a guess.
+drivers_chassis() {
+    local type
+    type="$(drivers_chassis_type)"
+    if [[ " 8 9 10 14 31 32 " == *" $type "* || -n "$(drivers_system_battery)" ]]; then
+        echo laptop
+    elif [[ " 3 4 5 6 7 13 15 16 17 23 24 35 36 " == *" $type "* ]]; then
+        echo desktop
+    else
+        echo unknown
+    fi
+}
+
+# drivers_chassis_why — one line saying what drivers_chassis based it on.
+drivers_chassis_why() {
+    local type battery
+    type="$(drivers_chassis_type)"
+    battery="$(drivers_system_battery)"
+    printf 'chassis type %s%s\n' "${type:-unreadable}" "${battery:+, battery $battery}"
 }
 
 # drivers_cpu_vendor — intel, amd, or other.

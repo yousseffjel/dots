@@ -2,14 +2,18 @@
 # `dots drivers` — install what THIS machine's hardware needs. SOURCED by
 # drivers.sh (the command) and by install-pkg-repos.sh (the installer), never
 # run alone. Assumes `set -euo pipefail`, DRY_RUN, SUDO, the red/green/yellow/
-# blue helpers, global_fn.sh's manifest_* functions and a FAILED_EXTRA array.
+# blue helpers, global_fn.sh's manifest_* functions, a FAILED_EXTRA array and
+# install-pkg-tiers.sh's read_pkg_list (install-pkg.sh and drivers.sh both
+# source that file; this one must not, or a re-source would reset the
+# installer's failure arrays mid-run).
 #
 # usage: source "$SCRIPT_DIR/drivers-lib.sh"; drivers_install
 #
-# Four parts, each in its own file to stay under the 250-line cap:
-#   drivers-detect.sh    what is there (read-only, /sys and /proc)
+# Three parts in their own files, to stay under the 250-line cap:
+#   drivers-detect.sh    what is there (read-only, /sys and /proc), incl. chassis
 #   drivers-gpu.sh       VA-API video decoding per GPU; NVIDIA is REPORT-ONLY
 #   drivers-firmware.sh  firmware the kernel asked for, microcode, fwupd
+# and, here, drivers_laptop: packages/laptop.lst on a laptop only (scope-h).
 #
 # The NVIDIA proprietary driver is never installed: a wrong branch or a
 # kernel module that fails to build leaves the machine with no graphical
@@ -84,10 +88,33 @@ drivers_have_rpmfusion() {
     return 1
 }
 
+# drivers_laptop — packages/laptop.lst on a laptop; nothing anywhere else.
+# An "unknown" chassis (QEMU reports "Other") is treated as a desktop: nothing
+# laptop-only is installed on a guess.
+drivers_laptop() {
+    local chassis pkg lst="${PACKAGES_DIR:-$DRIVERS_LIB_DIR/../packages}/laptop.lst"
+    chassis="$(drivers_chassis)"
+    if [[ "$chassis" != laptop ]]; then
+        blue "  $chassis ($(drivers_chassis_why)) — no laptop packages"
+        return 0
+    fi
+    blue "  laptop ($(drivers_chassis_why)) — packages/laptop.lst:"
+    # Inside the process substitution below a missing parser would be a
+    # silent empty list, i.e. a laptop that quietly gets nothing.
+    if ! declare -F read_pkg_list >/dev/null; then
+        red "  read_pkg_list is not loaded (source install-pkg-tiers.sh first) — laptop packages not installed"
+        return 1
+    fi
+    while IFS= read -r pkg; do
+        drivers_pkg "$pkg" "a laptop feature that needs it stays off (see packages/laptop.lst)" || true
+    done < <(read_pkg_list "$lst" || true)
+}
+
 drivers_install() {
     local virt
     virt="$(drivers_virt)"
     blue "==> hardware drivers (${virt/none/bare metal})"
+    drivers_laptop
     drivers_gpu
     drivers_firmware
     if [[ "$virt" == none || "$virt" == unknown ]]; then

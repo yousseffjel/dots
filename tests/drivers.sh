@@ -76,6 +76,10 @@ red() { printf '%s\n' "$*"; }
 green() { red "$@"; }
 yellow() { red "$@"; }
 blue() { red "$@"; }
+# read_pkg_list, as drivers.sh (the command) provides it to the lib.
+PACKAGES_DIR="$DOTS_DIR/packages"
+# shellcheck source=../scripts/install-pkg-tiers.sh
+source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
 # shellcheck source=../scripts/drivers-lib.sh
 source "$DOTS_DIR/scripts/drivers-lib.sh"
 SUDO=() DRY_RUN=0
@@ -124,6 +128,17 @@ machine() {
     local p
     for p in rpmfusion-free-release rpmfusion-nonfree-release "$@"; do echo "$p" >>"$DB"; done
     FAILED_EXTRA=()
+}
+# chassis <smbios type> — the firmware's chassis_type.
+chassis() {
+    mkdir -p "$SYSFS/class/dmi/id"
+    echo "$1" >"$SYSFS/class/dmi/id/chassis_type"
+}
+# battery <name> [scope] — a power_supply of type Battery.
+battery() {
+    mkdir -p "$SYSFS/class/power_supply/$1"
+    echo Battery >"$SYSFS/class/power_supply/$1/type"
+    [[ -z "${2:-}" ]] || echo "$2" >"$SYSFS/class/power_supply/$1/scope"
 }
 secure_boot_on() {
     mkdir -p "$SYSFS/firmware/efi/efivars"

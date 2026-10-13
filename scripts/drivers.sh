@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # `dots drivers`: detect this machine's hardware and install what it needs —
-# VA-API video decoding for Intel/AMD GPUs, firmware the kernel failed to
-# load, CPU microcode and fwupd. An NVIDIA GPU is identified and the exact
-# commands for its driver branch are printed; the proprietary driver is never
-# installed. The installer runs the same code (install-pkg-repos.sh), so this
-# is for after a hardware change, or to see what would happen.
+# packages/laptop.lst on a laptop, VA-API video decoding for Intel/AMD GPUs,
+# firmware the kernel failed to load, CPU microcode and fwupd. An NVIDIA GPU
+# is identified and the exact commands for its driver branch are printed; the
+# proprietary driver is never installed. The installer runs the same code
+# (install-pkg-repos.sh), so this is for after a hardware change, or to see
+# what would happen.
 #
 # Re-runnable: installed packages are skipped. Every package and swap this
 # run makes is recorded in the install manifest, so `dots uninstall`
@@ -61,6 +62,11 @@ if [[ $EUID -ne 0 ]]; then
     SUDO=(sudo)
 fi
 
+PACKAGES_DIR="$DOTS_DIR/packages"
+# read_pkg_list for packages/laptop.lst. Sourced here, by the command, and
+# never by drivers-lib.sh — see that file's header.
+# shellcheck source=install-pkg-tiers.sh
+source "$SCRIPT_DIR/install-pkg-tiers.sh"
 FAILED_EXTRA=()
 # shellcheck source=drivers-lib.sh
 source "$SCRIPT_DIR/drivers-lib.sh"

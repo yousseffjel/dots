@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercises the VOL, MIC and GAMMA status blocks
+# Exercises the VOL, MIC and GAMMA/BL status blocks
 # (suckless/dwmblocks/scripts/dwm-vol, dwm-mic, dwm-brightness-block) on a
 # sealed PATH — harness in tests/lib/blocks.sh.
 #
@@ -93,10 +93,19 @@ blue "GAMMA"
 fake "$DWM_BIN" dwm-brightness '
 echo "dwm-brightness $*" >>"$LOG"
 [ "$1" = get ] && cat "'"$SB"'/gamma"
+[ "$1" = mode ] && cat "'"$SB"'/mode"
 exit 0'
 echo 80 >"$SB/gamma"
+echo gamma >"$SB/mode"
 block dwm-brightness-block
 check "level, found in ~/.config/dwm/bin off PATH" is "GAMMA 80%"
+echo backlight >"$SB/mode"
+block dwm-brightness-block
+check "a real backlight (laptop) is labelled BL" is "BL 80%"
+: >"$SB/mode"
+block dwm-brightness-block
+check "mode unanswered: GAMMA, never a backlight claim" is "GAMMA 80%"
+echo gamma >"$SB/mode"
 block dwm-brightness-block 4
 check "scroll up: dwm-brightness up" logged "dwm-brightness up"
 check "scroll up: brightness pop-up" logged "dwm-osd brightness"

@@ -18,6 +18,14 @@ read_pkg_list() {
     sed 's/#.*//' "$1" | tr -s '[:space:]' '\n' | grep -v '^$'
 }
 
+# pkg_list_chassis <lst> — the chassis a list is limited to (its
+# `# chassis: <kind>` header line, e.g. laptop), or nothing for a list that
+# applies everywhere. Generic on purpose: a consumer that globs
+# packages/*.lst asks the list, never names it (CLAUDE.md rule 10).
+pkg_list_chassis() {
+    sed -n 's/^# chassis: *\([a-z]*\).*/\1/p;T;q' "$1"
+}
+
 # Packages that failed, collected for the closing summary. Two arrays so the
 # report can lead with the ones that break the desktop.
 FAILED_DESKTOP=()

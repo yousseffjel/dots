@@ -18,6 +18,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Laptops are supported, and dots tells them apart from desktops.**
+  `dots drivers` and `dots doctor` now say whether this machine is a laptop
+  or a desktop, from the firmware's chassis type or a system battery. On a
+  laptop, the brightness keys dim the real backlight (`brightnessctl`, which
+  is installed on laptops only) and the bar shows `BL`. A desktop keeps
+  xrandr gamma and the `GAMMA` label, exactly as before. Battery, touchpad
+  and power-profile support follow. See `docs/HARDWARE.md`.
 - **`dots drivers` installs what your hardware needs.** It reads the GPUs,
   the CPU and this boot's kernel log, and installs the matching video
   decoding driver (Intel old or new, AMD's freeworld mesa), any firmware a

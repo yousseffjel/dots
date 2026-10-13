@@ -234,7 +234,7 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 3 | `TEMP` | CPU package temperature | 5 s | left → htop |
 | 4 | `CPU` | CPU utilisation | 2 s | left → htop |
 | 5 | `MEM` | Used / total RAM | 10 s | left → htop |
-| 6 | `GAMMA` | Screen gamma level | **on change only** | left → night light on / off, scroll → gamma ±, with the pop-up |
+| 6 | `BL` / `GAMMA` | Backlight (laptop) or screen gamma (desktop) level | **on change only** | left → night light on / off, scroll → brightness ±, with the pop-up |
 | 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute, with the pop-up |
 | 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
 | 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
@@ -270,20 +270,22 @@ rm -f suckless/dwmblocks/blocks.h
 scripts/install-suckless.sh --skip-deps
 ```
 
-**`GAMMA`, `MIC`, `VOL` and `DND` are never polled.** They run once at startup
+**`BL`/`GAMMA`, `MIC`, `VOL` and `DND` are never polled.** They run once at startup
 and then only when something sends their signal — `config/sxhkd/sxhkdrc` fires
-`pkill -RTMIN+6/7/8 dwmblocks` after every gamma, mic and volume change, and
+`pkill -RTMIN+6/7/8 dwmblocks` after every brightness, mic and volume change, and
 `-RTMIN+12` after `Super` + `Shift` + `n`. That keeps them off the CPU
 entirely (`tests/blocks-info.sh` holds every signal-only block in
 `blocks.def.h` to a sender in `sxhkdrc`). The cost is that changing any of
 those values by some *other* route (`pamixer` or `dunstctl` straight from a
 shell, say) leaves the bar stale until the next keypress.
 
-> **`GAMMA` is not a backlight.** This target is a desktop GPU with no
-> `/sys/class/backlight`, so `dwm-brightness` scales the output signal with
+> **`BL` is a backlight, and `GAMMA` is not.** On a laptop, `dwm-brightness`
+> dims the backlight with `brightnessctl` (installed only on laptops by
+> `dots drivers`), and the block says `BL`. A desktop GPU has no
+> `/sys/class/backlight`, so there it scales the output signal with
 > `xrandr --brightness` while the monitor keeps drawing full power. The block
-> is labelled `GAMMA` rather than `BRI` precisely so it does not promise the
-> power saving a laptop brightness applet implies.
+> then says `GAMMA` rather than `BRI` precisely so it does not promise a power
+> saving it cannot deliver. The brightness keys are the same on both.
 
 `TEMP` matches sensors **by name** (`coretemp`, `k10temp`, `zenpower`,
 `cpu_thermal`), never by hwmon number — that numbering is assigned in probe
