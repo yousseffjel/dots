@@ -85,8 +85,13 @@ RAW_TMP="$(mktemp --suffix=.png)"
 trap 'rm -f "$RAW_TMP"' EXIT
 
 # Flatten to a plain sRGB working copy — strips alpha/animation frames so
-# every later magick call sees one flat image.
-"$MAGICK" -quiet -regard-warnings "${WALLPAPER}[0]" -alpha off +repage "$RAW_TMP"
+# every later magick call sees one flat image — no larger than 1920x1080
+# (">" only ever shrinks). -kmeans on the full image took 62 s for a
+# 15360x8640 wallpaper and 3.7 s on the copy, for a palette within a few
+# points per channel; with `dots wallpaper --login-random on` that is login
+# time (2026-10-13).
+"$MAGICK" -quiet -regard-warnings "${WALLPAPER}[0]" -alpha off +repage \
+    -resize '1920x1080>' "$RAW_TMP"
 
 # --- extract dominant colors --------------------------------------------------
 NEEDED=4

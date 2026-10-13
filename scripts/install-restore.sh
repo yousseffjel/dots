@@ -2,7 +2,8 @@
 # "restore" stage: deploys this repo's config into place. Sets ZDOTDIR,
 # symlinks config/ via symlinks.sh, deploys the theming engine's base
 # configs (install-restore-theme.sh), deploys the Thunar / Xfce helper /
-# xdg mime configs (install-restore-apps.sh), and pre-clones the zinit/TPM
+# xdg mime configs (install-restore-apps.sh), clones the wallpaper collection
+# (install-restore-wallpapers.sh), and pre-clones the zinit/TPM
 # plugin managers so first shell/tmux launch isn't blocked on a network
 # round-trip.
 #
@@ -104,6 +105,14 @@ fi
 # shellcheck source=install-restore-bin.sh
 source "$SCRIPT_DIR/install-restore-bin.sh"
 restore_dots_bin
+
+# The wallpaper collection. Before restore_theme, whose initial apply opens
+# the desktop on a random image from it.
+# shellcheck source=../config/dwm/bin/dwm-lib-xdg.sh
+source "$DOTS_DIR/config/dwm/bin/dwm-lib-xdg.sh"
+# shellcheck source=install-restore-wallpapers.sh
+source "$SCRIPT_DIR/install-restore-wallpapers.sh"
+restore_wallpapers
 
 source "$SCRIPT_DIR/install-restore-theme.sh"
 restore_theme

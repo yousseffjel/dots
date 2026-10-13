@@ -4,6 +4,8 @@
 #   wallpaper.sh <path>       use a specific image
 #   wallpaper.sh --random     pick one at random from the wallpaper dir
 #   wallpaper.sh --select     pick one from a dmenu list (NOT rofi)
+#   wallpaper.sh --initial    pick one at random from the dots collection only
+#   wallpaper.sh --login-random on|off|status   a new random one at every login
 #
 # Pipeline: feh --bg-fill -> colorgen.sh -> apply-templates.sh always ->
 # reload.sh. Every stage is a separate script so each is testable and
@@ -13,7 +15,11 @@
 # PICTURES`, so a localised or moved one is honoured; else ~/Pictures),
 # overridable with DOTS_WALLPAPER_DIR. The default one is created on first use
 # and seeded with the theme's generated wallpaper, so --select and --random
-# always have something. Run from a key (sxhkd discards stderr), so every
+# always have something. The dots collection (install-restore-wallpapers.sh)
+# is cloned into a subdirectory of it. --initial is what the installer and the
+# first login run: with no collection it does nothing, leaving the theme's
+# generated wallpaper in place. --login-random only sets a flag; ~/.xinitrc
+# reads it, because a re-theme must happen before dwm starts. Run from a key (sxhkd discards stderr), so every
 # failure is also a notification — it used to fail with no visible sign.
 set -euo pipefail
 
@@ -29,13 +35,20 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 # shellcheck source=../../config/dwm/bin/dwm-lib-xdg.sh
 source "$SCRIPT_DIR/../../config/dwm/bin/dwm-lib-xdg.sh" 2>/dev/null || xdg_dir() { printf '%s' "$2"; }
 WALLPAPER_DIR="${DOTS_WALLPAPER_DIR:-$(xdg_dir PICTURES "$HOME/Pictures")/wallpapers}"
+# For wallpaper_collection_dir alone; its top level only assigns.
+# shellcheck source=../install-restore-wallpapers.sh
+source "$SCRIPT_DIR/../install-restore-wallpapers.sh" 2>/dev/null \
+    || wallpaper_collection_dir() { printf '%s/wallpapers/dots' "$(xdg_dir PICTURES "$HOME/Pictures")"; }
+# Must match the path ~/.xinitrc tests (session_xinitrc_template_theme in
+# install-session.sh); tests/wallpaper-collection.sh checks the two agree.
+LOGIN_RANDOM_FLAG="${XDG_CONFIG_HOME:-$HOME/.config}/dots/random-wallpaper"
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 
-# Usage text lives in this file's header (lines 3-7), not in a string here, so
+# Usage text lives in this file's header (lines 3-9), not in a string here, so
 # there is one copy. The trailing swap renames it to however it was invoked —
 # see the same comment in theme-apply.sh.
 usage() {
-    sed -n '3,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
+    sed -n '3,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
         | sed "s|wallpaper\.sh|${DOTS_CMD:-wallpaper.sh}|g"
 }
 
@@ -74,6 +87,41 @@ list_wallpapers() {
         -o -iname '*.webp' -o -iname '*.bmp' \) 2>/dev/null | sort
 }
 
+# --login-random on|off|status. The flag is a file, not a setting inside one,
+# so the /bin/sh ~/.xinitrc can test it with [ -e ].
+login_random() {
+    case "$1" in
+        on)
+            mkdir -p "$(dirname "$LOGIN_RANDOM_FLAG")"
+            : >"$LOGIN_RANDOM_FLAG"
+            green "on      a random wallpaper at every login"
+            login_random_hint
+            ;;
+        off)
+            rm -f "$LOGIN_RANDOM_FLAG"
+            green "off     the last wallpaper is kept at login"
+            ;;
+        status)
+            if [[ -e "$LOGIN_RANDOM_FLAG" ]]; then echo on; else echo off; fi
+            ;;
+        *)
+            red "--login-random takes on, off or status, not: $1"
+            exit 1
+            ;;
+    esac
+}
+
+# An ~/.xinitrc from before 2026-10-13 never reads the flag, and the
+# installer never rewrites one that exists. Same lines as the template.
+# shellcheck disable=SC2016
+login_random_hint() {
+    grep -qs 'dots/random-wallpaper' "$HOME/.xinitrc" && return 0
+    yellow "        ~/.xinitrc does not read it yet. Replace its ~/.fehbg line with:"
+    yellow '          if [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/dots/random-wallpaper" ] &&'
+    yellow '            timeout 120 "$HOME/.local/bin/dots" wallpaper --random; then :'
+    yellow '          elif [ -x "$HOME/.fehbg" ]; then "$HOME/.fehbg"; fi'
+}
+
 MODE=""
 TARGET=""
 case "${1:-}" in
@@ -88,6 +136,11 @@ case "${1:-}" in
         ;;
     --random) MODE=random ;;
     --select) MODE=select ;;
+    --initial) MODE=initial ;;
+    --login-random)
+        login_random "${2:-status}"
+        exit 0
+        ;;
     -*)
         red "unknown option: $1"
         usage
@@ -98,6 +151,19 @@ case "${1:-}" in
         TARGET="$1"
         ;;
 esac
+
+# The collection only, and quietly absent: the installer and the first login
+# call this unconditionally, and without a collection the theme's generated
+# wallpaper is the right answer, not an error.
+if [[ "$MODE" == "initial" ]]; then
+    WALLPAPER_DIR="$(wallpaper_collection_dir)"
+    mapfile -t WALLS < <(list_wallpapers)
+    if [[ ${#WALLS[@]} -eq 0 ]]; then
+        blue "skip    no wallpaper collection at $WALLPAPER_DIR"
+        exit 0
+    fi
+    MODE=random
+fi
 
 if [[ "$MODE" != "path" && ! -d "$WALLPAPER_DIR" ]]; then
     if [[ -n "${DOTS_WALLPAPER_DIR:-}" ]]; then

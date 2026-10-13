@@ -101,6 +101,16 @@ partial uninstall is a normal, supported outcome, not an error.
      runtime still comes from it.
 
    Runs before the package step, which may remove `flatpak` itself.
+5c. **The wallpaper collection.** The installer clones your wallpaper repo
+   into `wallpapers/dots/` in your pictures folder (see `docs/THEMING.md`,
+   "The wallpaper collection"). It is removed only while git can show it is
+   exactly what was cloned: the same `origin`, no file added or changed (an
+   image you dropped in is untracked, and keeps the whole folder), and no
+   commit that is not on the upstream. Any of those and the folder is kept,
+   with the reason printed. The parent folders the clone had to create
+   (`~/Pictures`, `wallpapers/`) are removed with it when they are empty;
+   folders that already existed are never touched. A folder that was already
+   at that path before installing was never cloned or recorded.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
@@ -137,6 +147,9 @@ partial uninstall is a normal, supported outcome, not an error.
   summary cache there on the first `--user` command; it is flatpak's
   directory, shared with every app you install, so only the settings the
   installer made in it are reverted (step 5b).
+- The wallpaper collection, if you have added, changed or committed
+  anything in it since installing (step 5c says which). Delete
+  `wallpapers/dots/` in your pictures folder by hand if you want it gone.
 - The Flathub remote, while any installed Flatpak still comes from it. Run
   `flatpak remote-delete --user flathub` after uninstalling those apps if
   you want it gone.

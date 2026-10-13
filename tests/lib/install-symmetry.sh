@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # Sandbox helpers for tests/install-uninstall-symmetry.sh — SOURCED, never run
 # on its own (tests/lib/ is outside run-tests.sh's depth-1 glob). Reads the
-# caller's TMP and DOTS_DIR; defines FAKEBIN, SENTINEL_LOG, DCONF_STORE and
-# FLATPAK_STATE.
+# caller's TMP and DOTS_DIR; defines FAKEBIN, SENTINEL_LOG, DCONF_STORE,
+# FLATPAK_STATE and WALLPAPER_FIXTURE.
 
 # Fakes, first on PATH:
 #   * git — `clone` makes a tiny non-empty tree instead of touching the
 #     network (with a FILE inside, so a snapshot that ignores directories
 #     still sees an unclaimed clone); anything else goes to the real git,
-#     which manifest_init needs for `rev-parse`.
+#     which manifest_init needs for `rev-parse`. A clone FROM $TMP is real:
+#     that is the wallpaper fixture ($WALLPAPER_FIXTURE, which in_sandbox
+#     passes as DOTS_WALLPAPER_REPO), and uninstall-wallpapers.sh asks git
+#     whether the clone is unchanged — a stub .git would be kept, correctly.
 #   * update-desktop-database — writes <dir>/mimeinfo.cache, the one artefact
 #     the real tool leaves, with the real file's header. Faked so the result
 #     does not depend on whether desktop-file-utils is on the runner.
@@ -30,9 +33,11 @@ make_fakes() {
     : >"$SENTINEL_LOG"
     local real_git
     real_git="$(command -v git)"
+    WALLPAPER_FIXTURE="$TMP/wallpaper-fixture.git"
+    make_wallpaper_fixture "$WALLPAPER_FIXTURE"
     cat >"$FAKEBIN/git" <<EOF
 #!/usr/bin/env bash
-if [[ "\${1:-}" == clone ]]; then
+if [[ "\${1:-}" == clone && " \$* " != *" $TMP/"* ]]; then
     d="\${*: -1}"
     mkdir -p "\$d/.git" && printf 'ref: refs/heads/main\n' >"\$d/.git/HEAD"
     exit 0
@@ -79,6 +84,17 @@ EOF
     chmod +x "$FAKEBIN"/*
 }
 
+# A bare repo holding one image, standing in for the wallpaper collection.
+make_wallpaper_fixture() {
+    local bare="$1" work="$TMP/wallpaper-fixture-work"
+    mkdir -p "$work"
+    printf 'not really a png\n' >"$work/nature-fixture.png"
+    git -C "$work" init -q -b main
+    git -C "$work" add .
+    git -C "$work" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm fixture
+    git clone -q --bare "$work" "$bare"
+}
+
 # Runs a repo script against sandbox HOME $1. All four XDG variables are set,
 # never just HOME: global_fn.sh derives the manifest from XDG_STATE_HOME, and
 # an inherited real value would point this run at the user's own manifest —
@@ -89,6 +105,7 @@ in_sandbox() {
     env -i PATH="$FAKEBIN:$PATH" HOME="$home" USER=probe LANG=C.UTF-8 \
         XDG_CONFIG_HOME="$home/.config" XDG_CACHE_HOME="$home/.cache" \
         XDG_STATE_HOME="$home/.local/state" XDG_DATA_HOME="$home/.local/share" \
+        DOTS_WALLPAPER_REPO="$WALLPAPER_FIXTURE" \
         bash "$@"
 }
 

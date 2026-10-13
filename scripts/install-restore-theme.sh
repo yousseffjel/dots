@@ -193,6 +193,13 @@ theme_initial_apply() {
     else
         yellow "theme apply failed — run scripts/theme/theme-apply.sh dark by hand"
     fi
+    # Only on the run that cloned the collection: this function runs on every
+    # restore with a display, `dots update` from a terminal included, and an
+    # update must not swap the wallpaper.
+    if [[ "${WALLPAPERS_CLONED:-0}" -eq 1 ]]; then
+        "$DOTS_DIR/scripts/theme/wallpaper.sh" --initial \
+            || yellow "wallpaper failed — run: dots wallpaper --random"
+    fi
 }
 
 restore_theme() {

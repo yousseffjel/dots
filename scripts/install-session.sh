@@ -106,13 +106,21 @@ if [ -r "$dots_theme_cache/xresources" ]; then
 	# The cursor theme for dwm and other non-GTK clients (Xcursor.theme/size).
 	[ -r "$dots_theme_cache/xcursor" ] && command -v xrdb >/dev/null 2>&1 &&
 		xrdb -merge "$dots_theme_cache/xcursor"
-	[ -x "$HOME/.fehbg" ] && "$HOME/.fehbg"
+	# A new random wallpaper and its colours when `dots wallpaper --login-random
+	# on` is set, else the last one. Same lines as wallpaper.sh's paste hint.
+	if [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/dots/random-wallpaper" ] &&
+		timeout 120 "$HOME/.local/bin/dots" wallpaper --random; then :
+	elif [ -x "$HOME/.fehbg" ]; then "$HOME/.fehbg"; fi
 elif [ -x "$HOME/.local/bin/dots" ]; then
-	# First login after a headless install: nothing has themed this desktop yet.
+	# First login after a headless install: nothing has themed this desktop
+	# yet. The theme first (it carries the GTK/cursor identity a wallpaper
+	# change does not), then a random image from the wallpaper collection.
 	if command -v timeout >/dev/null 2>&1; then
 		timeout 120 "$HOME/.local/bin/dots" theme dark
+		timeout 120 "$HOME/.local/bin/dots" wallpaper --initial
 	else
 		"$HOME/.local/bin/dots" theme dark
+		"$HOME/.local/bin/dots" wallpaper --initial
 	fi
 fi
 unset dots_theme_cache

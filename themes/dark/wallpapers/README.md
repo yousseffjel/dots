@@ -9,6 +9,11 @@ it: `scripts/theme/wallpaper-default.sh` renders a gradient from the active
 theme's palette whenever no wallpaper of your own is set (see
 `docs/THEMING.md`, "The generated default wallpaper").
 
+Since 2026-10-13 there is a real collection too, still without committing an
+image here: the installer shallow-clones the wallpaper repo into
+`wallpapers/dots/` in your pictures folder, and a new install opens on a
+random image from it (`docs/THEMING.md`, "The wallpaper collection").
+
 ## Where wallpapers actually go
 
 `scripts/theme/wallpaper.sh` reads from `wallpapers/` in the XDG pictures

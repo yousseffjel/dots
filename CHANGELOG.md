@@ -18,6 +18,19 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **A wallpaper collection, and a new install opens on one of them.** The
+  installer shallow-clones the 189-image wallpaper repo (about 400 MB to
+  download, 780 MB on disk) into
+  `wallpapers/dots/` in your pictures folder, and `dots update` pulls new
+  images. A new install starts on a random one instead of the generated
+  gradient. Uninstall removes the clone only while it is unchanged: an image
+  you added keeps the folder. Run the installer with `DOTS_WALLPAPER_REPO=`
+  to skip the download.
+
+- **`dots wallpaper --login-random on` picks a new wallpaper at every login.**
+  Off by default; `off` and `status` do what they say. An `~/.xinitrc` from an
+  earlier install needs three lines, which the command prints.
+
 - **`Super` + `space` opens a launcher that lists applications, not commands.**
   `dwm-apps` shows the installed `.desktop` entries by name, like rofi's drun,
   instead of `dmenu_run`'s every binary on `PATH`. It hides entries marked

@@ -111,6 +111,9 @@ source "$SCRIPT_DIR/uninstall_steps.sh"
 source "$SCRIPT_DIR/uninstall-apps.sh"
 source "$SCRIPT_DIR/uninstall-theme.sh"
 source "$SCRIPT_DIR/uninstall-flatpak.sh"
+# For wallpapers_prune_parents alone; its top level only assigns.
+source "$SCRIPT_DIR/install-restore-wallpapers.sh"
+source "$SCRIPT_DIR/uninstall-wallpapers.sh"
 
 uninstall_configs
 uninstall_suckless
@@ -125,6 +128,8 @@ uninstall_dconf
 uninstall_flatpak
 # Before uninstall_packages, which may remove ly.
 uninstall_ly
+# Before uninstall_packages too: it needs git to prove the clone unchanged.
+uninstall_wallpapers
 uninstall_packages
 uninstall_services
 uninstall_shell

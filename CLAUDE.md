@@ -74,6 +74,9 @@ dots/
 │   │                                     # sourced by BOTH install-restore-theme.sh and scripts/theme/theme-apply.sh
 │   ├── install-restore-apps.sh  # sourced by install-restore.sh: thunar/xfce4/mimeapps deploy + guarded xfconf pass
 │   ├── install-restore-flatpak.sh # sourced by install-restore.sh: Flathub remote (--user) + read-only global overrides
+│   ├── install-restore-wallpapers.sh # sourced by install-restore.sh: shallow-clones the wallpaper repo into
+│   │                             # <pictures>/wallpapers/dots (WALLPAPERS row; DOTS_WALLPAPER_REPO= skips it);
+│   │                             # wallpaper.sh sources it for wallpaper_collection_dir. No image is committed here.
 │   ├── install-services.sh     # stage: login shell to zsh (sudo usermod) + enable ly@tty2.service (the unit is templated per TTY)
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
@@ -82,7 +85,7 @@ dots/
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── install-session-report-applets.sh # sourced by the report: the second half of its daemon list
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
-│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh — manifest-driven removal
+│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh, uninstall-wallpapers.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers)
 │   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh

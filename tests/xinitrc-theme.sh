@@ -57,7 +57,8 @@ fi
 # xcursor file theme_write_xcursor_resources writes; $3 "fehbg" to seed ~/.fehbg;
 # $4 dots mode: ok | fail | absent; $5 systemctl mode: absent (default) | ok |
 # fail (the start fails); $6 "hup" makes dwm HUP the xinitrc shell, the way a
-# dying X server does. Prints the call log, one call per line.
+# dying X server does; $7 "random" sets the `dots wallpaper --login-random`
+# flag. Prints the call log, one call per line.
 run_case() {
     local home="$SB/$1" fake="$SB/$1/fakebin" log="$SB/$1/calls.log"
     mkdir -p "$fake" "$home/.local/bin" "$home/cache"
@@ -72,6 +73,7 @@ run_case() {
     printf '#!/bin/sh\necho 4242\n' >"$fake/id"
     [[ "$2" == cache* ]] && { mkdir -p "$home/cache/dots/theme" && : >"$home/cache/dots/theme/xresources"; }
     [[ "$2" == cache+cursor ]] && : >"$home/cache/dots/theme/xcursor"
+    [[ "${7:-}" == random ]] && { mkdir -p "$home/.config/dots" && : >"$home/.config/dots/random-wallpaper"; }
     [[ "$3" == fehbg ]] && printf '#!/bin/sh\necho fehbg >>"%s"\n' "$log" >"$home/.fehbg"
     case "$4" in
         ok) printf '#!/bin/sh\necho "dots $*" >>"%s"\n' "$log" >"$home/.local/bin/dots" ;;
@@ -122,12 +124,18 @@ expect "cache + cursor: the cursor merges after the colours, before dwm" \
 expect "cache, no wallpaper: merge only, then dwm" \
     "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'dwm ' "$END")" \
     "$(run_case cached-nowall cache '' ok)"
-expect "first login: dots theme dark, bounded, then dwm" \
-    "$(printf '%s\n' 'timeout 120' 'dots theme dark' 'dwm ' "$END")" \
+expect "first login: dots theme dark, then a collection wallpaper, bounded, then dwm" \
+    "$(printf '%s\n' 'timeout 120' 'dots theme dark' 'timeout 120' 'dots wallpaper --initial' 'dwm ' "$END")" \
     "$(run_case first-login '' '' ok)"
-expect "first login, theme apply fails: dwm still starts" \
-    "$(printf '%s\n' 'timeout 120' 'dots theme dark' 'dwm ' "$END")" \
+expect "first login, theme apply fails: the wallpaper is still tried, dwm still starts" \
+    "$(printf '%s\n' 'timeout 120' 'dots theme dark' 'timeout 120' 'dots wallpaper --initial' 'dwm ' "$END")" \
     "$(run_case apply-fails '' '' fail)"
+expect "login-random on: a new random wallpaper instead of ~/.fehbg" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'timeout 120' 'dots wallpaper --random' 'dwm ' "$END")" \
+    "$(run_case random cache fehbg ok absent '' random)"
+expect "login-random on, the pick fails: falls back to ~/.fehbg" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'timeout 120' 'dots wallpaper --random' fehbg 'dwm ' "$END")" \
+    "$(run_case random-fails cache fehbg fail absent '' random)"
 expect "no dots command at all: dwm still starts" \
     "$(printf '%s\n' 'dwm ' "$END")" \
     "$(run_case no-dots '' '' absent)"

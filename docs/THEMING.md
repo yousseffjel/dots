@@ -78,6 +78,7 @@ The installer puts a single `dots` command on `$PATH` (a symlink to
 dots wallpaper --select        # dmenu picker
 dots wallpaper --random
 dots wallpaper ~/pics/foo.png
+dots wallpaper --login-random on   # a new random wallpaper at every login (off|status)
 
 dots theme --list
 dots theme dark                # static palette
@@ -99,6 +100,54 @@ localised or moved one is honoured; else `~/Pictures`); override with
 with the generated default wallpaper below, so the picker (`Super` +
 `Shift` + `w`) always has something to offer. Every failure is also a notification, since the keys run
 it through sxhkd, which discards error output.
+
+### The wallpaper collection
+
+No image is committed to this repo. The restore stage
+(`scripts/install-restore-wallpapers.sh`) shallow-clones the wallpaper repo,
+[yousseffjel/wallpaper](https://github.com/yousseffjel/wallpaper), into
+`wallpapers/dots/` in your pictures folder. The picker searches subfolders,
+so the collection shows up next to anything of your own. Its file names are
+`<category>-<description>[-nord].<ext>`, so typing `space` or `nord` in the
+picker filters it.
+
+- **Download.** About 400 MB, and about 780 MB on disk (the images plus
+  git's packed copy of them): a shallow clone still carries every current
+  image. To skip it, run the installer with `DOTS_WALLPAPER_REPO=` (empty);
+  to use another collection, set that variable to its git URL.
+- **Updates.** A re-run of the restore stage, which is what `dots update`
+  does, fast-forwards the clone. A failed pull (offline, or local changes
+  in the way) skips the new images and never fails the install.
+- **Yours or ours.** A folder already at `wallpapers/dots/` before the clone
+  is left alone and never recorded. Uninstall removes the clone only while
+  it is unchanged (`docs/UNINSTALL.md`, step 5c).
+- **The first wallpaper.** A new install opens on a random image from the
+  collection: the restore stage's theme apply runs
+  `dots wallpaper --initial` after `dots theme dark`, but only on the run
+  that made the clone, so an update never swaps your wallpaper. On a
+  headless install `~/.xinitrc` does the same at the first login.
+  `--initial` picks from the collection only and does nothing without one,
+  which leaves the generated wallpaper below in place.
+
+### A random wallpaper at every login
+
+`dots wallpaper --login-random on` makes every login pick a new random
+wallpaper and re-derive the colours from it (`off` turns it back off,
+`status` prints which). It is off by default. The setting is a flag file,
+`~/.config/dots/random-wallpaper`, and `~/.xinitrc` reads it before dwm
+starts. It cannot be done from `autostart.sh`: re-theming a running dwm
+restarts it, and every dwm start re-runs `autostart.sh`. The pick is bounded
+by `timeout 120`, and if it fails the last wallpaper is restored instead.
+
+An `~/.xinitrc` written before this option existed never reads the flag, and
+the installer never rewrites one that exists. `--login-random on` says so
+and prints the lines to use instead of its `~/.fehbg` line:
+
+```sh
+if [ -e "${XDG_CONFIG_HOME:-$HOME/.config}/dots/random-wallpaper" ] &&
+    timeout 120 "$HOME/.local/bin/dots" wallpaper --random; then :
+elif [ -x "$HOME/.fehbg" ]; then "$HOME/.fehbg"; fi
+```
 
 ### The generated default wallpaper
 

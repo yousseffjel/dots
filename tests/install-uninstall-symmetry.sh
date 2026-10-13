@@ -150,7 +150,7 @@ check_manifest() {
     local name="$1" cat
     # A restore that silently did nothing would round-trip perfectly; require
     # that it actually claimed something in each category it writes.
-    for cat in CONFIG SCRIPT THEME APP FLATPAK; do
+    for cat in CONFIG SCRIPT THEME APP FLATPAK WALLPAPERS; do
         if grep -q "^$cat	" "$TMP/$name.manifest2"; then
             pass "manifest has $cat rows"
         else
