@@ -110,6 +110,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`dots doctor` no longer fails `ffmpeg-free` after the RPM Fusion swap.**
+  The installer replaces it with RPM Fusion's `ffmpeg`, which conflicts with
+  it, so it is never installed again. Doctor now reports it as replaced
+  instead of missing, as the installer already did.
+- **`dots doctor` says when the GPU is virtual.** Its drivers section used to
+  stay silent about a VM's emulated GPU. It now confirms no driver is needed,
+  and an unrecognised GPU vendor shows as skipped.
 - **`dots update` finishes an install you stopped partway.** It used to read
   the commit each install stage records as it *starts*, so after a Ctrl-C in
   the package stage it said "already up to date" and installed nothing.

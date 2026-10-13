@@ -29,7 +29,9 @@ make_fakes() {
         ls sort id date mkdir touch mktemp mv cp
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
-        fake "$BIN" rpm 'rc=0; shift 2; for p in "$@"; do
+        # `rpm -q --whatprovides a b` (check_packages) and `rpm -q a` (the
+        # stand-in and drivers checks) both answer from FAKE_MISSING.
+        fake "$BIN" rpm 'rc=0; shift; [[ "${1:-}" == --whatprovides ]] && shift; for p in "$@"; do
     case " ${FAKE_MISSING:-} " in *" $p "*) echo "no package provides $p"; rc=1 ;; *) echo "$p-1.0" ;; esac
 done; exit $rc'
         fake "$BIN" pgrep 'case "$1" in
@@ -70,7 +72,8 @@ esac'
 make_home() {
     H="$SB/home"
     mkdir -p "$H/.local/state/dots" "$H/.local/bin" "$H/.cache/dots/theme" \
-        "$H/.local/share/dwm" "$H/.config" "$SB/bt/hci0"
+        "$H/.local/share/dwm" "$H/.config" "$SB/bt/hci0" "$SB/sys/bus/pci/devices"
+    printf 'vendor_id\t: GenuineIntel\n' >"$SB/cpuinfo"
     # Written by the installer's own manifest functions, never by hand: a
     # hand-written SERVICE row once had a field the real one lacks, and the
     # service check passed here while it could never run on a real install.
@@ -103,11 +106,14 @@ make_home() {
 }
 
 # run_doctor [args...] — FAKE_* and DISPLAY pass through from the caller.
+# The drivers section reads $SB/sys and $SB/cpuinfo, never the host's: an
+# empty PCI tree and a VM, so it only reports the host-firmware skip.
 run_doctor() {
     env -i PATH="$BIN" HOME="$H" USER=probe DISPLAY="${DISPLAY_SET-:9}" \
         XDG_CONFIG_HOME="$H/.config" XDG_CACHE_HOME="$H/.cache" \
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
+        DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
         FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \

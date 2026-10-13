@@ -19,10 +19,6 @@
 # ld.so.conf.d entry that puts it first. Checked against the f44 rpm's
 # Provides/Obsoletes/file list on 2026-10-13.
 
-# PCI vendor ids of emulated display adapters: virtio, QXL, bochs/stdvga,
-# VMware, VirtualBox, Hyper-V. The hypervisor decodes video, not the guest.
-DRIVERS_VIRTUAL_GPU_VENDORS=" 1af4 1b36 1234 15ad 80ee 1414 "
-
 drivers_gpu() {
     local slot vendor device driver gpus
     gpus="$(drivers_gpus)"
@@ -36,7 +32,7 @@ drivers_gpu() {
             1002) drivers_gpu_amd ;;
             10de) drivers_nvidia_report "$slot" "$device" "$driver" ;;
             *)
-                if [[ "$DRIVERS_VIRTUAL_GPU_VENDORS" == *" $vendor "* ]]; then
+                if drivers_virtual_gpu "$vendor"; then
                     blue "  $slot: virtual GPU ($vendor:$device) — no video driver to install"
                 else
                     yellow "  $slot: unrecognised GPU vendor $vendor:$device — no video driver chosen"
