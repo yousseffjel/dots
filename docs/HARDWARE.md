@@ -97,7 +97,15 @@ A desktop behaves exactly as it always did. On a laptop:
   To change a setting, edit that file: dots never overwrites an edited copy,
   and `dots uninstall` keeps it. `dots doctor` reports whether it is there.
 
-Still to come (`.claude/tasks/scope-h-laptop-support.md`): power profiles.
+- **Power profiles.** `tuned-ppd`, Fedora's default since 41, is installed
+  and `tuned` is enabled, so the profile you choose survives a reboot.
+  `Super+Shift+p`, or `profile` in the power menu, switches between
+  power-saver, balanced and performance. Switching needs no password for
+  whoever is logged in at the machine (tuned-ppd's polkit rule); from ssh
+  it is refused, and the menu says so. `power-profiles-daemon` conflicts
+  with `tuned-ppd`, so dots never installs it. `dots uninstall` disables
+  the two services only if dots enabled them.
+
 dots does not suspend or hibernate at a critical battery level itself; that
 remains logind's and your choice.
 

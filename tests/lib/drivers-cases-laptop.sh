@@ -80,6 +80,38 @@ ASSUME_YES=1 DOTS_DIR="$REPO" uninstall_sysfiles >"$SB/out" 2>&1
 check "uninstall removed what drivers installed" test ! -e "$DST"
 check "...and said so" grep -q "removed $DST" "$SB/out"
 
+blue "==> power profiles: tuned enabled on a laptop only"
+machine GenuineIntel none
+chassis 10
+tp_run
+check "laptop: tuned-ppd installed from laptop.lst" has tuned-ppd
+check "tuned.service enabled --now" grep -q "systemctl enable --now tuned.service" "$LOG"
+check "tuned-ppd.service enabled --now" grep -q "systemctl enable --now tuned-ppd.service" "$LOG"
+check "SERVICE rows for both, so uninstall disables them" \
+    test "$(manifest_rows SERVICE | cut -f2 | sort | tr '\n' ' ')" = "tuned-ppd.service tuned.service "
+: >"$LOG"
+tp_run
+check "re-run: no second enable" not grep -q "systemctl enable" "$LOG"
+machine GenuineIntel none
+chassis 10
+echo tuned.service >"$SB/enabled"
+tp_run
+check "an already-enabled tuned gets no row (uninstall leaves it)" \
+    test "$(manifest_rows SERVICE | cut -f2 | tr '\n' ' ')" = "tuned-ppd.service "
+machine GenuineIntel none
+chassis 10
+FAKE_FAIL=tuned.service tp_run
+check "a failed enable is reported" grep -qx tuned.service <<<"$(printf '%s\n' "${FAILED_EXTRA[@]}")"
+check "...with no row" not grep -q "tuned.service" <<<"$(manifest_rows SERVICE)"
+machine GenuineIntel none
+chassis 10
+DRY_RUN=1 tp_run
+check "dry run: nothing enabled" not grep -q "systemctl enable" "$LOG"
+machine GenuineIntel none
+chassis 3
+tp_run
+check "desktop: no systemctl enable at all" not grep -q "systemctl enable" "$LOG"
+
 blue "==> touchpad: a failed write"
 # A read-only directory stops only a non-root writer; root would just write.
 if [[ $EUID -ne 0 ]]; then

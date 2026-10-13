@@ -41,7 +41,9 @@
 #     installed on laptops only, and dwm-brightness prefers it whenever a
 #     backlight device exists.
 #
-#   power-profiles-daemon — desktop, not laptop. Locked decision 9.
+#   power-profiles-daemon — conflicts with tuned-ppd, Fedora's default since
+#     f41, which packages/laptop.lst installs on laptops only (scope-h,
+#     2026-10-13; this used to cite the desktop-only locked decision 9).
 #
 #   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
 #     repos, so no third-party repo is needed. Locked decision 8.

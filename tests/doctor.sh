@@ -137,6 +137,10 @@ check "on a laptop: laptop.lst is checked, and a missing package warns" row warn
 check "...only warns: exit 0" rc_is 0
 check "chassis says laptop" grep -qE $'^ok\tdrivers\tchassis\tlaptop ' "$SB/out.tsv"
 check "laptop without the touchpad snippet warns" row warn drivers touchpad
+check "laptop with tuned enabled: power ok" row ok drivers power
+FAKE_SERVICE=disabled tsv
+check "tuned not enabled: power warns" row warn drivers power
+tsv
 mkdir -p "$SB/xorg.conf.d"
 cp "$DOTS_DIR/config/xorg/40-dots-touchpad.conf" "$SB/xorg.conf.d/"
 tsv

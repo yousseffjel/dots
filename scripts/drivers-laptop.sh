@@ -11,6 +11,11 @@
 #   config/xorg/40-dots-touchpad.conf
 #                                copied to /etc/X11/xorg.conf.d with a SYSFILE
 #                                row: `SYSFILE xorg <installed path> <repo path>`
+#   tuned.service, tuned-ppd.service
+#                                enabled (SERVICE rows, only for a unit this run
+#                                enabled) so the profile dwm-power picks is
+#                                re-applied at boot; tuned-ppd itself is
+#                                D-Bus-activated, tuned would otherwise not run
 #
 # SYSFILE follows the APP rows' contract (install-restore-apps.sh), with sudo:
 # a re-run replaces the installed copy only while it is byte-identical to a
@@ -39,6 +44,27 @@ drivers_laptop() {
         drivers_pkg "$pkg" "a laptop feature that needs it stays off (see packages/laptop.lst)" || true
     done < <(read_pkg_list "$lst" || true)
     drivers_touchpad
+    drivers_power
+}
+
+# drivers_power — see the header. `--now` so the switcher works before the
+# next boot. A unit already enabled is the user's (or Workstation's preset)
+# and gets no row, so uninstall never disables it.
+drivers_power() {
+    local unit
+    for unit in tuned.service tuned-ppd.service; do
+        if [[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" == enabled ]]; then
+            green "  ok      $unit already enabled"
+        elif [[ $DRY_RUN -eq 1 ]]; then
+            blue "  (dry-run) would enable $unit (power profiles)"
+        elif "${SUDO[@]}" systemctl enable --now "$unit" >/dev/null 2>&1; then
+            manifest_append_row SERVICE "$unit"
+            green "  enabled $unit"
+        else
+            yellow "  FAILED: systemctl enable --now $unit — power profiles are not kept across reboots"
+            FAILED_EXTRA+=("$unit")
+        fi
+    done
 }
 
 # drivers_touchpad — the Xorg snippet; see the header for the contract.

@@ -21,7 +21,10 @@ check_drivers() {
         return 0
     fi
     report ok "$s" chassis "$(drivers_chassis) ($(drivers_chassis_why))"
-    [[ "$(drivers_chassis)" == laptop ]] && check_drivers_touchpad
+    if [[ "$(drivers_chassis)" == laptop ]]; then
+        check_drivers_touchpad
+        check_drivers_power
+    fi
     check_drivers_gpu
     if [[ "$(drivers_virt)" =~ ^(none|unknown)$ ]]; then
         check_drivers_microcode
@@ -114,5 +117,17 @@ check_drivers_touchpad() {
         report ok "$s" touchpad "touchpad settings installed ($dst)"
     else
         report ok "$s" touchpad "touchpad settings installed, edited by you ($dst)"
+    fi
+}
+
+# On a laptop: tuned must be enabled, or the profile dwm-power picks is lost
+# at reboot. A missing tuned-ppd is already the packages section's warning.
+check_drivers_power() {
+    local s=drivers state
+    state="$(systemctl is-enabled tuned.service 2>/dev/null || true)"
+    if [[ "$state" == enabled ]]; then
+        report ok "$s" power "tuned.service is enabled: the power profile survives a reboot"
+    else
+        report warn "$s" power "tuned.service is ${state:-not installed}: the power profile resets at reboot — dots drivers"
     fi
 }

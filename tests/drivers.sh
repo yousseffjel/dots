@@ -35,7 +35,7 @@ source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
-export DB="$SB/rpmdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap"
+export DB="$SB/rpmdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap" SB
 
 seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail head cut sort cat wc \
     basename dirname readlink od tr ln chmod cmp install git cp
@@ -49,6 +49,12 @@ swap) grep -vx "$3" "$DB" >"$DB.new" || true; mv "$DB.new" "$DB"; echo "$4" >>"$
 repoquery) [[ " ${FAKE_FAIL:-} " == *" repoquery "* ]] && exit 1; f="${@: -1}"; f="${f#/usr/lib/firmware/}"; awk -v f="${f%\*}" "\$1 == f {print \$2}" "$FWMAP" ;;
 esac'
     fake "$SB/bin" fwupdmgr 'exit "${FAKE_FWUPD_RC:-2}"'
+    # systemctl: is-enabled answers from $SB/enabled; enable --now records.
+    fake "$SB/bin" systemctl 'echo "systemctl $*" >>"$LOG"
+case "$1" in
+is-enabled) grep -qx "$2" "$SB/enabled" 2>/dev/null && echo enabled || { echo disabled; exit 1; } ;;
+enable) [[ " ${FAKE_FAIL:-} " == *" $3 "* ]] && exit 1; echo "$3" >>"$SB/enabled" ;;
+esac'
 }
 PATH="$SB/bin"
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
@@ -122,7 +128,7 @@ machine() {
     mkdir -p "$SYSFS/bus/pci/devices"
     printf 'vendor_id\t: %s\n' "$1" >"$DOTS_CPUINFO"
     shift 2
-    rm -rf "$SB/state" "$SB/xorg.conf.d"
+    rm -rf "$SB/state" "$SB/xorg.conf.d" "$SB/enabled"
     : >"$DB"
     : >"$LOG"
     : >"$DOTS_KERNEL_LOG"

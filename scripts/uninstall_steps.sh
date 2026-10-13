@@ -134,6 +134,13 @@ uninstall_services() {
         blue "  no SERVICE rows in manifest — nothing to disable"
     elif confirm "Disable ${#services[@]} service(s) enabled by this installer (${services[*]})?"; then
         for svc in "${services[@]}"; do
+            # uninstall_packages ran first: a unit that came with a package
+            # dots installed (tuned, for laptop power profiles) is gone, and
+            # its package's own scriptlet already disabled it.
+            if ! systemctl cat "$svc" >/dev/null 2>&1; then
+                blue "  $svc is gone with its package — nothing to disable"
+                continue
+            fi
             if [[ $DRY_RUN -eq 1 ]]; then
                 blue "  (dry-run) would run: systemctl disable $svc"
                 continue

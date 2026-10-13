@@ -177,6 +177,12 @@ super + r
 super + shift + l
 	dwm-lock
 
+# --- power profile -----------------------------------------------------------
+# power-saver / balanced / performance, through tuned-ppd — installed on
+# laptops only (packages/laptop.lst). On a desktop the key says so instead.
+super + shift + p
+	dwm-power
+
 # --- colour and displays -----------------------------------------------------
 # Super+d is dwm's fewer-masters key, so the display menu takes Shift.
 
