@@ -76,7 +76,11 @@ install_is_current() {
 stale_reason() {
     local c
     c="$(manifest_get_meta complete)"
-    echo "the last finished install ran from ${c:-no finished install recorded}, the checkout is at $(gitd rev-parse --short HEAD)"
+    if [[ -z "$c" ]]; then
+        echo "no finished install is recorded yet (the checkout is at $(gitd rev-parse --short HEAD))"
+    else
+        echo "the last finished install ran from $c, the checkout is at $(gitd rev-parse --short HEAD)"
+    fi
 }
 
 run_installer() {

@@ -116,7 +116,7 @@ update
 check "and afterwards it is up to date: installer NOT run" test ! -e "$LOG"
 rm -f "$MANIFEST"
 update
-check "no manifest at all: the installer runs" bash -c '[[ $1 == 0 && $2 == *"no finished install recorded"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+check "no manifest at all: the installer runs" bash -c '[[ $1 == 0 && $2 == *"no finished install is recorded yet"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
 rm -f "$LOG"
 
 blue "==> an install that never finished"
@@ -126,7 +126,7 @@ head_short="$(git -C "$INST" rev-parse --short HEAD)"
 printf 'META\tcommit\t%s\n' "$head_short" >"$MANIFEST"
 update
 check "interrupted (commit stamped, no complete): the installer runs" \
-    bash -c '[[ $1 == 0 && $2 == *"no finished install recorded"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+    bash -c '[[ $1 == 0 && $2 == *"no finished install is recorded yet"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
 rm -f "$LOG"
 # What `install-fedora.sh --only-restore` after an older full run leaves.
 printf 'META\tcommit\t%s\nMETA\tcomplete\t%s\n' "$head_short" "$(git -C "$INST" rev-parse --short HEAD~1)" >"$MANIFEST"
