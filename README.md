@@ -15,6 +15,7 @@ dots theme --list             # or: dots theme dark, dots theme --wallbash
 dots wallpaper --select       # or: --random, or an image path
 dots version --json
 dots doctor                   # what is broken, and the command that fixes it
+dots drivers --dry-run        # GPU video decoding, firmware, microcode (docs/HARDWARE.md)
 dots uninstall --dry-run
 ```
 

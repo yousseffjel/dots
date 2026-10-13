@@ -116,7 +116,10 @@ partial uninstall is a normal, supported outcome, not an error.
    reversed here with `dnf swap ffmpeg ffmpeg-free`. A swap is never undone
    by removing `ffmpeg`, which would remove everything that depends on it.
    Runs before the package step, so a `ffmpeg-free` the installer added in
-   the first place can then be removed there.
+   the first place can then be removed there. On an AMD GPU under Fedora 43
+   or older, `dots drivers` also swaps `mesa-va-drivers` for RPM Fusion's
+   `mesa-va-drivers-freeworld` (`docs/HARDWARE.md`), and that swap is
+   reversed here the same way.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran

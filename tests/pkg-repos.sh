@@ -6,8 +6,10 @@
 #
 # What is asserted:
 #   * a fresh install adds the Sublime repo file, both RPM Fusion release
-#     packages, swaps ffmpeg-free for ffmpeg, installs sublime-text and
-#     intel-media-driver, and writes one REPO row per change it made;
+#     packages, swaps ffmpeg-free for ffmpeg, installs sublime-text, runs
+#     the drivers step (intel-media-driver for the fixture's Intel GPU — the
+#     per-device logic is tests/drivers.sh's job), and writes one REPO row
+#     per change it made;
 #   * a re-run changes nothing: no second swap, no new rows;
 #   * a repo that already existed gets no REPO row, so uninstall leaves it;
 #   * an arch Sublime HQ does not publish for skips Sublime and nothing else;
@@ -43,7 +45,8 @@ trap 'rm -rf "$SB"' EXIT
 export DB="$SB/rpmdb" LOG="$SB/calls.log" SUBLIME_REPO_FILE="$SB/yum.repos.d/sublime-text.repo"
 mkdir -p "$SB/yum.repos.d"
 
-seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail cut sort cat wc basename tr
+seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail cut sort cat wc basename tr \
+    dirname readlink head od
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     fake "$SB/bin" uname 'echo "${FAKE_ARCH:-x86_64}"'
@@ -72,6 +75,14 @@ repoquery)
 esac'
 }
 PATH="$SB/bin"
+# The drivers step reads this machine instead of the real one: one Intel GPU,
+# in a VM (so no microcode or fwupd), with a clean kernel log.
+mkdir -p "$SB/sys/bus/pci/devices/0000:00:02.0"
+printf '%s\n' 0x030000 >"$SB/sys/bus/pci/devices/0000:00:02.0/class"
+printf '%s\n' 0x8086 >"$SB/sys/bus/pci/devices/0000:00:02.0/vendor"
+printf '%s\n' 0x9a49 >"$SB/sys/bus/pci/devices/0000:00:02.0/device"
+: >"$SB/kmsg"
+export DOTS_SYSFS="$SB/sys" DOTS_VIRT=kvm DOTS_KERNEL_LOG="$SB/kmsg"
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
     XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache"
 

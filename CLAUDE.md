@@ -68,7 +68,7 @@ dots/
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
 │   ├── install-pkg-repos.sh    # sourced by install-pkg.sh: Sublime HQ repo + sublime-text; RPM Fusion free+nonfree,
-│   │                           # ffmpeg-free -> ffmpeg swap, intel-media-driver. REPO rows only for what it added
+│   │                           # ffmpeg-free -> ffmpeg swap, then drivers_install (`dots drivers`). REPO rows only for what it added
 │   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + dots symlink + theme deploy + app configs + zinit/TPM bootstrap clones
 │   ├── install-restore-bin.sh  # sourced by install-restore.sh: the ~/.local/bin/dots symlink + its SCRIPT manifest row
 │   ├── install-restore-theme.sh # sourced by install-restore.sh: theme base-config deploy + manifest + backup
@@ -96,9 +96,12 @@ dots/
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers)
 │   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh
+│   ├── drivers.sh              # `dots drivers`: GPU VA-API driver, kernel-requested firmware, microcode, fwupd;
+│   │                           # NVIDIA REPORT-ONLY (user decision 2026-10-13). Logic in drivers-lib.sh +
+│   │                           # drivers-{detect,gpu,firmware}.sh, which install-pkg-repos.sh also sources
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
 │   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
-│   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on),
+│   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on) / doctor-drivers.sh,
 │   │                           # every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
 │                               # ly-theme.sh (`dots login-theme`: four keys of root's /etc/ly/config.ini; sudo, never prompted without a TTY)
@@ -120,7 +123,7 @@ dots/
 │                        # tests/fixtures/ holds captured real-tool files (ly's config.ini), same reason.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / install-dry-run
 │                        # install-container.yml — the only job that RUNS install-fedora.sh (~30 min/leg, paths-filtered)
-├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md, FONTS.md
+├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md, FONTS.md, HARDWARE.md
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
 ├── dwm-titus/           # untracked local clone of ChrisTitusTech/dwm-titus — reference only; see Reference clones

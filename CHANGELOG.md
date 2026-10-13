@@ -18,6 +18,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **`dots drivers` installs what your hardware needs.** It reads the GPUs,
+  the CPU and this boot's kernel log, and installs the matching video
+  decoding driver (Intel old or new, AMD's freeworld mesa), any firmware a
+  driver failed to load, CPU microcode and fwupd. The installer runs it too,
+  so `intel-media-driver` is no longer installed on machines without an
+  Intel GPU. An NVIDIA card is identified and the exact commands for its
+  driver branch are printed, Secure Boot steps included, but the driver is
+  never installed for you. `dots doctor` reports the same things, including
+  pending firmware updates. See `docs/HARDWARE.md`.
 - **Arabic renders properly next to English.** Noto Sans Arabic and Noto
   Naskh Arabic are installed, and a new `~/.config/fontconfig` (linked from
   `config/fontconfig/`) puts them directly behind the Latin faces, so Arabic
