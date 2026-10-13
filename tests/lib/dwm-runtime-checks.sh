@@ -170,3 +170,36 @@ check_restartsig() {
         fail "border pixel after SIGHUP is #$got, expected $color_b (restartsig reload)"
     fi
 }
+
+# The two remapped keys a slip would hurt most: Super+Shift+q closes the
+# focused window and must NOT end dwm (it was quit until 2026-10-13), and
+# Super+Return runs termcmd. Runs after check_dropterm, which reads the fake
+# alacritty's argument log and expects only its own line in it.
+check_launch_keys() {
+    local win before
+    blue "==> remapped keys (Super+Shift+q, Super+Return)"
+    win="$(spawn_win)"
+    xdotool windowfocus "$win"
+    sleep 0.2
+    xdotool key --clearmodifiers super+shift+q
+    sleep 0.6
+    if xdotool search --class "$WINCLASS" 2>/dev/null | grep -qx "$win"; then
+        fail "Super+Shift+q did not close the focused window"
+    else
+        pass "Super+Shift+q closes the focused window"
+    fi
+    if kill -0 "$DWM_PID" 2>/dev/null; then
+        pass "... and dwm is still running"
+    else
+        fail "Super+Shift+q ended dwm"
+    fi
+    before="$(wc -l <"$TMP/alacritty.args" 2>/dev/null || echo 0)"
+    xdotool key --clearmodifiers super+Return
+    sleep 0.6
+    if [[ "$(wc -l <"$TMP/alacritty.args" 2>/dev/null || echo 0)" -gt "$before" ]] \
+        && [[ -z "$(tail -1 "$TMP/alacritty.args")" ]]; then
+        pass "Super+Return runs termcmd (alacritty, no arguments)"
+    else
+        fail "Super+Return did not run termcmd"
+    fi
+}

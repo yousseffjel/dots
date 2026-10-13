@@ -109,8 +109,13 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
  * CLI colour flags override them. Passing them would pin the launcher to
  * these compiled-in colours and it would never follow the theme. With
  * them omitted dmenu uses the themed values when the theming engine has
- * run, and the config.def.h defaults otherwise. */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, NULL };
+ * run, and the config.def.h defaults otherwise.
+ *
+ * dwm-apps (config/dwm/bin) lists only applications with a .desktop entry
+ * — rofi's drun, not dmenu_run's every-binary-on-PATH — and hands its
+ * arguments to dmenu. The array keeps the name dmenucmd because spawn() in
+ * dwm.c compares against it to fill in dmenumon. */
+static const char *dmenucmd[] = { "dwm-apps", "-m", dmenumon, "-fn", dmenufont, NULL };
 /* alacritty is the primary terminal (GPU-accelerated, themed via
  * config/alacritty/alacritty.toml). st stays vendored, patched and
  * xresources-themed as the fallback for a machine with no working GL —
@@ -136,8 +141,9 @@ static const char *droptermcmd[] = { "alacritty", "--class", droptermclass, NULL
  * root window, and a keysym+modifier claimed by both goes to whichever
  * grabbed it first — the loser silently gets nothing, with no error to
  * point at. The two key sets are deliberately disjoint: dwm owns window
- * management plus Mod+p, Mod+Shift+Return, Super+Shift+x and Super+v;
- * sxhkd owns the XF86* keys and the rest of the Super space.
+ * management plus Super+space (dwm-apps), Super+Return (terminal),
+ * Super+Shift+x and Super+v; sxhkd owns the XF86* keys and the rest of
+ * the Super space.
  *
  * The theming binds used to sit here commented out, needing a recompile to
  * enable. As sxhkd bindings they are simply live, and editing them costs
@@ -150,8 +156,8 @@ static const char *droptermcmd[] = { "alacritty", "--class", droptermclass, NULL
 
 static const Key keys[] = {
 	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
-	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+	{ MODKEY,                       XK_space,  spawn,          {.v = dmenucmd } },
+	{ MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -159,13 +165,13 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
-	{ MODKEY,                       XK_Return, zoom,           {0} },
+	{ MODKEY|ShiftMask,             XK_Return, zoom,           {0} },
 	{ MODKEY,                       XK_Tab,    view,           {0} },
-	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+	{ MODKEY|ShiftMask,             XK_q,      killclient,     {0} },
 	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
 	{ MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
 	{ MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
-	{ MODKEY,                       XK_space,  setlayout,      {0} },
+	{ MODKEY|ControlMask,           XK_space,  setlayout,      {0} },
 	{ MODKEY|ShiftMask,             XK_space,  togglefloating, {0} },
 	{ MODKEY|ShiftMask,             XK_f,      togglefullscr,  {0} },
 	{ MODKEY,                       XK_0,      view,           {.ui = ~0 } },
@@ -178,8 +184,8 @@ static const Key keys[] = {
 	 * stashed ones back, or drop one out of the set. These stay in dwm
 	 * rather than moving to sxhkd (sub-task 4's split) because they call
 	 * dwm's own C functions — there is nothing for sxhkd to spawn. */
-	{ MODKEY|ShiftMask,             XK_minus,  scratchpad_hide,   {0} },
-	{ MODKEY,                       XK_minus,  scratchpad_show,   {0} },
+	{ MODKEY|ShiftMask,             XK_s,      scratchpad_hide,   {0} },
+	{ MODKEY,                       XK_s,      scratchpad_show,   {0} },
 	{ MODKEY,                       XK_equal,  scratchpad_remove, {0} },
 	TAGKEYS(                        XK_1,                      0)
 	TAGKEYS(                        XK_2,                      1)
@@ -190,7 +196,8 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_7,                      6)
 	TAGKEYS(                        XK_8,                      7)
 	TAGKEYS(                        XK_9,                      8)
-	{ MODKEY|ShiftMask,             XK_q,      quit,           {0} },
+	/* Exit dwm sits on Escape because Shift+q closes the focused window. */
+	{ MODKEY|ShiftMask,             XK_Escape, quit,           {0} },
 	{ MODKEY|ControlMask|ShiftMask, XK_q,      quit,           {1} },
 	{ Mod4Mask|ShiftMask,           XK_x,      spawn,          {.v = powermenucmd } },
 	{ Mod4Mask,                     XK_v,      spawn,          {.v = clipmenucmd } },

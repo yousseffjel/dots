@@ -52,7 +52,7 @@ listed() { grep -qE "$1" "$MENU"; }
 blue "the menu"
 PATH="$SB/fake:$SB/real" "$(type -P bash)" "$SUT"
 check "the menu is not empty (the negative checks below need rows)" test -s "$MENU"
-check "a dwm row, Mod shown as Super" listed '^Super\+p +dmenu_run'
+check "a dwm row, Mod shown as Super" listed '^Super\+space +App launcher'
 check "an sxhkd row with its section" listed '^Super\+w .*\[Theming engine\]$'
 check "a mouse row" listed '^Super\+left-drag '
 # The status-bar table's first column is a block number (or '#'): that is

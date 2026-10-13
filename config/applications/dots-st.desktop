@@ -1,0 +1,20 @@
+[Desktop Entry]
+# st, the vendored fallback terminal, as a launcher entry.
+#
+# st's own Makefile installs no .desktop file. dmenu_run used to reach it by
+# name, but Super+space now runs dwm-apps, which lists .desktop entries only,
+# and alacritty — the terminal on Super+Return — refuses to start without
+# working GL. This entry is what keeps a terminal one key away on such a
+# machine.
+#
+# Deployed to $XDG_DATA_HOME/applications by scripts/install-restore-apps.sh.
+Type=Application
+Version=1.0
+Name=st
+GenericName=Terminal
+Comment=Simple terminal (fallback for a machine without working GL)
+Exec=st
+TryExec=st
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;

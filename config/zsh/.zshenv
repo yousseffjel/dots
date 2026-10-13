@@ -30,7 +30,8 @@ path=(
   "$HOME/go/bin"
   $path
   # Flatpak's per-app launchers (one per installed app, named by app ID, e.g.
-  # org.xfce.mousepad), so dmenu_run (Mod+p) lists Flatpak apps. Last, so
+  # org.xfce.mousepad), so they run by app ID from a shell. (The Super+space
+  # launcher, dwm-apps, finds Flatpak apps by their .desktop files.) Last, so
   # they never shadow a native command. User installation first — that is
   # where install-restore-flatpak.sh puts Flathub. Missing dirs are harmless.
   "$XDG_DATA_HOME/flatpak/exports/bin"

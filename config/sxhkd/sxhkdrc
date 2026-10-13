@@ -7,7 +7,7 @@
 #
 #   dwm   (suckless/dwm/config.def.h, compiled in) — window management:
 #         tags, layouts, focus, monitors, scratchpads, quit/restart, plus
-#         Super+p (dmenu), Super+Shift+Return (terminal), Super+Shift+x
+#         Super+space (dwm-apps), Super+Return (terminal), Super+Shift+x
 #         (powermenu), Super+v (clipmenu) and Super+grave (the drop-down
 #         terminal, a dwm function rather than a spawn).
 #   sxhkd (this file, reloadable) — everything else: media, volume, mic,
@@ -15,7 +15,7 @@
 #
 # Both live in the Super space: dwm's MODKEY is Mod4Mask (Super) since
 # 2026-10-12, so every Super chord here must avoid every MODKEY chord in
-# keys[] — h/j/k/l, b, d, i, m, t, f, p, comma, period, the digits and more.
+# keys[] — h/j/k/l, s, q, b, d, i, m, t, f, space, comma, period, the digits.
 # tests/key-collisions.sh reads both files and fails the build on an overlap;
 # run it before adding a binding rather than checking by eye.
 #
@@ -105,18 +105,19 @@ super + ctrl + n
 # they are simply active, and editing them costs a reload instead of a
 # recompile. See docs/THEMING.md for what each one drives.
 
-super + w
+super + shift + w
 	dwm-wallpaper --select
 
-super + shift + w
+super + w
 	dwm-wallpaper --random
 
-super + ctrl + w
+# Super+t is dwm's tiled layout, so the theme menu takes Shift.
+super + shift + t
 	dwm-theme
 
 # --- applications ------------------------------------------------------
 # Only the two daily drivers get a dedicated key. Everything else is one
-# Mod+p away through dmenu, and a launcher key per application is how a
+# Super+space away through dwm-apps, and a launcher key per application is how a
 # keymap becomes unmemorable.
 
 # Super+b is dwm's bar toggle, so the browser takes Shift.
@@ -135,19 +136,25 @@ super + ctrl + r
 
 # --- screenshot --------------------------------------------------------
 # Print opens the full two-level menu: mode (full / window / region), then
-# destination (clipboard / file / both). Shift+Print is the fast path — drag
-# a region, straight to the clipboard, no prompts.
+# destination (clipboard / file / both). The rest are fast paths, no prompts:
 #
-# The fast path deliberately does not also write a file. Region grabs are
-# overwhelmingly paste-once, and a keybind that silently fills
-# ~/Pictures/screenshots is a keybind you end up cleaning up after. Press
-# Print instead when you want it kept.
+#   Super+p (and Shift+Print) — drag a region, straight to the clipboard.
+#     Deliberately no file: region grabs are overwhelmingly paste-once, and a
+#     key that silently fills ~/Pictures/screenshots is one you end up
+#     cleaning up after.
+#   Super+Alt+p — the whole screen, to the clipboard AND saved as a file.
 
 Print
 	dwm-screenshot
 
+super + p
+	dwm-screenshot --region --clipboard
+
 shift + Print
 	dwm-screenshot --region --clipboard
+
+super + alt + p
+	dwm-screenshot --full --both
 
 # --- screen recording --------------------------------------------------
 # One key toggles: with nothing recording it asks full | region and starts;
@@ -166,8 +173,8 @@ super + r
 # The daemon is started from ~/.local/share/dwm/autostart.sh, not from here —
 # see scripts/install-session.sh.
 #
-# Super+Escape, not the usual Super+l: l is dwm's grow-the-master key.
-super + Escape
+# Super+Shift+l, not the usual Super+l: l is dwm's grow-the-master key.
+super + shift + l
 	dwm-lock
 
 # --- colour and displays -----------------------------------------------------

@@ -4,7 +4,7 @@ Two programs bind keys, and they own different halves of the keyboard:
 
 | Owner | Source | Covers | Changing it costs |
 | --- | --- | --- | --- |
-| **dwm** | `suckless/dwm/config.def.h` | Window management — tags, layouts, focus, monitors, scratchpads, session — plus the terminal, dmenu, power menu and clipboard | A recompile |
+| **dwm** | `suckless/dwm/config.def.h` | Window management — tags, layouts, focus, monitors, scratchpads, session — plus the terminal, app launcher, power menu and clipboard | A recompile |
 | **sxhkd** | `config/sxhkd/sxhkdrc` | Media, volume, mic, brightness, theming, screenshots, screen lock, app launchers | `Super` + `Ctrl` + `r` |
 
 Neither file is generated from the other, so an edit in one needs a matching
@@ -27,6 +27,17 @@ Alt is left to applications — tmux's `Alt` + `h`/`j`/`k`/`l`, `Alt` + `1`–`9
 and `Alt` + `Tab` used to be swallowed by dwm and now reach tmux. Until
 2026-10-12 `MODKEY` was `Mod1Mask` (Alt).
 
+> **Remapped 2026-10-13.** The launcher moved from `Super` + `p` to
+> `Super` + `space`, and the terminal from `Super` + `Shift` + `Return` to
+> `Super` + `Return`, swapping with zoom. Close window moved from `Shift` + `c`
+> to `Shift` + `q`, and quit moved from `Shift` + `q` to `Shift` + `Escape`. The
+> layout toggle moved to `Ctrl` + `space`, scratchpads from `-` to `s`, and lock
+> from `Escape` to `Shift` + `l`. The wallpaper picker and random wallpaper
+> swapped (`Shift` + `w` and `w`), and the theme menu moved from `Ctrl` + `w`
+> to `Shift` + `t`. `Super` + `p` and `Super` + `Alt` + `p` are now screenshot keys.
+> An existing install picks up the dwm half on its next build (see the note
+> under Launching), then a logout.
+
 dwm spawns programs with `execvp` and no shell, so its bindings use bare
 command names resolved through `PATH`. `~/.config/dwm/bin` is on `PATH` via
 `config/zsh/.zshenv`. sxhkd does run a shell, so its commands may use `&&`
@@ -41,16 +52,27 @@ rebuild — see the note under Launching.
 
 | Keys | Action |
 | --- | --- |
-| `Mod` + `p` | `dmenu_run` application launcher |
-| `Mod` + `Shift` + `Return` | Terminal (`alacritty`) |
+| `Mod` + `space` | App launcher (`dwm-apps`) — installed graphical applications only |
+| `Mod` + `Return` | Terminal (`alacritty`) |
 | `Super` + `Shift` + `x` | Power menu (`dwm-powermenu`) |
 | `Super` + `v` | Clipboard history (`dwm-clipmenu`) |
 | `Super` + `grave` | Drop-down terminal (see Scratchpads) |
 
+**`dwm-apps` lists applications, not commands** (2026-10-13). It reads the
+`.desktop` entries under `~/.local/share/applications`, each
+`$XDG_DATA_DIRS/applications` and the Flatpak export trees, and shows each by
+its display name, the way rofi's drun mode does. Entries marked `NoDisplay` or
+`Hidden`, or meant only for another desktop, are left out, and a copy in
+`~/.local/share/applications` overrides or hides the system one with the same
+file name. `Terminal=true` entries (htop, vim) open in alacritty, or
+`$TERMINAL` if set. Plain `dmenu_run` (every binary on `PATH`) has no key any
+more, but you can still run it from a terminal.
+
 **st is still installed** as the fallback terminal for a machine with no
 working GL — alacritty is GPU-accelerated and will refuse to start without
-it. There is no keybinding for st; run `st` from dmenu (`Mod` + `p`) if
-alacritty ever fails to launch. Both read the same wallpaper-derived
+it. There is no keybinding for st; pick **st** in the launcher (`Mod` +
+`space`) if alacritty ever fails to launch. st ships no `.desktop` file of its
+own, so the installer deploys `config/applications/dots-st.desktop`. Both read the same wallpaper-derived
 palette, so they look alike.
 
 > **Changing the terminal, the fonts or a key requires a rebuild.**
@@ -68,16 +90,16 @@ palette, so they look alike.
 | Keys | Action |
 | --- | --- |
 | `Mod` + `j` / `k` | Focus next / previous window in the stack |
-| `Mod` + `Return` | Promote the focused window to master (zoom) |
+| `Mod` + `Shift` + `Return` | Promote the focused window to master (zoom) |
 | `Mod` + `Tab` | Toggle back to the previously viewed tag |
-| `Mod` + `Shift` + `c` | Close the focused window |
+| `Mod` + `Shift` + `q` | Close the focused window |
 | `Mod` + `h` / `l` | Shrink / grow the master area |
 | `Mod` + `i` / `d` | Increase / decrease the number of master windows |
 | `Mod` + `b` | Toggle the status bar |
 | `Mod` + `t` | Tiled layout |
 | `Mod` + `f` | Floating layout |
 | `Mod` + `m` | Monocle layout |
-| `Mod` + `space` | Toggle between the last two layouts |
+| `Mod` + `Ctrl` + `space` | Toggle between the last two layouts |
 | `Mod` + `Shift` + `space` | Toggle floating for the focused window |
 | `Mod` + `Shift` + `f` | Toggle real fullscreen (actualfullscreen patch) |
 
@@ -107,8 +129,8 @@ applications.
 
 | Keys | Action |
 | --- | --- |
-| `Mod` + `Shift` + `-` | Stash the focused window into the scratchpad |
-| `Mod` + `-` | Show / hide the current scratchpad window; keep pressing to cycle |
+| `Mod` + `Shift` + `s` | Stash the focused window into the scratchpad |
+| `Mod` + `s` | Show / hide the current scratchpad window; keep pressing to cycle |
 | `Mod` + `=` | Drop the current window out of the scratchpad set |
 | `Super` + `grave` | Drop-down terminal: show / hide it; the first press starts it |
 
@@ -116,7 +138,7 @@ A stashed window is hidden from every tag — its whole tag set becomes a
 single reserved bit above the nine real tags, so no ordinary tag view brings
 it back and it is never drawn in the bar.
 
-`Mod` + `-` is a single show/hide key, which is why there is no separate hide
+`Mod` + `s` is a single show/hide key, which is why there is no separate hide
 binding. It works on one window at a time — the "current" one:
 
 1. First press restores a stashed window onto the current tag and remembers
@@ -125,7 +147,7 @@ binding. It works on one window at a time — the "current" one:
 3. Press a third time and the *next* stashed window is restored, wrapping
    round to the first.
 
-So repeated presses go show → hide → show next → hide → …, and `Mod` + `-`
+So repeated presses go show → hide → show next → hide → …, and `Mod` + `s`
 alone is enough to both summon a window and dismiss it. `Mod` + `=` breaks
 the link instead — the window stays exactly where it is on screen and simply
 stops being part of the rotation.
@@ -133,20 +155,20 @@ stops being part of the rotation.
 Two behaviours worth knowing, both inherited from the upstream patch:
 
 - **Stashing makes a window floating, and restoring does not undo that.**
-  `Mod` + `Shift` + `-` sets the window floating so it comes back as an
+  `Mod` + `Shift` + `s` sets the window floating so it comes back as an
   overlay rather than re-tiling. Nothing sets it back, so a window that was
   tiled before you stashed it stays floating afterwards — `Mod` + `Shift` +
   `space` re-tiles it.
 - **The cycle is per-monitor.** Stashed windows are looked up in the current
   monitor's client list, so a window stashed on one monitor is not reachable
-  by `Mod` + `-` from another. Stash and restore on the same monitor.
+  by `Mod` + `s` from another. Stash and restore on the same monitor.
 
 **The drop-down terminal** (`Super` + `grave`, the key left of `1`) is one
 alacritty window with class `dots-dropterm`, hanging from the top of the
 screen, 60% wide. The first press starts it; after that the same key stashes
 it when it is showing and focused, and otherwise brings it to the current tag
 — from any monitor — and focuses it. While stashed it is an ordinary
-scratchpad window, so `Mod` + `-` cycles it with the others. Its size and the
+scratchpad window, so `Mod` + `s` cycles it with the others. Its size and the
 terminal it runs are `droptermw`, `droptermh` and `droptermcmd` in
 `config.def.h`.
 
@@ -165,8 +187,8 @@ returns to the tag you were on before (`preservepertag`).
 > and `Mod`+`x` (`keepassxc`). Only the terminal one actually worked —
 > neither `ranger` nor `keepassxc` is in `packages/*.lst`, so those two were
 > dead keys. To get the old terminal behaviour, spawn a terminal normally and
-> stash it with `Mod`+`Shift`+`-`. `Mod`+`y`, `Mod`+`u` and `Mod`+`x` are now
-> unbound and free to reuse.
+> stash it with `Mod`+`Shift`+`s` (`Mod`+`Shift`+`-` until 2026-10-13).
+> `Mod`+`y`, `Mod`+`u` and `Mod`+`x` are now unbound and free to reuse.
 >
 > **This needs a dwm rebuild.** The bindings live in `config.def.h`, and
 > `config.h` is generated once and then left alone, so an existing install
@@ -183,7 +205,7 @@ returns to the tag you were on before (`preservepertag`).
 
 | Keys | Action |
 | --- | --- |
-| `Mod` + `Shift` + `q` | Quit dwm |
+| `Mod` + `Shift` + `Escape` | Quit dwm (log out) |
 | `Mod` + `Ctrl` + `Shift` + `q` | Restart dwm in place (restartsig) |
 
 ### Mouse
@@ -368,7 +390,9 @@ dwm-brightness set 70
 | Keys | Action |
 | --- | --- |
 | `Print` | Screenshot menu — pick a mode, then a destination |
-| `Shift` + `Print` | Drag a region straight to the clipboard, no prompts |
+| `Super` + `p` | Drag a region straight to the clipboard, no prompts |
+| `Shift` + `Print` | The same as `Super` + `p` |
+| `Super` + `Alt` + `p` | Whole screen, to the clipboard **and** saved as a file, no prompts |
 
 `Print` opens two dmenu prompts in sequence:
 
@@ -385,11 +409,12 @@ so a localised or moved one is honoured, else `~/Pictures` — overridable
 with `DOTS_SCREENSHOT_DIR`, named
 `dots-screenshot-YYYYmmdd-HHMMSS.png`.
 
-`Shift` + `Print` deliberately does **not** also keep a file. Region grabs are
+`Super` + `p` deliberately does **not** also keep a file. Region grabs are
 overwhelmingly paste-once, and a keybind that quietly fills a directory is one
-you end up cleaning up after — press `Print` when you want the shot kept.
+you end up cleaning up after — press `Print` (or `Super` + `Alt` + `p` for
+the whole screen) when you want the shot kept.
 
-Both keys run `config/dwm/bin/dwm-screenshot`, which drives `maim` for the
+Every one of these keys runs `config/dwm/bin/dwm-screenshot`, which drives `maim` for the
 capture, `slop` for the region selector and `xclip` for the clipboard. The
 selector rectangle is drawn in `dwm.selbordercolor` read live from `xrdb`, so
 it matches the border dwm puts around the focused window and re-themes with
@@ -426,7 +451,7 @@ cleanly, so it plays even if you stop mid-motion.
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `Escape` | Lock the screen now |
+| `Super` + `Shift` + `l` | Lock the screen now |
 
 The screen also locks by itself:
 
@@ -456,7 +481,7 @@ holds the one launch line.
 
 **Why `xss-lock` and not `xautolock`:** it hooks systemd-logind as well as X's
 screensaver, so it also locks on suspend, which xautolock structurally cannot
-do. That is also why `Super` + `Escape` goes through `loginctl lock-session` when
+do. That is also why `Super` + `Shift` + `l` goes through `loginctl lock-session` when
 the daemon is up — logind's own record of whether the session is locked stays
 truthful, and every trigger ends in the same locker. With no daemon running it
 calls `slock` directly instead, so the key never silently does nothing.
@@ -464,7 +489,7 @@ calls `slock` directly instead, so the key never silently does nothing.
 > **If the screen never locks on its own, the daemon is not running.** Check
 > with `pgrep -x xss-lock`. As with sxhkd, `install-suckless.sh` will not add
 > the launch line to an `autostart.sh` you already had — it prints the line
-> for you to paste. `Super` + `Escape` keeps working either way.
+> for you to paste. `Super` + `Shift` + `l` keeps working either way.
 
 ### Notifications
 
@@ -485,15 +510,15 @@ dunst keeps the last 20 (`history_length` in `config/dunst/dunstrc`).
 | `Super` + `e` | Thunar |
 
 Only the two daily drivers get a dedicated key — everything else is one
-`Mod` + `p` away through dmenu.
+`Mod` + `space` away through the launcher.
 
 ### Theming engine
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `w` | Pick a wallpaper from a dmenu list, then re-theme |
-| `Super` + `Shift` + `w` | Random wallpaper from the wallpaper dir, then re-theme |
-| `Super` + `Ctrl` + `w` | Theme menu — pick a static theme or `wallbash` |
+| `Super` + `Shift` + `w` | Pick a wallpaper from a dmenu list, then re-theme |
+| `Super` + `w` | Random wallpaper from the wallpaper dir, then re-theme |
+| `Super` + `Shift` + `t` | Theme menu — pick a static theme or `wallbash` |
 
 These were previously shipped commented out in `config.def.h` under `Mod` +
 `w`, needing a rebuild to enable. As sxhkd bindings they are live on install

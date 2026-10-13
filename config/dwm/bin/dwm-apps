@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# dwm-apps — launch an installed graphical application from a dmenu list.
+#
+# dmenu_run lists every executable on PATH, so `ls`, `sed` and a thousand
+# other tools sit next to the applications. This lists what rofi's drun mode
+# does instead: the applications that have a .desktop entry, by their display
+# name ("Firefox", "Files", "Visual Studio Code"), in the same order of
+# precedence as every other desktop's menu (XDG desktop-entry spec):
+#
+#   * entries come from <dir>/applications under $XDG_DATA_HOME, then each of
+#     $XDG_DATA_DIRS, then the two Flatpak export trees (a dwm session may
+#     not have run /etc/profile.d/flatpak.sh, which is what adds them);
+#   * the first file with a given desktop-id wins, so a copy in
+#     ~/.local/share/applications overrides or — with NoDisplay=true — hides
+#     a system one. The id is the path under applications/ with '/' -> '-';
+#   * NoDisplay, Hidden, OnlyShowIn/NotShowIn (against $XDG_CURRENT_DESKTOP,
+#     which a dwm session leaves unset) and a missing TryExec all hide it.
+#
+# Terminal=true entries (htop, vim) open in $TERMINAL, alacritty by default.
+# Two entries with the same name are told apart by their id.
+#
+# Arguments go to dmenu unchanged: dwm's Super+space passes -m <monitor> and
+# -fn <font>, exactly as it did for dmenu_run.
+#
+# DWM_APPS_EXTRA_DIRS replaces the Flatpak fallback list (colon-separated,
+# may be empty), for tests/dwm-apps.sh.
+#
+# usage: dwm-apps [dmenu options]
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+FLATPAK_DIRS="${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share:/var/lib/flatpak/exports/share"
+
+fail() {
+    red "dwm-apps: $1"
+    command -v notify-send >/dev/null 2>&1 && notify-send -u critical "dwm-apps" "$1"
+    exit 1
+}
+
+# data_dirs — the XDG data dirs in precedence order, one per line, deduped.
+data_dirs() {
+    local list
+    list="${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    list+=":${DWM_APPS_EXTRA_DIRS-$FLATPAK_DIRS}"
+    tr ':' '\n' <<<"$list" | awk 'NF && !seen[$0]++'
+}
+
+# desktop_args — for each .desktop file in precedence order, an awk variable
+# assignment naming its desktop-id followed by the file itself, NUL-separated.
+# A path containing '=' would itself read as an assignment, so it is skipped.
+desktop_args() {
+    local dir apps file rel
+    while IFS= read -r dir; do
+        apps="$dir/applications"
+        [[ -d "$apps" ]] || continue
+        while IFS= read -r -d '' file; do
+            [[ "$file" == *=* ]] && continue
+            rel="${file#"$apps"/}"
+            printf 'id=%s\0%s\0' "${rel//\//-}" "$file"
+        done < <(find -L "$apps" -name '*.desktop' -type f -print0 2>/dev/null | sort -z)
+    done < <(data_dirs)
+}
+
+# entries — one visible application per line, fields separated by US (\037):
+#   name, id, terminal, tryexec, path, exec
+# Not by tabs: tab is IFS whitespace to `read`, so an empty Terminal= or
+# TryExec= field would collapse and shift every field after it.
+# Only the [Desktop Entry] group is read; [Desktop Action ...] groups carry
+# their own Name/Exec and must not overwrite the main ones.
+entries() {
+    local -a args
+    mapfile -d '' args < <(desktop_args)
+    [[ ${#args[@]} -gt 0 ]] || return 0
+    awk -v desk="${XDG_CURRENT_DESKTOP:-}" '
+        function listed(field,    n, i, parts) {
+            n = split(field, parts, ";")
+            for (i = 1; i <= n; i++) if (parts[i] != "" && (parts[i] in mine)) return 1
+            return 0
+        }
+        function flush() {
+            if (cur == "" || (cur in seen)) return
+            seen[cur] = 1
+            if (f["Type"] != "Application" || f["Name"] == "" || f["Exec"] == "") return
+            if (f["NoDisplay"] == "true" || f["Hidden"] == "true") return
+            if (f["OnlyShowIn"] != "" && !listed(f["OnlyShowIn"])) return
+            if (f["NotShowIn"] != "" && listed(f["NotShowIn"])) return
+            printf "%s\037%s\037%s\037%s\037%s\037%s\n", f["Name"], cur, f["Terminal"], \
+                f["TryExec"], f["Path"], f["Exec"]
+        }
+        BEGIN { n = split(desk, d, ":"); for (i = 1; i <= n; i++) mine[d[i]] = 1 }
+        FNR == 1 { flush(); cur = id; split("", f); group = "" }
+        /^[ \t]*\[/ { group = $0; sub(/[ \t]+$/, "", group); next }
+        group == "[Desktop Entry]" && /=/ {
+            key = substr($0, 1, index($0, "=") - 1); gsub(/[ \t]+/, "", key)
+            val = substr($0, index($0, "=") + 1); sub(/^[ \t]+/, "", val); gsub(/\037/, " ", val)
+            f[key] = val
+        }
+        END { flush() }
+    ' "${args[@]}"
+}
+
+# tryexec_ok <value> — empty, or an executable path, or a name on PATH.
+tryexec_ok() {
+    [[ -z "$1" ]] && return 0
+    [[ "$1" == /* ]] && { [[ -x "$1" ]]; return; }
+    command -v -- "$1" >/dev/null 2>&1
+}
+
+# strip_codes <exec> — drops the spec's %-field codes (dmenu passes no files
+# or URLs), and turns the %% escape back into a literal %.
+strip_codes() {
+    local cmd="$1"
+    cmd="${cmd//%%/$'\001'}"
+    cmd="${cmd//%[fFuUdDnNickvm]/}"
+    printf '%s' "${cmd//$'\001'/%}"
+}
+
+declare -A ROW COUNT
+LABELS=()
+
+# build_menu — fills LABELS (sorted, what dmenu shows) and ROW (label -> line).
+build_menu() {
+    local -a lines=()
+    local line name id term tryexec workdir exec label
+    while IFS= read -r line; do
+        IFS=$'\037' read -r name id term tryexec workdir exec <<<"$line"
+        tryexec_ok "$tryexec" || continue
+        lines+=("$line")
+        COUNT[$name]=$((${COUNT[$name]:-0} + 1))
+    done < <(entries)
+    for line in "${lines[@]}"; do
+        IFS=$'\037' read -r name id term tryexec workdir exec <<<"$line"
+        label="$name"
+        [[ ${COUNT[$name]} -gt 1 ]] && label="$name (${id%.desktop})"
+        ROW[$label]="$line"
+        LABELS+=("$label")
+    done
+}
+
+command -v dmenu >/dev/null 2>&1 || fail "dmenu is not installed"
+build_menu
+[[ ${#LABELS[@]} -gt 0 ]] || fail "no applications found — no .desktop files under $(data_dirs | paste -sd' ')"
+
+choice="$(printf '%s\n' "${LABELS[@]}" | sort -f | dmenu -i "$@")" || exit 0
+[[ -n "$choice" && -n "${ROW[$choice]:-}" ]] || exit 0
+
+IFS=$'\037' read -r _ _ term _ workdir exec <<<"${ROW[$choice]}"
+cmd="$(strip_codes "$exec")"
+[[ -n "$workdir" && -d "$workdir" ]] && cd "$workdir"
+if [[ "$term" == "true" ]]; then
+    exec "${TERMINAL:-alacritty}" -e sh -c "$cmd"
+fi
+exec sh -c "$cmd"

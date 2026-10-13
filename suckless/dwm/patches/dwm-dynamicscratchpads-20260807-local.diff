@@ -43,8 +43,8 @@
 +	 * stashed ones back, or drop one out of the set. These stay in dwm
 +	 * rather than moving to sxhkd (sub-task 4's split) because they call
 +	 * dwm's own C functions — there is nothing for sxhkd to spawn. */
-+	{ MODKEY|ShiftMask,             XK_minus,  scratchpad_hide,   {0} },
-+	{ MODKEY,                       XK_minus,  scratchpad_show,   {0} },
++	{ MODKEY|ShiftMask,             XK_s,      scratchpad_hide,   {0} },
++	{ MODKEY,                       XK_s,      scratchpad_show,   {0} },
 +	{ MODKEY,                       XK_equal,  scratchpad_remove, {0} },
  	TAGKEYS(                        XK_1,                      0)
  	TAGKEYS(                        XK_2,                      1)

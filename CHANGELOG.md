@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **`Super` + `space` opens a launcher that lists applications, not commands.**
+  `dwm-apps` shows the installed `.desktop` entries by name, like rofi's drun,
+  instead of `dmenu_run`'s every binary on `PATH`. It hides entries marked
+  `NoDisplay` or `Hidden` and opens `Terminal=true` apps in alacritty. A
+  `dots-st.desktop` keeps the st fallback terminal reachable from it.
+
 - **The ly login screen follows the theme.** Its border takes the console
   colour nearest the active static theme's accent (the same accent as dwm's
   focused border — a Linux console has 16 colours, so a theme's exact hex
@@ -27,6 +33,16 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   login-theme` applies it by hand; `dots uninstall` restores ly's own values.
 
 ### Changed
+
+- **Keybindings remapped.** Terminal `Super` + `Return` (zoom moves to
+  `Shift` + `Return`), close window `Super` + `Shift` + `q`, quit dwm
+  `Super` + `Shift` + `Escape`, layout toggle `Super` + `Ctrl` + `space`,
+  scratchpad `Super` + `s` / `Shift` + `s`, lock `Super` + `Shift` + `l`,
+  wallpaper picker `Super` + `Shift` + `w` (random is now `Super` + `w`), theme
+  menu `Super` + `Shift` + `t`. New: `Super` + `p` drags a region to the
+  clipboard, and `Super` + `Alt` + `p` copies the whole screen to the clipboard
+  and saves it as a file. An existing install gets the dwm half on its next
+  `dots update`, followed by a logout.
 
 - **Every keybinding is on Super.** dwm's `MODKEY` is now `Mod4Mask`, so the
   window-management keys moved from Alt to Super (`Super` + `p`, `Super` +

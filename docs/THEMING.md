@@ -96,8 +96,8 @@ scripts/theme/reload.sh        # re-signal everything, no regen (no subcommand)
 Wallpapers come from `wallpapers/` in your pictures folder (`xdg-user-dir PICTURES`, so a
 localised or moved one is honoured; else `~/Pictures`); override with
 `DOTS_WALLPAPER_DIR`. The default folder is created on first use and seeded
-with the generated default wallpaper below, so `Super` + `w` always has
-something to offer. Every failure is also a notification, since the keys run
+with the generated default wallpaper below, so the picker (`Super` +
+`Shift` + `w`) always has something to offer. Every failure is also a notification, since the keys run
 it through sxhkd, which discards error output.
 
 ### The generated default wallpaper
@@ -231,7 +231,7 @@ predates the template: nothing would have backed the file up first. The
 installer claims an engine-written `~/.gtkrc-2.0` for uninstall even when it
 finds one already there, for the same reason.
 
-Keybinds (`Super` + `w`, `Super` + `Shift` + `w`, `Super` + `Ctrl` + `w`) live
+Keybinds (`Super` + `Shift` + `w` pick, `Super` + `w` random, `Super` + `Shift` + `t` theme) live
 in `config/sxhkd/sxhkdrc` — see `KEYBINDINGS.md`. No dwm rebuild is needed;
 they work as soon as sxhkd is installed and running.
 
@@ -468,7 +468,7 @@ Check with `xrdb -query | grep Xcursor`, or `dots doctor`.
 - `wallpapers/` — optional
 
 Four ship: `dark` (Catppuccin Mocha), `gruvbox`, `nord` and `tokyo-night`.
-Switch with `theme-apply.sh <name>`, or `Super+Ctrl+w` for the dmenu picker.
+Switch with `theme-apply.sh <name>`, or `Super+Shift+t` for the dmenu picker.
 
 ### What a switch changes
 
@@ -507,7 +507,7 @@ bits (bold, underline, …), not alpha.
 
 It runs from the installer's services stage (the active theme, else `dark`) and
 from every `theme-apply.sh <name>`. The file is root's, so it needs sudo: in a
-terminal you are asked, and from `Super+Ctrl+w` — where nobody can type a
+terminal you are asked, and from `Super+Shift+t` — where nobody can type a
 password — it tries `sudo -n` and otherwise leaves ly alone and sends a
 notification naming the command to run. Wallbash palettes are never written:
 each wallpaper change would be another root write.

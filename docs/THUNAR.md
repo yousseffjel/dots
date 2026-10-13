@@ -15,6 +15,7 @@ Thunar-specific template).
 | `config/xfce4/helpers.rc` | `~/.config/xfce4/helpers.rc` | `xfce4-mime-settings` |
 | `config/mimeapps.list` | `~/.config/mimeapps.list` | `xdg-mime default`, GIO, Thunar's "Set Default" |
 | `config/applications/dots-nvim.desktop` | `~/.local/share/applications/` | — |
+| `config/applications/dots-st.desktop` | `~/.local/share/applications/` | — (st fallback for the `Super+space` launcher) |
 
 All of these are **copied by the installer, never symlinked.** Every one of
 them is rewritten in place by the program that owns it, and a symlink would
@@ -114,7 +115,7 @@ needs an explicit `sh -c` wrapper.
 | Set as Wallpaper | image files | `sh -c 'exec "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-wallpaper" "$1"' _ %f` |
 
 "Set as Wallpaper" runs the full theming pipeline, so picking an image in
-Thunar re-themes the whole desktop exactly as `Super+w` does.
+Thunar re-themes the whole desktop exactly as picking one with `Super+Shift+w` does.
 
 ## Default applications
 

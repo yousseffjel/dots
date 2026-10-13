@@ -16,6 +16,9 @@ install_fake_alacritty() {
     cat >"$TMP/fakebin/alacritty" <<EOF
 #!/bin/sh
 printf '%s\n' "\$*" >>"$TMP/alacritty.args"
+# Bare termcmd (Super+Return) only needs to be seen running; a window with
+# the dropterm class would be adopted as the drop-down terminal.
+[ -n "\$*" ] || exit 0
 exec xterm -class dots-dropterm -title "dwm-runtime-$$-dropterm" -e sleep 300
 EOF
     chmod +x "$TMP/fakebin/alacritty"

@@ -64,14 +64,13 @@ click on a tag label applies that tag to the focused window.
 click on a tag label adds/removes that tag to/from the focused window.
 .SS Keyboard commands
 .TP
-.B Mod4\-Shift\-Return
-Start
-.BR st(1).
+.B Mod4\-Return
+Start the terminal (alacritty).
 .TP
-.B Mod4\-p
-Spawn
+.B Mod4\-space
+Spawn dwm\-apps, a
 .BR dmenu(1)
-for launching other programs.
+list of the installed graphical applications.
 .TP
 .B Mod4\-,
 Focus previous screen, if any.
@@ -97,7 +96,7 @@ Sets floating layout.
 .B Mod4\-m
 Sets monocle layout.
 .TP
-.B Mod4\-space
+.B Mod4\-Control\-space
 Toggles between current and previous layout.
 .TP
 .B Mod4\-j
@@ -118,10 +117,10 @@ Increase master area size.
 .B Mod4\-h
 Decrease master area size.
 .TP
-.B Mod4\-Return
+.B Mod4\-Shift\-Return
 Zooms/cycles focused window to/from master area (tiled layouts only).
 .TP
-.B Mod4\-Shift\-c
+.B Mod4\-Shift\-q
 Close focused window.
 .TP
 .B Mod4\-Shift\-f
@@ -151,7 +150,16 @@ View all windows with any tag.
 .B Mod4\-Control\-[1..n]
 Add/remove all windows with nth tag to/from the view.
 .TP
-.B Mod4\-Shift\-q
+.B Mod4\-Shift\-s
+Stash the focused window in the scratchpad.
+.TP
+.B Mod4\-s
+Show the next stashed scratchpad window, or stash the one showing.
+.TP
+.B Mod4\-=
+Remove the focused window from the scratchpad.
+.TP
+.B Mod4\-Shift\-Escape
 Quit dwm.
 .TP
 .B Mod4\-Control\-Shift\-q

@@ -74,7 +74,7 @@ preserve_layout() {
     sleep 0.2
     s="$(spawn_win)"
     sleep 0.2
-    xdotool key --clearmodifiers super+shift+minus
+    xdotool key --clearmodifiers super+shift+s
     xdotool key --clearmodifiers super+4
     sleep 0.2
     f="$(spawn_win)"
@@ -104,18 +104,18 @@ preserve_still_usable() {
     else
         fail "A does not show on tag 3 after the restart"
     fi
-    # Super+minus cycles every stashed window, and an earlier section may have
+    # Super+s cycles every stashed window, and an earlier section may have
     # left another one (the dropterm) ahead of S: a press shows the next one,
     # the press after re-stashes it. Four presses reach S from any position.
     for _ in 1 2 3 4; do
-        xdotool key --clearmodifiers super+minus
+        xdotool key --clearmodifiers super+s
         sleep 0.3
         is_shown "$P_S" && break
     done
     if is_shown "$P_S"; then
-        pass "the stash still works: Super+minus brings S back"
+        pass "the stash still works: Super+s brings S back"
     else
-        fail "Super+minus did not bring the stashed S back after the restart"
+        fail "Super+s did not bring the stashed S back after the restart"
     fi
 }
 

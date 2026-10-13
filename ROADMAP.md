@@ -354,7 +354,7 @@ mpv                       # media player
 | Key | Action |
 |---|---|
 | `Mod+Return` | terminal |
-| ~~`Mod+d` rofi drun~~ | ✅ done — `Mod+p` runs `dmenu_run` (`suckless/dwm/config.def.h:92`) |
+| ~~`Mod+d` rofi drun~~ | ✅ done — `Mod+space` runs `dwm-apps`, a drun-style `.desktop` list in dmenu (2026-10-13; `Mod+p` ran `dmenu_run` before) |
 | ~~`Mod+x` powermenu~~ | ✅ done — `Super+Shift+x` runs `dwm-powermenu` (`suckless/dwm/config.def.h:132`) |
 | ~~`Mod+v` clipboard menu~~ | ✅ done — `Super+v` runs `dwm-clipmenu` (`suckless/dwm/config.def.h:133`) |
 | `Mod+l` (or dedicated) | lock screen |

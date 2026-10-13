@@ -67,7 +67,7 @@ partial uninstall is a normal, supported outcome, not an error.
 5. **App configs.** What `install-restore-apps.sh` deployed for the file
    manager: `~/.config/Thunar/{thunarrc,uca.xml}`, `~/.config/xfce4/
    helpers.rc`, `~/.config/mimeapps.list`, and
-   `~/.local/share/applications/dots-nvim.desktop`,
+   `~/.local/share/applications/dots-{nvim,st}.desktop`,
    `~/.config/systemd/user/dots-session.target`, plus the
    `mimeinfo.cache` next to it when the installer's desktop-database refresh
    is what created it. Same copied-file,

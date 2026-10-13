@@ -13,8 +13,9 @@
 #   dwm-screenshot --region               region, then ask where it goes
 #   dwm-screenshot --region --clipboard   no prompts at all
 #
-# Bound to Print / Shift+Print in config/sxhkd/sxhkdrc. Nothing here needs a
-# dwm rebuild: Print is not in dwm's keys[], so sxhkd may grab it freely.
+# Bound to Print, Shift+Print, Super+p (region -> clipboard) and Super+Alt+p
+# (full -> both) in config/sxhkd/sxhkdrc. Nothing here needs a dwm rebuild:
+# none of those chords is in dwm's keys[], so sxhkd may grab them freely.
 #
 # flameshot was rejected for this job because it is Qt, and the desktop is
 # GTK-only (roster Epic locked decision 3).

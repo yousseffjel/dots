@@ -8,7 +8,7 @@
 #
 # What is asserted:
 #   * both sides parse to a non-empty chord list containing a known chord
-#     (dwm super+p, sxhkd super+w) — an empty parse must not read as "no
+#     (dwm super+j, sxhkd super+w) — an empty parse must not read as "no
 #     overlap";
 #   * MODKEY is resolved from its #define and TAGKEYS() expands to its four
 #     chords, so a change to either is followed rather than assumed;
@@ -128,8 +128,8 @@ check() {
 blue "==> parse both grabbers"
 dwm_chords "$CONFIG" | sort -u >"$TMP/dwm"
 sxhkd_chords "$SXHKDRC" | sort -u >"$TMP/sxhkd"
-check "dwm: MODKEY+p parsed ($(wc -l <"$TMP/dwm") chords)" \
-    grep -qx "$(norm_chord "$(mask_names MODKEY)" p)" "$TMP/dwm"
+check "dwm: MODKEY+j parsed ($(wc -l <"$TMP/dwm") chords)" \
+    grep -qx "$(norm_chord "$(mask_names MODKEY)" j)" "$TMP/dwm"
 check "dwm: TAGKEYS expanded (ctrl+shift+MODKEY+9)" \
     grep -qx "$(norm_chord ctrl shift "$(mask_names MODKEY)" 9)" "$TMP/dwm"
 check "sxhkd: super+w parsed ($(wc -l <"$TMP/sxhkd") chords)" grep -qx super+w "$TMP/sxhkd"

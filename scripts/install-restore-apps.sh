@@ -202,6 +202,8 @@ restore_apps() {
     deploy_app_file "$DOTS_DIR/config/mimeapps.list" "$conf_home/mimeapps.list"
     deploy_app_file "$DOTS_DIR/config/applications/dots-nvim.desktop" \
         "$data_home/applications/dots-nvim.desktop"
+    deploy_app_file "$DOTS_DIR/config/applications/dots-st.desktop" \
+        "$data_home/applications/dots-st.desktop"
     # Started by ~/.xinitrc so xdg-desktop-portal can start (see the unit).
     deploy_app_file "$DOTS_DIR/config/systemd/user/dots-session.target" \
         "$conf_home/systemd/user/dots-session.target"

@@ -11,6 +11,14 @@ xresources patch onward.
 2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
 are mutually exclusive — see that entry.
 
+**Chords are config, not patch behaviour.** The 2026-10-13 keymap moved
+several `keys[]` entries (scratchpads to `Super+s`/`Super+Shift+s`, quit to
+`Super+Shift+Escape`, killclient to `Super+Shift+q`, the layout toggle to
+`Super+Ctrl+space`). The two `*-local.diff` records that add a binding were
+updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
+the chords they were published with in their context lines, because they are
+records of what upstream shipped, not of this tree's keymap.
+
 ## dwm-preservepertag-20261012-local.diff
 
 **Source**: written for this tree; extends preserveonrestart (below) to the
@@ -120,7 +128,7 @@ otherwise move it to the focused monitor's view, re-place it top-centre
 and makes it floating without a `rules[]` entry.
 
 **Interactions**: while stashed it is an ordinary scratchpad client, so
-`Super+minus` cycles it with the rest and preserveonrestart keeps it stashed
+`Super+s` cycles it with the rest and preserveonrestart keeps it stashed
 across a restart (diff above — apply that one first; this diff's `manage()`
 hunk reads its `loadclientinfo()` return value). Since 2026-10-12 dwm's
 `MODKEY` is Super too, so dwm and `config/sxhkd/sxhkdrc` share one key space;

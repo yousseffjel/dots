@@ -39,7 +39,7 @@ session_autostart_report_more() {
     session_report_daemon "$autostart" dwm-lock \
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
         'without it the screen never locks on idle or on suspend.' \
-        'Super+Escape still works — it falls back to calling slock directly.'
+        'Super+Shift+l still works — it falls back to calling slock directly.'
 
     session_report_daemon "$autostart" dwm-nightlight \
         'add this line yourself:  command -v gammastep >/dev/null && "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &' \
