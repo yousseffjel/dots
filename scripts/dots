@@ -40,6 +40,7 @@ SUBCOMMANDS=(
     "wallpaper:scripts/theme/wallpaper.sh:set the wallpaper and re-theme from it"
     "version:scripts/version.sh:print repo, installed and component versions"
     "doctor:scripts/doctor.sh:check the install and the running desktop (read-only)"
+    "drivers:scripts/drivers.sh:install what this hardware needs (video decoding, firmware, microcode)"
     "update:scripts/update.sh:pull the repo and re-run the installer (migrations, packages, rebuild)"
     "login-theme:scripts/theme/ly-theme.sh:theme the ly login screen from a static theme (sudo)"
     "uninstall:scripts/uninstall.sh:reverse the install, manifest-driven"

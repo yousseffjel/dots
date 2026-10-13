@@ -5,11 +5,13 @@
 # DRY_RUN, SUDO, global_fn.sh (confirm, manifest_rows) and the colour helpers.
 #
 # Two functions, because they must straddle uninstall_packages:
-#   uninstall_repo_swaps  BEFORE it. Swaps RPM Fusion's ffmpeg back to
-#                         Fedora's ffmpeg-free. Removing ffmpeg instead would
-#                         take everything that depends on it with it, and
-#                         ffmpeg-free is then removed by uninstall_packages if
-#                         this installer put it there in the first place.
+#   uninstall_repo_swaps  BEFORE it. Undoes every REPO swap row: RPM Fusion's
+#                         ffmpeg back to Fedora's ffmpeg-free, and the AMD
+#                         mesa-va-drivers swap drivers-gpu.sh makes up to f43.
+#                         Removing ffmpeg instead would take everything that
+#                         depends on it with it, and ffmpeg-free is then
+#                         removed by uninstall_packages if this installer put
+#                         it there in the first place.
 #   uninstall_repos       AFTER it. A repo is removed only while nothing
 #                         installed still comes from it, the same rule
 #                         uninstall-flatpak.sh applies to Flathub. With our

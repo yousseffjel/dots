@@ -148,8 +148,8 @@ package, build or shipped file behind it. Things worth knowing:
   `alacritty --title nvim -e nvim %F`.
 - **HDR video.** Most HDR releases are 10-bit HEVC, which Fedora's own
   `ffmpeg-free` cannot decode at all. The installer enables RPM Fusion free
-  and nonfree, swaps in RPM Fusion's `ffmpeg`, and installs
-  `intel-media-driver` for VA-API decoding on Intel GPUs. mpv's `gpu-next`
+  and nonfree, swaps in RPM Fusion's `ffmpeg`, and installs the VA-API
+  decoding driver for your GPU (`docs/HARDWARE.md`). mpv's `gpu-next`
   output then tone-maps HDR to SDR. X11 has no HDR output path, so no player
   on this desktop can send real HDR to the monitor.
 - **nsxiv opens what you picked.** `nsxiv.desktop` runs `nsxiv %F`, so

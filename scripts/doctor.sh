@@ -91,6 +91,8 @@ source "$SCRIPT_DIR/doctor-daemons.sh"
 source "$SCRIPT_DIR/doctor-portal.sh"
 # shellcheck source=doctor-notify.sh
 source "$SCRIPT_DIR/doctor-notify.sh"
+# shellcheck source=doctor-drivers.sh
+source "$SCRIPT_DIR/doctor-drivers.sh"
 
 check_install
 check_packages
@@ -101,6 +103,7 @@ check_portal
 check_gtk3_theme
 check_flatpak
 check_system
+check_drivers
 
 if [[ "$FORMAT" == human ]]; then
     echo

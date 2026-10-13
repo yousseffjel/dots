@@ -17,8 +17,9 @@
 #   * RPM Fusion free + nonfree, for codecs. Fedora's ffmpeg-free has no HEVC
 #     decoder at all and decodes H.264 only through openh264, so most HDR
 #     episodes (10-bit HEVC) would not open in mpv. The fix is RPM Fusion's
-#     documented `dnf swap ffmpeg-free ffmpeg`, plus intel-media-driver
-#     (nonfree) for VA-API hardware decoding on Intel GPUs.
+#     documented `dnf swap ffmpeg-free ffmpeg`. The GPU's own VA-API driver
+#     (intel-media-driver, mesa-va-drivers-freeworld, ...) is chosen per
+#     machine by drivers-lib.sh, sourced below — see `dots drivers`.
 #
 # Every change gets a REPO row only when THIS run made it, so `dots
 # uninstall` reverts what we did and nothing that was already there:
@@ -30,6 +31,10 @@
 SUBLIME_REPO_FILE="${SUBLIME_REPO_FILE:-/etc/yum.repos.d/sublime-text.repo}"
 SUBLIME_KEY_URL="https://download.sublimetext.com/sublimehq-rpm-pub.gpg"
 RPMFUSION_MIRROR="https://mirrors.rpmfusion.org"
+
+# Its own directory, not the caller's SCRIPT_DIR: tests source this file too.
+# shellcheck source=drivers-lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/drivers-lib.sh"
 
 # repos_install_pkg <pkg> <what its absence costs> — one package from a repo
 # enabled here. A failure goes to the yellow tier of the closing summary.
@@ -117,16 +122,19 @@ repos_swap_ffmpeg() {
 repos_add_codecs() {
     blue "==> RPM Fusion codecs (HEVC/HDR video in mpv)"
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would enable RPM Fusion free + nonfree, swap ffmpeg-free -> ffmpeg, install intel-media-driver"
+        blue "  (dry-run) would enable RPM Fusion free + nonfree and swap ffmpeg-free -> ffmpeg"
         return 0
     fi
     repos_add_rpmfusion || return 0
     repos_swap_ffmpeg
-    repos_install_pkg intel-media-driver \
-        "no VA-API hardware decoding on Intel: mpv decodes HEVC on the CPU" || true
 }
 
 repos_install() {
     repos_add_sublime
     repos_add_codecs
+    # After RPM Fusion, which most of the video drivers come from. The same
+    # code as `dots drivers`, run in-process so its failures land in this
+    # stage's closing summary. A dry run enabled no repository, so the
+    # drivers must not report RPM Fusion as missing on its account.
+    DRIVERS_ASSUME_RPMFUSION=$DRY_RUN drivers_install
 }
