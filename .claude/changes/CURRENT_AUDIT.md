@@ -2159,3 +2159,21 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - **Verified on the VM the same day**: the full re-run finished, kept the
   wallbash palette (`applying the active theme (--wallbash)`), and the next
   `dots update` said "already up to date".
+
+## 2026-10-13 — default-apps merged
+
+- **`default-apps` merged** (`891e8a7`, fast-forward). Defaults are now:
+  images → nsxiv (vendored v34 under `suckless/nsxiv`, Fedora has no package),
+  video/audio → mpv (`config/mpv/mpv.conf`, gpu-next HDR tone-mapping), and
+  text/code → Sublime Text from Sublime HQ's repo, with nvim as the fallback.
+  Firefox and file-roller are unchanged.
+- **Two new third-party repos, both user-authorised (rule 4)**: Sublime HQ, and
+  RPM Fusion free + nonfree. RPM Fusion provides the `ffmpeg-free` → `ffmpeg`
+  swap (Fedora's build has no HEVC decoder) and `intel-media-driver`. REPO
+  rows are reverted by `uninstall-repos.sh`, which fails closed. nsxiv is a
+  recorded exception to rule 4's no-built-vendoring line.
+- Existing installs get the new `mimeapps.list` only while it is an unedited
+  copy (`deploy_app_file` + `file_matches_history`, now in `global_fn.sh`).
+- Suite 60/60, lint clean, 13 mutations caught, reviewer READY first round.
+- **Not yet on the VM** (SSH key refused this session): `dots update`, `gio
+  mime` checks, HEVC playback with vaapi, `dots uninstall --dry-run`.
