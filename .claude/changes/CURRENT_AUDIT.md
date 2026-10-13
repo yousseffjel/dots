@@ -2094,3 +2094,21 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   found it current (`already has theme dark`), so the idempotence path also
   ran live. Super keys, big clock and hidden version were already verified.
   Nothing from today is left unverified on the VM.
+
+## 2026-10-13 — keybind-remap merged
+
+- **`keybind-remap` merged** (`b0b5138`, fast-forward). The user's own key
+  list, laid over the existing map:
+  - dwm: Super+space launcher, Super+Return terminal, Super+Shift+q close
+    window, Super+s / Super+Shift+s scratchpad.
+  - sxhkd: Super+Shift+w picker, Super+Shift+t theme, Super+Shift+l lock,
+    Super+p region to clipboard, Super+Alt+p full screen to clipboard + file.
+  - Displaced keys: quit to Super+Shift+Escape, random wallpaper to Super+w,
+    zoom to Super+Shift+Return, layout toggle to Super+Ctrl+space.
+- **New `dwm-apps`**: a drun-style dmenu list of `.desktop` entries that
+  replaces dmenu_run (which no longer has a key). `dots-st.desktop` keeps the
+  no-GL fallback terminal reachable.
+- Suite 54/54. dwm-runtime under Xvfb now checks that Super+Shift+q closes
+  the window without ending dwm. Reviewer: WARN, then READY.
+- **Not yet on the VM**: `dots update` should refresh config.h; then log out
+  and back in and press each new chord.
