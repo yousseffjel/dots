@@ -2112,3 +2112,23 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   the window without ending dwm. Reviewer: WARN, then READY.
 - **Not yet on the VM**: `dots update` should refresh config.h; then log out
   and back in and press each new chord.
+
+## 2026-10-13 — wallpaper-collection merged
+
+- **`wallpaper-collection` merged** (`ee86306`, fast-forward). The restore
+  stage shallow-clones github.com/yousseffjel/wallpaper (189 images, cleaned
+  and renamed this session) into `<pictures>/wallpapers/dots/`: one WALLPAPERS
+  row, fast-forwarded on every re-run (so `dots update`), a foreign directory
+  left alone, `DOTS_WALLPAPER_REPO=` skips it. ~400 MB download, 773 MB on
+  disk (measured). Uninstall removes it only while git proves it unchanged.
+- A new install opens on a random collection image (`dots wallpaper
+  --initial`, only on the run that made the clone). `dots wallpaper
+  --login-random on` picks a new one at every login, from `~/.xinitrc`;
+  off by default.
+- colorgen.sh analyses a ≤1920x1080 copy (user-approved): 61.7 s → 3.7 s on
+  the 16K image, palettes within a few points.
+- Suite 55/55, lint clean, mutations 10/10, one real GitHub clone in a sandbox.
+  Reviewer READY first round.
+- **Not yet on the VM**: `git pull` + `dots update` (clones, and switches to a
+  random wallpaper once), then `--login-random on` + paste the three printed
+  `.xinitrc` lines, and log in twice.
