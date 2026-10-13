@@ -18,6 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **A battery block for laptops.** The bar shows `BAT 84%`, with `+` while
+  charging, and warns once at 15 % and once (critical) at 5 % on battery.
+  Left-click shows the time left. It is invisible on a desktop. No new
+  daemon: the block's own 60-second refresh does the checking.
 - **Laptops are supported, and dots tells them apart from desktops.**
   `dots drivers` and `dots doctor` now say whether this machine is a laptop
   or a desktop, from the firmware's chassis type or a system battery. On a

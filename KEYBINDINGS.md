@@ -223,7 +223,7 @@ returns to the tag you were on before (`preservepertag`).
 
 ## Status bar
 
-Twelve blocks, left to right, then dwm's native systray furthest right. Each is a
+Thirteen blocks, left to right, then dwm's native systray furthest right. Each is a
 script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 `make install-scripts` and listed in `suckless/dwmblocks/blocks.def.h`.
 
@@ -240,7 +240,8 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
 | 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
 | 11 | `DND` | Shown **only** while notifications are paused; otherwise empty and takes no space | **on change only** | left → resume notifications |
-| 12 | `` | Day, date and time | 60 s | left → this month's calendar |
+| 12 | `BAT` | Battery percent, `+` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
+| 13 | `` | Day, date and time | 60 s | left → this month's calendar |
 
 **The bar behaves like the keys** (2026-10-07). A click or scroll that changes
 a level shows the same `dwm-osd` pop-up as the volume, mic and brightness

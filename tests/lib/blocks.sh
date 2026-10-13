@@ -20,8 +20,8 @@ LOG="$SB/calls.log"
 export LOG
 DWM_BIN="$SB/home/.config/dwm/bin"
 
-seal_path "$SB/real" cat sed head awk grep mkdir sleep
-mkdir -p "$SB/fake" "$SB/home/.cache" "$DWM_BIN" "$SB/proc" "$SB/hwmon"
+seal_path "$SB/real" cat sed head awk grep mkdir sleep rm
+mkdir -p "$SB/fake" "$SB/home/.cache" "$DWM_BIN" "$SB/proc" "$SB/hwmon" "$SB/ps"
 # timeout is a pass-through so the real one's process-group handling cannot
 # interfere; that a block wraps its daemon calls in it is the point.
 # shellcheck disable=SC2016
@@ -47,15 +47,17 @@ check() {
 }
 
 # block <name> [button] — runs a block as dwmblocks does (BUTTON set on a
-# click), log cleared first. $OUT is its output with the status2d colour
+# click), log cleared first. A block that dies is not an abort here: under
+# `set -e` the bare assignment used to end the whole test with no message,
+# so the checks after it — which say what is wrong — never ran. $OUT is its output with the status2d colour
 # escapes stripped, $RAW the output as printed.
 block() {
     : >"$LOG"
     RAW="$(env -i HOME="$SB/home" XDG_CACHE_HOME="$SB/home/.cache" \
         XDG_CONFIG_HOME="$SB/home/.config" LOG="$LOG" \
-        DOTS_PROC_ROOT="$SB/proc" DOTS_HWMON_ROOT="$SB/hwmon" \
+        DOTS_PROC_ROOT="$SB/proc" DOTS_HWMON_ROOT="$SB/hwmon" DOTS_POWER_SUPPLY_ROOT="$SB/ps" \
         ${2:+BUTTON="$2"} PATH="$SB/fake:$SB/real" \
-        /bin/sh "$BLOCKS_DIR/$1" 2>/dev/null)"
+        /bin/sh "$BLOCKS_DIR/$1" 2>/dev/null || true)"
     # shellcheck disable=SC2001 # [^^]* has no ${var//} equivalent
     OUT="$(sed 's/\^[^^]*\^//g' <<<"$RAW")"
 }

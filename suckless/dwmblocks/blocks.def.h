@@ -27,6 +27,9 @@
 // Signal 11 belongs to dwm-net (added 2026-10-05, after the clock took 10),
 // so it sits out of order in the column: the number only has to be unique.
 //
+// dwm-battery (13, scope-h 2026-10-13) prints nothing without a system
+// battery, so on a desktop it takes no space and adds no delimiter.
+//
 // SIGNALS ARE POSITION-INDEPENDENT BUT NOT FREE TO RENUMBER. Anything that
 // sends SIGRTMIN+n has to move with the number here, so grep for `RTMIN+` in
 // config/ before touching this column.
@@ -53,6 +56,8 @@ static const Block blocks[] = {
 	{"",		"$HOME/.local/bin/dwm-bluetooth",		30,			9},
 
 	{"",		"$HOME/.local/bin/dwm-dnd",			0,			12},
+
+	{"",		"$HOME/.local/bin/dwm-battery",			60,			13},
 
 	{"",		"$HOME/.local/bin/dwm-clock",			60,			10},
 };

@@ -1,0 +1,163 @@
+#!/bin/sh
+# Battery charge, for a laptop. Prints NOTHING on a machine without a system
+# battery, so on a desktop the block takes no space (dwmblocks appends its
+# delimiter only after a block that printed text) — scope-h: a desktop's bar
+# is unchanged.
+#
+# "System battery" means a power_supply of type Battery whose scope is not
+# Device: a wireless mouse or headset battery is a power_supply too, and the
+# kernel marks it scope=Device. The same rule as drivers_system_battery in
+# scripts/drivers-detect.sh, which decides laptop vs desktop.
+#
+# Two or more batteries (a ThinkPad's BAT0 + BAT1) are one figure: summed
+# energy_now/energy_full (uWh), else summed charge_now/charge_full (uAh), else
+# the average of each one's `capacity` when they report different units.
+#
+# Shows `BAT 85%`, with `+` while charging. While DISCHARGING the label turns
+# STATUS_WARN at LOW and STATUS_URGENT at CRIT, and a notification goes out
+# once per threshold crossed: normal urgency at LOW, critical at CRIT. The
+# last one sent is kept in $XDG_STATE_HOME/dots/battery-alert, so the 60 s
+# re-runs do not repeat it; charging, or climbing back above LOW, re-arms it.
+# No daemon: this block's own timer is the poll (rule 6 would otherwise ask
+# for an autostart entry and a session-end stop).
+#
+# Left-click: a notification with the state, the percent and, when the kernel
+# reports a rate (power_now / current_now), the time left or to full.
+#
+# DOTS_POWER_SUPPLY_ROOT overrides /sys/class/power_supply, for
+# tests/blocks-battery.sh only.
+
+root="${DOTS_POWER_SUPPLY_ROOT:-/sys/class/power_supply}"
+LOW=15
+CRIT=5
+
+# Shared palette, with a fallback so the block still renders if it is missing.
+colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
+[ -r "$colors" ] || colors="${0%/*}/dwm-colors"
+[ -r "$colors" ] || colors="$HOME/.local/bin/dwm-colors"
+[ -r "$colors" ] && . "$colors"
+: "${STATUS_ACCENT2:=^c#7ebd6f^}"
+: "${STATUS_WARN:=^c#d9a05b^}"
+: "${STATUS_URGENT:=^c#cc5555^}"
+: "${STATUS_RESET:=^d^}"
+
+# num <file> — its integer content, or 0 when absent, empty or not a number:
+# one odd attribute (a battery mid-hotplug) must not abort the arithmetic
+# below, which would blank the block with no message.
+num() {
+	v=$(cat "$1" 2>/dev/null)
+	case "$v" in
+	'' | *[!0-9]*) echo 0 ;;
+	*) echo "$v" ;;
+	esac
+}
+
+n=0 ne=0 nc=0 capsum=0
+e_now=0 e_full=0 power=0 c_now=0 c_full=0 current=0
+charging=0 discharging=0
+for ps in "$root"/*; do
+	[ "$(cat "$ps/type" 2>/dev/null)" = Battery ] || continue
+	[ "$(cat "$ps/scope" 2>/dev/null)" = Device ] && continue
+	n=$((n + 1))
+	capsum=$((capsum + $(num "$ps/capacity")))
+	case "$(cat "$ps/status" 2>/dev/null)" in
+	Charging) charging=1 ;;
+	Discharging) discharging=1 ;;
+	esac
+	if [ -r "$ps/energy_now" ] && [ -r "$ps/energy_full" ]; then
+		ne=$((ne + 1))
+		e_now=$((e_now + $(num "$ps/energy_now")))
+		e_full=$((e_full + $(num "$ps/energy_full")))
+		power=$((power + $(num "$ps/power_now")))
+	elif [ -r "$ps/charge_now" ] && [ -r "$ps/charge_full" ]; then
+		nc=$((nc + 1))
+		c_now=$((c_now + $(num "$ps/charge_now")))
+		c_full=$((c_full + $(num "$ps/charge_full")))
+		current=$((current + $(num "$ps/current_now")))
+	fi
+done
+[ "$n" -gt 0 ] || exit 0
+
+# now/full/rate in one unit, or none when the batteries disagree on units.
+now=0 full=0 rate=0
+if [ "$ne" -eq "$n" ] && [ "$e_full" -gt 0 ]; then
+	now=$e_now full=$e_full rate=$power
+elif [ "$nc" -eq "$n" ] && [ "$c_full" -gt 0 ]; then
+	now=$c_now full=$c_full rate=$current
+fi
+if [ "$full" -gt 0 ]; then
+	pct=$(((now * 100 + full / 2) / full))
+else
+	pct=$((capsum / n))
+fi
+[ "$pct" -gt 100 ] && pct=100
+
+# Charging wins over discharging: with two batteries, one may still be
+# draining while the charger fills the other.
+if [ "$charging" -eq 1 ]; then
+	state=charging
+elif [ "$discharging" -eq 1 ]; then
+	state=discharging
+else
+	state=full
+fi
+
+# hh:mm until empty (discharging) or full (charging), or nothing.
+eta() {
+	[ "$rate" -gt 0 ] && [ "$full" -gt 0 ] || return 0
+	case "$state" in
+	discharging) left=$now ;;
+	charging) left=$((full - now)) ;;
+	*) return 0 ;;
+	esac
+	mins=$((left * 60 / rate))
+	printf '%d:%02d' $((mins / 60)) $((mins % 60))
+}
+
+# Threshold alerts — see the header. Ranks: none 0, low 1, critical 2.
+alert() {
+	dir="${XDG_STATE_HOME:-$HOME/.local/state}/dots"
+	file="$dir/battery-alert"
+	last=$(cat "$file" 2>/dev/null)
+	level=""
+	if [ "$state" = discharging ]; then
+		if [ "$pct" -le "$CRIT" ]; then level=critical; elif [ "$pct" -le "$LOW" ]; then level=low; fi
+	fi
+	if [ -z "$level" ]; then
+		[ -n "$last" ] && rm -f "$file"
+		return 0
+	fi
+	[ "$level" = "$last" ] && return 0
+	[ "$level" = low ] && [ "$last" = critical ] && return 0
+	mkdir -p "$dir" && printf '%s\n' "$level" >"$file"
+	command -v notify-send >/dev/null 2>&1 || return 0
+	if [ "$level" = critical ]; then
+		notify-send -u critical -a dots -h string:x-dunst-stack-tag:battery \
+			"Battery critical" "$pct% left — plug in the charger now" >/dev/null 2>&1 &
+	else
+		notify-send -u normal -a dots -h string:x-dunst-stack-tag:battery \
+			"Battery low" "$pct% left" >/dev/null 2>&1 &
+	fi
+}
+alert
+
+case "$BUTTON" in
+1)
+	t=$(eta)
+	case "$state" in
+	charging) body="Charging, $pct%${t:+, full in $t}" ;;
+	discharging) body="On battery, $pct%${t:+, $t left}" ;;
+	*) body="Plugged in, $pct%" ;;
+	esac
+	command -v notify-send >/dev/null 2>&1 \
+		&& notify-send -a dots -h string:x-dunst-stack-tag:battery "Battery" "$body" >/dev/null 2>&1 &
+	;;
+esac
+
+col=$STATUS_ACCENT2
+if [ "$state" = discharging ]; then
+	if [ "$pct" -le "$CRIT" ]; then col=$STATUS_URGENT; elif [ "$pct" -le "$LOW" ]; then col=$STATUS_WARN; fi
+fi
+plus=""
+[ "$state" = charging ] && plus="+"
+printf '%sBAT%s %d%%%s\n' "$col" "$STATUS_RESET" "$pct" "$plus"
