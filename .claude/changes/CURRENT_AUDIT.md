@@ -2177,3 +2177,24 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Suite 60/60, lint clean, 13 mutations caught, reviewer READY first round.
 - **Not yet on the VM** (SSH key refused this session): `dots update`, `gio
   mime` checks, HEVC playback with vaapi, `dots uninstall --dry-run`.
+
+## 2026-10-13 — fonts-arabic merged
+
+- **`fonts-arabic` merged** (`7e36239`, merge commit `ee4bcf9`, after
+  `default-apps`). Five conflicts, every one a both-sides keep: `build.lst`
+  (fribidi-devel beside nsxiv's imlib2/libexif), `install-suckless.sh`'s
+  pacman/apt fallbacks, `symlinks.sh` (mpv and fontconfig links + comments),
+  CHANGELOG [Unreleased], `CURRENT.md`.
+- **What it ships:** Noto Sans/Naskh Arabic, a linked `config/fontconfig/
+  fonts.conf` (Latin face first, Arabic behind it, a `lang=ar` rule using
+  prepend_first), UI font Noto Sans 10 (**DECISION REVERSAL** of scope-b
+  decision 14), and hardened fribidi `bidi()` in the dwm title and dmenu. The
+  upstream patches overflow; ASan proves it. Terminals left unshaped by user
+  decision; `docs/FONTS.md`.
+- Merged tree: suite 61/61 with a fresh build (main's own `suckless/dwm/dwm`
+  was a stale 2026-10-12 build and failed `dwm-runtime.sh` on today's keybind
+  remap, which has nothing to do with this merge). Lint clean, `bidi.sh --strict` and
+  `fontconfig-stack.sh` pass, reviewer READY.
+- **Not yet on the VM**: rebuild suckless, `dots theme dark`, check Arabic in
+  Firefox and in a window title, and that `fc-match 'sans-serif:lang=ar'` →
+  Noto Sans Arabic.
