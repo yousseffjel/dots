@@ -57,6 +57,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# For manifest_set_meta alone (the "complete" stamp at the end); this script
+# defines its own red/green/yellow/blue below, which take precedence.
+# shellcheck source=global_fn.sh
+source "$SCRIPT_DIR/global_fn.sh"
 
 # Tee this run's full output (stdout+stderr, including every stage script
 # invoked below as a child process) into install.log at the repo root, so
@@ -164,6 +168,15 @@ fi
 if [[ $RUN_SERVICES -eq 1 ]]; then
     blue "=== services stage ==="
     "$SCRIPT_DIR/install-services.sh" "${dry_run_args[@]}"
+fi
+
+# Only a full run that got here finished: every stage stamps `commit` as it
+# STARTS, so a run stopped partway (Ctrl-C during the package stage, on the
+# VM, 2026-10-13) used to read as current to `dots update`. --only-* runs one
+# stage and --dry-run changes nothing, so neither counts as a finished install.
+if [[ $ANY_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
+    manifest_set_meta complete "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)" \
+        || yellow "warn    could not record the finished install — the next dots update re-runs it"
 fi
 
 green "✓ install complete"

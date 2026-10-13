@@ -126,6 +126,13 @@ picker filters it.
   `dots wallpaper --initial` after `dots theme dark`, but only on the run
   that made the clone, so an update never swaps your wallpaper. On a
   headless install `~/.xinitrc` does the same at the first login.
+  A later re-run of the restore stage (`dots update` from a terminal in
+  your session) re-applies the theme you are actually using, not `dark`:
+  your wallpaper's colours if you last chose a wallpaper, else the static
+  theme you last switched to (whichever of `wall.set` and `theme.set` in
+  `~/.cache/dots/theme/` is newer).
+- **Progress.** On a terminal, the clone shows git's progress; it goes to the
+  terminal only, so `install.log` never fills with it.
   `--initial` picks from the collection only and does nothing without one,
   which leaves the generated wallpaper below in place.
 

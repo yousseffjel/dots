@@ -29,6 +29,8 @@ source "$THEME_DIR/install-restore-theme-identity.sh"
 source "$THEME_DIR/install-restore-cursor.sh"
 # shellcheck source=install-restore-gtk3-shim.sh
 source "$THEME_DIR/install-restore-gtk3-shim.sh"
+# shellcheck source=install-restore-theme-active.sh
+source "$THEME_DIR/install-restore-theme-active.sh"
 
 # Line 1 of gtk.css and ~/.gtkrc-2.0, as the template engine writes them,
 # carries this inside the target's own comment syntax. gtk2.dcol's
@@ -178,20 +180,24 @@ theme_backup_preexisting() {
 # writes applies the dark theme on the first login instead (see
 # session_xinitrc_template in install-session.sh). Before 2026-10-05 nothing
 # did, and a headless install came up on dwm's compiled-in colours for good.
+# A re-run re-applies the theme in use, not `dark` (theme_active), so new
+# templates still render after an update without resetting anyone's colours.
 theme_initial_apply() {
+    local theme
+    theme="$(theme_active)"
     if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would apply themes/dark if X is running"
+        blue "  (dry-run) would apply the active theme ($theme) if X is running"
         return 0
     fi
     if [[ -z "${DISPLAY:-}" ]] || [[ ! -f "$DOTS_DIR/themes/dark/colors.dcol" ]]; then
         blue "skip    initial theme apply (no DISPLAY — ~/.xinitrc applies it on first login)"
         return 0
     fi
-    blue "==> applying the dark theme"
-    if "$DOTS_DIR/scripts/theme/theme-apply.sh" dark; then
-        green "applied themes/dark"
+    blue "==> applying the active theme ($theme)"
+    if "$DOTS_DIR/scripts/theme/theme-apply.sh" "$theme"; then
+        green "applied theme $theme"
     else
-        yellow "theme apply failed — run scripts/theme/theme-apply.sh dark by hand"
+        yellow "theme apply failed — run scripts/theme/theme-apply.sh $theme by hand"
     fi
     # Only on the run that cloned the collection: this function runs on every
     # restore with a display, `dots update` from a terminal included, and an

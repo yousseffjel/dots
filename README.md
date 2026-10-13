@@ -73,7 +73,10 @@ Pulling a version bump on an existing install: run `dots update`. It
 pulls (fast-forward only) and re-runs `install-fedora.sh`, which runs
 `scripts/migrate.sh` before anything else and so brings the manifest's
 recorded version forward. `dots update --dry-run` shows what would come in. With
-nothing to pull it still re-runs the installer when the install is from an older
-commit than the checkout — so on a 0.1.0 install, which predates `dots update`,
-`git pull` then `dots update` works. See `docs/UNINSTALL.md`
+nothing to pull it still re-runs the installer when the last *finished* install
+is from an older commit than the checkout — so on a 0.1.0 install, which predates
+`dots update`, `git pull` then `dots update` works, and an install you stopped
+partway (Ctrl-C, a failed stage) or ran one `--only-<stage>` at a time is
+finished by the next `dots update`. Only a full `install-fedora.sh` run that
+reaches its end counts as finished. See `docs/UNINSTALL.md`
 for reversing an install entirely.

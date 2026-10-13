@@ -16,8 +16,12 @@
 # records the commit the installer last ran from, and when that is not HEAD
 # (a `git pull` done by hand — which is how every 0.1.0 install gets this
 # script in the first place) the installer is re-run even with nothing to
-# pull. Each install stage stamps that commit as it starts, so an install
-# that failed partway still reads as current: re-run install-fedora.sh.
+# pull. The commit compared is the manifest's `complete` stamp, which only a
+# full install-fedora.sh run writes, and only once every stage has finished:
+# an install stopped partway (Ctrl-C, a failed stage) or a lone --only-<stage>
+# run reads as stale and is re-run. DECISION REVERSAL (2026-10-13): this used
+# to read the `commit` each stage stamps as it STARTS, so an interrupted
+# install looked current.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -60,19 +64,19 @@ preflight() {
             "commit or stash them first (git -C $DOTS_DIR status shows them)"
 }
 
-# 0 when the last install ran from HEAD. A missing manifest, or a commit git
+# 0 when the last FINISHED install ran from HEAD. A missing manifest, or a commit git
 # cannot resolve (the installer writes "unknown" without git), is stale.
 install_is_current() {
     local c
-    c="$(manifest_get_meta commit)"
+    c="$(manifest_get_meta complete)"
     [[ -n "$c" ]] || return 1
     [[ "$(gitd rev-parse -q --verify "$c^{commit}" 2>/dev/null)" == "$(gitd rev-parse HEAD)" ]]
 }
 
 stale_reason() {
     local c
-    c="$(manifest_get_meta commit)"
-    echo "the last install ran from ${c:-no recorded commit}, the checkout is at $(gitd rev-parse --short HEAD)"
+    c="$(manifest_get_meta complete)"
+    echo "the last finished install ran from ${c:-no finished install recorded}, the checkout is at $(gitd rev-parse --short HEAD)"
 }
 
 run_installer() {

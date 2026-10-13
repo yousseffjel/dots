@@ -83,7 +83,7 @@ wallpapers_clone() {
     done
     blue "  cloning $url (~400 MB, shallow)"
     mkdir -p "$(dirname "$dir")"
-    if git clone --depth=1 --quiet "$url" "$dir"; then
+    if wallpapers_git_clone "$url" "$dir"; then
         manifest_append_row WALLPAPERS "$url" "$dir" "$created"
         # Read by theme_initial_apply (install-restore-theme.sh).
         # shellcheck disable=SC2034
@@ -95,6 +95,21 @@ wallpapers_clone() {
     [[ "$created" == "-" ]] || wallpapers_prune_parents "$dir" "$created"
     yellow "skip    could not clone $url (no network?)."
     yellow "        Re-run scripts/install-fedora.sh --only-restore once online."
+}
+
+# git prints progress only to a terminal, and install-fedora.sh pipes all
+# output through tee into install.log — so a ~400 MB clone used to show one
+# line and then nothing for a minute, which reads as a hang (it was Ctrl-C'd
+# on the VM, 2026-10-13). Progress goes straight to the terminal instead, so
+# the log never fills with it; with no terminal (CI, a container, a test under
+# setsid) the clone stays quiet. On the terminal path git's own error text
+# goes there too; the yellow skip line below is what the log records.
+wallpapers_git_clone() {
+    if { : >/dev/tty; } 2>/dev/null; then
+        git clone --depth=1 --progress "$1" "$2" 2>/dev/tty
+    else
+        git clone --depth=1 --quiet "$1" "$2"
+    fi
 }
 
 # rmdir from dir's parent up to and including $2, stopping at the first

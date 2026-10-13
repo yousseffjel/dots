@@ -68,6 +68,8 @@ dots/
 │   ├── install-restore-bin.sh  # sourced by install-restore.sh: the ~/.local/bin/dots symlink + its SCRIPT manifest row
 │   ├── install-restore-theme.sh # sourced by install-restore.sh: theme base-config deploy + manifest + backup
 │   ├── install-restore-gtk3-shim.sh # sourced by install-restore-theme.sh: copies assets/themes/Adwaita-dark to ~/.local/share/themes
+│   ├── install-restore-theme-active.sh # sourced by install-restore-theme.sh: theme_active — what a re-run re-applies
+│   │                                   # (--wallbash or theme.set's theme, whichever is newer; dark only when neither)
 │   ├── install-restore-cursor.sh # sourced by install-restore-theme.sh: extracts the vendored cursor tarball
 │   │                             # into ~/.local/share/icons and claims it as a THEME row
 │   ├── install-restore-theme-identity.sh # the identity writers: render a theme.conf into settings.ini + xsettingsd.conf

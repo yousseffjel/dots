@@ -94,6 +94,24 @@ REPO="file://$TMP/no-such.git" sandbox "$TMP/nonet" restore_wallpapers >/dev/nul
 check "a failed clone leaves no directory and no row behind" \
     "[[ ! -e '$TMP/nonet/Pictures' && \$(rows '$TMP/nonet') == 0 ]]"
 
+# Progress goes to the terminal, never to stdout/stderr — the streams
+# install-fedora.sh tees into install.log. `script` provides the terminal.
+if command -v script >/dev/null 2>&1; then
+    P="$TMP/progress"
+    mkdir -p "$P"
+    script -qec "bash -c 'source \"$DOTS_DIR/scripts/install-restore-wallpapers.sh\";
+        wallpapers_git_clone \"file://$FIXTURE\" \"$P/clone\"' >'$P/out' 2>'$P/err'" "$P/tty" >/dev/null
+    check "with a terminal, git's progress reaches it" "grep -q 'Receiving objects' '$P/tty'"
+    check "...and none of it reaches the logged streams" \
+        "[[ -d '$P/clone/.git' ]] && ! grep -q 'Receiving objects' '$P/out' '$P/err'"
+else
+    blue "  skip: no script(1) — the terminal path is untested here"
+fi
+# shellcheck disable=SC2016 # $1-$3 belong to the inner bash
+out="$(setsid bash -c 'source "$1/scripts/install-restore-wallpapers.sh"; wallpapers_git_clone "file://$2" "$3"' \
+    _ "$DOTS_DIR" "$FIXTURE" "$TMP/notty" 2>&1 </dev/null)"
+check "with no terminal, the clone is quiet" "[[ -d '$TMP/notty/.git' && -z '$out' ]]"
+
 blue "==> uninstall"
 sandbox "$H" uninstall_wallpapers >/dev/null
 check "an unchanged clone is removed, and the ~/Pictures it created with it" "[[ ! -e '$H/Pictures' ]]"

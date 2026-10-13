@@ -13,7 +13,9 @@
 #   * a branch that is only AHEAD has nothing to pull — exit 0, not "diverged";
 #   * a checkout pulled BY HAND (how a 0.1.0 install gets update.sh at all)
 #     has nothing to pull but an install from an older commit: the installer
-#     runs, and --dry-run says it would. So does a missing manifest.
+#     runs, and --dry-run says it would. So does a missing manifest;
+#   * an install stopped partway (`commit` stamped, `complete` not) and a lone
+#     --only-<stage> run (`complete` older than `commit`) both read as stale.
 # shellcheck disable=SC2016 # the bash -c bodies take $1/$2 as their own arguments
 set -euo pipefail
 
@@ -47,7 +49,8 @@ MANIFEST="$TMP/.local/state/dots/manifest"
 g() { git -C "$1" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "${@:2}" >/dev/null 2>&1; }
 
 # A fresh origin with one commit, cloned as the "install". The stub installer
-# stamps the manifest's commit the way every real install stage does.
+# stamps the manifest the way a FINISHED full run does: `commit` (each stage,
+# as it starts) and `complete` (install-fedora.sh, once every stage is done).
 mkrepos() {
     rm -rf "$ORIGIN" "$INST" "$DEV" "$LOG" "$MANIFEST"
     git init -q --bare -b main "$ORIGIN"
@@ -59,7 +62,8 @@ mkrepos() {
 echo "installer \$*" >>"$LOG"
 d="\$HOME/.local/state/dots"
 mkdir -p "\$d"
-printf 'META\tcommit\t%s\n' "\$(git -C "\$(dirname "\$0")/.." rev-parse --short HEAD)" >"\$d/manifest"
+c="\$(git -C "\$(dirname "\$0")/.." rev-parse --short HEAD)"
+printf 'META\tcommit\t%s\nMETA\tcomplete\t%s\n' "\$c" "\$c" >"\$d/manifest"
 EOF
     chmod 755 "$DEV/scripts/install-fedora.sh"
     echo 0.1.0 >"$DEV/VERSION"
@@ -105,14 +109,29 @@ check "--dry-run: names both commits and says it would install" \
 check "--dry-run: installer not run" test ! -e "$LOG"
 update --skip-suckless
 check "exit 0" test "$RC" -eq 0
-check "says why" grep -q "nothing to pull, but the last install ran from .*, the checkout is at $(git -C "$INST" rev-parse --short HEAD)" <<<"$OUT"
+check "says why" grep -q "nothing to pull, but the last finished install ran from .*, the checkout is at $(git -C "$INST" rev-parse --short HEAD)" <<<"$OUT"
 check "the installer ran, with the argument passed through" grep -qx 'installer --skip-suckless' "$LOG"
 rm -f "$LOG"
 update
 check "and afterwards it is up to date: installer NOT run" test ! -e "$LOG"
 rm -f "$MANIFEST"
 update
-check "no manifest at all: the installer runs" bash -c '[[ $1 == 0 && $2 == *"no recorded commit"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+check "no manifest at all: the installer runs" bash -c '[[ $1 == 0 && $2 == *"no finished install recorded"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+rm -f "$LOG"
+
+blue "==> an install that never finished"
+head_short="$(git -C "$INST" rev-parse --short HEAD)"
+# What a Ctrl-C during the package stage leaves: the stages that started
+# stamped `commit`; install-fedora.sh never reached its `complete` stamp.
+printf 'META\tcommit\t%s\n' "$head_short" >"$MANIFEST"
+update
+check "interrupted (commit stamped, no complete): the installer runs" \
+    bash -c '[[ $1 == 0 && $2 == *"no finished install recorded"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
+rm -f "$LOG"
+# What `install-fedora.sh --only-restore` after an older full run leaves.
+printf 'META\tcommit\t%s\nMETA\tcomplete\t%s\n' "$head_short" "$(git -C "$INST" rev-parse --short HEAD~1)" >"$MANIFEST"
+update
+check "a lone --only run on top of an older full one: the installer runs" test -e "$LOG"
 rm -f "$LOG"
 
 blue "==> --dry-run"

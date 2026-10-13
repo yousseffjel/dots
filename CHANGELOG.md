@@ -74,6 +74,23 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`dots update` finishes an install you stopped partway.** It used to read
+  the commit each install stage records as it *starts*, so after a Ctrl-C in
+  the package stage it said "already up to date" and installed nothing.
+  `install-fedora.sh` now records a separate stamp only when a full run
+  reaches its end, and `dots update` reads that. A lone `--only-<stage>` run
+  does not count as finished either.
+
+- **An update no longer resets your colours to `dark`.** Re-running the
+  restore stage with a display (`dots update` from a terminal in your session)
+  applied the `dark` theme every time, discarding colours taken from your
+  wallpaper or a static theme you had switched to. It now re-applies the
+  theme you last chose.
+
+- **The wallpaper download shows progress.** The 400 MB clone printed one
+  line and then nothing for a minute or more, which looked like a hang. git's
+  progress now goes to the terminal, never into `install.log`.
+
 - `dots update` said "already up to date" whenever its own pull brought
   nothing in, even when the install was from an older commit — which is
   every 0.1.0 install, since those get `update.sh` from a `git pull` done by
