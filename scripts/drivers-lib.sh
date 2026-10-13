@@ -9,11 +9,11 @@
 #
 # usage: source "$SCRIPT_DIR/drivers-lib.sh"; drivers_install
 #
-# Three parts in their own files, to stay under the 250-line cap:
+# Four parts, each in its own file to stay under the 250-line cap:
 #   drivers-detect.sh    what is there (read-only, /sys and /proc), incl. chassis
 #   drivers-gpu.sh       VA-API video decoding per GPU; NVIDIA is REPORT-ONLY
 #   drivers-firmware.sh  firmware the kernel asked for, microcode, fwupd
-# and, here, drivers_laptop: packages/laptop.lst on a laptop only (scope-h).
+#   drivers-laptop.sh    laptop only: packages/laptop.lst, the touchpad snippet
 #
 # The NVIDIA proprietary driver is never installed: a wrong branch or a
 # kernel module that fails to build leaves the machine with no graphical
@@ -32,6 +32,8 @@ source "$DRIVERS_LIB_DIR/drivers-detect.sh"
 source "$DRIVERS_LIB_DIR/drivers-gpu.sh"
 # shellcheck source=drivers-firmware.sh
 source "$DRIVERS_LIB_DIR/drivers-firmware.sh"
+# shellcheck source=drivers-laptop.sh
+source "$DRIVERS_LIB_DIR/drivers-laptop.sh"
 
 # drivers_pkg <pkg> <what its absence costs> — install one package unless it
 # is already there. A failure goes to the yellow tier of the closing summary.
@@ -86,28 +88,6 @@ drivers_have_rpmfusion() {
     rpm -q "rpmfusion-$1-release" >/dev/null 2>&1 && return 0
     yellow "  skipped — RPM Fusion $1 is not enabled; scripts/install-fedora.sh --only-install enables it"
     return 1
-}
-
-# drivers_laptop — packages/laptop.lst on a laptop; nothing anywhere else.
-# An "unknown" chassis (QEMU reports "Other") is treated as a desktop: nothing
-# laptop-only is installed on a guess.
-drivers_laptop() {
-    local chassis pkg lst="${PACKAGES_DIR:-$DRIVERS_LIB_DIR/../packages}/laptop.lst"
-    chassis="$(drivers_chassis)"
-    if [[ "$chassis" != laptop ]]; then
-        blue "  $chassis ($(drivers_chassis_why)) — no laptop packages"
-        return 0
-    fi
-    blue "  laptop ($(drivers_chassis_why)) — packages/laptop.lst:"
-    # Inside the process substitution below a missing parser would be a
-    # silent empty list, i.e. a laptop that quietly gets nothing.
-    if ! declare -F read_pkg_list >/dev/null; then
-        red "  read_pkg_list is not loaded (source install-pkg-tiers.sh first) — laptop packages not installed"
-        return 1
-    fi
-    while IFS= read -r pkg; do
-        drivers_pkg "$pkg" "a laptop feature that needs it stays off (see packages/laptop.lst)" || true
-    done < <(read_pkg_list "$lst" || true)
 }
 
 drivers_install() {

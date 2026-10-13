@@ -136,6 +136,18 @@ FAKE_MISSING=brightnessctl tsv
 check "on a laptop: laptop.lst is checked, and a missing package warns" row warn packages tier-laptop
 check "...only warns: exit 0" rc_is 0
 check "chassis says laptop" grep -qE $'^ok\tdrivers\tchassis\tlaptop ' "$SB/out.tsv"
+check "laptop without the touchpad snippet warns" row warn drivers touchpad
+mkdir -p "$SB/xorg.conf.d"
+cp "$DOTS_DIR/config/xorg/40-dots-touchpad.conf" "$SB/xorg.conf.d/"
+tsv
+check "...and is ok once installed" row ok drivers touchpad
+check "...as dots' own copy, not as an edited one" \
+    test "$(detail touchpad)" = "touchpad settings installed ($SB/xorg.conf.d/40-dots-touchpad.conf)"
+echo '# edited' >>"$SB/xorg.conf.d/40-dots-touchpad.conf"
+tsv
+check "an edited snippet is the user's: still ok" row ok drivers touchpad
+check "...and says it is edited" grep -q "edited by you" <<<"$(detail touchpad)"
+rm -r "$SB/xorg.conf.d"
 rm -r "$SB/sys/class/dmi"
 
 blue "==> install"

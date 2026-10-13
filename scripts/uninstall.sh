@@ -112,6 +112,7 @@ source "$SCRIPT_DIR/uninstall-apps.sh"
 source "$SCRIPT_DIR/uninstall-theme.sh"
 source "$SCRIPT_DIR/uninstall-flatpak.sh"
 source "$SCRIPT_DIR/uninstall-repos.sh"
+source "$SCRIPT_DIR/uninstall-sysfiles.sh"
 # For wallpapers_prune_parents alone; its top level only assigns.
 source "$SCRIPT_DIR/install-restore-wallpapers.sh"
 source "$SCRIPT_DIR/uninstall-wallpapers.sh"
@@ -131,6 +132,8 @@ uninstall_flatpak
 uninstall_ly
 # Before uninstall_packages too: it needs git to prove the clone unchanged.
 uninstall_wallpapers
+# Before uninstall_packages too: it needs git to prove a system file unedited.
+uninstall_sysfiles
 # Before uninstall_packages: ffmpeg-free must be back before it can be removed.
 uninstall_repo_swaps
 uninstall_packages

@@ -88,9 +88,18 @@ A desktop behaves exactly as it always did. On a laptop:
   desktop's bar has no `BAT` block at all. A wireless mouse's battery
   doesn't count, because the kernel marks it `scope=Device`.
 
-Still to come (`.claude/tasks/scope-h-laptop-support.md`): touchpad
-tap-to-click, and power profiles. dots does not suspend or hibernate at a
-critical level itself; that remains logind's and your choice.
+- **The touchpad taps to click.** dots writes
+  `/etc/X11/xorg.conf.d/40-dots-touchpad.conf`, turning on tap-to-click
+  (one finger left, two right, three middle), natural scrolling, palm
+  rejection while typing, and a two-finger click as a right-click anywhere
+  on the pad. It matches touchpads only, so a mouse is never affected. Xorg
+  reads it at start, so **log out and back in** once after `dots drivers`.
+  To change a setting, edit that file: dots never overwrites an edited copy,
+  and `dots uninstall` keeps it. `dots doctor` reports whether it is there.
+
+Still to come (`.claude/tasks/scope-h-laptop-support.md`): power profiles.
+dots does not suspend or hibernate at a critical battery level itself; that
+remains logind's and your choice.
 
 ## NVIDIA: reported, never installed
 

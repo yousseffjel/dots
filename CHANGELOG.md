@@ -18,6 +18,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Laptop touchpads tap to click.** On a laptop, `dots drivers` installs
+  touchpad settings for Xorg: tap-to-click, natural scrolling, palm
+  rejection while typing, and a two-finger click as a right-click. They
+  apply to touchpads only, from the next login. An edited copy is never
+  overwritten or uninstalled. `dots doctor` checks it.
 - **A battery block for laptops.** The bar shows `BAT 84%`, with `+` while
   charging, and warns once at 15 % and once (critical) at 5 % on battery.
   Left-click shows the time left. It is invisible on a desktop. No new

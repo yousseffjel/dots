@@ -51,6 +51,8 @@ dots/
 │   ├── autorandr/       # postswitch.d/ wallpaper re-paint hook — COPIED, never linked (`autorandr --save` writes profiles there)
 │   ├── systemd/user/    # dots-session.target — COPIED, never linked (~/.config/systemd/user holds the user's own units)
 │   ├── fontconfig/      # fonts.conf — Latin face first, Noto Arabic behind it; symlinked (docs/FONTS.md)
+│   ├── xorg/            # 40-dots-touchpad.conf — COPIED by drivers-laptop.sh to /etc/X11/xorg.conf.d on laptops
+│   │                    #  only (sudo, SYSFILE row); never linked, never in symlinks.sh
 │   ├── xdg-desktop-portal/ # portals.conf — names the gtk backend (a dwm session sets no XDG_CURRENT_DESKTOP); symlinked
 │   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
@@ -92,13 +94,15 @@ dots/
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── install-session-report-applets.sh # sourced by the report: the second half of its daemon list
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
-│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh, uninstall-repos.sh, uninstall-wallpapers.sh — manifest-driven removal
+│   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh, uninstall-repos.sh, uninstall-wallpapers.sh, uninstall-sysfiles.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers)
 │   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh
 │   ├── drivers.sh              # `dots drivers`: GPU VA-API driver, kernel-requested firmware, microcode, fwupd;
 │   │                           # NVIDIA REPORT-ONLY (user decision 2026-10-13). Logic in drivers-lib.sh +
-│   │                           # drivers-{detect,gpu,firmware}.sh, which install-pkg-repos.sh also sources
+│   │                           # drivers-{detect,gpu,firmware,laptop}.sh, which install-pkg-repos.sh also sources.
+│   │                           # SYSFILE rows (root-owned copies, e.g. the touchpad snippet): replaced/removed only
+│   │                           # while unedited (file_matches_history) — uninstall-sysfiles.sh
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
 │   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
 │   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on) / doctor-drivers.sh,
@@ -203,10 +207,11 @@ A desktop keeps exactly its old behaviour; laptop behaviour activates only
 where `drivers_chassis` (`scripts/drivers-detect.sh`) says laptop, and a
 QEMU guest (chassis "Other") reads as `unknown`, treated as a desktop.
 Landed so far: the checker, `packages/laptop.lst`, the real backlight in
-`dwm-brightness` (block `BL` vs `GAMMA`), and the `BAT` block with
-low/critical alerts (`dwm-battery`, no daemon). Touchpad and power profiles
-are queued in `.claude/tasks/scope-h-laptop-support.md`. There is
-no Fedora laptop to verify on, only the VM, so laptop paths are fixture-tested.
+`dwm-brightness` (block `BL` vs `GAMMA`), the `BAT` block with
+low/critical alerts (`dwm-battery`, no daemon), and the touchpad snippet
+(`config/xorg/`, an Xorg InputClass, not xinput). Power profiles are queued
+in `.claude/tasks/scope-h-laptop-support.md`. There is no Fedora laptop to
+verify on, only the VM, so laptop paths are fixture-tested.
 
 **Still genuinely pending (ROADMAP is accurate here):**
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.

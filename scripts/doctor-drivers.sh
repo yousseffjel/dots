@@ -8,6 +8,9 @@
 
 # shellcheck source=drivers-detect.sh
 source "$(dirname "${BASH_SOURCE[0]}")/drivers-detect.sh"
+# For DRIVERS_TOUCHPAD_REL; its functions are defined here, never called.
+# shellcheck source=drivers-laptop.sh
+source "$(dirname "${BASH_SOURCE[0]}")/drivers-laptop.sh"
 
 doctor_has_pkg() { rpm -q "$1" >/dev/null 2>&1; }
 
@@ -18,6 +21,7 @@ check_drivers() {
         return 0
     fi
     report ok "$s" chassis "$(drivers_chassis) ($(drivers_chassis_why))"
+    [[ "$(drivers_chassis)" == laptop ]] && check_drivers_touchpad
     check_drivers_gpu
     if [[ "$(drivers_virt)" =~ ^(none|unknown)$ ]]; then
         check_drivers_microcode
@@ -97,4 +101,18 @@ check_drivers_fwupd() {
         2) report ok "$s" fwupd "no firmware updates pending (as of the last fwupdmgr refresh)" ;;
         *) report skip "$s" fwupd "fwupdmgr get-updates failed: $(tail -n1 <<<"$out")" ;;
     esac
+}
+
+# On a laptop: the Xorg snippet drivers-laptop.sh installs. An edited copy is
+# the user's choice, so it is ok, not a warning.
+check_drivers_touchpad() {
+    local s=drivers dst
+    dst="${DOTS_XORG_CONF_DIR:-/etc/X11/xorg.conf.d}/${DRIVERS_TOUCHPAD_REL##*/}"
+    if [[ ! -e "$dst" ]]; then
+        report warn "$s" touchpad "no $dst: no tap-to-click or two-finger right-click — dots drivers"
+    elif cmp -s "$DOTS_DIR/$DRIVERS_TOUCHPAD_REL" "$dst"; then
+        report ok "$s" touchpad "touchpad settings installed ($dst)"
+    else
+        report ok "$s" touchpad "touchpad settings installed, edited by you ($dst)"
+    fi
 }
