@@ -19,3 +19,11 @@
 # ENABLE_SYSTEMD=1: it sets brightness through logind, so no udev rule or
 # video group is needed for the user logged in at the seat.
 brightnessctl
+
+# Power profiles (power-saver / balanced / performance), switched by
+# config/dwm/bin/dwm-power (Super+Shift+p). tuned-ppd is Fedora's default
+# since f41: it serves the power-profiles D-Bus API on top of tuned (which it
+# pulls in) and Conflicts with power-profiles-daemon, so only one may be
+# installed. scripts/drivers-laptop.sh enables tuned.service so the chosen
+# profile is re-applied at boot.
+tuned-ppd

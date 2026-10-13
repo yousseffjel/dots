@@ -494,6 +494,17 @@ calls `slock` directly instead, so the key never silently does nothing.
 > the launch line to an `autostart.sh` you already had — it prints the line
 > for you to paste. `Super` + `Shift` + `l` keeps working either way.
 
+### Power profile
+
+| Keys | Action |
+| --- | --- |
+| `Super` + `Shift` + `p` | Power profile menu: power-saver, balanced or performance, with the current one marked |
+
+Laptops only. dots installs `tuned-ppd` there, and the power menu
+(`Super` + `Shift` + `x`) gains a `profile` entry wherever a profile service
+answers. On a desktop the key says profiles need `tuned-ppd` instead of
+doing nothing.
+
 ### Notifications
 
 | Keys | Action |

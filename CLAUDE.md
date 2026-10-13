@@ -36,7 +36,7 @@ dots/
 │   │                    #  BEFORE compinit runs there — an addition after it is a no-op.
 │   │                    #  There is no functions/ dir; this map claimed one for months.)
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   ├── dwm/bin/         # dmenu-driven scripts: dwm-apps (the Super+space launcher), dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-apps (the Super+space launcher), dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight, dwm-power
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
 │   │                    # dwm-lib-*.sh are SOURCED (644, so dmenu never lists them): -xdg (where screenshot,
 │   │                    #  record and wallpaper.sh save/read), -screenshot (dwm-screenshot's capture half)
@@ -209,8 +209,11 @@ QEMU guest (chassis "Other") reads as `unknown`, treated as a desktop.
 Landed so far: the checker, `packages/laptop.lst`, the real backlight in
 `dwm-brightness` (block `BL` vs `GAMMA`), the `BAT` block with
 low/critical alerts (`dwm-battery`, no daemon), and the touchpad snippet
-(`config/xorg/`, an Xorg InputClass, not xinput). Power profiles are queued
-in `.claude/tasks/scope-h-laptop-support.md`. There is no Fedora laptop to
+(`config/xorg/`, an Xorg InputClass, not xinput), and power profiles
+(`tuned-ppd` + `dwm-power`, which talks to the profiles D-Bus API with
+gdbus: Fedora ships no `powerprofilesctl` without the conflicting
+power-profiles-daemon). All five scope-h slots are done
+(`.claude/tasks/scope-h-laptop-support.md`). There is no Fedora laptop to
 verify on, only the VM, so laptop paths are fixture-tested.
 
 **Still genuinely pending (ROADMAP is accurate here):**

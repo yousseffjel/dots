@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# dwm-power — power profiles: power-saver, balanced, performance (scope-h).
+#
+# Talks to the power-profiles D-Bus API with gdbus (glib2, always installed;
+# doctor-portal.sh uses it too). On a laptop that API is served by tuned-ppd,
+# which packages/laptop.lst installs and which maps each profile onto a tuned
+# profile. Fedora ships no `powerprofilesctl` without power-profiles-daemon,
+# and that conflicts with tuned-ppd, hence gdbus.
+#
+# Switching is allowed for the session at the seat with no password
+# (tuned-ppd.policy: allow_active yes). From ssh it is refused, and said so.
+# A desktop has no tuned-ppd: the key then explains instead of failing.
+#
+# Bound to Super+Shift+p in config/sxhkd/sxhkdrc, and the "profile" entry of
+# dwm-powermenu, which asks `available` first.
+#
+# usage: dwm-power [menu] | get | set <power-saver|balanced|performance> | available
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+BUS=org.freedesktop.UPower.PowerProfiles
+OBJ=/org/freedesktop/UPower/PowerProfiles
+PROFILES=(power-saver balanced performance)
+FONT="monospace:size=10"
+DMENU_OPTS=(-i -fn "$FONT")
+
+usage() {
+    local IFS='|'
+    echo "usage: dwm-power [menu] | get | set <${PROFILES[*]}> | available"
+}
+
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a dots -h string:x-dunst-stack-tag:power "$@" >/dev/null 2>&1 || true
+}
+
+# get — the active profile. gdbus prints the property as a one-element
+# tuple, e.g. `(<'balanced'>,)`.
+get() {
+    local out
+    out="$(gdbus call --system --dest "$BUS" --object-path "$OBJ" \
+        --method org.freedesktop.DBus.Properties.Get "$BUS" ActiveProfile 2>/dev/null)" || return 1
+    out="${out#*\'}"
+    out="${out%%\'*}"
+    # Anything but a bare profile name means the shape was not the one above.
+    [[ "$out" =~ ^[a-z-]+$ ]] || return 1
+    printf '%s\n' "$out"
+}
+
+set_profile() {
+    local want="$1" p ok=0
+    for p in "${PROFILES[@]}"; do [[ "$p" == "$want" ]] && ok=1; done
+    if ((ok == 0)); then
+        red "dwm-power: unknown profile '$want' (${PROFILES[*]})"
+        return 1
+    fi
+    if ! gdbus call --system --dest "$BUS" --object-path "$OBJ" \
+        --method org.freedesktop.DBus.Properties.Set "$BUS" ActiveProfile "<'$want'>" >/dev/null 2>&1; then
+        red "dwm-power: could not switch to $want (it needs your session at the seat)"
+        notify -u critical "Power profile" "Could not switch to $want"
+        return 1
+    fi
+    notify "Power profile" "$want"
+}
+
+menu() {
+    local cur choice p lines=()
+    if ! cur="$(get)"; then
+        notify "Power profile" "Power profiles need tuned-ppd, which dots installs on laptops only (dots drivers)."
+        red "dwm-power: no power-profiles service answers (tuned-ppd is installed on laptops only)"
+        return 1
+    fi
+    for p in "${PROFILES[@]}"; do
+        if [[ "$p" == "$cur" ]]; then lines+=("* $p"); else lines+=("  $p"); fi
+    done
+    choice="$(printf '%s\n' "${lines[@]}" | dmenu "${DMENU_OPTS[@]}" -l 3 -p "profile>")" || return 0
+    choice="${choice#\* }"
+    choice="${choice#  }"
+    [[ "$choice" == "$cur" ]] && return 0
+    set_profile "$choice"
+}
+
+case "${1:-menu}" in
+    menu) menu ;;
+    get) get || {
+        red "dwm-power: no power-profiles service answers"
+        exit 1
+    } ;;
+    set)
+        [[ -n "${2:-}" ]] || {
+            usage >&2
+            exit 1
+        }
+        set_profile "$2"
+        ;;
+    available) get >/dev/null ;;
+    -h | --help) usage ;;
+    *)
+        red "dwm-power: unknown command '$1'"
+        usage >&2
+        exit 1
+        ;;
+esac

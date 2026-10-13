@@ -4,7 +4,8 @@
 # the three with real logic (brightness, lock, screenshot) have their own.
 #
 # What is asserted:
-#   * powermenu maps every entry to the right action, routes Lock through
+#   * powermenu maps every entry to the right action (a "profile" entry only
+#     where dwm-power says a power-profiles service answers), routes Lock through
 #     dwm-lock (not slock), asks before reboot/shutdown and does nothing on
 #     "no" or on Escape;
 #   * powermenu and clipmenu pass NO colour flags (-nb/-nf/-sb/-sf) to dmenu,
@@ -66,6 +67,9 @@ seal_path "$BIN" tr
 for t in systemctl pkill clipmenu dwm-lock; do
     fake "$BIN" "$t" "echo \"$t \$*\" >>'$LOG'"
 done
+# dwm-power answers `available` only with FAKE_PPD=1 (a laptop with
+# tuned-ppd); every other call is logged. Unset, every case below is a desktop.
+fake "$BIN" dwm-power "[[ \"\${1:-}\" == available ]] && { [[ \"\${FAKE_PPD:-}\" == 1 ]]; exit; }; echo \"dwm-power \$*\" >>'$LOG'"
 
 # The throwaway repo: a copy of config/dwm/bin, fake engine scripts, and the
 # symlink symlinks.sh would create.
@@ -114,6 +118,10 @@ if [[ $RC -eq 0 && -z "$(actions)" ]]; then pass "Escape at the menu: exit 0, no
 if grep -qE -- '-(nb|nf|sb|sf) ' "$LOG" 2>/dev/null; then fail "powermenu passes colour flags"; else pass "no -nb/-nf/-sb/-sf (the X-resource theme wins)"; fi
 run "$P" FAKE_MENU=lock --
 if grep -q '<lock,logout,suspend,reboot,shutdown,>' "$LOG"; then pass "offers exactly lock/logout/suspend/reboot/shutdown"; else fail "entries: $(cat "$LOG")"; fi
+run "$P" FAKE_PPD=1 FAKE_MENU=lock --
+if grep -q '<lock,logout,suspend,reboot,shutdown,profile,>' "$LOG"; then pass "with a power-profiles service: a profile entry too"; else fail "laptop entries: $(cat "$LOG")"; fi
+run "$P" FAKE_PPD=1 FAKE_MENU=profile --
+check "profile -> dwm-power" "$(actions)" "dwm-power ;"
 
 blue "==> dwm-clipmenu"
 run "$BIN_SRC/dwm-clipmenu" --

@@ -18,6 +18,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Power profiles on laptops.** `Super+Shift+p`, or `profile` in the power
+  menu, switches between power-saver, balanced and performance through
+  `tuned-ppd`. It is installed, with `tuned` enabled so the choice survives
+  a reboot, on laptops only. On a desktop the key explains why nothing
+  happens.
 - **Laptop touchpads tap to click.** On a laptop, `dots drivers` installs
   touchpad settings for Xorg: tap-to-click, natural scrolling, palm
   rejection while typing, and a two-finger click as a right-click. They
