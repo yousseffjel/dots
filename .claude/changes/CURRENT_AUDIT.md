@@ -2148,3 +2148,14 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Suite 57/57, lint clean, mutations 10/10, reviewer READY first round.
 - **Not yet on the VM**: push, `git pull` + `dots update` (full re-run once,
   let it finish), then confirm the wallpaper colours survived.
+
+## 2026-10-13 — update-stale-wording merged
+
+- **`update-stale-wording` merged** (`438323e`, fast-forward). With no
+  `complete` stamp, `dots update` now says "no finished install is recorded
+  yet (the checkout is at <sha>)" instead of "the last finished install ran
+  from no finished install recorded". Seen on the VM on the first update
+  after update-resilience. Suite 57/57, reviewer READY.
+- **Verified on the VM the same day**: the full re-run finished, kept the
+  wallbash palette (`applying the active theme (--wallbash)`), and the next
+  `dots update` said "already up to date".
