@@ -26,7 +26,7 @@ daemon_names() {
 make_fakes() {
     BIN="$SB/bin"
     seal_path "$BIN" bash sed grep awk tr cut cat head readlink dirname basename \
-        ls sort id date mkdir touch mktemp mv cp
+        ls sort id date mkdir touch mktemp mv cp cmp
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
         # `rpm -q --whatprovides a b` (check_packages) and `rpm -q a` (the
@@ -114,6 +114,7 @@ run_doctor() {
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
         DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
+        DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
         FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \

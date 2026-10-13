@@ -38,7 +38,7 @@ trap 'rm -rf "$SB"' EXIT
 export DB="$SB/rpmdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap"
 
 seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail head cut sort cat wc \
-    basename dirname readlink od tr ln chmod
+    basename dirname readlink od tr ln chmod cmp install git cp
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     fake "$SB/bin" rpm 'echo "rpm $*" >>"$LOG"; [[ "$1" == -q ]] && grep -qx "$2" "$DB"'
@@ -67,7 +67,8 @@ cat >"$SB/pci.ids" <<'EOF'
 	2484  GA104 [GeForce RTX 3070]
 	5000  XZ999 [From the future]
 EOF
-export DOTS_PCI_IDS="$SB/pci.ids" DOTS_CPUINFO="$SB/cpuinfo" DOTS_KERNEL_LOG="$SB/kmsg"
+export DOTS_PCI_IDS="$SB/pci.ids" DOTS_CPUINFO="$SB/cpuinfo" DOTS_KERNEL_LOG="$SB/kmsg" \
+    DOTS_XORG_CONF_DIR="$SB/xorg.conf.d"
 printf '%s\t%s\n' iwlwifi-so-a0-gf-a0-89.ucode iwlwifi-mvm-firmware >"$FWMAP"
 
 # shellcheck source=../scripts/global_fn.sh
@@ -121,7 +122,7 @@ machine() {
     mkdir -p "$SYSFS/bus/pci/devices"
     printf 'vendor_id\t: %s\n' "$1" >"$DOTS_CPUINFO"
     shift 2
-    rm -rf "$SB/state"
+    rm -rf "$SB/state" "$SB/xorg.conf.d"
     : >"$DB"
     : >"$LOG"
     : >"$DOTS_KERNEL_LOG"
@@ -152,6 +153,8 @@ run() {
 
 # shellcheck source=lib/drivers-cases.sh
 source "$SCRIPT_DIR/lib/drivers-cases.sh"
+# shellcheck source=lib/drivers-cases-laptop.sh
+source "$SCRIPT_DIR/lib/drivers-cases-laptop.sh"
 
 if [[ $FAILS -eq 0 ]]; then
     printf '\033[32m%s\033[0m\n' "✓ drivers: right package per device, NVIDIA reported only, reversible"
