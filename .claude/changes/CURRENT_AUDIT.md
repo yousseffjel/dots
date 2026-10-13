@@ -2198,3 +2198,30 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - **Not yet on the VM**: rebuild suckless, `dots theme dark`, check Arabic in
   Firefox and in a window title, and that `fc-match 'sans-serif:lang=ar'` →
   Noto Sans Arabic.
+
+## 2026-10-13 — hardware-drivers + doctor-swap-virtual-gpu merged
+
+- **`hardware-drivers` merged** (`b96785b`, merge commit `8d7f4e4`). New
+  `dots drivers`, also run by the installer after RPM Fusion: GPU VA-API driver
+  per device (Intel iHD / legacy i965, AMD freeworld mesa — swap on f43, plain
+  install on f44), firmware the kernel log says failed to load (resolved via
+  `dnf repoquery --whatprovides`), microcode + fwupd on bare metal. **NVIDIA
+  is report-only** (user decision): branch from the pci.ids codename, akmod
+  commands, MOK steps under Secure Boot. `intel-media-driver` is no longer
+  installed on every machine. `dots doctor` gains a drivers section.
+  `docs/HARDWARE.md`.
+- **`doctor-swap-virtual-gpu` merged** (`856d732`, merge commit `10bbad3`).
+  Doctor no longer FAILs `ffmpeg-free` after the RPM Fusion swap (it now uses
+  `SATISFIED_BY`), and reports a virtual GPU as ok and an unknown vendor as
+  skip. `tests/doctor.sh` had read the host's real `/sys` and cpuinfo since
+  `8d7f4e4`; now sealed. Desktop cases split into
+  `tests/lib/doctor-cases-desktop.sh` at the 250-line cap.
+- Verified on the f44 VM: `dots update` re-ran the installer from a bundled,
+  unpushed `main`. It enabled RPM Fusion, swapped ffmpeg, and the drivers
+  step reported the virtio GPU. f44 freeworld resolves beside
+  `mesa-dri-drivers` with nothing removed, and the dnf5 firmware glob works.
+  Doctor's FAIL and the virtual-GPU silence were found there.
+- Suite 63/63 for both, lint clean, mutations 14/15 and 5/5. Reviewer READY
+  and WARN (comment placement, fixed).
+- **Not verified:** real Intel, AMD or NVIDIA hardware, and the f43 mesa swap
+  against real dnf.

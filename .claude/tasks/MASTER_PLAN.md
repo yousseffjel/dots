@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-12
+Last Updated: 2026-10-13
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -74,6 +74,13 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-13 — **ad-hoc: hardware drivers — both slots merged** (`10bbad3`).
+  - [x] `hardware-drivers` (`b96785b`): `dots drivers` — GPU VA-API driver,
+        kernel-requested firmware, microcode, fwupd; NVIDIA report-only.
+  - [x] `doctor-swap-virtual-gpu` (`856d732`): no false ffmpeg-free FAIL after
+        the swap; virtual GPU reported; doctor test sandbox sealed.
+  ✅ Verified on the VM 2026-10-13 (virtio GPU only). Open: real AMD or NVIDIA
+  hardware, and the f43 mesa swap.
 - 2026-10-12 — **ad-hoc: Super modkey + ly login theme — both slots merged**
   (`aadcf5f`).
   - [x] `super-modkey` (`d604000`): every binding on Super; build-time refresh
