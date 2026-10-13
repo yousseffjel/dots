@@ -81,8 +81,16 @@ A desktop behaves exactly as it always did. On a laptop:
   at the machine with no udev rule. Over ssh it is refused, and
   `dwm-brightness` says so rather than quietly using gamma.
 
-Still to come (`.claude/tasks/scope-h-laptop-support.md`): a battery block
-with low-battery warnings, touchpad tap-to-click, and power profiles.
+- **The bar shows the battery**: `BAT 84%`, with `+` while charging. On
+  battery it turns the warning colour at 15 % and the urgent colour at 5 %,
+  and each threshold sends one notification (critical urgency at 5 %).
+  Charging re-arms them. Left-click shows the time left or to full. A
+  desktop's bar has no `BAT` block at all. A wireless mouse's battery
+  doesn't count, because the kernel marks it `scope=Device`.
+
+Still to come (`.claude/tasks/scope-h-laptop-support.md`): touchpad
+tap-to-click, and power profiles. dots does not suspend or hibernate at a
+critical level itself; that remains logind's and your choice.
 
 ## NVIDIA: reported, never installed
 
