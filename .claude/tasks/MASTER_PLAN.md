@@ -9,7 +9,14 @@ when slots run concurrently.
 
 ## Active
 
-*(none — scope-g closed 2026-10-12; see Recently Closed)*
+- 2026-10-13 — **Epic: scope-h — laptop support (desktop + laptop targets).**
+  Scope file `.claude/tasks/scope-h-laptop-support.md`. **DECISION REVERSAL** of
+  scope-b locked decisions 9 and 12 (desktop-only).
+  - [ ] 1 — `laptop-detect` (chassis checker + `packages/laptop.lst`, gated)
+  - [ ] 2 — `laptop-backlight` (brightnessctl when a backlight exists)
+  - [ ] 3 — `laptop-battery` (battery block + low-battery alerts)
+  - [ ] 4 — `laptop-touchpad` (tap-to-click, natural scroll, dwt)
+  - [ ] 5 — `laptop-power` (tuned-ppd + profile switcher)
 
 ---
 
