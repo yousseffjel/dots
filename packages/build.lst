@@ -48,5 +48,13 @@ libxcrypt-devel
 freetype-devel
 fontconfig-devel
 
+# nsxiv — imlib2 decodes every image format (its loaders bring GIF, WebP,
+# HEIC and AVIF; nothing else here is needed for them) and libexif rotates
+# photos by their EXIF orientation. Its status bar draws through Xft, already
+# listed above. nsxiv is not packaged by Fedora at all (mdapi f43/f44/rawhide,
+# 2026-10-13), which is why it is vendored; these two are (f43 and f44).
+imlib2-devel
+libexif-devel
+
 # tic(1), which st's Makefile runs to compile st.info into a terminfo entry
 ncurses

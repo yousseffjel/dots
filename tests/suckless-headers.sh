@@ -63,12 +63,15 @@ mkrepo() {
 refresh() {
     OUT="$(env -i PATH="/usr/bin:/bin" HOME="$TMP" bash -c '
         set -euo pipefail
+        DOTS_DIR="$1" DRY_RUN="$2"
+        # global_fn.sh for file_matches_history; its colour helpers are then
+        # replaced by plain ones so the assertions match uncoloured text.
+        source "$4"
         red() { printf "%s\n" "$*"; }; green() { red "$@"; }
         yellow() { red "$@"; }; blue() { red "$@"; }
-        DOTS_DIR="$1" DRY_RUN="$2"
         source "$3"
         refresh_generated_headers "$DOTS_DIR/suckless/dwm"
-    ' _ "$R" "${1:-0}" "$SUT" 2>&1)"
+    ' _ "$R" "${1:-0}" "$SUT" "$DOTS_DIR/scripts/global_fn.sh" 2>&1)"
 }
 backups() { compgen -G "$R/suckless/dwm/$1.pre-*" || true; }
 

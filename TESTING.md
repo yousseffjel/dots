@@ -81,7 +81,7 @@ for adding CI; new docs you add are linted normally.
   branch, plus `SHELLCHECK_SHA256` for shellcheck. It was
   `tests/shellcheck-pin.sh` and covered shellcheck only until 2026-09-28.
 - **`tests/build.sh`** — `make clean && make` (never `make install`) for
-  each of `suckless/{dwm,st,dmenu,dwmblocks,slock}`. Needs the build deps
+  each of `suckless/{dwm,st,dmenu,dwmblocks,slock,nsxiv}`. Needs the build deps
   from `scripts/install-suckless.sh`'s `install_deps()` already installed
   — run that script, or use the toolbox/podman flow below.
 - **`tests/dwm-runtime.sh`** — the first test in this repo to actually

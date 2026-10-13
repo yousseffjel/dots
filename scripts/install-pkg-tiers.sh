@@ -40,6 +40,12 @@ load_consequences() {
     done <"$PACKAGES_DIR/desktop.lst"
 }
 
+# package -> a package that stands in for it. RPM Fusion's ffmpeg replaces
+# Fedora's ffmpeg-free (install-pkg-repos.sh swaps them) and conflicts with it,
+# so without this every re-run would try to reinstall ffmpeg-free and report
+# a false red failure.
+declare -A SATISFIED_BY=(["ffmpeg-free"]=ffmpeg)
+
 dnf_install() {
     local pkg="$1"
     DNF_ERR=""
@@ -64,6 +70,10 @@ install_tier() {
     fi
     blue "==> $label"
     while IFS= read -r pkg; do
+        if [[ -n "${SATISFIED_BY[$pkg]:-}" ]] && rpm -q "${SATISFIED_BY[$pkg]}" >/dev/null 2>&1; then
+            green "  ok: $pkg (${SATISFIED_BY[$pkg]} installed in its place)"
+            continue
+        fi
         already=0
         rpm -q "$pkg" >/dev/null 2>&1 && already=1
         if dnf_install "$pkg"; then

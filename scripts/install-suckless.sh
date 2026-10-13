@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and install the vendored suckless programs (dwm, st, dmenu, dwmblocks,
-# slock), the dwmblocks block scripts, and the dwm autostart hook that
-# actually launches the status bar.
+# slock, plus the suckless-style nsxiv), the dwmblocks block scripts, and the
+# dwm autostart hook that actually launches the status bar.
 #
 # Runs standalone, or as part of `install-fedora.sh` (which calls this
 # unless run with --skip-suckless).
@@ -13,7 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
-PROGRAMS=(dwm st dmenu dwmblocks slock)
+PROGRAMS=(dwm st dmenu dwmblocks slock nsxiv)
 source "$SCRIPT_DIR/global_fn.sh"
 
 # Every binary each program's `make install` copies to PREFIX/bin (all
@@ -24,6 +24,15 @@ declare -A PROGRAM_BINS=(
     [dmenu]="dmenu dmenu_path dmenu_run stest"
     [dwmblocks]="dwmblocks"
     [slock]="slock"
+    [nsxiv]="nsxiv"
+)
+
+# `make install` targets per program, when plain `install` is not enough.
+# nsxiv's desktop file and icons are separate targets, and the desktop file is
+# what makes it a handler config/mimeapps.list can name. Its `make uninstall`
+# removes all three, so uninstall_steps.sh needs nothing extra.
+declare -A PROGRAM_INSTALL_TARGETS=(
+    [nsxiv]="install install-desktop install-icon"
 )
 
 SKIP_DEPS=0
@@ -71,8 +80,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # --- build dependencies ------------------------------------------------------
-# X11 + Xft + Xinerama for dwm/st, Xext + Xrandr + libcrypt for slock, and
-# tic(1) from ncurses for st's terminfo.
+# X11 + Xft + Xinerama for dwm/st, Xext + Xrandr + libcrypt for slock,
+# imlib2 + libexif for nsxiv, and tic(1) from ncurses for st's terminfo.
 #
 # The dnf names live in packages/build.lst (CLAUDE.md rule 10) — this is the
 # Fedora path and the only one the repo supports. The pacman and apt-get
@@ -97,7 +106,7 @@ install_deps() {
         blue "==> installing build deps (pacman)"
         "${SUDO[@]}" pacman -S --needed --noconfirm \
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
-            freetype2 fontconfig ncurses
+            freetype2 fontconfig ncurses imlib2 libexif
     elif command -v dnf >/dev/null 2>&1; then
         local build_lst="$DOTS_DIR/packages/build.lst"
         if [[ ! -f "$build_lst" ]]; then
@@ -118,11 +127,11 @@ install_deps() {
         "${SUDO[@]}" apt-get update -y
         "${SUDO[@]}" apt-get install -y build-essential libx11-dev libxft-dev \
             libxinerama-dev libxext-dev libxrandr-dev libcrypt-dev \
-            libfontconfig1-dev libfreetype6-dev ncurses-bin
+            libfontconfig1-dev libfreetype6-dev ncurses-bin libimlib2-dev libexif-dev
     else
         yellow "no pacman, dnf or apt-get — skipping dependency install."
         yellow "  needed: a C toolchain, Xlib, Xft, Xinerama, Xext, Xrandr,"
-        yellow "  libcrypt, fontconfig, tic(1)"
+        yellow "  libcrypt, fontconfig, imlib2, libexif, tic(1)"
     fi
 }
 
@@ -154,7 +163,8 @@ for prog in "${PROGRAMS[@]}"; do
     # toolchain, and suckless Makefiles do not track header deps.
     make -C "$dir" clean >/dev/null
     make -C "$dir"
-    "${SUDO[@]}" make -C "$dir" install
+    read -ra targets <<<"${PROGRAM_INSTALL_TARGETS[$prog]:-install}"
+    "${SUDO[@]}" make -C "$dir" "${targets[@]}"
     # `make install` re-checks the build rules as root. If anything looked out
     # of date it would leave root-owned objects behind and every later
     # non-sudo build in this tree would fail on permissions.

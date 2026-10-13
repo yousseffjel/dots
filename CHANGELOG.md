@@ -18,6 +18,21 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Default apps for images, video and text.** Images open in **nsxiv**,
+  built from source with the other suckless programs (Fedora does not package
+  it) and themed from the wallpaper. Video and audio open in **mpv**, with a
+  config for HDR tone-mapping and hardware decoding. Text and code open in
+  **Sublime Text**, installed from Sublime HQ's signed repo, with nvim kept
+  as the fallback. Firefox still opens web pages and PDFs, and file-roller
+  still opens archives.
+- **HEVC and HDR video play.** Fedora's own ffmpeg cannot decode HEVC, so the
+  installer enables RPM Fusion free and nonfree, swaps in RPM Fusion's
+  ffmpeg, and installs `intel-media-driver` for Intel hardware decoding.
+  `dots uninstall` swaps ffmpeg back and removes each repository it added
+  once nothing installed still comes from it.
+- **An existing install picks up new default apps** on its next re-run or
+  `dots update`, as long as you never edited `~/.config/mimeapps.list`.
+
 - **A wallpaper collection, and a new install opens on one of them.** The
   installer shallow-clones the 189-image wallpaper repo (about 400 MB to
   download, 780 MB on disk) into

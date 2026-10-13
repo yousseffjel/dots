@@ -15,6 +15,7 @@ ${cacheDir}/xresources|if command -v timeout >/dev/null 2>&1; then timeout 10 xr
 !   st     killall -USR1 st         (in-place, keeps the shell alive)
 !   dmenu  next invocation
 !   slock  next invocation
+!   nsxiv  next invocation (reads these natively; no patch, see its PATCHES.md)
 !
 ! ANSI color mapping: this palette is derived from a wallpaper, so it
 ! carries no inherent red/green/blue semantics. The 16 ANSI slots are
@@ -91,3 +92,13 @@ dmenu.selforeground: #<wallbash_txt1>
 slock.initcolor:     #<wallbash_pry1>
 slock.inputcolor:    #<wallbash_1xa5>
 slock.failedcolor:   #<wallbash_2xa6>
+
+! --- nsxiv (native X resources, no patch) ------------------------------
+! The bar is drawn in the darker accent so the status line reads as part of
+! the window rather than of the image. Font matches dwm and dmenu.
+Nsxiv.window.background: #<wallbash_pry1>
+Nsxiv.window.foreground: #<wallbash_txt1>
+Nsxiv.bar.background:    #<wallbash_1xa2>
+Nsxiv.bar.foreground:    #<wallbash_txt1>
+Nsxiv.mark.foreground:   #<wallbash_1xa7>
+Nsxiv.bar.font:          Cascadia Code NF:size=10

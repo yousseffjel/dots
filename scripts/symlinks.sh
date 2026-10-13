@@ -43,6 +43,9 @@ BACKUP_DIR="$BACKUP_ROOT/$(date +%Y%m%d-%H%M%S)"
 #
 # config/xdg-desktop-portal holds only portals.conf, which xdg-desktop-portal
 # reads and never writes.
+#
+# config/mpv holds only mpv.conf. mpv keeps its watch-later state in
+# $XDG_STATE_HOME/mpv, never in its config directory.
 LINKS=(
     "$CONFIG_DIR/tmux:$HOME/.config/tmux"
     "$CONFIG_DIR/zsh:$HOME/.config/zsh"
@@ -51,6 +54,7 @@ LINKS=(
     "$CONFIG_DIR/alacritty:$HOME/.config/alacritty"
     "$CONFIG_DIR/sxhkd:$HOME/.config/sxhkd"
     "$CONFIG_DIR/xdg-desktop-portal:$HOME/.config/xdg-desktop-portal"
+    "$CONFIG_DIR/mpv:$HOME/.config/mpv"
 )
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }

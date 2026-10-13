@@ -232,7 +232,7 @@ dunst                     # notifications
 # launcher/powermenu: dmenu (vendored), already have. clipboard: clipmenu +
 # clipnotify, COPR-only (skidnik/clipmenu), enabled below — see §4.3
 # see suckless/dmenu/ and packages/*.lst (installed by scripts/install-pkg.sh)
-feh                       # wallpaper + image viewer
+feh                       # wallpaper (images open in nsxiv, built from suckless/nsxiv — 2026-10-13)
 maim                      # screenshots
 slop                      # region select
 redshift                  # blue light filter
@@ -297,7 +297,10 @@ mpv                       # media player
 ```
 
 ### 4.3 Repos to enable in installer
-- **RPM Fusion** (free + nonfree) — codecs, some apps.
+- **RPM Fusion** (free + nonfree) — codecs, some apps. ✅ done 2026-10-13:
+  `scripts/install-pkg-repos.sh` enables both, swaps in RPM Fusion's ffmpeg
+  (HEVC/HDR for mpv) and installs intel-media-driver. Also adds Sublime HQ's
+  repo for sublime-text. Both are explicitly authorised rule-4 exceptions.
 - **COPR** as needed (e.g., `wallust`, `starship` if not packaged).
 - **`skidnik/clipmenu`** — clipmenu + clipnotify, dwm-clipmenu's backend.
   ✅ done: `install-fedora.sh` auto-enables it (an explicit exception to the

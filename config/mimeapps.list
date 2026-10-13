@@ -5,14 +5,23 @@
 # default`, GIO and Thunar's own "Open With -> Set Default" all rewrite
 # this file in place, and a symlink would send those writes into this repo.
 #
-# Every .desktop named here comes from a package in packages/extra.lst,
-# except dots-nvim.desktop which this repo ships in config/applications/.
-# A name pointing at an app that is not installed is ignored, not an error.
+# Where each .desktop comes from (tests/default-apps.sh checks every one):
+#   firefox, thunar, file-roller, mpv  packages/desktop.lst or extra.lst
+#   sublime_text                       Sublime HQ's repo (install-pkg-repos.sh)
+#   nsxiv                              built from suckless/nsxiv
+#   dots-nvim                          shipped in config/applications/
+# A name pointing at an app that is not installed is ignored, not an error:
+# GIO moves on to the next app associated with the type.
+#
+# Existing installs: install-restore-apps.sh replaces a deployed copy that is
+# identical to some committed version of this file, so new defaults reach an
+# install you have not edited. Once you change it (by hand or with Open With ->
+# Set Default) it is yours and is never replaced.
 #
 # [Added Associations] is listed alongside [Default Applications] on
 # purpose: the default only takes effect for a type the application is
-# actually associated with, and neither feh nor file-roller declares every
-# type below in its own MimeType line.
+# actually associated with. sublime_text.desktop declares only text/plain,
+# and neither nsxiv nor file-roller declares every type below.
 
 [Default Applications]
 inode/directory=thunar.desktop
@@ -27,23 +36,55 @@ x-scheme-handler/https=firefox.desktop
 x-scheme-handler/about=firefox.desktop
 x-scheme-handler/unknown=firefox.desktop
 
-# Images -> feh. Its own Exec is `feh --start-at %u`, so opening one image
-# from a directory lets you page through the rest.
-image/bmp=feh.desktop
-image/gif=feh.desktop
-image/jpeg=feh.desktop
-image/png=feh.desktop
-image/tiff=feh.desktop
-image/webp=feh.desktop
-image/x-bmp=feh.desktop
-image/x-portable-pixmap=feh.desktop
-image/x-xbitmap=feh.desktop
-image/heic=feh.desktop
-image/avif=feh.desktop
+# Images -> nsxiv (suckless/nsxiv). feh stays installed for the wallpaper.
+# nsxiv.desktop runs `nsxiv %F`: it opens the files you picked, and `nsxiv
+# -t <dir>` shows a whole directory as thumbnails.
+image/bmp=nsxiv.desktop
+image/gif=nsxiv.desktop
+image/jpeg=nsxiv.desktop
+image/png=nsxiv.desktop
+image/tiff=nsxiv.desktop
+image/webp=nsxiv.desktop
+image/x-bmp=nsxiv.desktop
+image/x-portable-pixmap=nsxiv.desktop
+image/x-xbitmap=nsxiv.desktop
+image/heic=nsxiv.desktop
+image/avif=nsxiv.desktop
+image/jxl=nsxiv.desktop
+image/x-tga=nsxiv.desktop
 
-# SVG goes to firefox, not feh: feh rasterises through imlib2 and renders
-# most SVGs badly or not at all.
+# SVG goes to firefox, not nsxiv: nsxiv rasterises through imlib2, as feh
+# did, and imlib2 renders most SVGs badly or not at all.
 image/svg+xml=firefox.desktop
+
+# Video and audio -> mpv (config/mpv/mpv.conf). HEVC and HDR need RPM
+# Fusion's ffmpeg, which install-pkg-repos.sh swaps in. mpv.desktop declares
+# every type below, so none needs an [Added Associations] line.
+video/mp4=mpv.desktop
+video/x-matroska=mpv.desktop
+video/webm=mpv.desktop
+video/x-msvideo=mpv.desktop
+video/quicktime=mpv.desktop
+video/mpeg=mpv.desktop
+video/x-flv=mpv.desktop
+video/ogg=mpv.desktop
+video/mp2t=mpv.desktop
+video/x-ms-wmv=mpv.desktop
+video/3gpp=mpv.desktop
+video/x-m4v=mpv.desktop
+video/x-ogm+ogg=mpv.desktop
+audio/mpeg=mpv.desktop
+audio/flac=mpv.desktop
+audio/ogg=mpv.desktop
+audio/x-vorbis+ogg=mpv.desktop
+audio/opus=mpv.desktop
+audio/x-wav=mpv.desktop
+audio/mp4=mpv.desktop
+audio/aac=mpv.desktop
+audio/x-matroska=mpv.desktop
+audio/webm=mpv.desktop
+audio/x-ms-wma=mpv.desktop
+audio/x-aiff=mpv.desktop
 
 # Archives -> file-roller, which shells out to unar for RAR (locked
 # decision 8: unar is in Fedora proper, unrar is RPM Fusion nonfree).
@@ -60,34 +101,32 @@ application/x-bzip=org.gnome.FileRoller.desktop
 application/x-xz=org.gnome.FileRoller.desktop
 application/zstd=org.gnome.FileRoller.desktop
 
-# Text and code -> neovim in alacritty (see config/applications/).
-text/plain=dots-nvim.desktop
-text/markdown=dots-nvim.desktop
-text/csv=dots-nvim.desktop
-text/x-makefile=dots-nvim.desktop
-text/x-c=dots-nvim.desktop
-text/x-c++=dots-nvim.desktop
-text/x-csrc=dots-nvim.desktop
-text/x-chdr=dots-nvim.desktop
-text/x-c++src=dots-nvim.desktop
-text/x-c++hdr=dots-nvim.desktop
-text/x-java=dots-nvim.desktop
-text/x-python=dots-nvim.desktop
-text/x-tex=dots-nvim.desktop
-application/x-shellscript=dots-nvim.desktop
-application/json=dots-nvim.desktop
-application/toml=dots-nvim.desktop
-application/x-yaml=dots-nvim.desktop
-application/xml=dots-nvim.desktop
+# Text and code -> Sublime Text. nvim (dots-nvim.desktop, in alacritty) is
+# listed second for every type, here and in [Added Associations], so it is
+# one Open With away and GIO falls back to it when sublime-text is missing.
+text/plain=sublime_text.desktop;dots-nvim.desktop;
+text/markdown=sublime_text.desktop;dots-nvim.desktop;
+text/csv=sublime_text.desktop;dots-nvim.desktop;
+text/x-makefile=sublime_text.desktop;dots-nvim.desktop;
+text/x-c=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++=sublime_text.desktop;dots-nvim.desktop;
+text/x-csrc=sublime_text.desktop;dots-nvim.desktop;
+text/x-chdr=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++src=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++hdr=sublime_text.desktop;dots-nvim.desktop;
+text/x-java=sublime_text.desktop;dots-nvim.desktop;
+text/x-python=sublime_text.desktop;dots-nvim.desktop;
+text/x-tex=sublime_text.desktop;dots-nvim.desktop;
+application/x-shellscript=sublime_text.desktop;dots-nvim.desktop;
+application/json=sublime_text.desktop;dots-nvim.desktop;
+application/toml=sublime_text.desktop;dots-nvim.desktop;
+application/x-yaml=sublime_text.desktop;dots-nvim.desktop;
+application/xml=sublime_text.desktop;dots-nvim.desktop;
 
 [Added Associations]
 inode/directory=thunar.desktop;
-image/bmp=feh.desktop;
-image/heic=feh.desktop;
-image/avif=feh.desktop;
-image/x-bmp=feh.desktop;
-image/x-portable-pixmap=feh.desktop;
-image/x-xbitmap=feh.desktop;
+image/x-portable-pixmap=nsxiv.desktop;
+image/x-xbitmap=nsxiv.desktop;
 application/zip=org.gnome.FileRoller.desktop;
 application/x-7z-compressed=org.gnome.FileRoller.desktop;
 application/vnd.rar=org.gnome.FileRoller.desktop;
@@ -100,10 +139,22 @@ application/gzip=org.gnome.FileRoller.desktop;
 application/x-bzip=org.gnome.FileRoller.desktop;
 application/x-xz=org.gnome.FileRoller.desktop;
 application/zstd=org.gnome.FileRoller.desktop;
-text/markdown=dots-nvim.desktop;
-text/csv=dots-nvim.desktop;
-text/x-python=dots-nvim.desktop;
-application/toml=dots-nvim.desktop;
-application/x-yaml=dots-nvim.desktop;
-application/xml=dots-nvim.desktop;
 application/pdf=firefox.desktop;
+text/plain=sublime_text.desktop;dots-nvim.desktop;
+text/markdown=sublime_text.desktop;dots-nvim.desktop;
+text/csv=sublime_text.desktop;dots-nvim.desktop;
+text/x-makefile=sublime_text.desktop;dots-nvim.desktop;
+text/x-c=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++=sublime_text.desktop;dots-nvim.desktop;
+text/x-csrc=sublime_text.desktop;dots-nvim.desktop;
+text/x-chdr=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++src=sublime_text.desktop;dots-nvim.desktop;
+text/x-c++hdr=sublime_text.desktop;dots-nvim.desktop;
+text/x-java=sublime_text.desktop;dots-nvim.desktop;
+text/x-python=sublime_text.desktop;dots-nvim.desktop;
+text/x-tex=sublime_text.desktop;dots-nvim.desktop;
+application/x-shellscript=sublime_text.desktop;dots-nvim.desktop;
+application/json=sublime_text.desktop;dots-nvim.desktop;
+application/toml=sublime_text.desktop;dots-nvim.desktop;
+application/x-yaml=sublime_text.desktop;dots-nvim.desktop;
+application/xml=sublime_text.desktop;dots-nvim.desktop;

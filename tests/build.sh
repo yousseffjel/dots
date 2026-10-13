@@ -13,7 +13,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
-PROGRAMS=(dwm st dmenu dwmblocks slock)
+# Read from the installer rather than restated: this list used to be a copy,
+# and a copy is what goes stale when a program is added.
+INSTALL="$DOTS_DIR/scripts/install-suckless.sh"
+eval "$(grep -m1 '^PROGRAMS=(' "$INSTALL")"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -33,6 +36,14 @@ for arg in "$@"; do
 done
 
 FAIL=0
+# The reverse direction: a vendored program the installer never builds.
+for mk in "$SUCKLESS_DIR"/*/Makefile; do
+    prog="$(basename "$(dirname "$mk")")"
+    if [[ " ${PROGRAMS[*]} " != *" $prog "* ]]; then
+        red "  suckless/$prog has a Makefile but is not in PROGRAMS in $INSTALL"
+        FAIL=1
+    fi
+done
 for prog in "${PROGRAMS[@]}"; do
     dir="$SUCKLESS_DIR/$prog"
     blue "==> building $prog"

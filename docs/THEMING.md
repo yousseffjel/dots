@@ -450,6 +450,7 @@ The dconf line only proves the preference is stored.
 | st | `st.background`, `st.color0`–`15`, … | `pkill -USR1` — the signal-reload patch re-reads in place, so running shells survive |
 | dmenu | `dmenu.background`, `dmenu.selbackground`, … | next invocation (dmenu is short-lived) |
 | slock | `slock.initcolor`, … | next invocation |
+| nsxiv | `Nsxiv.window.background`, `Nsxiv.bar.*`, … (native, no patch) | next invocation — a running viewer keeps its colours |
 | dwmblocks | `statusbar-colors.sh` | restart — block scripts read the palette at exec time, so there is nothing to signal |
 | dunst | its own generated `dunstrc` | killed; D-Bus reactivates it on the next notification |
 | picom | nothing — see below | `pkill -USR1` reloads config in place |

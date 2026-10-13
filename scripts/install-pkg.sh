@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # "install" stage, package half: installs the C toolchain group, three tiers
 # of dnf packages, the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v),
-# and the fdfind -> fd shim. The suckless build (dwm/st/dmenu/dwmblocks/slock)
-# is the other half of the "install" stage — see install-suckless.sh, which
+# the Sublime HQ + RPM Fusion repos behind the default apps
+# (install-pkg-repos.sh), and the fdfind -> fd shim. The suckless build
+# (dwm/st/dmenu/dwmblocks/slock/nsxiv) is the other half of the "install" stage — see install-suckless.sh, which
 # owns packages/build.lst and installs those deps itself.
 #
 # The three tiers this script reads, in install order:
@@ -169,6 +170,12 @@ else
         yellow "  retry manually, or let dnf own it: dnf copr enable atim/starship && dnf install starship"
     fi
 fi
+
+# Sublime HQ's repo and RPM Fusion, for the default editor and the codecs
+# mpv needs for HEVC/HDR — both explicitly authorised rule-4 exceptions. See
+# that file's header for what each adds and how uninstall reverts it.
+source "$SCRIPT_DIR/install-pkg-repos.sh"
+repos_install
 
 # Fedora's fd-find package ships its binary as `fdfind` (name clash with
 # another package, same as Debian/Ubuntu) — shim it under ~/.local/bin so

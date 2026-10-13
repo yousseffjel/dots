@@ -179,6 +179,14 @@ unzip
 zip
 tar
 
+# default applications (config/mimeapps.list). mpv is the video and audio
+# player; its HEVC/HDR codecs come from RPM Fusion via
+# scripts/install-pkg-repos.sh, which also installs sublime-text (the default
+# editor) from Sublime HQ's repo. Neither of those two can live in a .lst:
+# the dry run checks these names against the repos enabled BEFORE that step
+# runs. The image viewer, nsxiv, is built from suckless/nsxiv.
+mpv
+
 # development stack (Node.js is handled by nvm, not dnf — see install-fedora.sh header)
 neovim
 vim-enhanced

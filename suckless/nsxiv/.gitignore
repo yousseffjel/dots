@@ -1,0 +1,7 @@
+config.h
+version.h
+*.d
+*.o
+nsxiv
+icon/img2data
+config.h.pre-*

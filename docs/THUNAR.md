@@ -119,22 +119,52 @@ Thunar re-themes the whole desktop exactly as picking one with `Super+Shift+w` d
 
 ## Default applications
 
-`config/mimeapps.list` maps types to `thunar` (directories), `feh` (images),
-`file-roller` (archives), `firefox` (web, PDF, SVG) and `dots-nvim.desktop`
-(text and code). Two things worth knowing:
+`config/mimeapps.list` sets these defaults:
+
+| Files | Default | Where it comes from |
+| ----- | ------- | ------------------- |
+| Directories | `thunar` | `packages/desktop.lst` |
+| Web, PDF, SVG | `firefox` | `packages/desktop.lst` |
+| Images | `nsxiv` | built from `suckless/nsxiv` (Fedora does not package it) |
+| Video and audio | `mpv` | `packages/extra.lst`; config in `config/mpv/mpv.conf` |
+| Archives (zip, rar, 7z, tar.*) | `file-roller` | `packages/extra.lst` (RAR through `unar`) |
+| Text and code | Sublime Text, then `dots-nvim.desktop` | Sublime HQ's repo, added by `scripts/install-pkg-repos.sh` |
+
+`tests/default-apps.sh` fails the build if a handler named there has no
+package, build or shipped file behind it. Things worth knowing:
 
 - **`[Added Associations]` is populated alongside `[Default Applications]`**
   on purpose. A default only takes effect for a type the application is
-  actually associated with, and neither feh nor file-roller declares every
-  type listed in its own `MimeType` line.
+  actually associated with. `sublime_text.desktop` declares only
+  `text/plain`, and neither nsxiv nor file-roller declares every type listed.
+- **nvim stays one Open With away.** Every text type lists
+  `sublime_text.desktop;dots-nvim.desktop;`, so nvim is the fallback GIO uses
+  when sublime-text is not installed (an arch Sublime HQ does not publish
+  for, or a failed repo add).
 - **`dots-nvim.desktop` exists because `nvim.desktop` is `Terminal=true`.**
   That hands the job of finding a terminal to GLib, which picks from a
   compiled-in list of terminal names — so whether alacritty is chosen
   depends on the installed GLib version. Ours spells the terminal out:
   `alacritty --title nvim -e nvim %F`.
+- **HDR video.** Most HDR releases are 10-bit HEVC, which Fedora's own
+  `ffmpeg-free` cannot decode at all. The installer enables RPM Fusion free
+  and nonfree, swaps in RPM Fusion's `ffmpeg`, and installs
+  `intel-media-driver` for VA-API decoding on Intel GPUs. mpv's `gpu-next`
+  output then tone-maps HDR to SDR. X11 has no HDR output path, so no player
+  on this desktop can send real HDR to the monitor.
+- **nsxiv opens what you picked.** `nsxiv.desktop` runs `nsxiv %F`, so
+  opening one image shows that image. `nsxiv -t <dir>` shows a whole
+  directory as thumbnails. feh is still installed: the wallpaper engine uses
+  it.
 
-SVG deliberately goes to firefox rather than feh: feh rasterises through
-imlib2 and renders most SVGs badly or not at all.
+SVG deliberately goes to firefox rather than nsxiv: nsxiv rasterises through
+imlib2, as feh did, and imlib2 renders most SVGs badly or not at all.
+
+**Existing installs get new defaults** when a re-run (or `dots update`) finds
+a `~/.config/mimeapps.list` it deployed itself that is identical to some
+committed version of the file: it was never edited, so it is replaced. Once
+you change it, by hand or with Thunar's "Set Default", it is yours and is
+never replaced again.
 
 ## Uninstall
 

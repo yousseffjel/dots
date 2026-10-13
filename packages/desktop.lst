@@ -65,8 +65,11 @@ xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen
 # Screen recording (Super+r, dwm-record). ffmpeg-free is Fedora's own build:
 # x11grab and libvpx are enabled, H.264 is not (checked against the ffmpeg
 # spec on src.fedoraproject.org and mdapi for f43 and f44, 2026-10-05). It
-# CONFLICTS with RPM Fusion's ffmpeg; if that is installed this line fails
-# and the recorder still works with it.
+# CONFLICTS with RPM Fusion's ffmpeg, which scripts/install-pkg-repos.sh swaps
+# in right after this tier (HEVC/HDR video for mpv). install-pkg-tiers.sh's
+# SATISFIED_BY counts RPM Fusion's ffmpeg as this line, so a re-run neither
+# reinstalls ffmpeg-free nor reports it failed, and the recorder works with
+# either build.
 ffmpeg-free  # the Super+r screen recorder cannot start (unless RPM Fusion's ffmpeg is installed instead)
 
 # --- emoji picker, keybound ---

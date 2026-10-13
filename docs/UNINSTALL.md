@@ -111,11 +111,23 @@ partial uninstall is a normal, supported outcome, not an error.
    (`~/Pictures`, `wallpapers/`) are removed with it when they are empty;
    folders that already existed are never touched. A folder that was already
    at that path before installing was never cloned or recorded.
+5d. **Package swaps.** The installer swaps Fedora's `ffmpeg-free` for RPM
+   Fusion's `ffmpeg` (for HEVC/HDR video). If it made that swap, it is
+   reversed here with `dnf swap ffmpeg ffmpeg-free`. A swap is never undone
+   by removing `ffmpeg`, which would remove everything that depends on it.
+   Runs before the package step, so a `ffmpeg-free` the installer added in
+   the first place can then be removed there.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
    `install-fedora.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
+6b. **Third-party repositories.** The Sublime HQ repo file
+   (`/etc/yum.repos.d/sublime-text.repo`) and the RPM Fusion free and
+   nonfree release packages, each only if the installer added it. Runs after
+   the package step, and a repository is removed only while nothing
+   installed still comes from it. Both RPM Fusion repos are kept together,
+   because nonfree's release package requires free's.
 7. **Services.** Disables whatever `SERVICE` rows the manifest holds
    (`ly@tty2.service` on a current install) if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
@@ -150,6 +162,11 @@ partial uninstall is a normal, supported outcome, not an error.
 - The wallpaper collection, if you have added, changed or committed
   anything in it since installing (step 5c says which). Delete
   `wallpapers/dots/` in your pictures folder by hand if you want it gone.
+- A third-party repository (Sublime HQ, RPM Fusion) while anything installed
+  still comes from it, and the rpm signing keys the installer imported for
+  them. A key with no repository signs nothing; list them with
+  `rpm -qa 'gpg-pubkey*' --qf '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'`
+  and remove one with `sudo rpm -e <name>` if you want it gone.
 - The Flathub remote, while any installed Flatpak still comes from it. Run
   `flatpak remote-delete --user flathub` after uninstalling those apps if
   you want it gone.

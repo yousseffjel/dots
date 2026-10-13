@@ -49,6 +49,26 @@ refuse_root() {
     fi
 }
 
+# --- git history -------------------------------------------------------------
+
+# dots_git <args> — git against this repo ($DOTS_DIR), quiet.
+dots_git() { git -C "$DOTS_DIR" "$@" 2>/dev/null; }
+
+# file_matches_history <file> <repo-relative path> — true when <file> is
+# byte-identical to <path> as committed in ANY commit that touched it, i.e. a
+# copy someone deployed and never edited. Compared by blob id, so nothing
+# beyond git (core.lst) is needed. Used to decide whether a generated or copied
+# file may be replaced: install-suckless-headers.sh (config.h) and
+# install-restore-apps.sh (mimeapps.list).
+file_matches_history() {
+    local want commit
+    want="$(dots_git hash-object -- "$1")" || return 1
+    while read -r commit; do
+        [[ "$(dots_git rev-parse -q --verify "$commit:$2")" == "$want" ]] && return 0
+    done < <(dots_git log --format=%H -- "$2")
+    return 1
+}
+
 # --- manifest: meta (version/commit/date) -----------------------------------
 
 # Replaces any existing META row for $1 with $1=$2 (idempotent — safe to

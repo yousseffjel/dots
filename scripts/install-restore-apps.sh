@@ -29,14 +29,24 @@
 # Unlike the theme files, nothing regenerates these later, so a
 # pre-existing target that we skip stays the user's own indefinitely — no
 # backup is needed here, where install-restore-theme.sh needs one.
+#
+# One exception, for a file whose shipped contents change: a copy we deployed
+# (manifest-claimed) that is byte-identical to SOME committed version of its
+# source was never edited, so it is replaced with the current one. That is
+# how an existing install gets new defaults in mimeapps.list. Anything else,
+# including a claimed copy you edited, is still left alone.
 deploy_app_file() {
-    local src="$1" dst="$2"
+    local src="$1" dst="$2" rel="${1#"$DOTS_DIR"/}"
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would deploy $dst"
         return 0
     fi
     if [[ -e "$dst" ]]; then
-        if manifest_has_path APP "$dst"; then
+        if manifest_has_path APP "$dst" && [[ "$(<"$src")" != "$(<"$dst")" ]] \
+            && file_matches_history "$dst" "$rel"; then
+            cp "$src" "$dst"
+            green "updated $dst (unedited copy of an older $rel)"
+        elif manifest_has_path APP "$dst"; then
             green "ok      $dst already deployed by us"
         else
             green "ok      $dst exists (left untouched, not tracked for removal)"
