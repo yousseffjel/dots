@@ -2132,3 +2132,19 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - **Not yet on the VM**: `git pull` + `dots update` (clones, and switches to a
   random wallpaper once), then `--login-random on` + paste the three printed
   `.xinitrc` lines, and log in twice.
+
+## 2026-10-13 — update-resilience merged
+
+- **`update-resilience` merged** (`0e55b67`, fast-forward). Three fixes from
+  the first VM run of wallpaper-collection:
+  - the ~400 MB clone shows git's progress on `/dev/tty` (install.log never
+    sees it; quiet without a terminal);
+  - **DECISION REVERSAL**: `dots update` reads a new `complete` stamp, written
+    only when a full install-fedora.sh run reaches its end, so a Ctrl-C'd or
+    lone `--only-<stage>` install reads as stale. Every existing install
+    re-runs the full installer once on its next update;
+  - a restore re-run re-applies the active theme (`theme_active`: the newer
+    of wall.set / theme.set), not `dark`.
+- Suite 57/57, lint clean, mutations 10/10, reviewer READY first round.
+- **Not yet on the VM**: push, `git pull` + `dots update` (full re-run once,
+  let it finish), then confirm the wallpaper colours survived.
