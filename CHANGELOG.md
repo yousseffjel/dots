@@ -18,6 +18,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Arabic renders properly next to English.** Noto Sans Arabic and Noto
+  Naskh Arabic are installed, and a new `~/.config/fontconfig` (linked from
+  `config/fontconfig/`) puts them directly behind the Latin faces, so Arabic
+  in GTK apps, the browser and Flatpak apps uses them instead of whatever the
+  system ranks next. dwm's window title and every dmenu menu now join Arabic
+  letters and lay them out right to left (new `bidi` patches, built against
+  FriBiDi). Terminals still show Arabic unjoined; `docs/FONTS.md` explains
+  why, and covers the whole font stack.
 - **Default apps for images, video and text.** Images open in **nsxiv**,
   built from source with the other suckless programs (Fedora does not package
   it) and themed from the wallpaper. Video and audio open in **mpv**, with a
@@ -61,6 +69,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   login-theme` applies it by hand; `dots uninstall` restores ly's own values.
 
 ### Changed
+
+- **The GTK UI font is now Noto Sans 10** (was JetBrains Mono 10) in all
+  four themes. Terminals, the bar and dmenu stay on Cascadia Code NF. Run
+  `dots theme <name>` to apply it to an existing install.
 
 - **Keybindings remapped.** Terminal `Super` + `Return` (zoom moves to
   `Shift` + `Return`), close window `Super` + `Shift` + `q`, quit dwm

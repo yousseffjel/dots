@@ -147,6 +147,18 @@ jobs:
       - name: Build each suckless program (make only, no install)
         run: bash tests/build.sh
 
+      # tests/bidi.sh compiles the bidi() helpers out of the shipped dwm.c and
+      # dmenu.c against fribidi (fribidi-devel came in with build.lst above)
+      # under AddressSanitizer. libasan is NOT in build.lst — gcc does not
+      # pull it in, and a real build never needs it. --strict makes a missing
+      # compiler, header or ASan runtime a failure; the tests job, which has
+      # none of them, skips the script instead.
+      - name: Install the ASan runtime for tests/bidi.sh
+        run: dnf install -y libasan
+
+      - name: Check the fribidi patches' bidi() under ASan
+        run: bash tests/bidi.sh --strict
+
       # Deliberately NOT in packages/build.lst: these back tests/dwm-runtime.sh
       # (scope-d slot C) only, and a real install never needs a virtual
       # framebuffer, xdotool, or ImageMagick. build.lst is what

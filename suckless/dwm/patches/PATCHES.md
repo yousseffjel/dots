@@ -19,6 +19,42 @@ updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
 the chords they were published with in their context lines, because they are
 records of what upstream shipped, not of this tree's keymap.
 
+## dwm-bidi-20261013-local.diff
+
+**Source**: adapted from upstream's
+[bidi](https://dwm.suckless.org/patches/bidi/) patch
+(`dwm-bidi-restricted-20230512-e81f17d.diff`, the window-title-only variant),
+by Mahdi Mirzadeh. Captured against this tree rather than vendored as
+published, for two reasons below.
+
+**What**: `bidi()` runs a string through fribidi's `fribidi_log2vis`, which
+reorders it into visual order and — because log2vis applies
+`FRIBIDI_FLAGS_ARABIC` — shapes Arabic into its joined presentation forms.
+`drawbar()` draws `bidi(m->sel->name)` in place of the title. `config.mk`
+gains `FRIBIDIINC`/`FRIBIDILIBS`; `packages/build.lst` gains
+`fribidi-devel`. `config.def.h` adds `"Noto Sans Arabic:size=10"` as the
+second `fonts[]` entry: Cascadia Code NF has the base Arabic letters but not
+the presentation forms (U+FE70-FEFF) the shaping emits.
+
+**Why**: Xft draws codepoints left to right as given and shapes nothing, so
+an Arabic title rendered as isolated letters in reverse order.
+
+**Where it departs from upstream**:
+- **Buffer sizes.** Upstream wrote the result into a buffer the size of the
+  input (256 bytes). An Arabic letter is 2 bytes in UTF-8 and its
+  presentation form 3, so a title over ~170 bytes of Arabic overflowed it.
+  Here the output holds 4 bytes per codepoint of a 255-byte input, and the
+  input copy is zero-padded: fribidi's UTF-8 decoder reads a lead byte's
+  continuation bytes without checking the length, and the 255-byte cut can
+  split a sequence. `tests/bidi.sh` reproduces the upstream overflow under
+  ASan and guards against it.
+- **ASCII fast path.** A string with no byte >= 0x80 cannot contain a
+  strong RTL character, so `bidi()` returns it untouched — the bar redraws
+  on every focus change and most titles are ASCII.
+- **Title only, like upstream's restricted variant.** Status text comes
+  from dwmblocks (ASCII and Nerd glyphs), drawn by status2d's own parser,
+  and the tags are digits.
+
 ## dwm-preservepertag-20261012-local.diff
 
 **Source**: written for this tree; extends preserveonrestart (below) to the

@@ -56,5 +56,9 @@ fontconfig-devel
 imlib2-devel
 libexif-devel
 
+# bidi + Arabic shaping for dwm's window title and dmenu's lines (the
+# bidi-local patches in suckless/{dwm,dmenu}/patches/PATCHES.md)
+fribidi-devel
+
 # tic(1), which st's Makefile runs to compile st.info into a terminfo entry
 ncurses

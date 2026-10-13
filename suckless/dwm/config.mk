@@ -21,9 +21,13 @@ FREETYPEINC = /usr/include/freetype2
 #FREETYPEINC = ${X11INC}/freetype2
 #MANPREFIX = ${PREFIX}/man
 
+# fribidi — bidi reordering + Arabic shaping of the window title (bidi patch)
+FRIBIDIINC = /usr/include/fribidi
+FRIBIDILIBS = -lfribidi
+
 # includes and libs
-INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS}
+INCS = -I${X11INC} -I${FREETYPEINC} -I${FRIBIDIINC}
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${FRIBIDILIBS}
 
 # flags
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}

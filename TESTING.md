@@ -106,6 +106,25 @@ for adding CI; new docs you add are linted normally.
   tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file
   there is never executed on its own, while `tests/lint.sh` lints every
   tracked `*.sh` at any depth.
+- **`tests/bidi.sh`** — the `bidi()` helpers the fribidi patches added to
+  dwm (window title) and dmenu (items, input line), **extracted from the
+  shipped `dwm.c`/`dmenu.c`** and compiled against fribidi under
+  AddressSanitizer: ASCII passes through as the same pointer, Arabic comes
+  back shaped and in visual order, and inputs past each buffer cap stay in
+  bounds — the upstream patches overflowed exactly there, and with their
+  256-byte buffer the long-title case is an ASan error. Also checks each draw
+  site still calls `bidi()`. Needs `cc`, `fribidi-devel` and `libasan`, so the
+  `tests` job skips it and `build-suckless` runs it as `--strict`, where a
+  missing one fails instead.
+- **`tests/fontconfig-stack.sh`** — every font family named in
+  `config/fontconfig/fonts.conf`, the dwm/dmenu/st `config.def.h`,
+  alacritty and each `theme.conf` maps (via the test's one hand-kept
+  family→package table) to a package some `packages/*.lst` declares, and
+  `symlinks.sh` links `config/fontconfig`. Then, against the host's real
+  fontconfig with sandboxed `XDG_CONFIG_HOME`/`XDG_CACHE_HOME`, the file must
+  load without a warning and the generics (plus `lang=ar` and Arabic
+  codepoints) must resolve to the faces it prefers — each resolution check
+  skipping when its expected family is not installed on the host.
 - **`tests/pkglist.sh`** — offline syntax check on `packages/*.lst`: valid
   package-name characters, no list that parses to zero packages, no
   duplicates within a file, and no package appearing in two tiers (all

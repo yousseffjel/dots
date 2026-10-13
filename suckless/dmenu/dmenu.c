@@ -17,6 +17,7 @@
 #include <X11/extensions/Xinerama.h>
 #endif
 #include <X11/Xft/Xft.h>
+#include <fribidi.h>
 
 #include "drw.h"
 #include "util.h"
@@ -160,6 +161,48 @@ cistrstr(const char *h, const char *n)
 	return NULL;
 }
 
+/* Reorders str into visual order and shapes Arabic into its joined
+ * presentation forms (fribidi_log2vis applies FRIBIDI_FLAGS_ARABIC), since Xft
+ * draws codepoints left to right as given and does neither. Returns str itself
+ * when it is pure ASCII — no strong RTL character can occur, and every typed
+ * QWERTY query takes this path — otherwise a static buffer valid until the
+ * next call. Only the drawn copy changes: matching and the cursor still work
+ * on the logical text, so the cursor sits at its logical offset inside an RTL
+ * run.
+ *
+ * Input past BIDI_MAX bytes is cut off; a line that long is clipped by
+ * drw_text long before it would show. Each codepoint takes at least one byte
+ * in and at most 4 out, which sizes the buffers — the upstream bidi patch
+ * wrote into a buffer the size of its input, which Arabic overflows (2-byte
+ * letters become 3-byte presentation forms). The input copy is zero-padded
+ * because fribidi's UTF-8 decoder reads a lead byte's continuation bytes
+ * without checking len, and the cut can split a sequence. */
+#define BIDI_MAX (BUFSIZ - 1)
+static const char *
+bidi(const char *str)
+{
+	static char in[BIDI_MAX + 4], out[4 * BIDI_MAX + 1];
+	static FriBidiChar logical[BIDI_MAX], visual[BIDI_MAX];
+	FriBidiParType base = FRIBIDI_PAR_ON;
+	FriBidiStrIndex len;
+	size_t n;
+	const char *p;
+
+	for (p = str; *p && !(*p & 0x80); p++)
+		;
+	if (!*p)
+		return str;
+	n = strlen(str);
+	len = n > BIDI_MAX ? BIDI_MAX : (FriBidiStrIndex)n;
+	memcpy(in, str, len);
+	memset(in + len, 0, 4);
+	len = fribidi_charset_to_unicode(FRIBIDI_CHAR_SET_UTF8, in, len, logical);
+	if (!fribidi_log2vis(logical, len, &base, visual, NULL, NULL, NULL))
+		return str;
+	fribidi_unicode_to_charset(FRIBIDI_CHAR_SET_UTF8, visual, len, out);
+	return out;
+}
+
 static int
 drawitem(struct item *item, int x, int y, int w)
 {
@@ -170,7 +213,7 @@ drawitem(struct item *item, int x, int y, int w)
 	else
 		drw_setscheme(drw, scheme[SchemeNorm]);
 
-	return drw_text(drw, x, y, w, bh, lrpad / 2, item->text, 0);
+	return drw_text(drw, x, y, w, bh, lrpad / 2, bidi(item->text), 0);
 }
 
 /* numbers: "<matched>/<total>" counter drawn in the right-hand corner */
@@ -209,7 +252,7 @@ drawmenu(void)
 	recalculatenumbers();
 	w = (lines > 0 || !matches) ? MAX(0, mw - x - (int)TEXTW(numbers)) : inputw;
 	drw_setscheme(drw, scheme[SchemeNorm]);
-	drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
+	drw_text(drw, x, 0, w, bh, lrpad / 2, bidi(text), 0);
 
 	curpos = TEXTW(text) - TEXTW(&text[cursor]);
 	if ((curpos += lrpad / 2 - 1) < w) {
