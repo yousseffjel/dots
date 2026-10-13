@@ -19,6 +19,7 @@ would do and changes nothing. `dots doctor` reports the same things under
 | Intel CPU (bare metal) | `microcode_ctl` | Fedora |
 | AMD CPU (bare metal) | `amd-ucode-firmware` | Fedora |
 | Any bare-metal machine | `fwupd` | Fedora |
+| A laptop | everything in `packages/laptop.lst` (`brightnessctl`) | Fedora |
 
 The GPU packages are the VA-API drivers: without them mpv decodes HEVC and
 H.264 on the CPU, because Fedora's own builds leave those codecs out. On an
@@ -49,6 +50,39 @@ sudo), asks dnf which package ships each file, and installs that package.
 Drivers often try several firmware versions and log a failure for every
 newer one they do not find. No package ships those, so nothing is installed
 for them. Reboot afterwards so the driver picks the firmware up.
+
+## Laptop or desktop
+
+dots runs on both. `dots drivers` and `dots doctor` start by saying which one
+this machine is, and why:
+
+```text
+laptop (chassis type 10, battery BAT0) — packages/laptop.lst:
+```
+
+A machine is a **laptop** when its firmware says so (SMBIOS chassis type 8
+Portable, 9 Laptop, 10 Notebook, 14 Sub Notebook, 31 Convertible or 32
+Detachable) **or** when it has a system battery, because some firmware
+reports a laptop as "Other". A battery the kernel marks `scope=Device`
+belongs to a wireless mouse or headset, so it does not count. Types like
+3 Desktop and 7 Tower make it a **desktop**. Anything else is **unknown** and
+treated as a desktop: nothing laptop-only is installed on a guess. A QEMU
+virtual machine reports "Other", so it lands here.
+
+A desktop behaves exactly as it always did. On a laptop:
+
+- `packages/laptop.lst` is installed, and only there. Each package gets a
+  manifest row, so `dots uninstall` removes it. `dots doctor` checks that
+  list only on a laptop.
+- **The brightness keys dim the backlight**, through `brightnessctl`, and the
+  status-bar block says `BL`. On a desktop they scale the picture with
+  xrandr gamma, which saves no power, so the block says `GAMMA`. Fedora's
+  `brightnessctl` goes through logind, so it works for whoever is logged in
+  at the machine with no udev rule. Over ssh it is refused, and
+  `dwm-brightness` says so rather than quietly using gamma.
+
+Still to come (`.claude/tasks/scope-h-laptop-support.md`): a battery block
+with low-battery warnings, touchpad tap-to-click, and power profiles.
 
 ## NVIDIA: reported, never installed
 

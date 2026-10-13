@@ -36,12 +36,10 @@
 #   ddcutil / i2c-dev — brightness is xrandr gamma on this desktop target,
 #     not DDC/CI. See the roster Epic's locked decision 10.
 #
-#   brightnessctl — same reason, and it was listed here by mistake until
-#     2026-08-07. It drives /sys/class/backlight, which a desktop GPU does
-#     not expose, so it could never have worked on this target. Brightness
-#     is config/dwm/bin/dwm-brightness (xrandr gamma), locked decision 12.
-#     On a laptop target, `dnf install brightnessctl` and teach that script
-#     to prefer it.
+#   brightnessctl — it drives /sys/class/backlight, which a desktop GPU does
+#     not expose. Since scope-h (2026-10-13) it is in packages/laptop.lst,
+#     installed on laptops only, and dwm-brightness prefers it whenever a
+#     backlight device exists.
 #
 #   power-profiles-daemon — desktop, not laptop. Locked decision 9.
 #

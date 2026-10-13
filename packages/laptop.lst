@@ -1,0 +1,21 @@
+# chassis: laptop
+#
+# Laptop-only packages. The line above is load-bearing: pkg_list_chassis
+# (scripts/install-pkg-tiers.sh) reads it, so `dots doctor` checks this list
+# only on a machine drivers_chassis calls a laptop, and never warns about it
+# on a desktop. install-pkg.sh does NOT read this file. scripts/drivers-lib.sh
+# installs it, and only on a laptop: during the installer's package stage and
+# from `dots drivers`. Same arrangement as build.lst and install-suckless.sh.
+#
+# Best-effort, like extra.lst: a failure is one yellow line, never an abort.
+# Every package installed from here gets a PACKAGE manifest row, so
+# `dots uninstall` removes it again.
+#
+# A desktop keeps today's behaviour (scope-h, DECISION REVERSAL of scope-b
+# decisions 9 and 12): see .claude/tasks/scope-h-laptop-support.md.
+
+# Backlight. dwm-brightness uses it when /sys/class/backlight has a device,
+# and falls back to xrandr gamma without it. Fedora builds it with
+# ENABLE_SYSTEMD=1: it sets brightness through logind, so no udev rule or
+# video group is needed for the user logged in at the seat.
+brightnessctl

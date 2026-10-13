@@ -1,19 +1,30 @@
 #!/usr/bin/env bash
-# dwm-brightness — screen brightness for a desktop GPU, via xrandr gamma.
+# dwm-brightness — screen brightness: the backlight on a laptop, xrandr gamma
+# on a desktop.
 #
-# THIS IS NOT A BACKLIGHT CONTROL. The target machine is a desktop with no
-# /sys/class/backlight (roster Epic locked decision 12), so there is no lamp
-# to dim. xrandr's --brightness scales the output signal instead: the panel
-# keeps drawing full power and the image gets darker. That is the accepted
-# trade-off, not an oversight — brightnessctl and ddcutil were both
-# considered and rejected, the latter on cost (~100-300ms per DDC/CI call
-# plus an i2c-dev udev rule).
+# Two paths, chosen per call by what the machine has:
+#
+#   backlight  brightnessctl --class=backlight, when a /sys/class/backlight
+#              device answers. Only a laptop has one, and only a laptop gets
+#              brightnessctl (packages/laptop.lst, installed by dots drivers).
+#              Fedora builds it to go through logind, so the user logged in at
+#              the seat needs no udev rule or group. This dims the lamp.
+#   gamma      xrandr --brightness, everywhere else. A desktop GPU exposes no
+#              backlight, so this scales the output signal instead: the panel
+#              keeps drawing full power and the image gets darker (scope-b
+#              decision 12; ddcutil was rejected on cost, ~100-300ms per DDC/CI
+#              call plus an i2c-dev udev rule). dwm-nightlight shares the gamma
+#              ramps, so this path defers to it while it runs (see below).
+#
+# scope-h (2026-10-13) added the backlight path. A desktop behaves exactly as
+# it did before.
 #
 # Bound to XF86MonBrightnessUp/Down in config/sxhkd/sxhkdrc, which fires
 # `pkill -RTMIN+6 dwmblocks` afterwards. `get` is the read side for that
-# status block (roster Epic sub-task 7), which polls at interval 0.
+# status block (roster Epic sub-task 7), which polls at interval 0, and
+# `mode` tells it which label to show.
 #
-# usage: dwm-brightness get|up|down|set <10-100>
+# usage: dwm-brightness get|up|down|set <10-100>|mode
 set -euo pipefail
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
@@ -25,7 +36,23 @@ MIN=10
 MAX=100
 
 usage() {
-    echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>"
+    echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>|mode"
+}
+
+# The first backlight device's `brightnessctl -m` line,
+# "intel_backlight,backlight,4882,51%,9600", or failure when there is no
+# brightnessctl or no backlight device (it then exits 1, "Failed to read any
+# devices of class 'backlight'").
+backlight_info() {
+    local out
+    command -v brightnessctl >/dev/null 2>&1 || return 1
+    out="$(brightnessctl --class=backlight -m info 2>/dev/null)" || return 1
+    [[ -n "$out" ]] || return 1
+    printf '%s\n' "${out%%$'\n'*}"
+}
+
+mode() {
+    if backlight_info >/dev/null; then echo backlight; else echo gamma; fi
 }
 
 # While dwm-nightlight's daemon runs it owns the gamma ramps: the filter and
@@ -62,7 +89,17 @@ outputs() {
 # the answer meaningful. No awk `exit` — that would SIGPIPE the producer
 # and trip pipefail.
 current() {
-    local raw val
+    local raw val info
+    if info="$(backlight_info)"; then
+        val="$(cut -d, -f4 <<<"$info")"
+        val="${val%\%}"
+        [[ "$val" =~ ^[0-9]+$ ]] || {
+            red "dwm-brightness: brightnessctl printed '$info', expected a percent in field 4"
+            return 1
+        }
+        printf '%d\n' "$val"
+        return 0
+    fi
     if nightlight_active; then
         val="$(cat "$(nightlight_file)" 2>/dev/null || true)"
         [[ "$val" =~ ^[0-9]+$ ]] || val=$MAX
@@ -92,6 +129,16 @@ apply() {
     local pct="$1" out val found=0 failed=0
     if ((pct < MIN)); then pct=$MIN; fi
     if ((pct > MAX)); then pct=$MAX; fi
+    if backlight_info >/dev/null; then
+        # Fails without a logind session at the seat (e.g. over ssh): said,
+        # never silently swapped for gamma, which `get` would not read back.
+        if ! brightnessctl --class=backlight -q set "${pct}%" 2>/dev/null; then
+            red "dwm-brightness: brightnessctl could not set the backlight (it needs your session at the seat)"
+            return 1
+        fi
+        printf '%d\n' "$pct"
+        return 0
+    fi
     if nightlight_active; then
         local file
         file="$(nightlight_file)"
@@ -130,6 +177,7 @@ adjust() {
 
 case "${1:-}" in
     get) current ;;
+    mode) mode ;;
     up) adjust "$STEP" ;;
     down) adjust "-$STEP" ;;
     set)

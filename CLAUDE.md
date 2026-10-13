@@ -105,12 +105,13 @@ dots/
 │   │                           # every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
 │                               # ly-theme.sh (`dots login-theme`: four keys of root's /etc/ly/config.ini; sudo, never prompted without a TTY)
-├── packages/            # four tiers; tests/pkglist.sh globs them, never names them
+├── packages/            # four tiers + laptop.lst; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
 │   ├── build.lst        # suckless build deps — read by install-suckless.sh ONLY, not install-pkg.sh
 │   ├── desktop.lst      # never aborts, but each failure is repeated in a red closing summary;
 │   │                    # the trailing '#' on each line IS that package's consequence text
-│   └── extra.lst        # best-effort applications and conveniences
+│   ├── extra.lst        # best-effort applications and conveniences
+│   └── laptop.lst       # `# chassis: laptop` — installed by drivers-lib.sh on laptops ONLY (rule 10)
 ├── suckless/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
 │   ├── nsxiv/           # the default image viewer — NOT in Fedora, so vendored (upstream v34, no patches;
@@ -195,6 +196,16 @@ one global grant, so `uninstall-flatpak.sh` edits the override keyfile itself;
 `tests/flatpak-integration.sh` checks that edit against a real flatpak when
 one is installed. **`xcolor` is not a Fedora package** — §3 named it for years; only
 `texlive-xcolor`, a LaTeX package, exists. The colour picker is a script.
+
+**Laptops are a target too (scope-h, opened 2026-10-13)** — a DECISION
+REVERSAL of scope-b locked decisions 9 and 12, which made this desktop-only.
+A desktop keeps exactly its old behaviour; laptop behaviour activates only
+where `drivers_chassis` (`scripts/drivers-detect.sh`) says laptop, and a
+QEMU guest (chassis "Other") reads as `unknown`, treated as a desktop.
+Landed so far: the checker, `packages/laptop.lst`, and the real backlight in
+`dwm-brightness` (block `BL` vs `GAMMA`). Battery, touchpad and power
+profiles are queued in `.claude/tasks/scope-h-laptop-support.md`. There is
+no Fedora laptop to verify on, only the VM, so laptop paths are fixture-tested.
 
 **Still genuinely pending (ROADMAP is accurate here):**
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.
@@ -318,6 +329,7 @@ new pattern.
     | `build.lst` | `install-suckless.sh` **only** | **Aborts the build stage.** The suckless toolchain and headers. `install-pkg.sh` deliberately does not read it — `install-fedora.sh` runs the build stage right after, without `--skip-deps`, so `--skip-suckless` needs no special handling anywhere. |
     | `desktop.lst` | `install-pkg.sh` | **Never aborts**, but every failure is repeated in a red closing summary. For packages whose absence is otherwise **silent**: a dead keybind, a daemon that never starts, a theming engine that cannot run. |
     | `extra.lst` | `install-pkg.sh` | **Never aborts.** Applications and conveniences; failures get one yellow line in the summary. |
+    | `laptop.lst` | `drivers-lib.sh` **only**, on a laptop | **Never aborts**, best-effort like extra. Its `# chassis: laptop` header line is load-bearing: `pkg_list_chassis` reads it, so `dots doctor` (which globs every list) checks it only where `drivers_chassis` says laptop. A future chassis-limited list declares itself the same way; no consumer names it. (scope-h, 2026-10-13) |
 
     **The trailing `#` comment on a `desktop.lst` line is load-bearing** — it is that package's consequence text, and `load_consequences()` in `install-pkg-tiers.sh` reads it back out to build the summary. `read_pkg_list()` already strips trailing comments, so the install path is unaffected and the fact lives in one place. `tests/desktop-consequences.sh` fails the build if an entry lacks one, and does it by extracting the *shipped* parser rather than reimplementing it.
 

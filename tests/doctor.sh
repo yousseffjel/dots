@@ -128,6 +128,15 @@ blue "==> drivers"
 tsv
 check "sandbox is a VM: host-firmware skip" row skip drivers firmware-host
 check "and no GPU row — the host's real /sys is not read" none_of 'ok	drivers	video|warn	drivers'
+check "chassis reported (sandbox: no dmi, unknown)" grep -qE $'^ok\tdrivers\tchassis\tunknown ' "$SB/out.tsv"
+check "laptop.lst is skipped on a non-laptop" row skip packages tier-laptop
+mkdir -p "$SB/sys/class/dmi/id"
+echo 9 >"$SB/sys/class/dmi/id/chassis_type"
+FAKE_MISSING=brightnessctl tsv
+check "on a laptop: laptop.lst is checked, and a missing package warns" row warn packages tier-laptop
+check "...only warns: exit 0" rc_is 0
+check "chassis says laptop" grep -qE $'^ok\tdrivers\tchassis\tlaptop ' "$SB/out.tsv"
+rm -r "$SB/sys/class/dmi"
 
 blue "==> install"
 FAKE_SERVICE=disabled tsv

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Exercises config/dwm/bin/dwm-brightness against a faked xrandr.
+# Exercises config/dwm/bin/dwm-brightness against a faked xrandr (the desktop
+# gamma path) and a faked brightnessctl (the laptop backlight path, scope-h).
 #
 # The highest-value untested dwm-* script (queued 2026-08-12): it PARSES
 # `xrandr --verbose` and does arithmetic on the result, so its failures are
@@ -12,7 +13,9 @@
 #   * every connected output is written, no disconnected one ever is;
 #   * a failed READ writes nothing at all (the old inline form clamped the
 #     display to 10% when only the read had failed);
-#   * `set` validates its argument and clamps too.
+#   * `set` validates its argument and clamps too;
+#   * with a backlight, get/up/set go through brightnessctl and never touch
+#     gamma; a refused write is an error, not a silent switch to gamma.
 #
 # SAFETY: xrandr is a fake on a sealed PATH. A real call would change the
 # tester's actual screens — the dev host sat at 0.45 while this was written.
@@ -41,7 +44,7 @@ SUT="$DOTS_DIR/config/dwm/bin/dwm-brightness"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 BIN="$TMP/bin"
-seal_path "$BIN" bash awk cat
+seal_path "$BIN" bash awk cat cut
 LOG="$TMP/xrandr.log"
 
 rc=0
@@ -57,6 +60,18 @@ fake "$BIN" xrandr "
 if [[ \"\${1:-}\" == --output ]]; then echo \"\$*\" >>'$LOG'; exit \"\${FAKE_SET_RC-0}\"; fi
 if [[ \"\${1:-}\" == --verbose ]]; then [[ -n \"\${FAKE_VERBOSE_FAIL:-}\" ]] && exit 1; cat \"\$SCREENS\"; exit 0; fi
 awk '/^[^[:space:]]/' \"\$SCREENS\""
+
+# brightnessctl, in its real `-m` shape ("id,class,raw,NN%,max", from
+# brightnessctl.c's machine-readable format) from $BL_STATE, and its real
+# failure when no backlight exists. It is on PATH for EVERY case: the gamma
+# cases below therefore also prove that a desktop with brightnessctl
+# installed but no backlight device still takes the gamma path.
+fake "$BIN" brightnessctl "
+if [[ \"\$*\" == *' -m info'* ]]; then
+    [[ -s \"\$BL_STATE\" ]] || { echo \"Failed to read any devices of class 'backlight'.\" >&2; exit 1; }
+    cat \"\$BL_STATE\"; exit 0
+fi
+echo \"brightnessctl \$*\" >>'$LOG'; exit \"\${FAKE_BL_SET_RC-0}\""
 
 screens() { # <file> then lines on stdin
     cat >"$TMP/$1"
@@ -95,6 +110,7 @@ run() {
     : >"$LOG"
     RC=0
     env -i PATH="$BIN" SCREENS="$TMP/$s" ${FAKE_SET_RC+FAKE_SET_RC="$FAKE_SET_RC"} \
+        BL_STATE="${BL_STATE:-$TMP/no-backlight}" ${FAKE_BL_SET_RC+FAKE_BL_SET_RC="$FAKE_BL_SET_RC"} \
         ${FAKE_VERBOSE_FAIL+FAKE_VERBOSE_FAIL=1} \
         bash "$SUT" "$@" >"$TMP/out" 2>"$TMP/err" || RC=$?
     OUT="$(cat "$TMP/out")"
@@ -211,8 +227,11 @@ else
     fail "bogus accepted"
 fi
 
+# shellcheck source=lib/dwm-brightness-backlight.sh
+source "$SCRIPT_DIR/lib/dwm-brightness-backlight.sh"
+
 if ((rc != 0)); then
     red "✗ dwm-brightness is broken"
     exit 1
 fi
-green "✓ dwm-brightness: reading, stepping, clamping and output selection all hold"
+green "✓ dwm-brightness: gamma and backlight — reading, stepping, clamping, output selection"

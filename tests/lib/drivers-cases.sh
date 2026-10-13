@@ -21,6 +21,44 @@ blue "==> re-run is a no-op"
 run
 check "no dnf install or swap" no_dnf_writes
 
+blue "==> chassis: laptop by firmware, by battery; desktop; unknown"
+machine GenuineIntel none
+chassis 10
+run
+check "chassis type 10 (Notebook) is a laptop" test "$(drivers_chassis)" = laptop
+check "laptop.lst installed on a laptop" has brightnessctl
+check "with a PACKAGE row, so uninstall removes it" row PACKAGE brightnessctl
+check "and said why" said "laptop (chassis type 10)"
+machine GenuineIntel none
+chassis 1
+battery BAT0
+run
+check "firmware says Other, but a system battery: laptop" test "$(drivers_chassis)" = laptop
+check "...and gets laptop.lst" has brightnessctl
+machine GenuineIntel none
+chassis 3
+battery hidpp_battery_0 Device
+run
+check "a desktop with a wireless mouse battery stays a desktop" test "$(drivers_chassis)" = desktop
+check "...and gets no laptop packages" lacks brightnessctl
+machine GenuineIntel kvm
+chassis 1
+run
+check "QEMU's chassis 1 (Other), no battery: unknown" test "$(drivers_chassis)" = unknown
+check "unknown is treated as a desktop: nothing laptop-only" lacks brightnessctl
+check "said so" said "unknown (chassis type 1) — no laptop packages"
+machine GenuineIntel none
+run
+check "no dmi at all: unknown, nothing installed" lacks brightnessctl
+machine GenuineIntel none
+chassis 9
+# A child bash gets only the exported detection functions, never read_pkg_list.
+(
+    export -f drivers_laptop drivers_chassis drivers_chassis_type drivers_system_battery drivers_chassis_why drivers_sysfs red blue
+    bash -c 'drivers_laptop' >"$SB/out" 2>&1 || true
+)
+check "laptop without the list parser: said, not a silent no-op" grep -q "read_pkg_list is not loaded" "$SB/out"
+
 blue "==> Intel, pre-Broadwell (Ivy Bridge)"
 machine GenuineIntel none
 gpu 0000:00:02.0 0x030000 8086 0166 i915

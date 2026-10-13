@@ -17,6 +17,7 @@ check_drivers() {
         report skip "$s" rpm "rpm not found — not a Fedora system"
         return 0
     fi
+    report ok "$s" chassis "$(drivers_chassis) ($(drivers_chassis_why))"
     check_drivers_gpu
     if [[ "$(drivers_virt)" =~ ^(none|unknown)$ ]]; then
         check_drivers_microcode

@@ -4,7 +4,9 @@
 # The session, theme and hardware checks are in doctor-session.sh (split at
 # the 250-line cap).
 
-# shellcheck source=global_fn.sh
+# DOTS_DIR is set by doctor.sh, which sources this file. SC2153 only fires
+# because drivers-detect.sh (sourced below) reads a DOTS_VIRT that looks alike.
+# shellcheck source=global_fn.sh disable=SC2153
 source "$DOTS_DIR/scripts/global_fn.sh"
 # The installer's own list parser and consequence table, so a package's
 # "what breaks without it" text is the one desktop.lst carries. Sourced at the
@@ -15,6 +17,9 @@ PACKAGES_DIR="$DOTS_DIR/packages"
 FEDORA_RELEASE="${DOTS_DOCTOR_RELEASE:-/etc/fedora-release}"
 # shellcheck source=install-pkg-tiers.sh
 source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
+# drivers_chassis, for lists limited to one chassis (packages/laptop.lst).
+# shellcheck source=drivers-detect.sh
+source "$(dirname "${BASH_SOURCE[0]}")/drivers-detect.sh"
 
 check_install() {
     local s=install repo inst
@@ -101,7 +106,7 @@ doctor_drop_satisfied() {
 # silent breakage (desktop.lst, or core.lst) is a failure and carries its
 # consequence text; any other tier — including one added later — is a warning.
 check_packages() {
-    local s=packages lst tier pkgs missing p
+    local s=packages lst tier pkgs missing p want
     # An rpm binary alone proves nothing: Arch ships one, over an empty
     # database, and every package would read as missing.
     if [[ ! -f "$FEDORA_RELEASE" ]] || ! command -v rpm >/dev/null 2>&1; then
@@ -111,6 +116,11 @@ check_packages() {
     load_consequences
     for lst in "$PACKAGES_DIR"/*.lst; do
         tier="$(basename "$lst" .lst)"
+        want="$(pkg_list_chassis "$lst")"
+        if [[ -n "$want" && "$want" != "$(drivers_chassis)" ]]; then
+            report skip "$s" "tier-$tier" "$tier.lst: $want only, and this is not one"
+            continue
+        fi
         mapfile -t pkgs < <(read_pkg_list "$lst")
         [[ ${#pkgs[@]} -gt 0 ]] || continue
         # --whatprovides also answers for a name that is a Provides rather
