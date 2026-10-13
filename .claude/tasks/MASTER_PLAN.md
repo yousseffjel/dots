@@ -9,14 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-- 2026-10-13 — **Epic: scope-h — laptop support (desktop + laptop targets).**
-  Scope file `.claude/tasks/scope-h-laptop-support.md`. **DECISION REVERSAL** of
-  scope-b locked decisions 9 and 12 (desktop-only).
-  - [ ] 1 — `laptop-detect` (chassis checker + `packages/laptop.lst`, gated)
-  - [ ] 2 — `laptop-backlight` (brightnessctl when a backlight exists)
-  - [ ] 3 — `laptop-battery` (battery block + low-battery alerts)
-  - [ ] 4 — `laptop-touchpad` (tap-to-click, natural scroll, dwt)
-  - [ ] 5 — `laptop-power` (tuned-ppd + profile switcher)
+*(none — scope-h closed 2026-10-13; see Recently Closed)*
 
 ---
 
@@ -81,6 +74,22 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-13 — **Epic: scope-h — laptop support — ALL 5 SLOTS MERGED**
+  (`e1ecabc`). Scope file `.claude/tasks/scope-h-laptop-support.md`.
+  **DECISION REVERSAL** of scope-b locked decisions 9 and 12: dots targets
+  desktops AND laptops; a desktop behaves exactly as before.
+  - [x] 1+2 — `laptop-detect` (`befcde1`): `drivers_chassis`, gated
+        `packages/laptop.lst`, backlight via brightnessctl (block `BL`/`GAMMA`).
+        Merged into one slot: tests/pkglist.sh forbids an empty list.
+  - [x] 3 — `laptop-battery` (`6b6ee3f`): `BAT` block, 15 %/5 % alerts, no daemon.
+  - [x] 4 — `laptop-touchpad` (`d29659c`): Xorg InputClass snippet, new
+        SYSFILE manifest rows + `uninstall-sysfiles.sh`. Real Xorg parsed it.
+  - [x] 5 — `laptop-power` (`a7f7a6c`): tuned-ppd + `dwm-power` (gdbus),
+        Super+Shift+p; `uninstall_services` tolerates units removed with
+        their package.
+  ✅ VM 2026-10-13: `dots update` + doctor clean; reads as `unknown`, nothing
+  laptop-only installed, BAT block present but empty. Open: verify on a real
+  Fedora laptop (none available — fixtures only).
 - 2026-10-13 — **ad-hoc: hardware drivers — both slots merged** (`10bbad3`).
   - [x] `hardware-drivers` (`b96785b`): `dots drivers` — GPU VA-API driver,
         kernel-requested firmware, microcode, fwupd; NVIDIA report-only.

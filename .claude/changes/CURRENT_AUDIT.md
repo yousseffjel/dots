@@ -2225,3 +2225,32 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   and WARN (comment placement, fixed).
 - **Not verified:** real Intel, AMD or NVIDIA hardware, and the f43 mesa swap
   against real dnf.
+
+## 2026-10-13 — scope-h laptop support merged (4 slots, 5 sub-tasks)
+
+- **Opened** from the user's request for a PC/laptop checker and support for
+  both. **DECISION REVERSAL** of scope-b locked decisions 9 (desktop-only)
+  and 12 (gamma-only brightness), via option B of a CONFLICT block. Desktops
+  are unchanged on every path.
+- **`laptop-detect`** (`befcde1` / merge `916bf0e`, slots 1+2): a machine is
+  a laptop when its SMBIOS chassis type is 8/9/10/14/31/32, or when it has a
+  battery whose scope is not Device. QEMU's 1 reads as unknown and is
+  treated as a desktop. New `packages/laptop.lst` with a `# chassis: laptop`
+  header that `pkg_list_chassis` reads (rule 10: no consumer names it).
+  `dwm-brightness` uses brightnessctl when a backlight exists.
+- **`laptop-battery`** (`6b6ee3f` / `f2b9d7b`): the `dwm-battery` block (signal
+  13, 60 s) is empty without a battery, with WARN/URGENT colours and one
+  notify per threshold. Also fixed `tests/lib/blocks.sh`, whose `block()`
+  silently aborted every block test when a block died.
+- **`laptop-touchpad`** (`d29659c` / `d2d29bc`): `config/xorg/40-dots-touchpad.conf`
+  (tap, natural scroll, dwt, clickfinger). New **SYSFILE** manifest category:
+  root-owned copies are replaced or removed only while unedited. Real Xorg
+  on the VM parsed the snippet.
+- **`laptop-power`** (`a7f7a6c` / `e1ecabc`): tuned-ppd with tuned enabled,
+  and `dwm-power` over gdbus (Fedora ships powerprofilesctl only inside the
+  conflicting power-profiles-daemon). Super+Shift+p, plus a power-menu entry.
+  `uninstall_services` no longer red-fails on units removed with their
+  package. First tests for that step.
+- Suite 67/67, lint clean, about 50 mutations caught across the four slots,
+  reviewer READY on all four. VM: `dots update` and doctor all passed.
+- **Not verified:** any real laptop. The user has only the VM.
