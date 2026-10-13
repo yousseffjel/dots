@@ -39,6 +39,16 @@ drivers_gpus() {
     done
 }
 
+# drivers_virtual_gpu <vendor> — true for an emulated display adapter:
+# virtio, QXL, bochs/stdvga, VMware, VirtualBox, Hyper-V. The hypervisor
+# decodes video, not the guest, so there is no driver to install.
+drivers_virtual_gpu() {
+    case "$1" in
+        1af4 | 1b36 | 1234 | 15ad | 80ee | 1414) return 0 ;;
+    esac
+    return 1
+}
+
 # drivers_cpu_vendor — intel, amd, or other.
 drivers_cpu_vendor() {
     local id

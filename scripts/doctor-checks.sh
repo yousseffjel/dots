@@ -78,6 +78,25 @@ check_services() {
     done < <(manifest_rows SERVICE | cut -f2 | sort -u)
 }
 
+# doctor_drop_satisfied — removes from `missing` every package whose
+# SATISFIED_BY stand-in (install-pkg-tiers.sh) is installed, and says so:
+# RPM Fusion's ffmpeg replaces ffmpeg-free and conflicts with it, so after
+# install-pkg-repos.sh's swap ffmpeg-free is never there — and must not FAIL.
+# Works on check_packages' own locals `missing` and `s` (bash dynamic scope);
+# call it only from there.
+doctor_drop_satisfied() {
+    local p sub kept=()
+    for p in "${missing[@]}"; do
+        sub="${SATISFIED_BY[$p]:-}"
+        if [[ -n "$sub" ]] && rpm -q "$sub" >/dev/null 2>&1; then
+            report ok "$s" "pkg-$p" "$p is replaced by $sub, which stands in for it"
+        else
+            kept+=("$p")
+        fi
+    done
+    missing=("${kept[@]}")
+}
+
 # Every packages/*.lst, by glob. A missing package in a tier whose absence is
 # silent breakage (desktop.lst, or core.lst) is a failure and carries its
 # consequence text; any other tier — including one added later — is a warning.
@@ -98,6 +117,7 @@ check_packages() {
         # than a package name. rpm exits non-zero whenever one is missing.
         mapfile -t missing < <(rpm -q --whatprovides "${pkgs[@]}" 2>&1 \
             | sed -n 's/^no package provides \(.*\)$/\1/p; s/^package \(.*\) is not installed$/\1/p' || true)
+        doctor_drop_satisfied
         if [[ ${#missing[@]} -eq 0 ]]; then
             report ok "$s" "tier-$tier" "$tier.lst: all ${#pkgs[@]} installed"
         elif [[ "$tier" == desktop || "$tier" == core ]]; then

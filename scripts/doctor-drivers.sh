@@ -40,7 +40,14 @@ check_drivers_gpu() {
                 check_drivers_nvidia "$slot" "$device" "$driver"
                 continue
                 ;;
-            *) continue ;;
+            *)
+                if drivers_virtual_gpu "$vendor"; then
+                    report ok "$s" "video-$slot" "GPU $slot ($vendor:$device) is virtual: the host decodes video, no driver needed"
+                else
+                    report skip "$s" "video-$slot" "GPU $slot ($vendor:$device): vendor not recognised, no video driver checked"
+                fi
+                continue
+                ;;
         esac
         if doctor_has_pkg "$want"; then
             report ok "$s" "video-$slot" "GPU $slot ($vendor:$device): $want installed"

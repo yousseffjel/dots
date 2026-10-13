@@ -156,6 +156,13 @@ check "pending firmware updates warn" grep -qx "warn fwupd" <<<"$DOCTOR"
 DOCTOR=""
 check_drivers
 check "fwupdmgr exit 2 (nothing to do) is ok" grep -qx "ok fwupd" <<<"$DOCTOR"
+machine GenuineIntel kvm
+gpu 0000:00:01.0 0x030000 1af4 1050 virtio-pci
+gpu 0000:00:02.0 0x030000 abcd 0001 mystery
+DOCTOR=""
+check_drivers
+check "virtual GPU: an ok row, not silence" grep -qx "ok video-0000:00:01.0" <<<"$DOCTOR"
+check "unknown vendor: skipped, not passed" grep -qx "skip video-0000:00:02.0" <<<"$DOCTOR"
 
 blue "==> the command itself: scripts/drivers.sh --dry-run"
 machine AuthenticAMD none mesa-va-drivers
