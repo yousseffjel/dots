@@ -25,6 +25,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Changed
 
+- **Fedora Server is the supported target.** The docs promised Fedora
+  Workstation too, but it was never run, and nothing reconciles its GNOME
+  login screen (GDM) with dots' ly. The installer now prints a note when it
+  finds GDM enabled, then carries on.
 - **picom's backend is chosen by `dwm-picom`, and a VM always gets
   `xrender`.** The choice used to be a probe pasted into your `autostart.sh`,
   so later fixes could never reach an existing install, and a VM with 3D

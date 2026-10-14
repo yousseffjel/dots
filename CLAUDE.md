@@ -3,9 +3,11 @@
 Personal dotfiles + desktop bootstrap repo. Ships a suckless-based dwm/X11
 desktop (dwm, st, dmenu, dwmblocks, slock — all vendored and patched from
 upstream source — plus nsxiv, vendored unpatched) plus zsh/tmux shell config. **Fedora only** — one installer
-(`scripts/install-fedora.sh`) installs the full desktop on either a fresh
-Fedora Server or Fedora Workstation box, since it installs Xorg itself and
-assumes no GUI is pre-installed. No package manager, framework, or build
+(`scripts/install-fedora.sh`) installs the full desktop on a fresh
+**Fedora Server** box, since it installs Xorg itself and assumes no GUI is
+pre-installed. **Server is the one supported target** (user decision
+2026-10-14): Workstation was claimed for months but never run, and nothing
+handles its pre-enabled GDM next to ly. No package manager, framework, or build
 system beyond `make` for the suckless C programs and plain bash for
 orchestration.
 
@@ -141,7 +143,7 @@ dots/
 ```
 
 **Entry points**: `scripts/install-fedora.sh` is the single supported
-installer — run it on a fresh Fedora Server or Fedora Workstation box to get
+installer — run it on a fresh Fedora Server box to get
 the full desktop (zsh/tmux + X11 + dwm/st/dmenu/dwmblocks/slock + ly). It's a
 thin orchestrator over four idempotent, independently-runnable stages (pre ->
 install -> restore -> services — `scripts/install-{pre,pkg,restore,services}.sh`);
@@ -168,7 +170,7 @@ is **partly stale** — treat it as a backlog of ideas, not a source of truth
 for current state.
 
 **Already done, ahead of what ROADMAP.md assumes:**
-- A single Fedora installer (`scripts/install-fedora.sh`) covers both Fedora Server and Fedora Workstation targets — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-fedora-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
+- A single Fedora installer (`scripts/install-fedora.sh`) covers the Fedora Server target (Workstation was dropped as a target on 2026-10-14 — never run, and its GDM was never reconciled with ly) — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-fedora-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
 - dwm, st, dmenu, dwmblocks, and slock are all vendored *and* patched — ROADMAP §2.5 lists this as a "to do" with only a subset of patches recommended. The roster is 18 diffs for dwm (actualfullscreen, autostart, **bidi**, dragmfact, **dropterm**, **dynamicscratchpads**, hide_vacant_tags, pertag, **preservepertag**, **preserveonrestart**, restartsig, status2d, status2d-systray, statuscmd, statuscmd-status2d, systray, **wakeonsignal**, xresources), 10 for dmenu (**bidi**, border, caseinsensitive, center, fuzzymatch, lineheight, mousesupport, numbers, **pathcache**, xresources), and one each for st (xresources-signal-reload), dwmblocks (statuscmd) and slock (xresources). Each program's `patches/PATCHES.md` is the authoritative per-patch record; `ls suckless/*/patches/*.diff` is the source of truth for the list itself. The `*-local.diff` ones were captured against this tree rather than fetched from suckless.org, because they could not apply cleanly on top of the others.
   - **A dwm restart no longer scatters the desktop (2026-10-07).** `reload.sh` SIGHUPs dwm on every wallpaper change; `preserveonrestart` hands tags, view, stash, floating geometry and focus to the re-exec'd instance. `dropterm` (`Super+grave`) is a drop-down terminal built on dynamicscratchpads, so it survives restarts too. `tests/dwm-runtime.sh` covers both, and checks every floating class in `rules[]` actually floats. **`wakeonsignal` (2026-10-12)** makes dwm act on SIGHUP/SIGTERM at once: it used to wait for the next X event, so the VM's power-menu logout took 20-25 s. The runtime test no longer fakes an event to wake dwm. **`preservepertag` (2026-10-12)** adds each tag's layout, mfact, nmaster and bar, and Mod+Tab's history, to what a restart keeps.
   - **`scratchpads` was replaced by `dynamicscratchpads` on 2026-08-07** and the two are mutually exclusive (both claim bit `LENGTH(tags)` of the tag bitmask). Scratchpads are now assigned dynamically from the focused window rather than pre-declared as commands.

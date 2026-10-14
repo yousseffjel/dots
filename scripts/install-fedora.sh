@@ -3,11 +3,12 @@
 # deps, fonts/theming, desktop utilities, the ly display manager, and
 # dwm/st/dmenu/dwmblocks/slock built from suckless/.
 #
-# This is the ONE supported installer for this repo. It targets plain `dnf`
-# and installs Xorg itself, so it works identically on a fresh Fedora Server
-# install or a Fedora Workstation install — there is no separate
-# "headless" variant; running this script on a Fedora Server box is exactly
-# how you get the full desktop (dwm + this repo's config) on it.
+# This is the ONE supported installer for this repo, and its supported target
+# is a fresh **Fedora Server** install (user decision 2026-10-14). It uses
+# plain `dnf` and installs Xorg itself — running it on a Server box is exactly
+# how you get the full desktop (dwm + this repo's config) on it. Fedora
+# Workstation is NOT supported: GNOME's GDM is already its display manager,
+# and this installer enables ly beside it, a combination nobody has tested.
 #
 # A thin orchestrator over four stages, each its own standalone-runnable,
 # idempotent script: pre (sanity checks) -> install (dnf packages + suckless

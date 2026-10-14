@@ -48,7 +48,7 @@ drivers_laptop() {
 }
 
 # drivers_power — see the header. `--now` so the switcher works before the
-# next boot. A unit already enabled is the user's (or Workstation's preset)
+# next boot. A unit already enabled is the user's (or a distribution preset's)
 # and gets no row, so uninstall never disables it.
 drivers_power() {
     local unit

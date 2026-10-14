@@ -3,7 +3,12 @@
 [![CI](https://github.com/yousseffjel/dots/actions/workflows/ci.yml/badge.svg)](https://github.com/yousseffjel/dots/actions/workflows/ci.yml)
 
 Personal dotfiles + a suckless-based dwm/X11 desktop bootstrap for Fedora.
-See `CLAUDE.md` for the full project map and installer usage.
+**The target is a fresh Fedora Server install**: `scripts/install-fedora.sh`
+installs Xorg, the ly login screen and the whole desktop on it. Fedora
+Workstation is not supported, because its GNOME login screen (GDM) is already
+set up and has never been tested next to ly. Desktops, laptops and virtual
+machines are all handled (`docs/HARDWARE.md`). See `CLAUDE.md` for the full
+project map and installer usage.
 
 ## The `dots` command
 
