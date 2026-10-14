@@ -3,8 +3,8 @@
 # drivers-lib.sh, never run alone; see that file for what it assumes, plus
 # DOTS_DIR (file_matches_history reads the repo's git history).
 #
-# Nothing here runs unless drivers_chassis says laptop. An "unknown" chassis
-# (QEMU reports "Other") is treated as a desktop: nothing laptop-only is
+# Nothing here runs unless drivers_chassis says laptop. A "vm" or "unknown"
+# chassis is treated as a desktop: nothing laptop-only is
 # installed on a guess.
 #
 #   packages/laptop.lst          its packages, each with a PACKAGE row

@@ -9,20 +9,43 @@ COLOR_SCHEME_KEY=/org/gnome/desktop/interface/color-scheme
 # Test override (tests/doctor.sh).
 BT_SYSFS="${DOTS_DOCTOR_BT_SYSFS:-/sys/class/bluetooth}"
 
+# The backend picom runs with, against the one dwm-picom (the decision
+# autostart.sh delegates to) says this machine should use. glx where dwm-picom
+# says xrender is the screen-freeze case: a warning. xrender where glx would
+# do is safe, and only noted. An autostart.sh that still starts picom itself
+# is the usual cause of a mismatch.
+check_picom_backend() {
+    local s=session args running want why
+    args="$(pgrep -a -x picom 2>/dev/null | head -n1 || true)"
+    [[ -n "$args" ]] || return 0
+    case "$args" in
+        *"--backend xrender"*) running=xrender ;;
+        *"--backend glx"*) running=glx ;;
+        *) running="glx (picom.conf's default)" ;;
+    esac
+    want="$("$DOTS_DIR/config/dwm/bin/dwm-picom" backend 2>/dev/null || true)"
+    why="${want#*$'\t'}"
+    want="${want%%$'\t'*}"
+    if [[ -z "$want" ]]; then
+        report ok "$s" picom-backend "picom uses $running"
+    elif [[ "$running" == "$want" ]]; then
+        report ok "$s" picom-backend "picom uses $running: $why"
+    elif [[ "$want" == glx ]]; then
+        report ok "$s" picom-backend "picom uses $running; this machine could use glx ($why) — it does from the next login if autostart.sh runs dwm-picom"
+    else
+        report warn "$s" picom-backend "picom uses $running, but this machine needs xrender ($why): the screen can freeze — in ~/.local/share/dwm/autostart.sh start it with: dwm-picom &"
+    fi
+}
+
 check_session() {
-    local s=session args res
+    local s=session res
     if [[ -z "${DISPLAY:-}" ]] || ! pgrep -x dwm >/dev/null 2>&1; then
         report skip "$s" x-session "no dwm session here — run dots doctor from a terminal inside dwm for these checks"
         return 0
     fi
     report ok "$s" dwm "dwm is running on $DISPLAY"
     check_daemons
-    args="$(pgrep -a -x picom 2>/dev/null | head -n1 || true)"
-    if [[ "$args" == *"--backend xrender"* ]]; then
-        report ok "$s" picom-backend "picom uses xrender (no 3D acceleration found at login)"
-    elif [[ -n "$args" ]]; then
-        report ok "$s" picom-backend "picom uses the backend in picom.conf (3D acceleration found)"
-    fi
+    check_picom_backend
     res="$(xrdb -query 2>/dev/null || true)"
     if grep -q '^dwm\.' <<<"$res"; then
         report ok "$s" xresources "theme colours are loaded into X"

@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# dwm-picom — start picom on the backend this machine can carry.
+#
+# picom's glx backend froze the screen on the first real install (a Fedora 44
+# VM, virtio GPU without 3D, 2026-10-05): dwm and every client kept running,
+# the display never repainted. xrender needs no GL and is always safe. So:
+#
+#   virtual machine          -> xrender, always. Even with 3D passed through
+#                               (virgl, VMware SVGA 3D) a guest's GL stack is
+#                               the likeliest place for glx to hang again.
+#   bare metal, hardware 3D  -> glx: glxinfo reports direct rendering on a
+#                               renderer that is not a software rasteriser.
+#   anything else            -> xrender: llvmpipe/softpipe/swrast, indirect
+#                               rendering, glxinfo or timeout missing, or a GL
+#                               stack that fails or hangs (bounded at 5 s).
+#
+# It lives here, not inline in autostart.sh, because autostart.sh belongs to
+# the user once it exists (CLAUDE.md rule 6): a fix to this decision now
+# reaches every install through the linked ~/.config/dwm/bin. autostart.sh
+# runs `dwm-picom &`, and `dots doctor` asks `dwm-picom backend` what picom
+# should be running and compares.
+#
+# The VM test matches scripts/drivers-detect.sh's drivers_is_vm (a container
+# is not a VM). DOTS_VIRT overrides it, for tests only, as it does there.
+#
+# usage: dwm-picom [start] | backend
+#   start    exec picom with the chosen backend, unless picom already runs
+#   backend  print "<xrender|glx><TAB><why>" and exit
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+# The hypervisor's name, or nothing on bare metal (or in a container).
+vm_name() {
+    if [[ -n "${DOTS_VIRT:-}" ]]; then
+        [[ "$DOTS_VIRT" == none || "$DOTS_VIRT" == unknown ]] || echo "$DOTS_VIRT"
+        return 0
+    fi
+    command -v systemd-detect-virt >/dev/null 2>&1 || return 0
+    systemd-detect-virt --vm 2>/dev/null | grep -v '^none$' || true
+}
+
+backend() {
+    local vm info renderer
+    vm="$(vm_name)"
+    if [[ -n "$vm" ]]; then
+        printf 'xrender\tvirtual machine (%s)\n' "$vm"
+        return 0
+    fi
+    if ! command -v glxinfo >/dev/null 2>&1 || ! command -v timeout >/dev/null 2>&1; then
+        printf 'xrender\tglxinfo (glx-utils) or timeout is missing, so 3D cannot be checked\n'
+        return 0
+    fi
+    # `|| true`: a failing or hanging GL stack is an answer (xrender), and
+    # under set -e a bare failing assignment would end the script silently.
+    info="$(timeout 5 glxinfo -B 2>/dev/null || true)"
+    renderer="$(sed -n 's/^OpenGL renderer string: //p' <<<"$info")"
+    case "$info" in
+        *"direct rendering: Yes"*) ;;
+        *)
+            printf 'xrender\tno direct rendering%s\n' "${renderer:+ ($renderer)}"
+            return 0
+            ;;
+    esac
+    case "$renderer" in
+        *llvmpipe* | *softpipe* | *swrast*)
+            printf 'xrender\tsoftware rendering only (%s)\n' "$renderer"
+            ;;
+        *) printf 'glx\thardware 3D (%s)\n' "${renderer:-unknown renderer}" ;;
+    esac
+}
+
+start() {
+    local choice
+    command -v picom >/dev/null 2>&1 || return 0
+    pgrep -x picom >/dev/null 2>&1 && return 0
+    choice="$(backend)"
+    exec picom --backend "${choice%%$'\t'*}"
+}
+
+case "${1:-start}" in
+    start) start ;;
+    backend) backend ;;
+    -h | --help) echo "usage: dwm-picom [start] | backend" ;;
+    *)
+        red "dwm-picom: unknown command '$1'"
+        exit 1
+        ;;
+esac

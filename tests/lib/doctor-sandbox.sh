@@ -36,7 +36,7 @@ make_fakes() {
 done; exit $rc'
         fake "$BIN" pgrep 'case "$1" in
 -x) [[ ( "$2" == dwm && -z "${FAKE_NO_DWM:-}" ) || " ${FAKE_UP:-} " == *" $2 "* ]] ;;
--a) echo "42 picom --backend xrender" ;;
+-a) echo "42 picom ${FAKE_PICOM_ARGS:---backend xrender}" ;;
 -f) for d in ${FAKE_DOWN:-}; do [[ "$2" == *"/)$d( "* ]] && exit 1; done; exit 0 ;;
 *) exit 1 ;;
 esac'
@@ -114,7 +114,7 @@ run_doctor() {
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/fedora-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
         DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
-        DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" \
+        DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
         FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \

@@ -73,16 +73,31 @@ drivers_system_battery() {
     return 0
 }
 
-# drivers_chassis — laptop, desktop or unknown. Laptop when the firmware says
-# so (chassis types 8 Portable, 9 Laptop, 10 Notebook, 14 Sub Notebook,
-# 31 Convertible, 32 Detachable) OR when a system battery exists, because
-# some firmware reports a laptop as "Other" or "Desktop". unknown (QEMU says
-# 1, "Other") gets the desktop behaviour everywhere: nothing laptop-only is
-# installed on a guess.
+# drivers_is_vm — true inside a virtual machine (not a container: a container
+# runs on real hardware, and its chassis is the host's). DOTS_VIRT, the test
+# override drivers_virt reads too, counts as a VM unless it is none/unknown.
+drivers_is_vm() {
+    if [[ -n "${DOTS_VIRT:-}" ]]; then
+        [[ "$DOTS_VIRT" != none && "$DOTS_VIRT" != unknown ]]
+        return
+    fi
+    command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --vm -q 2>/dev/null
+}
+
+# drivers_chassis — vm, laptop, desktop or unknown. vm first: a hypervisor
+# can expose a fake battery or any chassis type, and a guest gets desktop
+# behaviour either way (nothing laptop-only, picom on xrender). Laptop when
+# the firmware says so (chassis types 8 Portable, 9 Laptop, 10 Notebook,
+# 14 Sub Notebook, 31 Convertible, 32 Detachable) OR when a system battery
+# exists, because some firmware reports a laptop as "Other" or "Desktop".
+# unknown (bare metal reporting e.g. 1, "Other") gets the desktop behaviour
+# everywhere: nothing laptop-only is installed on a guess.
 drivers_chassis() {
     local type
     type="$(drivers_chassis_type)"
-    if [[ " 8 9 10 14 31 32 " == *" $type "* || -n "$(drivers_system_battery)" ]]; then
+    if drivers_is_vm; then
+        echo vm
+    elif [[ " 8 9 10 14 31 32 " == *" $type "* || -n "$(drivers_system_battery)" ]]; then
         echo laptop
     elif [[ " 3 4 5 6 7 13 15 16 17 23 24 35 36 " == *" $type "* ]]; then
         echo desktop
@@ -96,6 +111,10 @@ drivers_chassis_why() {
     local type battery
     type="$(drivers_chassis_type)"
     battery="$(drivers_system_battery)"
+    if drivers_is_vm; then
+        printf '%s, chassis type %s\n' "$(drivers_virt)" "${type:-unreadable}"
+        return 0
+    fi
     printf 'chassis type %s%s\n' "${type:-unreadable}" "${battery:+, battery $battery}"
 }
 

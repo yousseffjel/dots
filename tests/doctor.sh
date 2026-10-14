@@ -124,14 +124,25 @@ check "...and exit 0" rc_is 0
 FAKE_MISSING="ffmpeg-free ffmpeg" tsv
 check "neither ffmpeg: still a fail" row fail packages pkg-ffmpeg-free
 
+blue "==> picom backend"
+tsv
+check "VM running xrender: ok, with the reason" grep -qE $'^ok\tsession\tpicom-backend\tpicom uses xrender: virtual machine \\(kvm\\)' "$SB/out.tsv"
+FAKE_PICOM_ARGS="--backend glx" tsv
+check "VM running glx (an old autostart.sh): warns, says what to paste" row warn session picom-backend
+check "...naming dwm-picom" grep -q "dwm-picom &" <<<"$(detail picom-backend)"
+FAKE_PICOM_ARGS="--config x" tsv
+check "picom with no --backend (picom.conf's glx) in a VM: warns too" row warn session picom-backend
+
 blue "==> drivers"
 tsv
 check "sandbox is a VM: host-firmware skip" row skip drivers firmware-host
 check "and no GPU row — the host's real /sys is not read" none_of 'ok	drivers	video|warn	drivers'
-check "chassis reported (sandbox: no dmi, unknown)" grep -qE $'^ok\tdrivers\tchassis\tunknown ' "$SB/out.tsv"
+check "chassis reported (the sandbox is a KVM guest: vm)" grep -qE $'^ok\tdrivers\tchassis\tvm \(kvm' "$SB/out.tsv"
 check "laptop.lst is skipped on a non-laptop" row skip packages tier-laptop
 mkdir -p "$SB/sys/class/dmi/id"
 echo 9 >"$SB/sys/class/dmi/id/chassis_type"
+# Bare metal from here: in a VM the same chassis type would read as vm.
+export FAKE_VIRT=none
 FAKE_MISSING=brightnessctl tsv
 check "on a laptop: laptop.lst is checked, and a missing package warns" row warn packages tier-laptop
 check "...only warns: exit 0" rc_is 0
@@ -153,6 +164,7 @@ check "an edited snippet is the user's: still ok" row ok drivers touchpad
 check "...and says it is edited" grep -q "edited by you" <<<"$(detail touchpad)"
 rm -r "$SB/xorg.conf.d"
 rm -r "$SB/sys/class/dmi"
+unset FAKE_VIRT
 
 blue "==> install"
 FAKE_SERVICE=disabled tsv

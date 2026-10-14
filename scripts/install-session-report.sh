@@ -46,25 +46,30 @@ session_report_daemon() {
     done
 }
 
-# An autostart.sh written before 2026-10-05 starts picom on the config's glx
-# backend unconditionally, which freezes the screen on a GPU without 3D
-# acceleration (see session_autostart_compositor). session_report_daemon only
-# asks whether picom is MENTIONED, so it calls such a file fine; this asks
-# whether the backend is chosen. Worded without "does not mention" on purpose:
+# Asks whether an existing autostart.sh lets dwm-picom choose picom's backend.
+# One written before 2026-10-05 starts picom on the config's glx backend
+# unconditionally, which freezes the screen on a GPU without 3D acceleration;
+# one written before 2026-10-14 carries its own inline glxinfo probe, which
+# misses a VM with 3D passed through and can never be updated (rule 6). Both
+# are told to switch to `dwm-picom &`. session_report_daemon only asks whether
+# picom is MENTIONED, so it calls such a file fine. Worded without "does not mention" on purpose:
 # tests/autostart-daemons.sh reads daemon names out of exactly that phrase.
 # shellcheck disable=SC2016
 session_report_picom_probe() {
     local autostart="$1"
 
     grep -q picom "$autostart" || return 0
-    grep -q -- '--backend' "$autostart" && return 0
+    grep -q dwm-picom "$autostart" && return 0
 
-    yellow "kept    $autostart (starts picom without choosing a backend)"
-    yellow '        on a GPU without 3D acceleration (most VMs) the glx backend in'
-    yellow '        picom.conf freezes the screen. Either start it as:'
-    yellow '          picom --backend xrender &'
-    yellow '        or copy the glxinfo probe from a freshly generated autostart.sh:'
-    yellow '          rm the file, re-run scripts/install-fedora.sh --only-install'
+    yellow "kept    $autostart (chooses picom's backend itself)"
+    if ! grep -q -- '--backend' "$autostart"; then
+        yellow '        it starts picom on the glx backend in picom.conf, which freezes'
+        yellow '        the screen on a GPU without 3D acceleration (most VMs).'
+    fi
+    yellow '        dwm-picom now makes that choice (xrender in a VM or without'
+    yellow '        hardware 3D, glx on a real GPU) and is updated with dots.'
+    yellow '        Replace your picom lines with:'
+    yellow '          dwm-picom &'
 }
 
 # Report on an autostart.sh the user already has, one daemon per check. Never
