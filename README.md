@@ -60,10 +60,11 @@ written by `install-fedora.sh`).
 - **Minor** (`0.1.0` → `0.2.0`): additive, backward-compatible changes — a
   new config file gets symlinked, a new suckless patch, a new optional
   package — that may still need a migration step on an existing install
-  (e.g. seeding a new directory). Add a
-  `scripts/migrations/<from>-to-<to>.sh` script whenever a minor bump
-  needs one; `scripts/migrations/0.1.0-to-0.2.0.sh` (the first real one)
-  shows the shape and naming convention.
+  (e.g. seeding a new directory). Every bump ships a
+  `scripts/migrations/<from>-to-<to>.sh`, even a no-op one, because
+  `scripts/migrate.sh` stops at a step with no script;
+  `scripts/migrations/0.1.0-to-0.2.0.sh` (the first real one) shows the
+  shape and naming convention.
 - **Major** (`0.x.y` → `1.0.0`, or any breaking bump): changes that
   restructure how configs are deployed — renaming/moving a symlinked
   directory, changing what `symlinks.sh` links where, changing the

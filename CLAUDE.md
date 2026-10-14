@@ -96,7 +96,8 @@ dots/
 │   ├── symlinks.sh             # symlinks the safe config/ dirs into ~/.config, backs up conflicts (--restore [timestamp] to undo)
 │   ├── uninstall.sh            # + uninstall_steps.sh, uninstall-apps.sh, uninstall-theme.sh, uninstall-flatpak.sh, uninstall-repos.sh, uninstall-wallpapers.sh, uninstall-sysfiles.sh — manifest-driven removal
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
-│   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers)
+│   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers;
+│   │                           #  0.2.0-to-0.3.0.sh is a no-op, still REQUIRED: migrate.sh stops at a missing step)
 │   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh
 │   ├── drivers.sh              # `dots drivers`: GPU VA-API driver, kernel-requested firmware, microcode, fwupd;
 │   │                           # NVIDIA REPORT-ONLY (user decision 2026-10-13). Logic in drivers-lib.sh +
