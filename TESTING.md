@@ -149,13 +149,16 @@ for adding CI; new docs you add are linted normally.
   renaming either one does not silently blind the test. (That is not
   hypothetical: the two now live in different files and the test needed no
   change.)
-- **`tests/picom-backend-probe.sh`** — runs the compositor block of the
-  generated `autostart.sh` under `/bin/sh` with a PATH of fakes only, against
-  fake `glxinfo -B` outputs (llvmpipe, softpipe, a real GPU, virgl, indirect
-  rendering, `glxinfo` missing or failing, `timeout` missing), and asserts
-  which `--backend` picom gets. Also checks the report warns about an
-  existing `autostart.sh` that starts picom without choosing a backend. The
-  fake output follows mesa-demos' `glxinfo.c`; the dev host has no `glxinfo`.
+- **`tests/picom-backend-probe.sh`** — runs `config/dwm/bin/dwm-picom` with a
+  PATH of fakes only, against fake `glxinfo -B` outputs (llvmpipe, softpipe,
+  a real GPU, virgl, indirect rendering, `glxinfo` missing or failing,
+  `timeout` missing) and fake hypervisors (`systemd-detect-virt --vm`: none,
+  kvm, vmware), and asserts which `--backend` picom gets. A VM is always
+  xrender. It also runs the generated `autostart.sh` block, with and without
+  `dwm-picom` on PATH, and checks the report tells an existing
+  `autostart.sh` with no backend choice, or with the old inline probe, to
+  switch to `dwm-picom &`. The fake output follows mesa-demos' `glxinfo.c`;
+  the dev host has no `glxinfo`.
 - **`tests/wallpaper-default.sh`** — runs `scripts/theme/wallpaper-default.sh`
   on a sealed PATH (`tests/lib/sealed-path.sh`) with a fake `magick`/`convert`
   in a sandboxed `$HOME`. Asserts the gradient uses the palette's own keys, a

@@ -44,9 +44,20 @@ check "...and gets no laptop packages" lacks brightnessctl
 machine GenuineIntel kvm
 chassis 1
 run
-check "QEMU's chassis 1 (Other), no battery: unknown" test "$(drivers_chassis)" = unknown
-check "unknown is treated as a desktop: nothing laptop-only" lacks brightnessctl
-check "said so" said "unknown (chassis type 1) — no laptop packages"
+check "a KVM guest (chassis 1, Other): vm" test "$(drivers_chassis)" = vm
+check "a vm is treated as a desktop: nothing laptop-only" lacks brightnessctl
+check "said so, naming the hypervisor" said "vm (kvm, chassis type 1) — no laptop packages"
+machine GenuineIntel kvm
+chassis 10
+battery BAT0
+run
+check "a guest exposing a laptop chassis AND a battery is still a vm" test "$(drivers_chassis)" = vm
+check "...and gets no laptop packages" lacks brightnessctl
+machine GenuineIntel none
+chassis 1
+run
+check "bare metal reporting chassis 1 (Other), no battery: unknown" test "$(drivers_chassis)" = unknown
+check "unknown is treated as a desktop too" lacks brightnessctl
 machine GenuineIntel none
 run
 check "no dmi at all: unknown, nothing installed" lacks brightnessctl

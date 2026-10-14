@@ -60,34 +60,20 @@ session_autostart_compositor() {
 # change — without this line that whole config is dead weight and picom never
 # runs at all.
 #
-# The backend is chosen HERE, overriding the config's `backend = "glx"`. On a
-# GPU without 3D acceleration (a VM's virtio GPU, observed on Fedora 44 on
-# 2026-10-05) picom's glx backend stops repainting: dwm and every client keep
-# running, but the screen freezes on whatever was drawn before picom started —
-# a bar stuck at "dwm-6.8", windows that open invisibly. xrender needs no GL.
-# So: glx only when glxinfo (glx-utils) reports direct rendering on a renderer
-# that is not a software rasteriser; xrender in every other case, including
-# when glxinfo or timeout is missing — a slower compositor beats a frozen one,
-# and the shipped config uses no glx-only effect. timeout bounds a GL stack
-# that hangs instead of failing.
+# The backend is chosen by dwm-picom (~/.config/dwm/bin, linked from the
+# repo), overriding the config's `backend = "glx"`: xrender in a virtual
+# machine or without hardware 3D, glx only on a real GPU. A VM's glx froze
+# the screen on the first real install (2026-10-05). Keeping that decision in
+# a linked script, not in this file, means a fix to it reaches this install
+# too — this file is yours once it exists. Without dwm-picom on PATH, plain
+# xrender: a slower compositor beats a frozen one.
 #
-# Backgrounded with & rather than picom's own -b: it keeps picom a child of
-# this script, matching the daemons below, and dwm already backgrounds
-# autostart.sh as a whole.
-if command -v picom >/dev/null 2>&1 && ! pgrep -x picom >/dev/null 2>&1; then
-	picom_backend=xrender
-	if command -v glxinfo >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
-		glx_info="$(timeout 5 glxinfo -B 2>/dev/null)"
-		case "$glx_info" in
-		*"direct rendering: Yes"*)
-			case "$glx_info" in
-			*llvmpipe* | *softpipe* | *swrast*) ;;
-			*) picom_backend=glx ;;
-			esac
-			;;
-		esac
-	fi
-	picom --backend "$picom_backend" &
+# Backgrounded with & rather than picom's own -b: dwm-picom execs picom, so
+# picom stays a child of this script, matching the daemons below.
+if command -v dwm-picom >/dev/null 2>&1; then
+	dwm-picom &
+elif command -v picom >/dev/null 2>&1 && ! pgrep -x picom >/dev/null 2>&1; then
+	picom --backend xrender &
 fi
 EOF
 }

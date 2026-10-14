@@ -16,6 +16,24 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Added
+
+- **Virtual machines are recognised.** `dots drivers` and `dots doctor` now
+  report a VM as `vm (kvm)` rather than an unknown chassis. A VM always gets
+  desktop behaviour, even if the hypervisor exposes a laptop chassis or a
+  battery.
+
+### Changed
+
+- **picom's backend is chosen by `dwm-picom`, and a VM always gets
+  `xrender`.** The choice used to be a probe pasted into your `autostart.sh`,
+  so later fixes could never reach an existing install, and a VM with 3D
+  passed through still got `glx`, the backend that froze the screen on the
+  first VM install. `dwm-picom` now decides: xrender in any VM, glx only on
+  bare-metal hardware 3D. It is updated with dots. `dots doctor` warns when
+  picom runs a backend this machine should not use. An existing
+  `autostart.sh` is told to replace its picom lines with `dwm-picom &`.
+
 ### Fixed
 
 - **The last false "installed:" lines are gone from re-runs.** The clipmenu

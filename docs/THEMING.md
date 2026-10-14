@@ -362,14 +362,20 @@ Run `scripts/theme/colorgen.sh <img>` then inspect
   `tests/picom-lockstep.sh` generates from the template and diffs the two,
   so that drift fails a test instead of surfacing weeks later.
 - **picom's backend is NOT taken from `picom.conf`.** The config says
-  `backend = "glx"`, but `autostart.sh` passes `--backend` explicitly: `glx`
-  only when `glxinfo -B` (package `glx-utils`) reports direct rendering on
-  a renderer that is not llvmpipe/softpipe/swrast, `xrender` otherwise —
-  including when `glxinfo` is missing. On a GPU without 3D acceleration
-  the glx backend freezes the screen while everything underneath keeps
-  running (first VM install, 2026-10-05). `tests/picom-backend-probe.sh`
-  pins the choice. Editing `backend` in the config therefore changes
-  nothing; change the probe in `install-session-template.sh`.
+  `backend = "glx"`, but `autostart.sh` runs `dwm-picom`
+  (`config/dwm/bin/dwm-picom`), which passes `--backend` explicitly:
+  **`xrender` in any virtual machine**, even one with 3D passed through;
+  `glx` on bare metal only when `glxinfo -B` (package `glx-utils`) reports
+  direct rendering on a renderer that is not llvmpipe/softpipe/swrast; and
+  `xrender` in every other case, including when `glxinfo` is missing. On a
+  GPU without 3D acceleration the glx backend freezes the screen while
+  everything underneath keeps running (first VM install, 2026-10-05).
+  `dwm-picom backend` prints the choice and why, and `dots doctor`
+  compares it with what picom is running. `tests/picom-backend-probe.sh`
+  pins the choice. Editing `backend` in the config changes nothing; change
+  `dwm-picom`. It is linked, so a change reaches every install. An
+  `autostart.sh` written before 2026-10-14 has its own copy of the old probe
+  and is told to replace its picom lines with `dwm-picom &`.
 
 ### At login
 

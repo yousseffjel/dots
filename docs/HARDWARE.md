@@ -60,14 +60,19 @@ this machine is, and why:
 laptop (chassis type 10, battery BAT0) — packages/laptop.lst:
 ```
 
-A machine is a **laptop** when its firmware says so (SMBIOS chassis type 8
+A **virtual machine** is recognised first, from `systemd-detect-virt --vm`
+(KVM/QEMU, VMware, VirtualBox, Hyper-V and others; a container is not a VM).
+It reads as **vm**, whatever chassis type or battery the hypervisor exposes,
+and is treated as a desktop. It also gets picom's `xrender` backend, never
+`glx` (see `docs/THEMING.md`).
+
+On real hardware, a machine is a **laptop** when its firmware says so (SMBIOS chassis type 8
 Portable, 9 Laptop, 10 Notebook, 14 Sub Notebook, 31 Convertible or 32
 Detachable) **or** when it has a system battery, because some firmware
 reports a laptop as "Other". A battery the kernel marks `scope=Device`
 belongs to a wireless mouse or headset, so it does not count. Types like
 3 Desktop and 7 Tower make it a **desktop**. Anything else is **unknown** and
-treated as a desktop: nothing laptop-only is installed on a guess. A QEMU
-virtual machine reports "Other", so it lands here.
+treated as a desktop: nothing laptop-only is installed on a guess.
 
 A desktop behaves exactly as it always did. On a laptop:
 
