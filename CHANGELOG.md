@@ -131,6 +131,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Re-running the installer no longer claims to reinstall everything.** It
+  printed `installed:` for every package already on the system, and a dry
+  run said both "would install" and "installed" for each. Packages that are
+  already there are now skipped without calling dnf, which also makes a
+  re-run noticeably faster. Each list reports what it actually installed,
+  plus one "N already installed" line. Packages are now recognised by what
+  they provide, too: on a machine that already had Thunar, the installer
+  claimed it as its own, and `dots uninstall` would have removed it.
 - **`dots doctor` no longer fails `ffmpeg-free` after the RPM Fusion swap.**
   The installer replaces it with RPM Fusion's `ffmpeg`, which conflicts with
   it, so it is never installed again. Doctor now reports it as replaced

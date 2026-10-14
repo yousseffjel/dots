@@ -71,7 +71,7 @@ dnf_install() {
 
 # One loop for all three tiers; `mode` decides what a failure costs.
 install_tier() {
-    local label="$1" list="$2" mode="$3" pkg already
+    local label="$1" list="$2" mode="$3" pkg have=0
     if [[ ! -f "$list" ]]; then
         red "missing package list: $list"
         exit 1
@@ -82,11 +82,21 @@ install_tier() {
             green "  ok: $pkg (${SATISFIED_BY[$pkg]} installed in its place)"
             continue
         fi
-        already=0
-        rpm -q "$pkg" >/dev/null 2>&1 && already=1
+        # Already there: no dnf at all. `dnf install` never upgrades an
+        # installed package, so this changes nothing but the output — which
+        # used to say "installed:" for every package on every re-run — and
+        # spares a re-run one dnf process per package. --whatprovides, as
+        # doctor's check_packages asks: `thunar` is a Provides of Fedora's
+        # `Thunar`, so a name-only `rpm -q` called it missing on every run and,
+        # where Thunar came preinstalled, wrote a PACKAGE row that would have
+        # had `dots uninstall` remove a file manager dots never installed.
+        if rpm -q --whatprovides "$pkg" >/dev/null 2>&1; then
+            have=$((have + 1))
+            continue
+        fi
         if dnf_install "$pkg"; then
-            green "  installed: $pkg"
-            if [[ $DRY_RUN -eq 0 && $already -eq 0 ]]; then
+            if [[ $DRY_RUN -eq 0 ]]; then
+                green "  installed: $pkg"
                 manifest_append_row PACKAGE "$pkg"
             fi
             continue
@@ -107,6 +117,7 @@ install_tier() {
                 ;;
         esac
     done < <(read_pkg_list "$list")
+    ((have == 0)) || green "  ok      $have already installed"
 }
 
 # Closing report. ~100 packages each print a green line, so a lone yellow
