@@ -92,38 +92,6 @@ install_tier "installing desktop-critical packages (never aborts; failures are r
 install_tier "installing optional packages (best-effort)" \
     "$PACKAGES_DIR/extra.lst" extra
 
-# clipmenu + clipnotify back dwm-clipmenu (Super+v) and aren't in Fedora's
-# official repos — enabling this COPR is a deliberate exception to this
-# repo's usual "COPR is opt-in, never auto-enabled" rule, since the feature
-# is core to the desktop rather than a nice-to-have.
-blue "==> enabling skidnik/clipmenu COPR"
-if [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would enable COPR skidnik/clipmenu and install clipmenu, clipnotify"
-elif "${SUDO[@]}" dnf copr enable -y skidnik/clipmenu; then
-    # Not in desktop.lst — these two come from a COPR, not the official
-    # repos, so they cannot live in a list the dry-run validates against
-    # enabled repos. They get the same treatment by hand: a failure here is
-    # a silently dead keybind, which is the whole point of the red summary.
-    for pkg in clipmenu clipnotify; do
-        already=0
-        rpm -q "$pkg" >/dev/null 2>&1 && already=1
-        if "${SUDO[@]}" dnf install -y "$pkg" >/dev/null 2>&1; then
-            green "  installed: $pkg"
-            if [[ $already -eq 0 ]]; then
-                manifest_append_row PACKAGE "$pkg"
-            fi
-        else
-            CONSEQUENCE["$pkg"]="clipboard history is dead: the dwm-clipmenu keybind (Super+v) opens nothing"
-            yellow "  FAILED: $pkg — ${CONSEQUENCE[$pkg]}"
-            FAILED_DESKTOP+=("$pkg")
-        fi
-    done
-else
-    CONSEQUENCE[clipmenu]="COPR skidnik/clipmenu could not be enabled: install clipmenu and clipnotify by hand or Super+v does nothing"
-    yellow "  FAILED: skidnik/clipmenu COPR — ${CONSEQUENCE[clipmenu]}"
-    FAILED_DESKTOP+=(clipmenu)
-fi
-
 # starship is the prompt (config/zsh/conf.d/99-prompt.zsh reads
 # config/starship/starship.toml) but Fedora does not package it — it was
 # dropped around F37, verified 2026-08-06 against packages.fedoraproject.org.
@@ -171,9 +139,9 @@ else
     fi
 fi
 
-# Sublime HQ's repo and RPM Fusion, for the default editor and the codecs
-# mpv needs for HEVC/HDR — both explicitly authorised rule-4 exceptions. See
-# that file's header for what each adds and how uninstall reverts it.
+# The clipmenu COPR, Sublime HQ's repo and RPM Fusion — all explicitly
+# authorised rule-4 exceptions — then the hardware drivers. See that file's
+# header for what each adds and how uninstall reverts it.
 source "$SCRIPT_DIR/install-pkg-repos.sh"
 repos_install
 

@@ -68,8 +68,8 @@ dots/
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
-│   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + clipmenu COPR + fd shim
-│   ├── install-pkg-repos.sh    # sourced by install-pkg.sh: Sublime HQ repo + sublime-text; RPM Fusion free+nonfree,
+│   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + starship + fd shim
+│   ├── install-pkg-repos.sh    # sourced by install-pkg.sh: clipmenu COPR; Sublime HQ repo + sublime-text; RPM Fusion free+nonfree,
 │   │                           # ffmpeg-free -> ffmpeg swap, then drivers_install (`dots drivers`). REPO rows only for what it added
 │   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + dots symlink + theme deploy + app configs + zinit/TPM bootstrap clones
 │   ├── install-restore-bin.sh  # sourced by install-restore.sh: the ~/.local/bin/dots symlink + its SCRIPT manifest row

@@ -72,6 +72,11 @@ remove) shift 2; for p in "$@"; do del "$p"; done ;;
 repoquery)
     [[ " ${FAKE_FAIL:-} " == *" repoquery "* ]] && exit 1
     cat "$DB" ;;
+copr)
+    # `dnf copr list` prints each enabled COPR as host/owner/project.
+    if [[ "$2" == list ]]; then cat "$DB.copr" 2>/dev/null; exit 0; fi
+    [[ " ${FAKE_FAIL:-} " == *" copr "* ]] && exit 1
+    echo "copr.fedorainfracloud.org/$4" >>"$DB.copr" ;;
 esac'
 }
 PATH="$SB/bin"
@@ -127,11 +132,11 @@ in_list() {
 }
 # reset <package>... — a system with only these installed and no manifest.
 reset() {
-    rm -rf "$SB/state" "$SUBLIME_REPO_FILE" "$LOG"
+    rm -rf "$SB/state" "$SUBLIME_REPO_FILE" "$LOG" "$DB.copr"
     : >"$DB"
     for p in "$@"; do echo "$p fedora" >>"$DB"; done
     touch "$LOG"
-    FAILED_EXTRA=()
+    FAILED_EXTRA=() FAILED_DESKTOP=()
 }
 # What uninstall_packages would do: dnf remove every PACKAGE row.
 remove_our_packages() {
@@ -154,14 +159,17 @@ check "ffmpeg-free swapped out" lacks ffmpeg-free
 check "ffmpeg swapped in" has ffmpeg
 check "intel-media-driver installed" has intel-media-driver
 check "four REPO rows (file, two releases, swap)" test "$(rows)" -eq 4
-check "PACKAGE rows for sublime-text and intel-media-driver" \
-    test "$(manifest_rows PACKAGE | cut -f2 | sort | tr '\n' ' ')" = "intel-media-driver sublime-text "
+check "PACKAGE rows for clipmenu, clipnotify, sublime-text, intel-media-driver" \
+    test "$(manifest_rows PACKAGE | cut -f2 | sort | tr '\n' ' ')" = "clipmenu clipnotify intel-media-driver sublime-text "
+check "the clipmenu COPR was enabled" logged "dnf copr enable -y skidnik/clipmenu"
 check "nothing reported failed" test "${#FAILED_EXTRA[@]}" -eq 0
 
 blue "==> re-run is a no-op"
 : >"$LOG"
 repos_install >/dev/null
 check "no second swap" not_logged "dnf swap"
+check "no dnf install at all: everything is already there" not_logged "dnf install"
+check "an enabled COPR is not enabled again" not_logged "dnf copr enable"
 check "no new REPO rows" test "$(rows)" -eq 4
 
 blue "==> ffmpeg-free is satisfied by ffmpeg in the tier loop"
@@ -215,6 +223,16 @@ touch "$SUBLIME_REPO_FILE"
 repos_install >/dev/null
 check "no REPO rows" test "$(rows)" -eq 0
 check "no rpm --import for an existing repo" not_logged "rpm --import"
+
+blue "==> clipmenu already installed by other means"
+reset ffmpeg-free clipmenu clipnotify
+repos_install >/dev/null
+check "no PACKAGE row for a clipmenu that was already there" \
+    test "$(manifest_rows PACKAGE | cut -f2 | grep -c clip || true)" -eq 0
+reset ffmpeg-free
+FAKE_FAIL=copr repos_install >/dev/null
+check "a COPR that cannot be enabled is reported in the red tier" in_list clipmenu "${FAILED_DESKTOP[@]}"
+check "...and nothing from it is attempted" not_logged "dnf install -y clipmenu"
 
 blue "==> arch and failure paths"
 reset ffmpeg-free
