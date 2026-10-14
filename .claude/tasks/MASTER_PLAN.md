@@ -76,6 +76,16 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-14 — **ad-hoc: `dnf-speed`** (`906e5e0` + `81bcf7e`, merge `fe037e8`).
+  A fresh F44 VM install sat an hour on a 3 KiB/s mirror after 37 min of
+  one-dnf-per-package. Now: a persistent dnf5 drop-in (fastestmirror, 10
+  parallel, minrate 20k; SYSFILE row, shared `sysfile_install` with the
+  touchpad), one forced `makecache --refresh` up front, one transaction per
+  tier with per-package fallback, dead group step removed. VM: drop-in read
+  by dnf, batch installed 2 packages, doctor all passed. **Not verified:**
+  the staircase fix (`</dev/null` under sudo) and dnf5 falling over to the
+  next mirror after a minrate abort.
+
 - 2026-10-14 — **ad-hoc: release 0.3.0 + follow-ups — 5 slots merged**
   (`c421621`).
   - [x] `installer-honest-status` (`f923f78`): no false "installed:", no dnf

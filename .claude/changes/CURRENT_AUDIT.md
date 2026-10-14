@@ -2279,3 +2279,25 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   89 s); doctor all passed, including `vm (kvm)` and
   `picom uses xrender: virtual machine (kvm)`. Suite 70/70.
 - **Not verified:** bare metal, a real GPU's glx path, a real laptop.
+
+## 2026-10-14 — dnf-speed (1 slot, 2 commits)
+
+- **`dnf-speed`** (`906e5e0`, `81bcf7e`; merge `fe037e8`): fresh-install
+  speed. `config/dnf/30-dots-speed.conf` → `/etc/dnf/libdnf5.conf.d/`
+  (fastestmirror, max_parallel_downloads=10, minrate=20k, timeout=30) as a
+  SYSFILE row via the new shared `scripts/sysfile-lib.sh`; `dnf_refresh`
+  forces `makecache --refresh` so the mirror probe (50 s cold) is up front;
+  `install_tier` runs one `dnf install --skip-unavailable` per tier, rpm
+  decides the outcome, a failed transaction retries per package; the
+  always-failing "C Development Tools" group step removed.
+- Trigger: the F44 Server VM (192.168.122.182) install stalled an hour on
+  `rust-std-static` from a 3 KiB/s mirror, above dnf's 1000 B/s floor.
+- VM run of 906e5e0: drop-in written and reported by `dnf5
+  --dump-main-config`; 2-package batch OK; doctor all passed. It exposed the
+  staircased progress (sudo use_pty raw tty) and the hidden probe, fixed in
+  81bcf7e.
+- Suite 72/72, lint ✓, ~19 mutations caught, reviewer READY (one WARN on rc
+  capture disproved by mutation and hardened anyway).
+- **Not verified:** the `</dev/null` staircase fix on the VM; mirror failover
+  after a minrate abort; CI install-container wall-clock (timeout-minutes
+  left at 90 until timed).
