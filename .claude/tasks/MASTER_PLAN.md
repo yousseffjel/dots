@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-13
+Last Updated: 2026-10-14
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -41,8 +41,10 @@ when slots run concurrently.
   local binaries on an **Arch** dev host — never on a Fedora box.
   **2026-10-05: run on a Fedora 44 Server VM** (virtio GPU, no 3D accel, ly).
   It found three bugs, fixed in `first-boot-fixes`, and passed on a re-test.
-  Still open: **bare metal**, a real GPU (the glx branch of the picom probe
-  is tested only against fake glxinfo output), and Workstation as a target.
+  Still open: **bare metal**, a real GPU (the glx branch of `dwm-picom` is
+  tested only against fake glxinfo output), and a real laptop (scope-h).
+  ~~Workstation as a target~~ — **dropped 2026-10-14**: Fedora Server is the
+  one supported target (user decision; `server-target`).
   ~~Cosmetic: the login shell is recorded as `/usr/sbin/zsh`.~~ Fixed
   2026-10-05 (`login-shell-canonical-path`) — it was a real uninstall bug.
 
@@ -74,6 +76,20 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-14 — **ad-hoc: release 0.3.0 + follow-ups — 5 slots merged**
+  (`c421621`).
+  - [x] `installer-honest-status` (`f923f78`): no false "installed:", no dnf
+        for installed packages; `--whatprovides` (thunar → Thunar).
+  - [x] `release-0.3.0` (`20255ad`): VERSION 0.3.0, no-op migration, release
+        docs fixed (a migration is REQUIRED per release). Tagged v0.3.0 by
+        the user; VM upgraded 0.2.0 → 0.3.0.
+  - [x] `installer-honest-status-2` (`7f9b37e`): COPR step + repos via
+        `drivers_pkg`; no re-enable, no reinstall.
+  - [x] `vm-picom` (`6caa7d2`): `vm` chassis; `dwm-picom` (VM → xrender,
+        glx only on bare-metal hardware 3D); doctor compares backends.
+  - [x] `server-target` (`4dfaff2`): Fedora Server is the one target; GDM
+        note in pre-flight.
+  ✅ VM 2026-10-14: `dots update` 11 s, doctor all passed.
 - 2026-10-13 — **Epic: scope-h — laptop support — ALL 5 SLOTS MERGED**
   (`e1ecabc`). Scope file `.claude/tasks/scope-h-laptop-support.md`.
   **DECISION REVERSAL** of scope-b locked decisions 9 and 12: dots targets

@@ -2254,3 +2254,28 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Suite 67/67, lint clean, about 50 mutations caught across the four slots,
   reviewer READY on all four. VM: `dots update` and doctor all passed.
 - **Not verified:** any real laptop. The user has only the VM.
+
+## 2026-10-14 — release 0.3.0 and follow-ups (5 slots)
+
+- **`installer-honest-status`** (`f923f78`): `install_tier` skips dnf for
+  packages `rpm -q --whatprovides` finds and prints only real installs plus
+  "N already installed". This fixed a false `PACKAGE thunar` row (thunar is a
+  Provides of Thunar) that `dots uninstall` would have acted on.
+- **`release-0.3.0`** (`20255ad`): VERSION 0.3.0, CHANGELOG dated,
+  `0.2.0-to-0.3.0.sh` no-op. **CONTRIBUTING and README wrongly called the
+  migration optional**: migrate.sh stops at a missing step. Fixed. Tagged
+  `v0.3.0` by the user.
+- **`installer-honest-status-2`** (`7f9b37e`): the clipmenu COPR moved to
+  install-pkg-repos.sh, with no re-enable or reinstall; `repos_install_pkg`
+  folded into `drivers_pkg`.
+- **`vm-picom`** (`6caa7d2`): `drivers_chassis` answers `vm` first.
+  `config/dwm/bin/dwm-picom` owns picom's backend: VM → xrender, glx only on
+  bare-metal hardware 3D. autostart.sh runs `dwm-picom &`; existing ones are
+  told to switch (rule 6). Doctor warns on a mismatch.
+- **`server-target`** (`4dfaff2`): **DECISION** — Fedora Server is the one
+  supported target. Workstation was dropped (never run; GDM vs ly never
+  reconciled). The pre-flight prints a note when GDM is enabled.
+- VM (f44 kvm): a real 0.2.0 → 0.3.0 upgrade; the re-run took 11 s (was
+  89 s); doctor all passed, including `vm (kvm)` and
+  `picom uses xrender: virtual machine (kvm)`. Suite 70/70.
+- **Not verified:** bare metal, a real GPU's glx path, a real laptop.
