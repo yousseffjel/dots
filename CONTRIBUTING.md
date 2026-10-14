@@ -100,7 +100,8 @@ Two pins have no bot and are swept by hand:
    script for the step, so the manifest stays at the old version and
    `dots doctor` warns on every upgraded install. When nothing needs doing,
    ship a no-op that says why: `0.2.0-to-0.3.0.sh` is the example, and
-   `0.1.0-to-0.2.0.sh` shows a real one.
+   `0.1.0-to-0.2.0.sh` shows a real one. `tests/migration-current.sh` fails
+   until the script for the new `VERSION` exists.
 3. Rename `## [Unreleased]` to `## [<new>] - <YYYY-MM-DD>`, then add a fresh
    empty `## [Unreleased]` above it.
 4. Bump `VERSION` to `<new>`. `tests/changelog-version.sh` fails until steps 3

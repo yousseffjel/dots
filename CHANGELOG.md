@@ -16,6 +16,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-14
+
 ### Added
 
 - **Virtual machines are recognised.** `dots drivers` and `dots doctor` now
