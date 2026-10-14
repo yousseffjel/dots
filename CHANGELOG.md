@@ -16,6 +16,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
 ### Added
 
 - **Power profiles on laptops.** `Super+Shift+p`, or `profile` in the power
@@ -138,7 +140,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   re-run noticeably faster. Each list reports what it actually installed,
   plus one "N already installed" line. Packages are now recognised by what
   they provide, too: on a machine that already had Thunar, the installer
-  claimed it as its own, and `dots uninstall` would have removed it.
+  claimed it as its own, and `dots uninstall` would have removed it. An
+  install made before 0.3.0 may still carry that claim. If Thunar was on
+  your machine before you installed dots, delete the line that reads
+  `PACKAGE` then `thunar` from `~/.local/state/dots/manifest`.
 - **`dots doctor` no longer fails `ffmpeg-free` after the RPM Fusion swap.**
   The installer replaces it with RPM Fusion's `ffmpeg`, which conflicts with
   it, so it is never installed again. Doctor now reports it as replaced

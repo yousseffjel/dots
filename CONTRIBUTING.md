@@ -95,9 +95,12 @@ Two pins have no bot and are swept by hand:
 ## Cut a release
 
 1. Decide the bump using `README.md` under **Versioning**.
-2. If an existing install needs a step to reach the new version, add
-   `scripts/migrations/<old>-to-<new>.sh`, following the template in that
-   directory.
+2. Add `scripts/migrations/<old>-to-<new>.sh` for **every** release, even
+   one with nothing to migrate. `scripts/migrate.sh` stops when there is no
+   script for the step, so the manifest stays at the old version and
+   `dots doctor` warns on every upgraded install. When nothing needs doing,
+   ship a no-op that says why: `0.2.0-to-0.3.0.sh` is the example, and
+   `0.1.0-to-0.2.0.sh` shows a real one.
 3. Rename `## [Unreleased]` to `## [<new>] - <YYYY-MM-DD>`, then add a fresh
    empty `## [Unreleased]` above it.
 4. Bump `VERSION` to `<new>`. `tests/changelog-version.sh` fails until steps 3
