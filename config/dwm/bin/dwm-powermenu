@@ -4,6 +4,14 @@
 # Colors/font mirror suckless/dwm/config.def.h's dmenucmd theme.
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-powermenu — lock, logout, suspend, reboot, shutdown, and power profile on a laptop (Super+Shift+x)"
+        exit 0
+        ;;
+esac
+
 # Colours are deliberately NOT passed: dmenu reads them from the X
 # resource database (dmenu.background/foreground/selbackground/
 # selforeground), and explicit -nb/-nf/-sb/-sf flags would override the

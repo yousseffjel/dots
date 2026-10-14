@@ -6,6 +6,14 @@
 # to dmenu, so no manual list-building/selection plumbing is needed here.
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-clipmenu — clipboard history menu (Super+v); needs clipmenu"
+        exit 0
+        ;;
+esac
+
 FONT="monospace:size=10"
 # Colours come from the X resource database (see dwm-powermenu) so the
 # clipboard menu follows the active theme.

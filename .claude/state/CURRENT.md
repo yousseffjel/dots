@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-14-server-target.md
+Last log: .claude/changes/2026-10-14-dwm-help.md

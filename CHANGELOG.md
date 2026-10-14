@@ -40,6 +40,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Every `dwm-*` command answers `--help`.** Eight of them (`dwm-apps`,
+  `dwm-clipmenu`, `dwm-display`, `dwm-emoji`, `dwm-keys`, `dwm-powermenu`,
+  `dwm-theme`, `dwm-wallpaper`) opened their menu instead, and
+  `dwm-colorpicker --help` failed without ImageMagick. Each now prints what
+  it does and its key.
 - **The last false "installed:" lines are gone from re-runs.** The clipmenu
   and Sublime Text steps still reinstalled and announced `clipmenu`,
   `clipnotify` and `sublime-text` every time, and re-enabled the clipmenu

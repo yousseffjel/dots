@@ -16,6 +16,14 @@
 # usage: dwm-emoji
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-emoji — emoji picker: pick one in dmenu, it goes to the clipboard (Super+;)"
+        exit 0
+        ;;
+esac
+
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
 FONT="monospace:size=12"

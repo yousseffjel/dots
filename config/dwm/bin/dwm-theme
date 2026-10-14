@@ -8,6 +8,14 @@
 # See dwm-wallpaper for why this wrapper exists at all.
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-theme — theme menu: the static themes and wallbash (Super+Shift+t)"
+        exit 0
+        ;;
+esac
+
 BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 DOTS_DIR="$(cd "$BIN_DIR/../../.." && pwd)"
 THEME_APPLY="$DOTS_DIR/scripts/theme/theme-apply.sh"

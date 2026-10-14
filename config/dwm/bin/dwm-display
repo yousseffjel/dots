@@ -19,6 +19,14 @@
 # usage: dwm-display [--list]
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-display [--list] — monitor layout menu: autorandr profiles, then xrandr presets (Super+Shift+d)"
+        exit 0
+        ;;
+esac
+
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
 FONT="monospace:size=10"
