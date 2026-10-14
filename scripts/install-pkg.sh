@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# "install" stage, package half: installs the C toolchain group, three tiers
-# of dnf packages, the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v),
+# "install" stage, package half: writes dnf's speed drop-in and refreshes its
+# metadata once (install-pkg-dnf.sh), installs three tiers of dnf packages —
+# one transaction per tier — the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v),
 # the Sublime HQ + RPM Fusion repos behind the default apps
 # (install-pkg-repos.sh), and the fdfind -> fd shim. The suckless build
 # (dwm/st/dmenu/dwmblocks/slock/nsxiv) is the other half of the "install" stage — see install-suckless.sh, which
@@ -74,14 +75,14 @@ fi
 # cap — see that file's header.
 source "$SCRIPT_DIR/install-pkg-tiers.sh"
 
-blue "==> installing C Development Tools and Libraries (group)"
-if [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would install group: C Development Tools and Libraries"
-elif ! "${SUDO[@]}" dnf group install -y "C Development Tools and Libraries" 2>/dev/null; then
-    if ! "${SUDO[@]}" dnf groupinstall -y "C Development Tools and Libraries" 2>/dev/null; then
-        yellow "  skipped (group unavailable under this dnf) — individual packages below still cover the build toolchain"
-    fi
-fi
+# Faster, stall-proof downloads before the first one. There used to be a
+# `dnf group install "C Development Tools and Libraries"` here; it failed on
+# every Fedora 44 run (stderr was discarded, so nobody saw why) and would have
+# pulled gdb, valgrind and perf that nothing uses. packages/build.lst is the
+# declared toolchain (CLAUDE.md rule 10).
+source "$SCRIPT_DIR/install-pkg-dnf.sh"
+dnf_speed_conf
+dnf_refresh
 
 load_consequences
 

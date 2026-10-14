@@ -17,11 +17,8 @@
 #                                re-applied at boot; tuned-ppd itself is
 #                                D-Bus-activated, tuned would otherwise not run
 #
-# SYSFILE follows the APP rows' contract (install-restore-apps.sh), with sudo:
-# a re-run replaces the installed copy only while it is byte-identical to a
-# version this repo shipped (file_matches_history), so an edit is never
-# overwritten; a file there that we did not write is never claimed; and
-# uninstall-sysfiles.sh removes it on the same condition.
+# The SYSFILE contract (an edit is never overwritten, a file we did not write
+# is never claimed) lives in sysfile-lib.sh, shared with the dnf drop-in.
 
 # DOTS_XORG_CONF_DIR overrides /etc/X11/xorg.conf.d, for tests only.
 DRIVERS_TOUCHPAD_REL="config/xorg/40-dots-touchpad.conf"
@@ -67,27 +64,13 @@ drivers_power() {
     done
 }
 
-# drivers_touchpad — the Xorg snippet; see the header for the contract.
+# drivers_touchpad — the Xorg snippet; the contract is sysfile_install's
+# (sysfile-lib.sh).
 drivers_touchpad() {
-    local src="$DOTS_DIR/$DRIVERS_TOUCHPAD_REL"
-    local dst="${DOTS_XORG_CONF_DIR:-/etc/X11/xorg.conf.d}/${DRIVERS_TOUCHPAD_REL##*/}"
-    if [[ -e "$dst" ]] && cmp -s "$src" "$dst"; then
-        green "  ok      $dst (touchpad) already current"
-        return 0
-    fi
-    if [[ -e "$dst" ]] && ! { manifest_has_path SYSFILE "$dst" && file_matches_history "$dst" "$DRIVERS_TOUCHPAD_REL"; }; then
-        yellow "  kept    $dst — edited, or not written by dots; compare with $DRIVERS_TOUCHPAD_REL"
-        return 0
-    fi
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would install $dst (tap-to-click, natural scrolling, two-finger right-click)"
-        return 0
-    fi
-    if "${SUDO[@]}" install -D -m 644 "$src" "$dst"; then
-        manifest_append_row SYSFILE xorg "$dst" "$DRIVERS_TOUCHPAD_REL"
-        green "  wrote   $dst — touchpad settings apply at your next login"
-    else
-        yellow "  FAILED: could not write $dst — the touchpad keeps libinput's defaults (no tap-to-click)"
-        FAILED_EXTRA+=(touchpad)
-    fi
+    sysfile_install xorg "$DRIVERS_TOUCHPAD_REL" \
+        "${DOTS_XORG_CONF_DIR:-/etc/X11/xorg.conf.d}/${DRIVERS_TOUCHPAD_REL##*/}" \
+        "tap-to-click, natural scrolling, two-finger right-click" \
+        "touchpad settings apply at your next login" \
+        "the touchpad keeps libinput's defaults (no tap-to-click)" \
+        || FAILED_EXTRA+=(touchpad)
 }

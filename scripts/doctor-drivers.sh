@@ -108,6 +108,7 @@ check_drivers_fwupd() {
 
 # On a laptop: the Xorg snippet drivers-laptop.sh installs. An edited copy is
 # the user's choice, so it is ok, not a warning.
+# shellcheck disable=SC2153 # DOTS_DIR is doctor.sh's, which sources this
 check_drivers_touchpad() {
     local s=drivers dst
     dst="${DOTS_XORG_CONF_DIR:-/etc/X11/xorg.conf.d}/${DRIVERS_TOUCHPAD_REL##*/}"

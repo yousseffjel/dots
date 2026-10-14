@@ -69,9 +69,49 @@ dnf_install() {
     return 0
 }
 
+# dnf_install_batch <pkg>... — ONE dnf transaction for a whole tier. A run per
+# package (the old way) cost ~130 dnf processes on a fresh install, each
+# loading repo metadata, and serialised every download. --skip-unavailable
+# lets one renamed package skip instead of failing the transaction;
+# install_tier then asks rpm what actually landed. stderr — dnf's progress
+# and its errors — is shown as it comes (a silent ten-minute download looks
+# hung) and kept in DNF_BATCH_LOG for the per-package reasons. Returns dnf's
+# status: non-zero means the transaction itself failed (a conflict, the
+# network), and install_tier falls back to one package at a time.
+DNF_BATCH_LOG=""
+dnf_install_batch() {
+    local rcf rc
+    DNF_BATCH_LOG="$(mktemp)"
+    rcf="$(mktemp)"
+    # The status goes through a file: in a pipeline dnf runs in a subshell,
+    # and under pipefail its failure would abort the caller. `|| rc=$?`
+    # rather than `$?` on the next line: install_tier's `||` suppresses set -e
+    # here today, but a bare call would let set -e end the subshell first.
+    {
+        rc=0
+        "${SUDO[@]}" dnf install -y --skip-unavailable "$@" 2>&1 >/dev/null || rc=$?
+        echo "$rc" >"$rcf"
+    } \
+        | tee "$DNF_BATCH_LOG" | sed -u 's/^/    /'
+    rc="$(<"$rcf")"
+    rc="${rc:-1}"
+    rm -f "$rcf"
+    return "$rc"
+}
+
+# dnf's own line about <pkg> from the batch log ("No match for argument:
+# <pkg>"), else its last line.
+dnf_batch_reason() {
+    local line
+    line="$(grep -F -- "$1" "$DNF_BATCH_LOG" 2>/dev/null | tail -n1 || true)"
+    [[ -n "$line" ]] || line="$(tail -n1 "$DNF_BATCH_LOG" 2>/dev/null || true)"
+    printf '%s' "$line"
+}
+
 # One loop for all three tiers; `mode` decides what a failure costs.
 install_tier() {
-    local label="$1" list="$2" mode="$3" pkg have=0
+    local label="$1" list="$2" mode="$3" pkg have=0 batch=0
+    local -a pending=()
     if [[ ! -f "$list" ]]; then
         red "missing package list: $list"
         exit 1
@@ -83,41 +123,62 @@ install_tier() {
             continue
         fi
         # Already there: no dnf at all. `dnf install` never upgrades an
-        # installed package, so this changes nothing but the output — which
-        # used to say "installed:" for every package on every re-run — and
-        # spares a re-run one dnf process per package. --whatprovides, as
-        # doctor's check_packages asks: `thunar` is a Provides of Fedora's
-        # `Thunar`, so a name-only `rpm -q` called it missing on every run and,
-        # where Thunar came preinstalled, wrote a PACKAGE row that would have
-        # had `dots uninstall` remove a file manager dots never installed.
+        # installed package, so skipping it changes nothing but the output,
+        # which used to say "installed:" for every package on every re-run.
+        # --whatprovides, as doctor's check_packages asks: `thunar` is a
+        # Provides of Fedora's `Thunar`, so a name-only `rpm -q` called it
+        # missing on every run and, where Thunar came preinstalled, wrote a
+        # PACKAGE row that would have had `dots uninstall` remove a file
+        # manager dots never installed.
         if rpm -q --whatprovides "$pkg" >/dev/null 2>&1; then
             have=$((have + 1))
             continue
         fi
-        if dnf_install "$pkg"; then
-            if [[ $DRY_RUN -eq 0 ]]; then
-                green "  installed: $pkg"
-                manifest_append_row PACKAGE "$pkg"
-            fi
-            continue
-        fi
-        [[ -n "$DNF_ERR" ]] && yellow "    dnf: $(printf '%s' "$DNF_ERR" | tail -n1)"
-        case "$mode" in
-            hard)
-                red "required package failed to install: $pkg"
-                exit 1
-                ;;
-            desktop)
-                yellow "  FAILED: $pkg — ${CONSEQUENCE[$pkg]:-consequence not recorded in desktop.lst}"
-                FAILED_DESKTOP+=("$pkg")
-                ;;
-            *)
-                yellow "  skipped: $pkg"
-                FAILED_EXTRA+=("$pkg")
-                ;;
-        esac
+        pending+=("$pkg")
     done < <(read_pkg_list "$list")
     ((have == 0)) || green "  ok      $have already installed"
+    ((${#pending[@]} > 0)) || return 0
+    if [[ $DRY_RUN -eq 1 ]]; then
+        for pkg in "${pending[@]}"; do blue "  (dry-run) would install: $pkg"; done
+        return 0
+    fi
+    blue "  installing ${#pending[@]} package(s) in one dnf transaction"
+    dnf_install_batch "${pending[@]}" || batch=$?
+    ((batch == 0)) || yellow "  the transaction failed (dnf exit $batch) — retrying one package at a time"
+    for pkg in "${pending[@]}"; do
+        tier_settle "$pkg" "$mode" "$batch"
+    done
+    rm -f "$DNF_BATCH_LOG"
+}
+
+# tier_settle <pkg> <mode> <batch status> — report one package after the
+# batch: installed (with its PACKAGE row), or a failure whose cost is the
+# tier's. After a failed transaction nothing in it was installed, so each
+# package gets its own dnf run — which also names the one that broke it.
+tier_settle() {
+    local pkg="$1" mode="$2" batch="$3"
+    if rpm -q --whatprovides "$pkg" >/dev/null 2>&1 \
+        || { ((batch != 0)) && dnf_install "$pkg"; }; then
+        green "  installed: $pkg"
+        manifest_append_row PACKAGE "$pkg"
+        return 0
+    fi
+    ((batch != 0)) || DNF_ERR="$(dnf_batch_reason "$pkg")"
+    [[ -n "$DNF_ERR" ]] && yellow "    dnf: $(printf '%s' "$DNF_ERR" | tail -n1)"
+    case "$mode" in
+        hard)
+            red "required package failed to install: $pkg"
+            exit 1
+            ;;
+        desktop)
+            yellow "  FAILED: $pkg — ${CONSEQUENCE[$pkg]:-consequence not recorded in desktop.lst}"
+            FAILED_DESKTOP+=("$pkg")
+            ;;
+        *)
+            yellow "  skipped: $pkg"
+            FAILED_EXTRA+=("$pkg")
+            ;;
+    esac
 }
 
 # Closing report. ~100 packages each print a green line, so a lone yellow

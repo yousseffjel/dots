@@ -53,6 +53,8 @@ dots/
 │   ├── autorandr/       # postswitch.d/ wallpaper re-paint hook — COPIED, never linked (`autorandr --save` writes profiles there)
 │   ├── systemd/user/    # dots-session.target — COPIED, never linked (~/.config/systemd/user holds the user's own units)
 │   ├── fontconfig/      # fonts.conf — Latin face first, Noto Arabic behind it; symlinked (docs/FONTS.md)
+│   ├── dnf/             # 30-dots-speed.conf — COPIED (sudo, SYSFILE row) to /etc/dnf/libdnf5.conf.d by
+│   │                    #  install-pkg-dnf.sh: fastestmirror, 10 parallel downloads, minrate 20k
 │   ├── xorg/            # 40-dots-touchpad.conf — COPIED by drivers-laptop.sh to /etc/X11/xorg.conf.d on laptops
 │   │                    #  only (sudo, SYSFILE row); never linked, never in symlinks.sh
 │   ├── xdg-desktop-portal/ # portals.conf — names the gtk backend (a dwm session sets no XDG_CURRENT_DESKTOP); symlinked
@@ -71,6 +73,11 @@ dots/
 │   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + starship + fd shim
+│   ├── install-pkg-tiers.sh    # sourced by install-pkg.sh: install_tier — ONE dnf transaction per tier
+│   │                           # (--skip-unavailable; rpm decides what landed), per-package retry if it fails
+│   ├── install-pkg-dnf.sh      # sourced by install-pkg.sh: the dnf speed drop-in + one makecache, before any install
+│   ├── sysfile-lib.sh          # sysfile_install: the SYSFILE contract (root-owned copies), shared by the
+│   │                           # dnf drop-in and the touchpad snippet; uninstall-sysfiles.sh is the other half
 │   ├── install-pkg-repos.sh    # sourced by install-pkg.sh: clipmenu COPR; Sublime HQ repo + sublime-text; RPM Fusion free+nonfree,
 │   │                           # ffmpeg-free -> ffmpeg swap, then drivers_install (`dots drivers`). REPO rows only for what it added
 │   ├── install-restore.sh      # stage: ZDOTDIR + symlinks.sh + dots symlink + theme deploy + app configs + zinit/TPM bootstrap clones

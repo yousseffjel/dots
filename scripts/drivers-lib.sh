@@ -32,6 +32,8 @@ source "$DRIVERS_LIB_DIR/drivers-detect.sh"
 source "$DRIVERS_LIB_DIR/drivers-gpu.sh"
 # shellcheck source=drivers-firmware.sh
 source "$DRIVERS_LIB_DIR/drivers-firmware.sh"
+# shellcheck source=sysfile-lib.sh
+source "$DRIVERS_LIB_DIR/sysfile-lib.sh"
 # shellcheck source=drivers-laptop.sh
 source "$DRIVERS_LIB_DIR/drivers-laptop.sh"
 

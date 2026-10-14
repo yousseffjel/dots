@@ -120,9 +120,11 @@ partial uninstall is a normal, supported outcome, not an error.
    or older, `dots drivers` also swaps `mesa-va-drivers` for RPM Fusion's
    `mesa-va-drivers-freeworld` (`docs/HARDWARE.md`), and that swap is
    reversed here the same way.
-5e. **System files.** On a laptop, `dots drivers` copies the touchpad
-   settings to `/etc/X11/xorg.conf.d/40-dots-touchpad.conf`
-   (`docs/HARDWARE.md`). The file is removed, with sudo, only while it is
+5e. **System files.** The installer copies dnf's speed settings to
+   `/etc/dnf/libdnf5.conf.d/30-dots-speed.conf` (fastest mirror, 10 parallel
+   downloads, slow mirrors dropped), and on a laptop `dots drivers` copies
+   the touchpad settings to `/etc/X11/xorg.conf.d/40-dots-touchpad.conf`
+   (`docs/HARDWARE.md`). Each file is removed, with sudo, only while it is
    still exactly a version dots shipped. If you edited it, it is kept and
    named, so your settings survive. Runs before the package step, which may
    remove git, and git is how "unedited" is checked.

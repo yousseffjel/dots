@@ -7,6 +7,11 @@
 #   * a package rpm already has is neither passed to dnf nor reported as
 #     "installed:", only counted in one "N already installed" line — a re-run
 #     used to print "installed:" for every package in every list;
+#   * every missing package of a tier goes to ONE dnf transaction
+#     (--skip-unavailable), and rpm decides what landed — a run per package
+#     cost ~130 dnf processes on a fresh install;
+#   * a failed transaction (a conflict, the network) installs nothing, so each
+#     package is retried alone and the failure lands on the one that broke it;
 #   * a missing package is installed, reported, and gets a PACKAGE row; an
 #     already-present one gets none (uninstall must not remove it) — including
 #     a list name that is only a Provides of the installed package (thunar,
@@ -34,7 +39,7 @@ trap 'rm -rf "$SB"' EXIT
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
     XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache" DB="$SB/rpmdb" LOG="$SB/calls.log" SB
 
-seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk
+seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk tee mktemp
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     # rpm -q <name> matches names; -q --whatprovides also matches the
@@ -47,9 +52,21 @@ if [[ "$2" == --whatprovides ]]; then
 else
     grep -qx "$2" "$DB"
 fi'
+    # dnf install -y [--skip-unavailable] <pkg>...: a FAKE_FAIL name is
+    # unavailable (skipped with --skip-unavailable, fatal without, as real
+    # dnf5); FAKE_CONFLICT fails any transaction of more than one package,
+    # installing nothing.
     fake "$SB/bin" dnf 'echo "dnf $*" >>"$LOG"
-[[ " ${FAKE_FAIL:-} " == *" $3 "* ]] && { echo "No match for argument: $3" >&2; exit 1; }
-echo "$3" >>"$DB"'
+shift 2
+skip=0
+[[ "$1" == --skip-unavailable ]] && { skip=1; shift; }
+[[ -n "${FAKE_CONFLICT:-}" && $# -gt 1 ]] && { echo "Problem: conflicting requests" >&2; exit 3; }
+for p in "$@"; do
+    [[ " ${FAKE_FAIL:-} " == *" $p "* ]] || continue
+    echo "No match for argument: $p" >&2
+    ((skip)) || exit 1
+done
+for p in "$@"; do [[ " ${FAKE_FAIL:-} " == *" $p "* ]] || echo "$p" >>"$DB"; done'
 }
 PATH="$SB/bin"
 
@@ -94,8 +111,9 @@ printf 'git\nzsh\ntmux\nfzf\n' >"$SB/t.lst"
 printf '\033[34m%s\033[0m\n' "==> a mix of present and missing"
 fresh git zsh
 tier extra
-check "only the missing two reach dnf" test "$(dnf_calls)" -eq 2
-check "dnf never asked for an installed package" not grep -q "install -y git" "$LOG"
+check "the missing two reach dnf in ONE transaction" test "$(dnf_calls)" -eq 1
+check "...skipping what is unavailable" grep -qx "dnf install -y --skip-unavailable tmux fzf" "$LOG"
+check "dnf never asked for an installed package" not grep -q " git" "$LOG"
 check "the new ones are reported" said "installed: tmux"
 check "an installed one is NOT reported as installed" not_said "installed: git"
 check "one summary line for the rest" said "ok      2 already installed"
@@ -128,6 +146,7 @@ check "...and no PACKAGE row (uninstall must not remove Thunar)" test "$(manifes
 printf '\033[34m%s\033[0m\n' "==> failures by tier"
 fresh git zsh
 FAKE_FAIL=tmux tier extra
+check "still one transaction" test "$(dnf_calls)" -eq 1
 check "extra: skipped, run continues to fzf" said "installed: fzf"
 check "...in FAILED_EXTRA" test "${FAILED_EXTRA[*]}" = tmux
 check "...with dnf's own reason" said "dnf: No match for argument: tmux"
@@ -141,6 +160,19 @@ rc=0
 (FAKE_FAIL=tmux tier hard) || rc=$?
 check "hard: aborts the run" test "$rc" -ne 0
 check "...naming the package" grep -q "RED required package failed to install: tmux" "$SB/out"
+
+printf '\033[34m%s\033[0m\n' "==> a failed transaction: one package at a time"
+fresh git zsh
+FAKE_CONFLICT=1 FAKE_FAIL=tmux tier extra
+check "said so, with dnf's own exit status" said "the transaction failed (dnf exit 3)"
+check "the batch, then one run per package" test "$(dnf_calls)" -eq 3
+check "the retried fzf installed, with its row" \
+    test "$(said "installed: fzf" && manifest_rows PACKAGE | cut -f2)" = fzf
+check "the one that fails alone is the one skipped" test "${FAILED_EXTRA[*]}" = tmux
+fresh git
+rc=0
+(FAKE_CONFLICT=1 FAKE_FAIL=tmux tier hard) || rc=$?
+check "hard: a package failing alone still aborts" test "$rc" -ne 0
 
 if [[ $FAILS -eq 0 ]]; then
     printf '\033[32m%s\033[0m\n' "✓ pkg-tiers: reports what changed, skips what is there"
