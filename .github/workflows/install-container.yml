@@ -4,9 +4,9 @@ name: install-container
 # "the file got long":
 #
 #   1. This job takes ~30 minutes per matrix leg. A cold fedora:latest run was
-#      measured at 32 minutes locally, on fast CPU and network, because
-#      install-pkg.sh runs ONE dnf transaction per package — wall-clock tracks
-#      package count, not download size. Its own workflow file lets it carry
+#      measured at 32 minutes locally, on fast CPU and network, when
+#      install-pkg.sh still ran one dnf transaction per package (one per tier
+#      since 2026-10-14; not re-measured yet). Its own workflow file lets it carry
 #      the `paths:` filter below, so a docs-only push does not pay for it.
 #   2. It is the only job that MUTATES a system rather than inspecting one, so
 #      keeping it separate from the fast inspection jobs in ci.yml makes the
@@ -72,9 +72,9 @@ jobs:
     runs-on: ubuntu-latest
     # Measured, not guessed: a cold `fedora:latest` run on a fast desktop with
     # fast network sat at 21 minutes still inside extra.lst, with the COPR, five
-    # suckless builds and two git clones still to come. The driver is that
-    # install-pkg.sh runs ONE dnf transaction per package rather than batching a
-    # tier, so wall-clock scales with package count, not download size. A
+    # suckless builds and two git clones still to come. The driver was that
+    # install-pkg.sh ran one dnf transaction per package; it batches a tier
+    # since 2026-10-14, and this limit was left alone until a run is timed. A
     # GitHub-hosted runner is slower on both CPU and network, so this is set
     # well above the local figure. A run that exceeds it has hung, not been slow.
     timeout-minutes: 90
@@ -111,6 +111,11 @@ jobs:
       # package failures from the installer's own closing summary. A hardcoded
       # copy of any of them would be one more enumeration to go stale — this
       # repo has been bitten by that three separate times.
+      # The effect, not the file: dnf itself must report the drop-in's floor
+      # (config/dnf/30-dots-speed.conf, minrate=20k).
+      - name: Assert dnf reads the speed drop-in
+        run: dnf --dump-main-config | grep -qx 'minrate = 20480'
+
       - name: Assert the install actually landed
         run: |
           fail=0

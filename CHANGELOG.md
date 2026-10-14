@@ -16,6 +16,24 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Changed
+
+- **Faster installs.** Each package tier now installs in one dnf transaction
+  instead of one per package (about 130 dnf runs on a fresh install), with
+  dnf's progress shown as it downloads. If the transaction fails, packages are
+  retried one at a time, so the failure is still named.
+- **dnf drops slow mirrors.** The installer writes
+  `/etc/dnf/libdnf5.conf.d/30-dots-speed.conf`: fastest mirror, 10 parallel
+  downloads, and a 20 KiB/s floor. Before, a mirror sending 3 KiB/s held a
+  fresh install for an hour. `dots uninstall` removes the file while it is
+  unedited. Repository metadata is refreshed once, up front.
+
+### Removed
+
+- The `C Development Tools and Libraries` group install. It failed on every
+  Fedora 44 run without saying why; `packages/build.lst` already declares the
+  toolchain.
+
 ## [0.4.0] - 2026-10-14
 
 ### Added
