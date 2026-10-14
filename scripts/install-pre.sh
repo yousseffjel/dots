@@ -25,6 +25,7 @@ done
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 
 if ! command -v dnf >/dev/null 2>&1; then
     red "dnf not found — this script targets Fedora."
@@ -37,3 +38,14 @@ if [[ $EUID -ne 0 ]] && ! command -v sudo >/dev/null 2>&1; then
     exit 1
 fi
 green "ok      privilege escalation available"
+
+# The supported target is Fedora Server (user decision 2026-10-14). On
+# Workstation GNOME's GDM is already the enabled login screen, and the
+# services stage enables ly beside it — a combination nobody has tested. Said
+# up front and loudly, but not refused: the rest of the install does not
+# depend on it.
+if [[ "$(systemctl is-enabled gdm.service 2>/dev/null || true)" == enabled ]]; then
+    yellow "note    GDM is enabled: this looks like Fedora Workstation, which is not a"
+    yellow "        supported target (Fedora Server is). The install continues; ly is"
+    yellow "        enabled next to GDM, untested — see README.md."
+fi
