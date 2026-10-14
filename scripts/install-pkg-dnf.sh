@@ -11,9 +11,12 @@
 #                   it while unedited. Written first because the floor is the
 #                   point: on 2026-10-14 a fresh install sat an hour on one
 #                   3 KiB/s mirror, just above dnf's default 1000 B/s floor.
-#   dnf_refresh     one visible `dnf makecache` with those settings, so the
-#                   mirror probe and the metadata download happen up front
-#                   under their own line rather than inside the first install.
+#   dnf_refresh     one visible `dnf makecache --refresh` with those
+#                   settings, so the mirror probe happens up front under its
+#                   own line. Without --refresh, metadata still fresh from an
+#                   earlier run made makecache touch no mirror, and the probe
+#                   (50 s cold on the F44 VM, cached after) ran silently
+#                   inside the first install instead.
 #
 # /etc/dnf/libdnf5.conf.d is dnf5's (Fedora 41+) user drop-in directory;
 # DOTS_DNF_CONF_DIR overrides it, for tests only.
@@ -40,7 +43,7 @@ dnf_refresh() {
         return 0
     fi
     # Best-effort: every later dnf call refreshes on its own if this fails.
-    if "${SUDO[@]}" dnf makecache -q >/dev/null 2>&1; then
+    if "${SUDO[@]}" dnf makecache -q --refresh >/dev/null 2>&1; then
         green "  ok      metadata current"
     else
         yellow "  dnf makecache failed — each install refreshes on its own; check the network if they fail too"

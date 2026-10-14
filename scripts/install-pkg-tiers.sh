@@ -78,6 +78,12 @@ dnf_install() {
 # hung) and kept in DNF_BATCH_LOG for the per-package reasons. Returns dnf's
 # status: non-zero means the transaction itself failed (a conflict, the
 # network), and install_tier falls back to one package at a time.
+#
+# </dev/null matters: with stdin on the terminal, sudo (use_pty) puts that
+# terminal in raw mode while dnf runs, and the indented lines this pipeline
+# writes to it lose their carriage returns — every line started where the
+# last one ended (Fedora 44 VM, 2026-10-14). sudo still prompts for a
+# password: it reads /dev/tty, not stdin.
 DNF_BATCH_LOG=""
 dnf_install_batch() {
     local rcf rc
@@ -89,7 +95,7 @@ dnf_install_batch() {
     # here today, but a bare call would let set -e end the subshell first.
     {
         rc=0
-        "${SUDO[@]}" dnf install -y --skip-unavailable "$@" 2>&1 >/dev/null || rc=$?
+        "${SUDO[@]}" dnf install -y --skip-unavailable "$@" 2>&1 >/dev/null </dev/null || rc=$?
         echo "$rc" >"$rcf"
     } \
         | tee "$DNF_BATCH_LOG" | sed -u 's/^/    /'

@@ -10,6 +10,8 @@
 #   * every missing package of a tier goes to ONE dnf transaction
 #     (--skip-unavailable), and rpm decides what landed — a run per package
 #     cost ~130 dnf processes on a fresh install;
+#   * the batch dnf's stdin is /dev/null — on the terminal, sudo's use_pty
+#     made it raw and the streamed progress staircased;
 #   * a failed transaction (a conflict, the network) installs nothing, so each
 #     package is retried alone and the failure lands on the one that broke it;
 #   * a missing package is installed, reported, and gets a PACKAGE row; an
@@ -39,7 +41,7 @@ trap 'rm -rf "$SB"' EXIT
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
     XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache" DB="$SB/rpmdb" LOG="$SB/calls.log" SB
 
-seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk tee mktemp
+seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk tee mktemp readlink
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     # rpm -q <name> matches names; -q --whatprovides also matches the
@@ -57,6 +59,7 @@ fi'
     # dnf5); FAKE_CONFLICT fails any transaction of more than one package,
     # installing nothing.
     fake "$SB/bin" dnf 'echo "dnf $*" >>"$LOG"
+[[ "$(readlink /proc/$$/fd/0)" == /dev/null ]] || echo "STDIN NOT NULL" >>"$LOG"
 shift 2
 skip=0
 [[ "$1" == --skip-unavailable ]] && { skip=1; shift; }
@@ -104,7 +107,10 @@ fresh() {
 }
 # tier <mode> — install_tier on $SB/t.lst, in this shell (arrays must
 # survive), output in $SB/out.
-tier() { install_tier t "$SB/t.lst" "$1" >"$SB/out" 2>&1; }
+# stdin is a regular file, never /dev/null: the runner may already give us
+# /dev/null, which would hide a dnf call that forgot to close its own.
+tier() { install_tier t "$SB/t.lst" "$1" >"$SB/out" 2>&1 <"$SB/stdin"; }
+: >"$SB/stdin"
 
 printf 'git\nzsh\ntmux\nfzf\n' >"$SB/t.lst"
 
@@ -113,6 +119,7 @@ fresh git zsh
 tier extra
 check "the missing two reach dnf in ONE transaction" test "$(dnf_calls)" -eq 1
 check "...skipping what is unavailable" grep -qx "dnf install -y --skip-unavailable tmux fzf" "$LOG"
+check "...with stdin off the terminal (sudo would make it raw)" not grep -q "STDIN NOT NULL" "$LOG"
 check "dnf never asked for an installed package" not grep -q " git" "$LOG"
 check "the new ones are reported" said "installed: tmux"
 check "an installed one is NOT reported as installed" not_said "installed: git"

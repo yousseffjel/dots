@@ -115,6 +115,7 @@ blue "==> dnf_refresh"
 : >"$LOG"
 dnf_refresh >"$SB/out" 2>&1
 check "one makecache" test "$(grep -c '^dnf makecache' "$LOG")" -eq 1
+check "...forced, so the mirror probe happens here" grep -q '^dnf makecache.* --refresh' "$LOG"
 check "ok when it works" said "metadata current"
 rc=0
 FAKE_DNF_RC=1 dnf_refresh >"$SB/out" 2>&1 || rc=$?
