@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Third-party repositories behind the default applications (config/mimeapps.list).
+# Third-party repositories: the clipmenu COPR (Super+v), and the repos behind
+# the default applications (config/mimeapps.list).
 #
 # Sourced by install-pkg.sh after the package tiers, never standalone: it
 # assumes `set -euo pipefail`, DRY_RUN, SUDO, the red/green/yellow/blue
@@ -36,21 +37,11 @@ RPMFUSION_MIRROR="https://mirrors.rpmfusion.org"
 # shellcheck source=drivers-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/drivers-lib.sh"
 
-# repos_install_pkg <pkg> <what its absence costs> — one package from a repo
-# enabled here. A failure goes to the yellow tier of the closing summary.
-repos_install_pkg() {
-    local pkg="$1" cost="$2" already=0 err
-    rpm -q "$pkg" >/dev/null 2>&1 && already=1
-    if err="$("${SUDO[@]}" dnf install -y "$pkg" 2>&1 >/dev/null)"; then
-        green "  installed: $pkg"
-        [[ $already -eq 0 ]] && manifest_append_row PACKAGE "$pkg"
-        return 0
-    fi
-    yellow "  FAILED: $pkg — $cost"
-    [[ -n "$err" ]] && yellow "    dnf: $(printf '%s' "$err" | tail -n1)"
-    FAILED_EXTRA+=("$pkg")
-    return 1
-}
+# One package from a repo enabled here: drivers_pkg (drivers-lib.sh, sourced
+# above) — it skips a package that is already installed, honours --dry-run,
+# writes a PACKAGE row only for what it installed, and puts a failure in the
+# yellow tier of the closing summary. This file used to carry its own copy,
+# which ran dnf and printed "installed:" for a package that was already there.
 
 repos_add_sublime() {
     local arch
@@ -76,7 +67,7 @@ repos_add_sublime() {
         FAILED_EXTRA+=(sublime-text)
         return 0
     fi
-    repos_install_pkg sublime-text "text files fall back to nvim (dots-nvim.desktop)" || true
+    drivers_pkg sublime-text "text files fall back to nvim (dots-nvim.desktop)" || true
 }
 
 # Both release packages in one place: nonfree is only useful with free.
@@ -115,7 +106,7 @@ repos_swap_ffmpeg() {
             FAILED_EXTRA+=(ffmpeg)
         fi
     else
-        repos_install_pkg ffmpeg "HEVC/HDR video will not play" || true
+        drivers_pkg ffmpeg "HEVC/HDR video will not play" || true
     fi
 }
 
@@ -129,7 +120,48 @@ repos_add_codecs() {
     repos_swap_ffmpeg
 }
 
+# clipmenu + clipnotify back dwm-clipmenu (Super+v) and are not in Fedora's
+# official repos. Enabling this COPR is a deliberate exception to the repo's
+# "COPR is opt-in" rule (CLAUDE.md rule 4), since the feature backs a core
+# keybind. No REPO row: uninstall has never reverted it. Not in desktop.lst
+# — a list the dry run validates against enabled repos — so a failure is
+# put in the red tier by hand, with its consequence.
+CLIPMENU_COPR=copr.fedorainfracloud.org/skidnik/clipmenu
+
+repos_add_clipmenu() {
+    local pkg enabled
+    blue "==> clipmenu (skidnik/clipmenu COPR)"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would enable COPR skidnik/clipmenu if needed and install clipmenu, clipnotify"
+        return 0
+    fi
+    # Captured, not piped into grep -q: under pipefail that can read a match
+    # as a failure (SIGPIPE). A disabled COPR is listed with " (disabled)".
+    enabled="$(dnf copr list 2>/dev/null || true)"
+    if grep -qx "$CLIPMENU_COPR" <<<"$enabled"; then
+        green "  ok      COPR skidnik/clipmenu already enabled"
+    elif ! "${SUDO[@]}" dnf copr enable -y skidnik/clipmenu >/dev/null 2>&1; then
+        CONSEQUENCE["clipmenu"]="COPR skidnik/clipmenu could not be enabled: install clipmenu and clipnotify by hand or Super+v does nothing"
+        yellow "  FAILED: skidnik/clipmenu COPR — ${CONSEQUENCE["clipmenu"]}"
+        FAILED_DESKTOP+=(clipmenu)
+        return 0
+    fi
+    for pkg in clipmenu clipnotify; do
+        if rpm -q "$pkg" >/dev/null 2>&1; then
+            green "  ok      $pkg already installed"
+        elif "${SUDO[@]}" dnf install -y "$pkg" >/dev/null 2>&1; then
+            green "  installed: $pkg"
+            manifest_append_row PACKAGE "$pkg"
+        else
+            CONSEQUENCE["$pkg"]="clipboard history is dead: the dwm-clipmenu keybind (Super+v) opens nothing"
+            yellow "  FAILED: $pkg — ${CONSEQUENCE[$pkg]}"
+            FAILED_DESKTOP+=("$pkg")
+        fi
+    done
+}
+
 repos_install() {
+    repos_add_clipmenu
     repos_add_sublime
     repos_add_codecs
     # After RPM Fusion, which most of the video drivers come from. The same

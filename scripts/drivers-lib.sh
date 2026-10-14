@@ -37,9 +37,8 @@ source "$DRIVERS_LIB_DIR/drivers-laptop.sh"
 
 # drivers_pkg <pkg> <what its absence costs> — install one package unless it
 # is already there. A failure goes to the yellow tier of the closing summary.
-# DECISION: not install-pkg-repos.sh's repos_install_pkg — `dots drivers`
-# runs standalone, where that file (and its repo-adding side effects) is not
-# loaded, and this one must honour --dry-run and skip installed packages.
+# Also install-pkg-repos.sh's installer for its own packages (sublime-text,
+# ffmpeg): one helper, so "installed:" means the same thing everywhere.
 drivers_pkg() {
     local pkg="$1" cost="$2" err
     if rpm -q "$pkg" >/dev/null 2>&1; then

@@ -16,6 +16,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The last false "installed:" lines are gone from re-runs.** The clipmenu
+  and Sublime Text steps still reinstalled and announced `clipmenu`,
+  `clipnotify` and `sublime-text` every time, and re-enabled the clipmenu
+  COPR, printing Fedora's "Enabling a Copr repository" notice. Each is now
+  skipped when it is already there.
+
 ## [0.3.0] - 2026-10-14
 
 ### Added

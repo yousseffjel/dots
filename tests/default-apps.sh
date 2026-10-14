@@ -61,9 +61,9 @@ declared_in_lst() {
     sed 's/#.*//' "$DOTS_DIR"/packages/*.lst | tr -s '[:space:]' '\n' | grep -qxF "$1"
 }
 
-# install-pkg-repos.sh installs by literal name: `repos_install_pkg <name>`.
+# install-pkg-repos.sh installs by literal name: `drivers_pkg <name>`.
 installed_by_repos() {
-    grep -qE "repos_install_pkg $1( |\$)" "$REPOS"
+    grep -qE "drivers_pkg $1( |\$)" "$REPOS"
 }
 
 vendored_provider() {

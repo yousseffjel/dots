@@ -3,4 +3,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-14-release-0.3.0.md
+Last log: .claude/changes/2026-10-14-installer-honest-status-2.md
