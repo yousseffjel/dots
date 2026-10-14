@@ -19,6 +19,21 @@ set -euo pipefail
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
+# Arguments first: --help must answer without ImageMagick or xdotool.
+NOTIFY=1
+case "${1:-}" in
+    --no-notify) NOTIFY=0 ;;
+    -h | --help)
+        echo "usage: dwm-colorpicker [--no-notify]"
+        exit 0
+        ;;
+    "") ;;
+    *)
+        red "dwm-colorpicker: unknown option '$1'"
+        exit 1
+        ;;
+esac
+
 # `magick` first, `convert` second — the same probe scripts/theme/colorgen.sh
 # does, and for the same reason: ImageMagick 7 dropped `convert`, ImageMagick 6
 # never had `magick`. Hardcoding either name breaks on one of the two.
@@ -37,20 +52,6 @@ for dep in xdotool maim xclip; do
         exit 1
     fi
 done
-
-NOTIFY=1
-case "${1:-}" in
-    --no-notify) NOTIFY=0 ;;
-    -h | --help)
-        echo "usage: dwm-colorpicker [--no-notify]"
-        exit 0
-        ;;
-    "") ;;
-    *)
-        red "dwm-colorpicker: unknown option '$1'"
-        exit 1
-        ;;
-esac
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

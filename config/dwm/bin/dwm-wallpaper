@@ -11,6 +11,14 @@
 # wrapper finds scripts/theme/ wherever the repo actually lives.
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-wallpaper — wallpaper picker, then re-theme from it (Super+Shift+w)"
+        exit 0
+        ;;
+esac
+
 BIN_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 DOTS_DIR="$(cd "$BIN_DIR/../../.." && pwd)"
 

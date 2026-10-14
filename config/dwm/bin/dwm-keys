@@ -18,6 +18,14 @@
 # usage: dwm-keys
 set -euo pipefail
 
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-keys — searchable list of every keybinding (Super+/)"
+        exit 0
+        ;;
+esac
+
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
 FONT="monospace:size=10"
