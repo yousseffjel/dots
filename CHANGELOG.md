@@ -41,6 +41,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - **The target is now Void Linux (glibc), not Fedora Server.** The installer
   is renamed `scripts/install-void.sh`. The port is in progress: until it
   lands, the installer works on neither distro.
+- **Package lists use Void names**, checked against a snapshot of Void's repo
+  index by a new test (`tests/void-pkgnames.sh`). clipmenu and starship now
+  come from the distro's own repo, and the full ffmpeg build replaces
+  ffmpeg-free plus the RPM Fusion swap.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

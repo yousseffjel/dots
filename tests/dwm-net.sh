@@ -137,11 +137,11 @@ click
 check "st fallback, same class via -c" is "st -c dots-float-nmtui -e nmtui"
 rm "$SB/fake/nmtui"
 click
-check "no nmtui (NetworkManager-tui missing): nm-connection-editor" is "nm-connection-editor "
+check "no nmtui (NetworkManager missing): nm-connection-editor" is "nm-connection-editor "
 rm "$SB/fake/nm-connection-editor"
 click
 check "neither: a notification naming the package, never a dead click" \
-    is "notify-send -u low Network No network tool: install NetworkManager-tui (nmtui)"
+    is "notify-send -u low Network No network tool: install NetworkManager (nmtui)"
 
 blue "fallbacks"
 : >"$SB/status"

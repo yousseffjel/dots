@@ -15,15 +15,16 @@
 # decisions 9 and 12): see .claude/tasks/scope-h-laptop-support.md.
 
 # Backlight. dwm-brightness uses it when /sys/class/backlight has a device,
-# and falls back to xrandr gamma without it. Fedora builds it with
-# ENABLE_SYSTEMD=1: it sets brightness through logind, so no udev rule or
-# video group is needed for the user logged in at the seat.
+# and falls back to xrandr gamma without it. Void builds it WITHOUT logind
+# support (0.5.1_1 depends on glibc only). It writes /sys directly, through
+# the udev rule it ships, which grants the `video` group. The Void
+# installer's default groups include video; scope I decision D4 covers it.
 brightnessctl
 
 # Power profiles (power-saver / balanced / performance), switched by
-# config/dwm/bin/dwm-power (Super+Shift+p). tuned-ppd is Fedora's default
-# since f41: it serves the power-profiles D-Bus API on top of tuned (which it
-# pulls in) and Conflicts with power-profiles-daemon, so only one may be
-# installed. scripts/drivers-laptop.sh enables tuned.service so the chosen
-# profile is re-applied at boot.
-tuned-ppd
+# config/dwm/bin/dwm-power (Super+Shift+p). power-profiles-daemon serves the
+# same D-Bus API dwm-power already speaks (it replaced Fedora's tuned-ppd,
+# which Void does not package). Its runit service is enabled by
+# scripts/drivers-laptop.sh (scope I, sub-task I-7; until then that script
+# still names tuned).
+power-profiles-daemon

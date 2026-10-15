@@ -22,16 +22,8 @@
 #
 # NOT LISTED HERE, deliberately:
 #
-#   starship — not in Fedora's repos at all (dropped around F37; verified
-#     2026-08-06, zero results across F43/44/Rawhide/EPEL). It is the prompt
-#     (config/zsh/conf.d/99-prompt.zsh + config/starship/starship.toml), so
-#     install-pkg.sh installs it from the upstream script instead. The COPR
-#     alternative, if you prefer dnf to own it:
-#       dnf copr enable atim/starship && dnf install starship
-#
-#   JetBrains Mono Nerd Font — Fedora packages no such variant. The
-#     jetbrains-mono-fonts source produces only -all and -nl, neither with
-#     nerd glyphs; cascadia-code-nf-fonts (desktop.lst) is the glyph font.
+#   JetBrains Mono (plain or Nerd Font) — Void packages neither. The Nerd
+#     Font glyph face is the vendored Cascadia Code NF (scope I, D3).
 #
 #   ddcutil / i2c-dev — brightness is xrandr gamma on this desktop target,
 #     not DDC/CI. See the roster Epic's locked decision 10.
@@ -41,76 +33,55 @@
 #     installed on laptops only, and dwm-brightness prefers it whenever a
 #     backlight device exists.
 #
-#   power-profiles-daemon — conflicts with tuned-ppd, Fedora's default since
-#     f41, which packages/laptop.lst installs on laptops only (scope-h,
-#     2026-10-13; this used to cite the desktop-only locked decision 9).
+#   power-profiles-daemon — laptops only, so it is in packages/laptop.lst
+#     (scope-h, 2026-10-13).
 #
-#   unrar — RPM Fusion nonfree. `unar` below extracts RAR from the official
-#     repos, so no third-party repo is needed. Locked decision 8.
+#   unrar — Void's nonfree repo. `unar` below extracts RAR from main, so the
+#     archive path needs no nonfree package. Locked decision 8.
 #
-#   p7zip / p7zip-plugins — still on f43, gone on f44. Replaced by `7zip`
-#     below, upstream 7-Zip, which resolves on both. There is no
-#     `7zip-plugins`; RAR extraction here is `unar`'s job either way.
+#   p7zip — Void has it, but `7zip` below is upstream 7-Zip and covers it.
 #
-#   vim — does not resolve on f43 or f44. `vim` is the source package; the
-#     editor `vim.dcol` themes is `vim-enhanced` below. (Fedora's base image
-#     ships `vim-minimal`, which is `vi`.)
+#   vim — the minimal build; `vim-huge` below is the full editor `vim.dcol`
+#     themes (the old Fedora name was vim-enhanced).
 #
-#   wget — does not resolve on f43 or f44 either; wget2 replaced it.
-#     `wget2-wget` below is the shim package whose stated purpose is to
-#     provide `/usr/bin/wget`, so the command name is unchanged; plain
-#     `wget2` installs only `/usr/bin/wget2`.
+#   Every name in this file is checked against a snapshot of Void's repo
+#   index by tests/void-pkgnames.sh. Void's names are case-sensitive
+#   (`Thunar`, not `thunar`).
 #
-#     All three verified 2026-08-14 against the Fedora mdapi for f43 AND f44,
-#     each with a control query in the same sweep so an absence means the
-#     package is gone rather than the endpoint being unhappy. Note mdapi is
-#     case-sensitive where dnf is not: it reports `thunar` missing and
-#     `Thunar` present, which is a probe artefact, not a package rename.
-#
-#   The X11 and font -devel headers, plus gcc/make/patch/pkgconf-pkg-config —
+#   The X11 and font -devel headers, plus gcc/make/patch/pkgconf —
 #     all moved to packages/build.lst, which install-suckless.sh installs
 #     itself immediately before it compiles.
 
 # core system & display server
 # xinput, xsetroot, opendoas and fuse are referenced by nothing in config/ or
 # scripts/ (verified 2026-08-08). Kept as the diagnostic and privilege tools
-# a bare Fedora Server install lacks, not because anything here calls them.
+# a bare Void base install lacks, not because anything here calls them.
 xinput
 xsetroot
 xsel
-NetworkManager
 network-manager-applet
 opendoas
 fuse
-pipewire-alsa
-pipewire-jack-audio-connection-kit
+alsa-pipewire
+libjack-pipewire
 
 # virtual machines
 # spice-vdagent resizes the X screen to the viewer window and shares the
 # clipboard with the host. autostart.sh starts its session agent only when
-# `systemd-detect-virt --vm` says this IS a VM; on real hardware it sits
+# the session's VM check says this IS a VM; on real hardware it sits
 # installed and unused. Best-effort tier: a missing package only means a VM
 # keeps a fixed resolution, which announces itself the moment you look.
 spice-vdagent
 
 # fonts & theming
-# jetbrains-mono-fonts-all was the GTK UI font until 2026-10-13, when
-# theme.conf moved to Noto Sans (docs/FONTS.md). Nothing in this repo names it
-# now; it stays as an installed coding face for editors. The Nerd Font itself
-# (cascadia-code-nf-fonts) is in desktop.lst, since without it the prompt,
-# eza and fastfetch all render tofu.
+# The Noto faces fonts.conf names (Sans, Serif, Sans Mono, Arabic) are all in
+# noto-fonts-ttf, in desktop.lst. jetbrains-mono-fonts-all used to sit here
+# as a spare coding face; Void does not package it and nothing named it.
 #
 # Deliberately NOT listed: gtk-murrine-engine. It is a GTK2-only engine,
 # and themes/dark/theme.conf selects Adwaita-dark, which is pure CSS (a GTK4
 # built-in, and a vendored one-line shim for GTK3) and never loads it. Add it only alongside an actual Murrine-based GTK2 theme.
-jetbrains-mono-fonts-all
-google-noto-emoji-fonts
-google-noto-sans-fonts
-# The Latin halves of config/fontconfig/fonts.conf's serif and monospace
-# aliases (Noto Sans above is the sans one, and the UI font in theme.conf).
-# Missing either only means the next system default renders that generic.
-google-noto-serif-vf-fonts
-google-noto-sans-mono-vf-fonts
+noto-fonts-emoji
 papirus-icon-theme
 adwaita-icon-theme
 # Desktop portal. config/xdg-desktop-portal/portals.conf names the gtk
@@ -120,11 +91,10 @@ adwaita-icon-theme
 # 'prefer dark' colour scheme that libadwaita apps, Firefox, Chromium and
 # Electron read. That scheme lives in dconf (the gtk backend reads it from
 # GSettings and nowhere else), and install-restore-apps.sh writes it there
-# through dbus-run-session when the install runs with no session bus — which
-# is the dbus-daemon package's only job here; the system bus stays dbus-broker.
+# through dbus-run-session when the install runs with no session bus. The
+# dbus package itself is in desktop.lst (decision D2 needs the system bus).
 xdg-desktop-portal-gtk
 dconf
-dbus-daemon
 # Flatpak, with the Flathub remote added --user by install-restore-flatpak.sh
 # (an explicit rule-4 exception, like the clipmenu COPR) and four read-only
 # global overrides so sandboxed apps see the vendored cursor, the icon theme
@@ -141,19 +111,19 @@ alsa-utils
 # pixel with maim + ImageMagick and needs no GUI. gpick is here for the times
 # you want to actually build a palette rather than read one colour.
 #
-# NOTE: ROADMAP §3 used to name `xcolor` for this row. There is no such Fedora
-# package — only texlive-xcolor, a LaTeX package (verified against
-# packages.fedoraproject.org 2026-08-12). Do not "restore" it.
+# NOTE: ROADMAP §3 named `xcolor` for this row. Fedora had no such package,
+# so the picker became a script. Void does package xcolor (0.5.1_2); the
+# script stays because it works and needs nothing new.
 gpick
 # bluetooth: bluez is the stack, blueman the GTK manager the statusbar
 # block's click action opens (sub-task 7).
 bluez
 blueman
-# File-manager add-ons (roster Epic sub-task 8). `thunar` itself is in
+# File-manager add-ons (roster Epic sub-task 8). `Thunar` itself is in
 # desktop.lst — it backs super + e and is the mime handler for directories —
 # and everything below only enriches it: thunar-archive-plugin + file-roller
-# handle archives (unar covers RAR from Fedora proper — locked decision 8,
-# unrar is RPM Fusion nonfree); thunar-volman + gvfs auto-mount removable
+# handle archives (unar covers RAR from Void's main repo — locked decision 8,
+# unrar is in nonfree); thunar-volman + gvfs auto-mount removable
 # media; tumbler + ffmpegthumbnailer produce video/PDF thumbnails; catfish
 # is the search front end. Losing any one of these degrades Thunar; losing
 # Thunar takes the keybind with it, which is the tier difference.
@@ -187,16 +157,15 @@ zip
 tar
 
 # default applications (config/mimeapps.list). mpv is the video and audio
-# player; its HEVC/HDR codecs come from RPM Fusion via
-# scripts/install-pkg-repos.sh, which also installs sublime-text (the default
-# editor) from Sublime HQ's repo. Neither of those two can live in a .lst:
-# the dry run checks these names against the repos enabled BEFORE that step
-# runs. The image viewer, nsxiv, is built from suckless/nsxiv.
+# player; its HEVC/HDR codecs come with Void's ffmpeg6 (desktop.lst), no
+# third-party repo needed. sublime-text4, the default editor, is in Void's
+# nonfree repo and is installed by the repos step once nonfree is enabled
+# (scope I, sub-task I-4), so it cannot be a line here. The image viewer, nsxiv, is built from suckless/nsxiv.
 mpv
 
-# development stack (Node.js is handled by nvm, not dnf — see install-void.sh header)
+# development stack (Node.js is handled by nvm, not xbps — see install-void.sh header)
 neovim
-vim-enhanced
+vim-huge
 tmux
 rust
 cargo
@@ -206,14 +175,15 @@ bat
 eza
 zoxide
 fastfetch
+starship
 htop
 tree
 pv
 figlet
 trash-cli
 ripgrep
-fd-find
+fd
 curl
-wget2-wget
+wget
 binutils
 coreutils

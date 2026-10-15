@@ -84,7 +84,9 @@ blue "==> power profiles: tuned enabled on a laptop only"
 machine GenuineIntel none
 chassis 10
 tp_run
-check "laptop: tuned-ppd installed from laptop.lst" has tuned-ppd
+# laptop.lst now names power-profiles-daemon (scope I); the tuned service
+# enables below are drivers-laptop.sh code that sub-task I-7 replaces.
+check "laptop: power-profiles-daemon installed from laptop.lst" has power-profiles-daemon
 check "tuned.service enabled --now" grep -q "systemctl enable --now tuned.service" "$LOG"
 check "tuned-ppd.service enabled --now" grep -q "systemctl enable --now tuned-ppd.service" "$LOG"
 check "SERVICE rows for both, so uninstall disables them" \

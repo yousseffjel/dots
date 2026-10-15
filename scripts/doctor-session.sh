@@ -191,7 +191,7 @@ check_system() {
         if [[ "$state" == connected* ]]; then
             report ok "$s" network "network: $state"
         else
-            report warn "$s" network "network: ${state:-NetworkManager not answering} — run nmtui (NetworkManager-tui) or nm-connection-editor to connect"
+            report warn "$s" network "network: ${state:-NetworkManager not answering} — run nmtui or nm-connection-editor to connect"
         fi
     fi
     if [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]]; then

@@ -56,6 +56,44 @@ Size: **Epic** — one sub-task per session.
 The "same name" matches include the suckless build deps (`libX11-devel` etc.).
 I-2 must re-check them as *meaning* the same thing, not just existing.
 
+### I-2 outcome (2026-10-15) — where the table above was wrong or open
+
+Checked by reading the downloaded `.xbps` file lists:
+- **`xorg-server` alone has no input driver**, so keyboard and mouse would be
+  dead. Mapped to `xorg-minimal` (= xorg-server + xauth + xinit +
+  xf86-input-libinput), plus **`mesa-dri`** for glamor/GLX.
+- **lxpolkit is in `lxsession`** (`/usr/bin/lxpolkit`), so the autostart line
+  is unchanged. polkit-gnome would have needed a libexec path.
+- nmtui is in `NetworkManager` (moved to desktop.lst for the NET click). The
+  Noto Arabic pair and Sans/Serif/Mono are all in `noto-fonts-ttf`.
+  Emoji data is at the same path dwm-emoji reads.
+- **ffmpeg6 is the full build** (configure line in libavcodec.so.60: GPL,
+  x264, x265, vaapi, no disabled decoders). The RPM Fusion reason is gone.
+- jack → `libjack-pipewire`. `dbus` and `elogind` added to desktop.lst
+  (D2). clipmenu/clipnotify added to desktop.lst. `starship` added to
+  extra.lst (Void packages it).
+- **`brightnessctl` is built without logind**: it writes /sys through its
+  udev rule for the `video` group (Void installer default; D4).
+
+Handed on to later sub-tasks:
+- **I-2b (new): vendor Cascadia Code NF (D3).** `tests/fontconfig-stack.sh`
+  shows it as `pending` (yellow) until then. Remove the FAMILY_PENDING entry
+  when it lands.
+- **I-3:** delete the upstream starship installer and the fd shim (both now
+  packaged). Delete SATISFIED_BY (only ffmpeg-free used it; the doctor test
+  cases are already gone).
+- **I-4:** `sublime-text4` from nonfree, installed after
+  `void-repo-nonfree`.
+- **I-6:** pipewire, pipewire-pulse and wireplumber have no systemd user
+  units on Void. The session must start them (the handbook's autostart
+  approach).
+- **I-7:** drivers-laptop.sh still enables tuned/tuned-ppd services. Move it
+  to power-profiles-daemon's runit service (the laptop test checks only the
+  package for now).
+- **Open, low priority:** Void packages nsxiv 34 (same version as the
+  vendored copy) and `xcolor`. Either could replace a vendored build or a
+  script, but both work as they are. Ask before changing either.
+
 ## What the code assumes (125 files mention Fedora/dnf/rpm/systemd)
 
 Heaviest, by reference count: `scripts/install-pkg-repos.sh` (41),
@@ -104,24 +142,60 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   `.sha256` + license, unpacked by the restore stage and claimed in the
   manifest), the same way as `assets/cursors/`.
 
+- **D4 User groups: the installer adds them, not the Void installer.** The
+  user installs Void with the installer's **default** group selection
+  (`wheel`, `audio`, `video`, `floppy`, `cdrom`, `optical`, `kvm`, ...), so
+  group membership is reproducible from the script instead of depending on
+  boxes clicked in one session. **`wheel` is the one hard prerequisite.** The
+  script calls `sudo`, which Void grants to `wheel` (the installer's
+  default), so `install-pre.sh` must fail with a clear message when the user
+  is not in `wheel`. I-5 then runs
+  `sudo usermod -aG network,bluetooth,kvm "$USER"`. That is idempotent, so it
+  satisfies rule 1. Each group has a reason:
+  - `network`: Void's NetworkManager polkit rules let only this group
+    manage connections without root (`nm-applet`, `nmtui`).
+  - `bluetooth`: bluez on Void lets this group drive the adapter
+    (`blueman`, `bluetoothctl`).
+  - `kvm`: libvirt/QEMU guests; harmless on a box without them.
+  - **Not added:** `disk`, `kmem`, `sys`, `tty` (effectively root),
+    `_seatd` (D2 picked elogind, not seatd), `dialout`/`lp`
+    (add them by hand for serial devices or printers). `storage`/`plugdev`
+    are not needed because elogind + udisks2 polkit already serve
+    `udiskie` in an active session.
+  - **Ordering:** a group must exist before `usermod -aG` can add the user
+    to it, and `bluetooth` is created by the `bluez` package. So the step
+    runs in the services stage, after packages. A group that is still
+    missing gets a yellow warning, never a hard failure.
+  - **New groups need a re-login.** The stage prints a yellow reminder
+    instead of assuming they are already live. `dots doctor` should check
+    `id -nG` against this list (I-8).
+  - Uninstall does **not** remove the groups (no manifest row). Taking
+    `network` away from a user can lock them out of their own network
+    config. Record this as a documented leftover in
+    `tests/install-uninstall-symmetry.sh`'s terms.
+  - Verify the three names against Void's `base-files` `/etc/group` and
+    bluez's `system_groups` in I-5 before shipping. They come from the
+    handbook and package metadata, not from a live Void box.
+
 ## Sub-tasks (one slot each, in order)
 
 - **I-1 Docs & identity:** CLAUDE.md, README, TESTING, record this decision
   reversal; rename `install-fedora.sh`.
-- **I-2 Package lists:** remap `packages/*.lst` with the table above; add a
+- **I-2 Package lists:** ✅ done 2026-10-15 (see I-2 outcome above); remap `packages/*.lst` with the table above; add a
   test that checks every name against a vendored or fetched Void index.
+- **I-2b Font asset:** vendor Cascadia Code NF under `assets/fonts/` (D3), restore + manifest + uninstall, drop the fontconfig-stack pending entry.
 - **I-3 Package engine:** `install-pkg*.sh` dnf → xbps (tiers, retry,
   summaries, SATISFIED_BY), remove the dnf drop-in and the fd shim.
 - **I-4 Repos:** shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to
   nonfree; delete COPR, Sublime HQ and RPM Fusion paths and tests.
-- **I-5 Services & login:** runit linking (+ uninstall rows), D1, D2,
+- **I-5 Services & login:** runit linking (+ uninstall rows), D1, D2, D4 (user groups),
   login shell.
 - **I-6 Session:** `.xinitrc` without systemd user units: D-Bus session,
   portal, `dots_session_end`; update the `session_*report` paste text.
 - **I-7 Drivers & VM detection:** replace `systemd-detect-virt`; GPU,
   firmware, microcode names; laptop power via power-profiles-daemon.
 - **I-8 Runtime scripts & doctor:** `dwm-powermenu`, `dwm-picom`, `dwm-lock`
-  (elogind), every doctor check that asks systemd.
+  (elogind), every doctor check that asks systemd; a D4 group check (`id -nG`).
 - **I-9 CI:** void-glibc container for build, install, dry-run; linter pins
   unchanged.
 - **I-10 Real run:** fresh Void glibc VM end-to-end (the Fedora VM at

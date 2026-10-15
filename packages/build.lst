@@ -15,7 +15,7 @@
 # the one list whose failure aborts a stage rather than a feature.
 #
 # Format: one package name per line. '#' starts a comment (whole-line or
-# trailing). Blank lines ignored. Fedora/dnf names — see the note in
+# trailing). Blank lines ignored. Void/xbps names — see the note in
 # install-suckless.sh's install_deps() about the pacman/apt fallbacks, which
 # cannot be expressed here.
 
@@ -27,11 +27,11 @@
 # Know the cost: this tier aborts the build stage on failure, so a missing or
 # renamed `patch` would stop a build that does not need it. (Its old comment
 # claimed it applied the diffs at build time; it never did.)
-# pkgconf-pkg-config resolves freetype/fontconfig for the dwm and st Makefiles.
+# pkgconf resolves freetype/fontconfig for the dwm and st Makefiles.
 gcc
 make
 patch
-pkgconf-pkg-config
+pkgconf
 
 # X11 — dwm, st and dmenu
 libX11-devel
@@ -51,8 +51,9 @@ fontconfig-devel
 # nsxiv — imlib2 decodes every image format (its loaders bring GIF, WebP,
 # HEIC and AVIF; nothing else here is needed for them) and libexif rotates
 # photos by their EXIF orientation. Its status bar draws through Xft, already
-# listed above. nsxiv is not packaged by Fedora at all (mdapi f43/f44/rawhide,
-# 2026-10-13), which is why it is vendored; these two are (f43 and f44).
+# listed above. nsxiv was vendored because Fedora did not package it. Void
+# does (nsxiv-34_1, the same version), so the vendored copy could be dropped
+# for the package. That is an open question in scope I, not changed here.
 imlib2-devel
 libexif-devel
 

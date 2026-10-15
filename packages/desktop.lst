@@ -12,9 +12,9 @@
 # Not the same as core.lst. core.lst hard-fails because the installer's own
 # next step breaks; this list keeps going because a degraded desktop you can
 # log into and repair beats no desktop at all. That matters more than usual
-# here: CLAUDE.md rule 8 means these names are checked by hand against
-# packages.fedoraproject.org and never against a live dnf, so a rename must
-# not be able to brick an install.
+# here: these names are checked against a snapshot of Void's repo index
+# (tests/void-pkgnames.sh), never against a live xbps on the target, so an
+# upstream rename must not be able to brick an install.
 #
 # THE TRAILING COMMENT IS LOAD-BEARING. Everything after '#' on a package
 # line is that package's consequence text, and install-pkg.sh reads it back
@@ -27,14 +27,24 @@
 # '#' comments and blank lines are ignored.
 
 # --- the X session itself ---
-xorg-x11-server-Xorg  # no X server at all: the desktop cannot start
-xorg-x11-xinit  # no startx: ~/.xinitrc is never read, so dwm never execs
-ly  # no graphical login: you must reach a TTY and run startx by hand
+# xorg-minimal, not xorg-server: the server alone ships no input driver, so
+# keyboard and mouse would be dead. The metapackage adds xauth, xinit and
+# xf86-input-libinput. Video goes through the server's built-in modesetting
+# driver, which needs mesa-dri for glamor and GLX.
+xorg-minimal  # no X server, input driver or xauth: the desktop cannot start
+xinit  # no startx: ~/.xinitrc is never read, so dwm never execs
+mesa-dri  # no GL driver: Xorg falls back to unaccelerated drawing, and picom and video playback crawl
+# ly is not packaged on Void. It is built from source by the services stage
+# (scope I, decision D1), so it is not a line here.
+
+# --- session plumbing (scope I, decision D2: elogind) ---
+dbus  # no D-Bus: dunst, the portal, polkit and NetworkManager all need a bus, and every notification is dropped
+elogind  # no session manager: suspend, reboot and poweroff in the power menu fail, and polkit sees no active session, so mounting and network changes are denied
 
 # --- X tools the shipped scripts call by name ---
 xrdb  # theming engine cannot load colours; dwm, st, dmenu and slock stay at their compiled defaults
 xrandr  # the brightness keys do nothing — dwm-brightness drives gamma through it
-gammastep  # no night light: Super+n does nothing and the screen never warms at dusk (verified on mdapi for f43/f44, 2026-10-05)
+gammastep  # no night light: Super+n does nothing and the screen never warms at dusk
 xset  # dwm-lock cannot arm X's idle timers, so the screen never locks on inactivity
 xclip  # screenshots are captured but never reach the clipboard
 xdotool  # the Super+c colour picker dies: dwm-colorpicker reads the pointer position with getmouselocation and has no fallback for it
@@ -45,10 +55,10 @@ procps-ng  # pgrep/pkill missing: the status bar never refreshes after a volume 
 
 # --- daemons autostart.sh launches ---
 picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is read by nothing
-glx-utils  # autostart.sh cannot probe the GL renderer, so picom always runs on the slower xrender backend, even on a real GPU
+glxinfo  # autostart.sh cannot probe the GL renderer, so picom always runs on the slower xrender backend, even on a real GPU
 dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
-jq  # the notification centre (Super+Ctrl+n, a left-click on the bell) cannot read dunst's history and never opens (verified on mdapi for f43/f44, 2026-10-15)
-xdg-utils  # links never open: "open" in the notification centre skips them, and dunst's link menu (browser = xdg-open in dunstrc) does nothing (verified on mdapi for f43/f44, 2026-10-15)
+jq  # the notification centre (Super+Ctrl+n, a left-click on the bell) cannot read dunst's history and never opens
+xdg-utils  # links never open: "open" in the notification centre skips them, and dunst's link menu (browser = xdg-open in dunstrc) does nothing
 libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
 xss-lock  # the screen never locks on idle or on suspend; only the manual Super+Shift+l keybind still works
 xsettingsd  # GTK apps get no XSETTINGS: Xft DPI, antialiasing and hinting fall back to each toolkit's own defaults, and a themes/dark/theme.conf edit needs an app restart instead of a theme reload
@@ -64,41 +74,42 @@ alacritty  # the terminal keybind and thunar's "Open Terminal Here" fall back to
 maim  # the screenshot keys capture nothing at all
 slop  # region and window screenshot modes die; full-screen capture still works
 xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen and region are unaffected
-# Screen recording (Super+r, dwm-record). ffmpeg-free is Fedora's own build:
-# x11grab and libvpx are enabled, H.264 is not (checked against the ffmpeg
-# spec on src.fedoraproject.org and mdapi for f43 and f44, 2026-10-05). It
-# CONFLICTS with RPM Fusion's ffmpeg, which scripts/install-pkg-repos.sh swaps
-# in right after this tier (HEVC/HDR video for mpv). install-pkg-tiers.sh's
-# SATISFIED_BY counts RPM Fusion's ffmpeg as this line, so a re-run neither
-# reinstalls ffmpeg-free nor reports it failed, and the recorder works with
-# either build.
-ffmpeg-free  # the Super+r screen recorder cannot start (unless RPM Fusion's ffmpeg is installed instead)
+# Screen recording (Super+r, dwm-record) and mpv's decoders. Void's ffmpeg6
+# is the full build: its configure line (read from libavcodec.so.60, 6.1.6_3,
+# 2026-10-15) has --enable-gpl, libx264, libx265 and vaapi and disables no
+# decoder, so HEVC/HDR plays with no third-party repo. `ffmpeg` is only a
+# transitional dummy that depends on ffmpeg6.
+ffmpeg6  # the Super+r screen recorder cannot start
 
 # --- emoji picker, keybound ---
-# Verified on mdapi.fedoraproject.org for f43 and f44 (2026-10-05). Data
-# files only; the binary side is xclip, already listed above.
+# Data files only (/usr/share/unicode/emoji/emoji-test.txt, the path
+# dwm-emoji reads; checked in unicode-emoji-14.0_1). The binary side is xclip.
 unicode-emoji  # the Super+; emoji picker has no list to show and exits with a notification
 
 # status-bar clicks (suckless/dwmblocks/scripts)
-NetworkManager-tui  # left-click on the NET block opens nm-connection-editor instead of nmtui, or only a notification without network-manager-applet (verified on packages.fedoraproject.org for f43/f44 and by dnf on the Fedora 44 VM, 2026-10-12)
+# nmtui ships inside NetworkManager on Void (checked in 1.56.0_1).
+NetworkManager  # no network manager: no Wi-Fi or connection control, and left-click on the NET block opens no nmtui
 
 # --- media and volume keys ---
 playerctl  # the XF86Audio play/next/prev/stop keys do nothing
 pamixer  # volume and mic keys do nothing, and both status blocks go blank
 
 # --- audio stack those keys drive ---
+# Void's pipewire package includes pipewire-pulse (the PulseAudio shim
+# pamixer talks to). Nothing starts it without systemd user units: the
+# session start-up does that (scope I, sub-task I-6).
 pipewire  # no sound server for pamixer to talk to
-pipewire-pulseaudio  # no PulseAudio shim: pamixer and pavucontrol cannot connect
 wireplumber  # pipewire has no session manager, so devices are never linked
 
 # --- fonts ---
-cascadia-code-nf-fonts  # every Nerd Font glyph renders as tofu in the prompt, the eza --icons aliases and fastfetch
-# Arabic. config/fontconfig/fonts.conf prefers these for lang=ar behind the
-# Latin families; without them fontconfig picks whatever Arabic face happens
-# to be installed (often none on Server, so every Arabic glyph is tofu).
-# Fedora ships only the variable (-vf-) builds as the maintained packages.
-google-noto-sans-arabic-vf-fonts  # Arabic text in GTK apps, the browser, dmenu and the dwm title falls back to tofu or a random face
-google-noto-naskh-arabic-vf-fonts  # Arabic serif text (documents, serif web pages) falls back to the sans face or tofu
+# Cascadia Code NF (the Nerd Font glyph face) is not packaged on Void; it is
+# vendored under assets/ (scope I, decision D3), so it is not a line here.
+#
+# One package carries every Noto face fonts.conf names: Noto Sans, Serif,
+# Sans Mono, and the Arabic pair it prefers for lang=ar (NotoSansArabic,
+# NotoNaskhArabic; checked in 2026.10.01_1). Without it fontconfig picks
+# whatever Arabic face happens to be installed, often none on a base system.
+noto-fonts-ttf  # Arabic text and the GTK UI font fall back to tofu or a random face in GTK apps, the browser, dmenu and the dwm title
 
 # --- cursor theme ---
 # GNU tar's -J filters through the EXTERNAL xz binary rather than linking
@@ -108,24 +119,25 @@ google-noto-naskh-arabic-vf-fonts  # Arabic serif text (documents, serif web pag
 # the one nobody notices until a minimal image.
 xz  # the vendored Bibata cursor tarball cannot be unpacked, so the desktop falls back to the default X cursor
 
-# --- installer mechanism for a keybound feature ---
-dnf-plugins-core  # `dnf copr enable` fails, so clipmenu and clipnotify never install and the clipboard-history keybind dies
+# --- clipboard history (Super+v, dwm-clipmenu) ---
+# In Void's main repo, so no third-party repo is needed.
+clipmenu  # the clipboard-history keybind (Super+v) has nothing to show
+clipnotify  # clipmenud cannot watch the clipboard, so no history is ever recorded
 
 # --- privilege prompts ---
 # autostart.sh launches the agent (see install-session-template.sh); no desktop
 # environment is running to start it from /etc/xdg/autostart, so that .desktop
 # file the package ships is never read on this setup.
 #
-# Was polkit-gnome until 2026-08-13. That package is retired — absent from
-# BOTH Fedora 43 and 44, so it was failing on every supported target, not just
-# the newest. lxpolkit is the LXDE agent, provides
-# PolicyKit-authentication-agent, and unlike polkit-gnome its binary is on PATH.
-lxpolkit  # no PolicyKit agent: any GUI action needing privileges is denied with no password prompt and often no error
+# The agent is lxpolkit, which Void ships inside lxsession
+# (/usr/bin/lxpolkit, checked in 0.5.6_1). Its binary is on PATH, so
+# autostart.sh's launch line is unchanged.
+lxsession  # no PolicyKit agent: any GUI action needing privileges is denied with no password prompt and often no error
 
 # --- applications behind a keybind ---
 # These two are applications rather than infrastructure, but they sit here on
 # the criterion at the top of this file rather than on that distinction: each
 # backs a key that does nothing at all when the package is missing, and says
 # nothing about why. See config/sxhkd/sxhkdrc.
-thunar  # the file-manager keybind (super + e) opens nothing, and Thunar is also the mime handler for directories
+Thunar  # the file-manager keybind (super + e) opens nothing, and Thunar is also the mime handler for directories
 firefox  # the browser keybind (super + shift + b) opens nothing, and firefox is the default handler for http/https

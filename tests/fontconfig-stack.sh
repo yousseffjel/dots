@@ -38,15 +38,20 @@ bad() {
 
 FONTS_CONF="$DOTS_DIR/config/fontconfig/fonts.conf"
 
-# Family name (as fontconfig registers it) -> the Fedora package that ships
-# it, verified against mdapi.fedoraproject.org file lists for f43 and f44.
+# Family name (as fontconfig registers it) -> the Void package that ships
+# it, read from the noto-fonts-ttf-2026.10.01_1 file list (2026-10-15):
+# one package carries every Noto face below.
 declare -A FAMILY_PKG=(
-    ["Cascadia Code NF"]="cascadia-code-nf-fonts"
-    ["Noto Sans"]="google-noto-sans-fonts"
-    ["Noto Serif"]="google-noto-serif-vf-fonts"
-    ["Noto Sans Mono"]="google-noto-sans-mono-vf-fonts"
-    ["Noto Sans Arabic"]="google-noto-sans-arabic-vf-fonts"
-    ["Noto Naskh Arabic"]="google-noto-naskh-arabic-vf-fonts"
+    ["Noto Sans"]="noto-fonts-ttf"
+    ["Noto Serif"]="noto-fonts-ttf"
+    ["Noto Sans Mono"]="noto-fonts-ttf"
+    ["Noto Sans Arabic"]="noto-fonts-ttf"
+    ["Noto Naskh Arabic"]="noto-fonts-ttf"
+)
+# Families no Void package ships and that are not vendored YET. Each one is
+# a yellow line, never a pass. Delete an entry when its asset lands.
+declare -A FAMILY_PENDING=(
+    ["Cascadia Code NF"]="not packaged on Void; vendoring under assets/ is scope I sub-task I-2b (decision D3)"
 )
 GENERICS=" sans-serif serif monospace "
 
@@ -107,7 +112,9 @@ fi
 for fam in "${families[@]}"; do
     [[ "$GENERICS" == *" $fam "* ]] && continue
     pkg="${FAMILY_PKG[$fam]:-}"
-    if [[ -z "$pkg" ]]; then
+    if [[ -n "${FAMILY_PENDING[$fam]:-}" ]]; then
+        yellow "  pending: '$fam' — ${FAMILY_PENDING[$fam]}"
+    elif [[ -z "$pkg" ]]; then
         bad "'$fam' has no FAMILY_PKG entry — which package ships it?"
     elif [[ -n "${DECLARED[$pkg]:-}" ]]; then
         ok "'$fam' <- $pkg"

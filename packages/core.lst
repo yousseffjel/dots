@@ -6,8 +6,8 @@
 #
 # Keep this list as small as it can honestly be. A hard-fail turns a wrong
 # or renamed package name into no install at all rather than a degraded one,
-# and CLAUDE.md rule 8 means these names are checked against
-# packages.fedoraproject.org by hand — never against a live dnf. Anything
+# and these names are checked against a snapshot of Void's repo index
+# (tests/void-pkgnames.sh), never against a live xbps on the target. Anything
 # that merely breaks a *feature* belongs in desktop.lst, which says so
 # loudly and carries on.
 #

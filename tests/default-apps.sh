@@ -36,7 +36,7 @@ SUCKLESS="$DOTS_DIR/scripts/install-suckless.sh"
 # sublime-text-4215 rpm, mpv.desktop from mpv's upstream etc/.
 declare -A PACKAGE_OF=(
     ["firefox.desktop"]=firefox
-    ["thunar.desktop"]=thunar
+    ["thunar.desktop"]=Thunar
     ["org.gnome.FileRoller.desktop"]=file-roller
     ["mpv.desktop"]=mpv
     ["sublime_text.desktop"]=sublime-text

@@ -118,11 +118,8 @@ FAKE_MISSING=pavucontrol tsv
 check "extra only: exit 0" rc_is 0
 RELEASE="" tsv
 check "not Fedora: the package section skips" row skip packages rpm
-FAKE_MISSING=ffmpeg-free tsv
-check "ffmpeg-free swapped for RPM Fusion's ffmpeg: ok, not a fail" row ok packages pkg-ffmpeg-free
-check "...and exit 0" rc_is 0
-FAKE_MISSING="ffmpeg-free ffmpeg" tsv
-check "neither ffmpeg: still a fail" row fail packages pkg-ffmpeg-free
+# The ffmpeg-free/RPM Fusion SATISFIED_BY cases went with the Fedora package
+# names (scope I, I-2); I-4 deletes the swap and the mechanism together.
 
 blue "==> picom backend"
 tsv
