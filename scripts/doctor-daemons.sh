@@ -21,6 +21,7 @@ daemon_applies() {
         spice-vdagent) drivers_is_vm ;;
         blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
         nm-applet) pgrep -x NetworkManager >/dev/null 2>&1 ;;
+        dwm-audiowatch) command -v pactl >/dev/null 2>&1 ;;
         *) return 0 ;;
     esac
 }
@@ -33,6 +34,7 @@ daemon_skip_reason() {
         spice-vdagent) echo "not a VM" ;;
         blueman-applet) echo "no bluetooth adapter" ;;
         nm-applet) echo "NetworkManager is not running" ;;
+        dwm-audiowatch) echo "pactl is not installed" ;;
         *) echo "not needed on this machine" ;;
     esac
 }

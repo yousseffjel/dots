@@ -35,6 +35,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   reloads dunst's settings in place and keeps focus mode on.
 - **Volume, microphone and brightness pop-ups no longer fill the
   notification centre.** They still show; they just do not go into history.
+- **The volume block shows the real level after login.** On Void, PipeWire
+  starts next to dwm, so the block was drawn before WirePlumber restored the
+  saved volume and kept the old figure until the first volume key. A small
+  watcher (`dwm-audiowatch`, started from `autostart.sh`) now follows
+  PipeWire's events and redraws the volume and mic blocks. An existing
+  `autostart.sh` is yours and is not rewritten: the installer prints the
+  line to add.
 
 ### Changed
 

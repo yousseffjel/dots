@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# dwm-audiowatch — keeps the bar's VOL and MIC blocks in step with PipeWire.
+#
+# Both blocks are signal-only (interval 0 in suckless/dwmblocks/blocks.def.h):
+# dwmblocks draws them once at startup and again only when something sends
+# SIGRTMIN+8 (VOL) or SIGRTMIN+7 (MIC). The volume keys do; nothing else did.
+# On Fedora PipeWire came up from systemd user units long before X, so that
+# first draw was already right. On Void ~/.xinitrc starts PipeWire next to
+# dwm, the first draw races it, and the level WirePlumber restores a moment
+# later never reached the bar: it showed 40% while pamixer said 100 (the Void
+# VM, 2026-10-15). This follows the sound server's own events instead —
+# `pactl subscribe` — so a restored level, a new default device, or a change
+# made in pavucontrol all redraw the block they touch.
+#
+# Its lifetime is PipeWire's, not X's: it waits up to START_WAIT seconds for
+# the server at login, and when the server goes away it waits RECONNECT_WAIT
+# seconds for it to come back (a PipeWire restart) before exiting. ~/.xinitrc's
+# dots_session_end stops PipeWire on every logout, so this ends with it and
+# needs no pkill line of its own there.
+#
+# Started by autostart.sh. dwm re-runs that on every restart (restartsig), so
+# a second launch finds the first and exits.
+#
+# usage: dwm-audiowatch   (no arguments)
+
+set -u
+
+VOL_SIGNAL=8
+MIC_SIGNAL=7
+START_WAIT="${DOTS_AUDIOWATCH_START_WAIT:-30}"
+RECONNECT_WAIT="${DOTS_AUDIOWATCH_RECONNECT_WAIT:-10}"
+
+# By command line, not by name: a `#!/usr/bin/env bash` script runs as a
+# process named "bash" (the same reason as dwm-nightlight's DAEMON_PATTERN).
+DAEMON_PATTERN='/dwm-audiowatch$'
+
+# pgrep also lists this process and the $( ) subshell it ran in, which has
+# exited by the time the loop runs — so only a live match that is not $$ is
+# another watcher.
+already_running() {
+    local pid others
+    others="$(pgrep -f "$DAEMON_PATTERN" 2>/dev/null || true)"
+    for pid in $others; do
+        [[ "$pid" == "$$" ]] && continue
+        [[ -e "/proc/$pid" ]] && return 0
+    done
+    return 1
+}
+
+redraw() {
+    local sig
+    for sig in "$@"; do
+        pkill "-RTMIN+$sig" -u "$(id -u)" -x dwmblocks >/dev/null 2>&1 || true
+    done
+}
+
+# wait_server <seconds> — true once pactl can talk to the server.
+wait_server() {
+    local i
+    for ((i = 0; i < $1; i++)); do
+        pactl info >/dev/null 2>&1 && return 0
+        sleep 1
+    done
+    pactl info >/dev/null 2>&1
+}
+
+# One connection: redraw both blocks (whatever happened before the
+# subscription is caught here), then one redraw per event until the server
+# goes away. sink-input and source-output events are per-application levels,
+# which neither block shows.
+follow() {
+    local line sub
+    exec 3< <(exec pactl subscribe 2>/dev/null)
+    sub=$!
+    trap 'kill "$sub" 2>/dev/null; exit 0' TERM INT
+    redraw "$VOL_SIGNAL" "$MIC_SIGNAL"
+    while IFS= read -r line <&3; do
+        case "$line" in
+            *" on sink #"*) redraw "$VOL_SIGNAL" ;;
+            *" on source #"*) redraw "$MIC_SIGNAL" ;;
+            *" on server"*) redraw "$VOL_SIGNAL" "$MIC_SIGNAL" ;;
+        esac
+    done
+    exec 3<&-
+    trap - TERM INT
+}
+
+main() {
+    case "${1:-}" in
+        -h | --help)
+            echo "usage: dwm-audiowatch   (no arguments; started by autostart.sh)"
+            return 0
+            ;;
+    esac
+    command -v pactl >/dev/null 2>&1 || exit 0
+    already_running && exit 0
+    wait_server "$START_WAIT" || exit 0
+    while :; do
+        follow
+        wait_server "$RECONNECT_WAIT" || exit 0
+    done
+}
+
+main "$@"

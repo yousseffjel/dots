@@ -208,5 +208,11 @@ session_autostart_services() {
 if command -v gammastep >/dev/null 2>&1; then
 	"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &
 fi
+
+# Volume and mic blocks: the bar draws them only when signalled, and the level
+# WirePlumber restores at login lands after the first draw. This follows
+# PipeWire's events and redraws them. It ends with PipeWire at logout, and a
+# second launch after a dwm restart exits by itself.
+"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-audiowatch" &
 EOF
 }

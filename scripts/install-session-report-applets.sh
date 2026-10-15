@@ -45,4 +45,9 @@ session_autostart_report_more() {
         'add this line yourself:  command -v gammastep >/dev/null && "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-nightlight" daemon &' \
         'without it there is no night light, and Super+n only applies it once' \
         'until the next brightness key.'
+
+    session_report_daemon "$autostart" dwm-audiowatch \
+        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-audiowatch" &' \
+        'without it the volume and mic blocks can show a stale level after' \
+        'login, until the first volume key.'
 }
