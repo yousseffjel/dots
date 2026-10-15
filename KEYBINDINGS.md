@@ -528,6 +528,8 @@ shows as well.
 In focus mode the bar shows `󰂛 FOCUS`, and `dots doctor` warns, because focus
 mode left on silently holds back every notification. dunst keeps the last 20
 (`history_length` in `config/dunst/dunstrc`), and only until you log out.
+A theme or wallpaper change keeps both the list and focus mode. The volume,
+mic and brightness pop-ups never enter the list.
 `Super` + `Ctrl` + `n` used to re-show the last closed notification;
 **open** in the centre now does that for any of them.
 

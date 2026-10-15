@@ -88,3 +88,11 @@
     foreground = "#CDD6F4"
     frame_color = "#F5A0B8"
     timeout = 0
+
+# The volume / mic / brightness pop-up (config/dwm/bin/dwm-osd) shows like
+# any notification but is kept out of the history, so the notification
+# centre (dwm-notify) lists real notifications only. tests/dunst-reload.sh
+# holds this block identical in dunst.dcol and config/dunst/dunstrc.
+[dots_osd]
+    appname = dwm-osd
+    history_ignore = yes

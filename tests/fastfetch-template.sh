@@ -15,9 +15,9 @@
 #
 # SAFETY: the engine runs against a throwaway tree containing ONLY the template
 # under test. Running the whole `always` group would fire every post-command,
-# and three act on the live session however the environment is sandboxed —
-# dunst.dcol runs `pkill -x dunst`, statusbar.dcol `pkill -x dwmblocks`, and
-# xresources.dcol `xrdb -merge` against the running X server. pkill matches by
+# and two act on the live session however the environment is sandboxed —
+# statusbar.dcol runs `pkill -x dwmblocks`, and xresources.dcol `xrdb -merge`
+# against the running X server (dunst.dcol killed dunst too until 2026-10-15). pkill matches by
 # process name system-wide, so env isolation cannot contain it. Fakes for
 # pkill/xrdb/setsid go first on PATH as a second layer.
 

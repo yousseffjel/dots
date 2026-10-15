@@ -13,6 +13,8 @@
 # Usage: reload.sh [--quiet]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -167,20 +169,9 @@ reload_dwmblocks() {
     fi
 }
 
-reload_dunst() {
-    # dunst is D-Bus activated: killing it is enough, the next
-    # notification respawns it against the regenerated dunstrc. Starting
-    # it here would race that activation.
-    if ! command -v dunst >/dev/null 2>&1; then
-        say yellow "dunst   not installed — skipped"
-        return 0
-    fi
-    if pkill -x dunst 2>/dev/null; then
-        say green "dunst   killed (D-Bus respawns on next notification)"
-    else
-        say yellow "dunst   not running — skipped"
-    fi
-}
+# reload_dunst: its own file for the 250-line cap (see its header).
+# shellcheck source=reload-dunst.sh
+source "$SCRIPT_DIR/reload-dunst.sh"
 
 reload_picom() {
     if ! command -v picom >/dev/null 2>&1; then

@@ -14,9 +14,8 @@
 # SAFETY: the engine is pointed at a throwaway tree containing ONLY picom.dcol.
 # Running the whole `always` group would fire every template's post-command,
 # and several of those act on the live session no matter how the environment is
-# sandboxed: dunst.dcol runs `pkill -x dunst`, statusbar.dcol runs
-# `pkill -x dwmblocks`, and xresources.dcol runs `xrdb -merge` against the
-# running X server. pkill matches by process name system-wide, so env isolation
+# sandboxed: statusbar.dcol runs `pkill -x dwmblocks`, and xresources.dcol
+# runs `xrdb -merge` against the running X server. pkill matches by process name system-wide, so env isolation
 # cannot contain it. A fake pkill is also placed first on PATH so even picom's
 # own post-command signals nothing.
 

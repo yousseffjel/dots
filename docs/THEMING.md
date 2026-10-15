@@ -63,7 +63,7 @@ white wallpaper.
   |     dwm       kill -HUP     (restartsig re-exec)              |
   |     st        pkill -USR1   (in place — shells survive)       |
   |     dwmblocks restart       (blocks read colours at exec)     |
-  |     dunst     kill          (D-Bus respawns it)               |
+  |     dunst     dunstctl reload (pause level kept)              |
   |     picom     pkill -USR1   (config reload)                   |
   |     wallpaper ~/.fehbg      (repaint root window)             |
   +-------------------------------------------------------------+
@@ -458,7 +458,7 @@ The dconf line only proves the preference is stored.
 | slock | `slock.initcolor`, … | next invocation |
 | nsxiv | `Nsxiv.window.background`, `Nsxiv.bar.*`, … (native, no patch) | next invocation — a running viewer keeps its colours |
 | dwmblocks | `statusbar-colors.sh` | restart — block scripts read the palette at exec time, so there is nothing to signal |
-| dunst | its own generated `dunstrc` | killed; D-Bus reactivates it on the next notification |
+| dunst | its own generated `dunstrc` | `dunstctl reload` in place: the notification history and focus mode survive (reload resets the pause level, so `reload.sh` puts it back). Until 2026-10-15 dunst was killed, which emptied the history and ended focus mode on every wallpaper change |
 | picom | nothing — see below | `pkill -USR1` reloads config in place |
 | GTK 3 | generated `gtk.css` | none needed — GtkCssProvider watches the file |
 | GTK 2 | generated `~/.gtkrc-2.0` | none — read at startup, so an open window keeps the old colours |

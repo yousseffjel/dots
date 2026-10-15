@@ -28,6 +28,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   switches focus mode. It replaces the `DND` block, which appeared only while
   paused.
 
+### Fixed
+
+- **A wallpaper or theme change no longer ends focus mode or empties the
+  notification centre.** The theming engine used to restart dunst; it now
+  reloads dunst's settings in place and keeps focus mode on.
+- **Volume, microphone and brightness pop-ups no longer fill the
+  notification centre.** They still show; they just do not go into history.
+
 ### Changed
 
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
