@@ -2301,3 +2301,14 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - **Not verified:** the `</dev/null` staircase fix on the VM; mirror failover
   after a minrate abort; CI install-container wall-clock (timeout-minutes
   left at 90 until timed).
+
+## 2026-10-15 — dnf-speed verification (records only)
+
+- Fresh F44 Server VM (192.168.122.172) full install of `a1f8054`: 4 min
+  20 s, three tier transactions (1, 39, 44 packages), no minrate aborts.
+  CI installer step: fedora:43 8:14 → 2:19, fedora:latest 4:21 → 2:49.
+- **Verified:** the `</dev/null` staircase fix (`81bcf7e`). The user removed
+  gpick + catfish and re-ran `install-pkg.sh` in the VM terminal; every
+  streamed dnf line sat at the 4-space indent.
+- **Still not verified:** mirror failover after a minrate abort (no slow
+  mirror was hit); bare metal, a real GPU's glx path, a real laptop.

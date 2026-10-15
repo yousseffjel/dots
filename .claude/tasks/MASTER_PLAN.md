@@ -82,9 +82,11 @@ the same time and **not** queued — raise them separately if wanted.
   parallel, minrate 20k; SYSFILE row, shared `sysfile_install` with the
   touchpad), one forced `makecache --refresh` up front, one transaction per
   tier with per-package fallback, dead group step removed. VM: drop-in read
-  by dnf, batch installed 2 packages, doctor all passed. **Not verified:**
-  the staircase fix (`</dev/null` under sudo) and dnf5 falling over to the
-  next mirror after a minrate abort.
+  by dnf, batch installed 2 packages, doctor all passed. Fresh VM
+  (192.168.122.172) full install: 4 min 20 s, 3 transactions. CI installer
+  step 8:14 → 2:19 (f43). Staircase fix verified on the VM 2026-10-15
+  (progress aligned at the 4-space indent). **Not verified:** dnf5 falling
+  over to the next mirror after a minrate abort.
 
 - 2026-10-14 — **ad-hoc: release 0.3.0 + follow-ups — 5 slots merged**
   (`c421621`).
