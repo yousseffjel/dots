@@ -76,6 +76,11 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-15 — **ad-hoc: `ci-timeout`** (`3594d4f`, merge `a31e68a`).
+  install-container `timeout-minutes` 90 → 20: batched legs take 2:38 / 3:25
+  (run a1f8054), per-package CI legs ~8 min. Comments and CLAUDE.md carry the
+  measured figures. **Not verified:** the next install-container run on push.
+
 - 2026-10-14 — **ad-hoc: `dnf-speed`** (`906e5e0` + `81bcf7e`, merge `fe037e8`).
   A fresh F44 VM install sat an hour on a 3 KiB/s mirror after 37 min of
   one-dnf-per-package. Now: a persistent dnf5 drop-in (fastestmirror, 10

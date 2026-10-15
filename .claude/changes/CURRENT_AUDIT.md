@@ -2312,3 +2312,13 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   streamed dnf line sat at the 4-space indent.
 - **Still not verified:** mirror failover after a minrate abort (no slow
   mirror was hit); bare metal, a real GPU's glx path, a real laptop.
+
+## 2026-10-15 — ci-timeout (1 slot)
+
+- **`ci-timeout`** (`3594d4f`; merge `a31e68a`): install-container
+  `timeout-minutes` 90 → 20, from measured legs (2:38 fedora:43, 3:25
+  fedora:latest on a1f8054; ~8 min per-package). Comments name which figure is
+  CI and which local; CLAUDE.md "~30 min/leg" → "~3 min".
+- Lint ✓, YAML parses; reviewer WARN (two unreconciled per-package figures)
+  fixed before commit.
+- **Not verified:** a GitHub run under the new limit (needs a push).
