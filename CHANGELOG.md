@@ -33,8 +33,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.
-- `jq` is in the desktop package tier, because the notification centre needs
-  it. A failed install of it is now reported in red.
+- `jq` and `xdg-utils` are in the desktop package tier: the notification
+  centre needs `jq` to list notifications and `xdg-open` to open their links.
+  A failed install of either is now reported in red.
 
 - **Faster installs.** Each package tier now installs in one dnf transaction
   instead of one per package (about 130 dnf runs on a fresh install), with
