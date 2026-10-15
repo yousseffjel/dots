@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-14
+Last Updated: 2026-10-15
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -75,6 +75,12 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-15 — **ad-hoc: `notify-center`** (`34facae`, ff) + `xdg-utils-desktop`
+  (`6460356`). Notification centre (dmenu, top-right via a local xyw patch:
+  open / delete / clear all) and an always-visible bell/FOCUS button.
+  **Open item:** the 0.4.0 → 0.5.0 migration must refresh an unedited
+  `suckless/dwmblocks/blocks.h`. **Not verified:** VM / live desktop.
 
 - 2026-10-15 — **ad-hoc: `ci-timeout`** (`3594d4f`, merge `a31e68a`).
   install-container `timeout-minutes` 90 → 20: batched legs take 2:38 / 3:25

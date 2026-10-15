@@ -2322,3 +2322,18 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Lint ✓, YAML parses; reviewer WARN (two unreconciled per-package figures)
   fixed before commit.
 - **Not verified:** a GitHub run under the new limit (needs a push).
+
+## 2026-10-15 — notify-center + xdg-utils-desktop (1 slot + 1 main commit)
+
+- **`notify-center`** (`34facae`, fast-forward): `config/dwm/bin/dwm-notify`
+  — dmenu list of dunst's history under the bar's right end (open / delete /
+  clear all / focus toggle); dmenu `dmenu-xyw-20261015-local.diff` (`-x -y -z`,
+  negative `-x` from the right); `dwm-dnd` is now an always-visible bell (`󰂚 N`
+  / `󰂛 FOCUS`; left = centre, right = focus), polled 5 s; `Super+Ctrl+n` →
+  centre; jq → desktop.lst. Open = re-show + first link: dunst never sends
+  ActionInvoked for history items (probed on a private bus).
+- **`xdg-utils-desktop`** (`6460356`): xdg-utils in desktop.lst (links).
+- Suite 73/73, lint ✓, build ✓, 13 mutations caught, end-to-end with real dunst
+  + rebuilt dmenu under Xvfb; reviewer WARN (stray pid file, removed), READY.
+- **Not verified:** live desktop, the F44 VM, a real app's link. Next release
+  migration must refresh an unedited `blocks.h` (bell interval 0 → 5).
