@@ -9,12 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-- **Scope I — port to Void Linux glibc** (Epic, opened 2026-10-15, branch
-  `void`): `.claude/tasks/scope-i-void-port.md`. DECISION REVERSAL of "Fedora
-  only" and the 2026-10-14 Server-only target. Sub-tasks I-1..I-10; I-1
-  (identity, docs, `install-fedora.sh` → `install-void.sh`) in progress.
-  Fedora-specific Queue entries below are superseded wherever the port
-  removes the code they are about.
+(none)
 
 ---
 
@@ -80,6 +75,15 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-15 — **Scope I — port to Void Linux glibc** (Epic, `783a28a`..`43e76ff`,
+  13 commits, ff into main). DECISION REVERSAL of "Fedora only": main is now
+  Void-only. I-1..I-10 done: xbps engine, nonfree repo, runit + elogind, ly
+  built from source, session via dbus-run-session + PipeWire, VM detection,
+  CI in `void-glibc-full`, and a real Void VM run (`dots doctor` all passed;
+  found the VOL-block race, fixed by `dwm-audiowatch`). Fedora-specific Queue
+  entries are superseded wherever the port removed their code.
+  **Not verified:** bare metal, suspend/resume, a laptop.
 
 - 2026-10-15 — **ad-hoc: `dunst-keep-state`** (`c51a26e`, ff). Found on the VM
   right after notify-center: a theme apply restarted dunst (empty history,

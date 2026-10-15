@@ -2351,3 +2351,26 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   caught; suite 74 OK + 1 SKIP; lint ✓; reviewer READY.
 - **Not verified:** on the VM (root cause inferred from the update log and
   probes; ssh agent was down).
+
+## 2026-10-15 — Scope I: Void Linux port (13 commits, merged by fast-forward)
+
+- **Logs:** `void-i1` .. `void-i9-ci`, `void-audiowatch`, `void-i10-real-run`
+  (plus a MICRO line for `ci-void-branch`). Commits `783a28a`..`43e76ff`.
+- **The target is now Void glibc x86_64:**
+  - `install-void.sh`; xbps tiers with a full upgrade every run;
+  - nonfree for sublime-text4; vendored Cascadia Code NF;
+  - runit services; elogind; groups network/bluetooth/kvm, with wheel
+    required;
+  - ly v1.4.1 built from source with zig 0.16.0, pinned by sha256;
+  - `.xinitrc` re-runs itself under dbus-run-session and starts PipeWire;
+  - VM detection from the hypervisor flag or the DMI vendor;
+  - CI runs in `ghcr.io/void-linux/void-glibc-full`.
+- **Real VM run (I-10):**
+  - install, ly login, session, audio, portal and power actions (CanPowerOff
+    "yes"): `dots doctor` all passed;
+  - the one bug found, the VOL block drawn before WirePlumber restored the
+    volume, is fixed by `dwm-audiowatch` and verified across a re-login;
+  - the VM's screen and console size are documented in `docs/HARDWARE.md`.
+- Suite 82 OK + 1 SKIP; `lint --strict` ✓; GitHub CI green through
+  `5d1b8b1`. Reviewer READY on every sub-task.
+- **Not verified:** bare metal, suspend/resume, a laptop.
