@@ -17,9 +17,23 @@
 #
 # Both directories are overridable for tests (DOTS_RUNIT_SV, DOTS_RUNIT_SERVICE),
 # resolved at call time, not source time.
+#
+# /var/service is a link to /run/runit/runsvdir/current, which exists only on
+# a BOOTED system: in a chroot, or the CI container (seen 2026-10-15 in
+# ghcr.io/void-linux/void-glibc-full), it dangles and `ln` into it fails.
+# The handbook's answer for a system that is not running is the default
+# runsvdir itself, which `current` points at on a booted one anyway.
 
 runit_sv() { printf '%s\n' "${DOTS_RUNIT_SV:-/etc/sv}"; }
-runit_service() { printf '%s\n' "${DOTS_RUNIT_SERVICE:-/var/service}"; }
+runit_service() {
+    if [[ -n "${DOTS_RUNIT_SERVICE:-}" ]]; then
+        printf '%s\n' "$DOTS_RUNIT_SERVICE"
+    elif [[ -d /var/service ]]; then
+        printf '%s\n' /var/service
+    else
+        printf '%s\n' "${DOTS_RUNIT_DEFAULT:-/etc/runit/runsvdir/default}"
+    fi
+}
 
 # The services the desktop needs (scope I, decision D2). Order matters: dbus
 # first, since elogind's and NetworkManager's run scripts exit until

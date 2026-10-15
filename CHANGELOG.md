@@ -88,6 +88,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `sudo xbps-install -Su`. fastfetch shows the Void logo. `dots doctor`
   says when you are missing one of the `network`, `bluetooth` or `kvm`
   groups, or were added to it but have not logged in again.
+- **CI runs in Void's own image** (`ghcr.io/void-linux/void-glibc-full`):
+  the suckless builds, dwm under Xvfb, the ASan check, a live check of every
+  package name, and the full installer. Runit services are linked into the
+  default runsvdir when `/var/service` is not live (a container or chroot),
+  and microcode rebuilds the initramfs of the installed kernels.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

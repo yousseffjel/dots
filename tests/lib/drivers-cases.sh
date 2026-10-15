@@ -12,7 +12,7 @@ check "intel-media-driver installed" has intel-media-driver
 check "not the legacy driver" lacks libva-intel-driver
 check "PACKAGE row for it" row PACKAGE intel-media-driver
 check "Intel CPU: intel-ucode" has intel-ucode
-check "...and the initramfs rebuilt for the running kernel" grep -qx "xbps-reconfigure -f linux6.12" "$LOG"
+check "...and the initramfs rebuilt for the installed kernel" grep -qx "xbps-reconfigure -f linux6.12" "$LOG"
 check "bare metal: fwupd" has fwupd
 check "the Wi-Fi card is not treated as a GPU" not_said "a0f0"
 check "nothing failed" test "${#FAILED_EXTRA[@]}" -eq 0
@@ -104,6 +104,10 @@ check "mesa-vaapi installed" has mesa-vaapi
 check "PACKAGE row" row PACKAGE mesa-vaapi
 check "AMD CPU: linux-firmware-amd" has linux-firmware-amd
 check "...and the initramfs rebuilt" grep -qx "xbps-reconfigure -f linux6.12" "$LOG"
+NO_KERNEL=1 machine AuthenticAMD none
+run
+check "no kernel package (a container): said, and no rebuild attempted" \
+    eval 'said "no kernel package installed here" && no_rebuild'
 
 blue "==> intel-ucode out of reach (nonfree not enabled)"
 machine GenuineIntel none

@@ -47,7 +47,7 @@ export DB="$SB/pkgdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap" SB \
     DOTS_RUNIT_SV="$SB/sv" DOTS_RUNIT_SERVICE="$SB/service"
 
 seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail head cut sort cat wc \
-    basename dirname readlink od tr ln chmod cmp install git cp
+    basename dirname readlink od tr ln chmod cmp install git cp uname
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     # FWMAP: "<package> <path>" — the firmware packages' file lists.
@@ -56,6 +56,7 @@ seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail head cut sor
 -Rs) [[ " ${FAKE_FAIL:-} " == *" fwquery "* ]] && exit 1
     cut -d" " -f1 "$FWMAP" | sort -u | sed "s/.*/[-] &-20260810_1 Binary firmware blobs/" ;;
 -Rf) awk -v p="$2" "\$1 == p {print \$2}" "$FWMAP" ;;
+-l) sed "s/.*/ii &-1_1 desc/" "$DB" ;;
 *) grep -qx "$1" "$DB" || exit 2; echo "$1-1_1" ;;
 esac'
     fake "$SB/bin" xbps-install 'echo "xbps-install $*" >>"$LOG"
@@ -65,7 +66,6 @@ echo "$2" >>"$DB"
 [[ "$2" == power-profiles-daemon ]] && mkdir -p "$DOTS_RUNIT_SV/power-profiles-daemon"
 exit 0'
     fake "$SB/bin" xbps-reconfigure 'echo "xbps-reconfigure $*" >>"$LOG"'
-    fake "$SB/bin" uname '[[ "$1" == -r ]] && echo 6.12.5_1'
     fake "$SB/bin" fwupdmgr 'exit "${FAKE_FWUPD_RC:-2}"'
 }
 PATH="$SB/bin"
@@ -153,6 +153,9 @@ machine() {
     : >"$LOG"
     : >"$DOTS_KERNEL_LOG"
     local p
+    # Every machine has a kernel package (linux6.12) unless NO_KERNEL is set:
+    # the initramfs rebuild targets installed kernels, never `uname -r`.
+    [[ -n "${NO_KERNEL:-}" ]] || echo linux6.12 >>"$DB"
     for p in "$@"; do echo "$p" >>"$DB"; done
     FAILED_EXTRA=()
 }

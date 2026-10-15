@@ -120,6 +120,12 @@ check "nothing linked or unlinked" eval 'unlinked dbus && linked dhcpcd'
 check "no rows" test -z "$(manifest_rows SERVICE)$(manifest_rows SERVICEOFF)"
 check "says what it would do" said "(dry-run) would enable dbus"
 
+printf '\033[34m%s\033[0m\n' "==> where services are linked when nothing overrides it"
+# Resolution only, never a write: on a Void host the real /var/service exists.
+if [[ -d /var/service ]]; then want=/var/service; else want="$SB/default"; fi
+check "a booted system's /var/service, else the default runsvdir (container, chroot)" \
+    test "$(DOTS_RUNIT_SERVICE="" DOTS_RUNIT_DEFAULT="$SB/default" runit_service)" = "$want"
+
 printf '\033[34m%s\033[0m\n' "==> uninstall reverts it"
 box dbus elogind NetworkManager bluetoothd dhcpcd agetty-tty2 ly -- dhcpcd agetty-tty2
 services_enable_desktop >/dev/null 2>&1

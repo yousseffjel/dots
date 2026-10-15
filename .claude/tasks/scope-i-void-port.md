@@ -224,7 +224,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   firmware, microcode names; laptop power via power-profiles-daemon.
 - **I-8 Runtime scripts & doctor:** ✅ done 2026-10-15 (incl. doctor's D4 group check); `dwm-powermenu`, `dwm-picom`, `dwm-lock`
   (elogind), every doctor check that asks systemd; a D4 group check (`id -nG`).
-- **I-9 CI:** void-glibc container for build, install, dry-run; linter pins
+- **I-9 CI:** ✅ done 2026-10-15 (all three container jobs replayed locally in the real image; full install passed); void-glibc container for build, install, dry-run; linter pins
   unchanged.
 - **I-10 Real run:** fresh Void glibc VM end-to-end (the Fedora VM at
   192.168.122.172 is replaced, not reused).

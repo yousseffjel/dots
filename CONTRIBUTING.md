@@ -84,12 +84,12 @@ on that branch. For shellcheck, also recompute `SHELLCHECK_SHA256`.
 
 Two pins have no bot and are swept by hand:
 
-- **The oldest-supported Fedora image** (`fedora:43` in both workflow
-  matrices). When that release reaches end of life, bump it to the next one.
-  Don't delete it: an EOL image still pulls, but its repos move to the archive
-  and `dnf` breaks. Fedora's release docs at
-  <https://docs.fedoraproject.org/en-US/releases/> list which releases are
-  supported and when each one reaches end of life.
+- **The Void package-index snapshot**
+  (`tests/fixtures/void-x86_64-pkgs.tsv`). Void is rolling, so CI's container
+  jobs simply use the latest image and there is no release to bump; but the
+  snapshot the offline name check reads ages. `tests/void-pkgnames.sh` warns
+  after 90 days, and CI's `package-names` job fails when a listed name has
+  left the live index. Refresh with `tests/void-pkgnames.sh --refresh`.
 - **The vendored suckless sources.** Upstream releases are rare. Re-vendoring
   means re-merging every recorded `.diff` (see `CLAUDE.md` rule 5 and each
   `PATCHES.md`), so it is a deliberate task, never a bump.

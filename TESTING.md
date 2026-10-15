@@ -130,7 +130,8 @@ for adding CI; new docs you add are linted normally.
   duplicates within a file, and no package appearing in two tiers (all
   pairs, not just one). It **globs** the lists rather than naming them, so a
   new tier is covered the moment the file exists. Does not touch the network
-  or `dnf` — see `install-dry-run` in CI for live repo validation of names.
+  or `xbps` — see `tests/void-pkgnames.sh` (offline, a snapshot of the
+  index) and CI's `package-names` job (the live index) for the names.
 - **`tests/desktop-consequences.sh`** — every `packages/desktop.lst` entry
   must carry a trailing `#` comment saying what breaks without it, because
   `install-pkg.sh` reads exactly that text to build its closing failure
@@ -237,7 +238,7 @@ for adding CI; new docs you add are linted normally.
   - Fakes cover `git clone`, `update-desktop-database`, a file-backed
     `dconf` (+ `dbus-run-session`) and `flatpak` (`tests/lib/fake-flatpak.sh`
     — without it a dev host's real flatpak would run, network included).
-    Sentinel `sudo`/`dnf`/`systemctl`/`chsh`/`usermod`/`pkill`/`xrdb` must
+    Sentinel `sudo`/`dnf`/`xbps-install`/`xbps-remove`/`systemctl`/`chsh`/`usermod`/`pkill`/`xrdb` must
     never be called.
   - The lived-in HOME also holds a Flatpak global override of its own, which
     must come back byte for byte, and the Flathub remote must be gone.
@@ -419,11 +420,11 @@ CI does this on every push that touches the installer or what it deploys
 (`.github/workflows/install-container.yml` carries a `paths:` allowlist, and
 `workflow_dispatch` triggers it by hand otherwise). The job runs
 `scripts/install-void.sh` to completion — no `--dry-run`, no
-`--skip-suckless` — inside `fedora:latest` and the pinned oldest-supported
-image, then asserts on what landed. It is the only job that executes the
-installer at all: `install-dry-run` validates the installer's *inputs*
-(every name in `packages/*.lst` resolves against enabled repos) without ever
-invoking it, and `build-suckless` compiles the C programs without installing
+`--skip-suckless` — inside `ghcr.io/void-linux/void-glibc-full:latest`, as
+root, then asserts on what landed. It is the only job that executes the
+installer at all: `package-names` validates the installer's *inputs* (every
+name in `packages/*.lst` is in Void's live main repo) without ever invoking
+it, and `build-suckless` compiles the C programs without installing
 anything around them.
 
 Its assertions are all **derived from a shipped source of truth**, never
@@ -439,54 +440,41 @@ skipping quietly. Each row below was checked against a real run, not assumed:
 | Step | Status in the container |
 | ---- | ----------------------- |
 | `usermod -s <zsh> <user>` | **Works, and is asserted** — the job compares `getent`'s shell field against `command -v zsh` with its directory resolved, so an `/usr/sbin/zsh` spelling fails it. But it runs as **root**, so the `sudo` path a real user takes is *not* proved — the previous `chsh -s` passed here while failing silently for every non-root user, found on the first VM install (2026-10-05). Nor is it proved that a real login then starts zsh. |
-| `systemctl enable ly@<tty>.service` | **Works, and is asserted.** Enabling is offline symlink creation: it needs the unit *file*, not a running systemd. That is exactly why it catches a wrong unit name. |
-| ly actually running | **Not covered.** Enabling is not starting. Whether ly presents a greeter, hands off to the session and takes the TTY from getty is a hardware question. |
+| runit service links (`dbus`, `elogind`, `NetworkManager`, `ly`, ...) | **Work, and are asserted.** Enabling is a symlink: it needs the service *directory*, not a running runit. The container's `/var/service` dangles (it points into `/run`, which only a booted system has), so the installer links into `/etc/runit/runsvdir/default`, the handbook's path for a system that is not running. |
+| ly built from source | **Works, and is asserted**: every `LYBUILD` path present, `/usr/bin/ly` executable, its config themed. |
+| Any service actually running | **Not covered.** Linking is not starting. Whether runit brings up dbus and elogind, whether ly presents a greeter and hands off to the session, and whether NetworkManager takes the network from dhcpcd is a VM/hardware question. |
 | Anything graphical | **Not covered.** No display server, so dwm/st/dmenu/dwmblocks/slock are built and installed but never run, and the theming engine skips its initial apply for want of `$DISPLAY`. |
 
 Neither uncovered row is a gap in the harness; both are genuinely
 VM-or-hardware questions.
 
-That `systemctl enable` row is not a hypothetical. The job's **first real
+The services row is not a hypothetical. On Fedora, the job's **first real
 run found that `install-services.sh` had always enabled `ly.service`, which
-does not exist** — Fedora's `ly` ships a *templated* `ly@.service` with no
-`Alias=`. No display manager had ever been enabled, on any machine, and
-nothing had ever executed that line to notice. It now enables
-`ly@tty2.service`, and the job asserts a `SERVICE` row lands in the manifest,
-which only happens when `enable` returns 0.
+did not exist** (Fedora's `ly` shipped a templated `ly@.service`). No display
+manager had ever been enabled, on any machine. On Void the job asserts that
+every `SERVICE` row is a real link, ly's included.
 
 To iterate locally instead of pushing, never run
 `scripts/install-void.sh` on a machine you care about — it installs
 packages, enables Void's nonfree repo, and changes your login shell and display manager.
-Use a disposable Fedora container:
+Use a disposable Void container — the same image CI uses:
 
 ```sh
-# podman (or toolbox, which wraps podman) — a throwaway Fedora userspace
-# sharing your kernel, cheap to create and destroy. `docker run` takes the
-# same arguments if that is what you have; the CI job's own body was first
-# exercised under docker, not podman.
-podman run --rm -it --hostname dots-test fedora:latest bash
+# docker or podman — a throwaway Void userspace sharing your kernel, cheap to
+# create and destroy. The CI jobs' bodies were first run this way (2026-10-15).
+docker run --rm -it --hostname dots-test ghcr.io/void-linux/void-glibc-full:latest sh
 
-# inside the container:
-dnf install -y git
+# inside the container (the image has no bash or git yet):
+xbps-install -Syu xbps && xbps-install -yu && xbps-install -y bash git
 git clone https://github.com/<you>/dots.git ~/dots
 cd ~/dots
-./scripts/install-void.sh --dry-run   # see the full plan first
-./scripts/install-void.sh             # then run it for real
-```
-
-Or, using `toolbox` on a Fedora host (keeps the container around as a
-named, reusable dev box instead of `--rm`-ing it):
-
-```sh
-toolbox create -i registry.fedoraproject.org/fedora:43 dots-test
-toolbox enter dots-test
-git clone https://github.com/<you>/dots.git ~/dots && cd ~/dots
-./scripts/install-void.sh --dry-run
+bash scripts/install-void.sh --dry-run   # see the full plan first
+bash scripts/install-void.sh             # then run it for real
 ```
 
 The same two caveats as the CI job apply, for the same reasons — see the
 table above — plus the absence of a real TTY. This flow validates package
 installation, symlinking, and the suckless build, not the graphical session.
-For that, use a Fedora VM (e.g. `virt-install`, GNOME Boxes, or a cloud
-Fedora Server instance) or real hardware. **That remains the one thing
-nothing in this repo has ever done.**
+For that, use a Void VM (e.g. `virt-install` from the Void live ISO) or real
+hardware — scope I's I-10. On Fedora a VM run was done (2026-10-05); on Void
+it has not been yet.

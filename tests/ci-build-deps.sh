@@ -2,14 +2,14 @@
 # Keeps .github/workflows/ci.yml's build-suckless "Install build dependencies"
 # step in lockstep with packages/build.lst.
 #
-# That step used to hardcode 12 dnf package names under a comment claiming to
+# That step used to hardcode 12 package names under a comment claiming to
 # match scripts/install-suckless.sh's install_deps() "exactly" — it didn't:
-# build.lst declares 13, and `patch` was the one silently missing. (It is not
-# a build step — CLAUDE.md rule 5 — but build.lst declares it.) The step now
-# parses packages/build.lst directly instead of restating it, and this test
-# proves that by running the step's own shell block — extracted from the YAML,
-# not retyped — against a shimmed `dnf` that records what it was asked to
-# install, rather than assuming the YAML says what it looks like it says.
+# build.lst declared 13, and `patch` was the one silently missing. The step
+# now parses packages/build.lst directly instead of restating it, and this
+# test proves that by running the step's own shell block — extracted from the
+# YAML, not retyped — against a shimmed `xbps-install` that records what it
+# was asked to install, rather than assuming the YAML says what it looks like
+# it says. (On Fedora the shim was dnf.)
 #
 # usage: tests/ci-build-deps.sh
 
@@ -55,34 +55,31 @@ if [[ -z "$BLOCK" ]]; then
 fi
 green "  ok: $(printf '%s\n' "$BLOCK" | wc -l) lines"
 
-blue "==> running it against a shimmed dnf"
+blue "==> running it against a shimmed xbps-install"
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
-CAPTURE="$SB/dnf-install-args"
+CAPTURE="$SB/xbps-install-args"
 
-cat >"$SB/dnf" <<'SHIM'
+cat >"$SB/xbps-install" <<'SHIM'
 #!/usr/bin/env bash
-# Records what "dnf install -y ..." was asked to install; no other subcommand
-# is used by the extracted block, so nothing else is handled.
-if [[ "${1:-}" == install ]]; then
-    shift
-    [[ "${1:-}" == -y ]] && shift
-    printf '%s\n' "$@" >"$DNF_CAPTURE"
-fi
+# Records what "xbps-install -y ..." was asked to install; that is the only
+# call the extracted block makes.
+[[ "${1:-}" == -y ]] && shift
+printf '%s\n' "$@" >"$XBPS_CAPTURE"
 SHIM
-chmod +x "$SB/dnf"
+chmod +x "$SB/xbps-install"
 
 printf '%s\n' "$BLOCK" >"$SB/block.sh"
 
 (
     cd "$DOTS_DIR"
     export PATH="$SB:$PATH"
-    export DNF_CAPTURE="$CAPTURE"
+    export XBPS_CAPTURE="$CAPTURE"
     bash "$SB/block.sh"
 )
 
 if [[ ! -f "$CAPTURE" ]]; then
-    red "  the block never called 'dnf install' — shim never triggered"
+    red "  the block never called 'xbps-install' — shim never triggered"
     exit 1
 fi
 

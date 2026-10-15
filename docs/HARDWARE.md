@@ -27,8 +27,8 @@ H.264 on the CPU. Void builds mesa with every codec (its template sets
 and nothing to swap.
 
 Microcode loads early, from the initramfs, so after installing it `dots
-drivers` rebuilds the running kernel's initramfs (`xbps-reconfigure -f
-linuxX.Y`); it takes effect at the next boot. `intel-ucode` is in the
+drivers` rebuilds the initramfs of every installed kernel package
+(`xbps-reconfigure -f linuxX.Y`); it takes effect at the next boot. `intel-ucode` is in the
 nonfree repository, which the installer enables; if nonfree is off, dots says
 so and installs nothing.
 

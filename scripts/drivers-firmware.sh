@@ -130,16 +130,25 @@ drivers_microcode() {
     drivers_initramfs
 }
 
-# drivers_initramfs — rebuild the running kernel's initramfs, so early
-# microcode is in it. The kernel package is linuxX.Y (Void's naming).
+# drivers_initramfs — rebuild the initramfs of every INSTALLED kernel package
+# (linuxX.Y, Void's naming), so early microcode is in whichever one boots.
+# Not `uname -r`: in a chroot or container (the CI image, 2026-10-15) the
+# running kernel is the host's, and its name matched no package here.
 drivers_initramfs() {
-    local kpkg
-    kpkg="linux$(uname -r | cut -d. -f1,2)"
-    if "${SUDO[@]}" xbps-reconfigure -f "$kpkg" >/dev/null 2>&1 </dev/null; then
-        green "  rebuilt the initramfs ($kpkg) — microcode loads from the next boot"
-    else
-        yellow "  could not rebuild the initramfs — run:  sudo xbps-reconfigure -f $kpkg"
+    local kpkgs k
+    mapfile -t kpkgs < <(xbps-query -l 2>/dev/null | awk '{print $2}' \
+        | sed 's/-[^-]*$//' | grep -E '^linux[0-9]+\.[0-9]+$' || true)
+    if [[ ${#kpkgs[@]} -eq 0 ]]; then
+        yellow "  no kernel package installed here (a container?) — no initramfs to rebuild"
+        return 0
     fi
+    for k in "${kpkgs[@]}"; do
+        if "${SUDO[@]}" xbps-reconfigure -f "$k" >/dev/null 2>&1 </dev/null; then
+            green "  rebuilt the initramfs ($k) — microcode loads from the next boot"
+        else
+            yellow "  could not rebuild the initramfs — run:  sudo xbps-reconfigure -f $k"
+        fi
+    done
 }
 
 # Installs the daemon only. Flashing firmware is never automatic: it can

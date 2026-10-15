@@ -3,11 +3,10 @@ name: install-container
 # Split out of ci.yml deliberately, for two reasons that are not the usual
 # "the file got long":
 #
-#   1. This job is the slowest in CI: ~3 minutes per matrix leg since
-#      install-pkg.sh runs one dnf transaction per tier (2026-10-14). At one
-#      transaction per package a leg took ~8 minutes here and a cold local run
-#      32. Its own workflow file lets it carry the `paths:` filter below, so
-#      a docs-only push does not pay for it.
+#   1. This job is the slowest in CI: a full system upgrade, ~100 packages,
+#      and ly built from source with a downloaded zig. Its own workflow file
+#      lets it carry the `paths:` filter below, so a docs-only push does not
+#      pay for it.
 #   2. It is the only job that MUTATES a system rather than inspecting one, so
 #      keeping it separate from the fast inspection jobs in ci.yml makes the
 #      distinction visible in the Actions list.
@@ -45,7 +44,7 @@ on:
       - 'VERSION'
       - '.github/workflows/install-container.yml'
   # So a full run can be triggered by hand after a docs-only change, or to
-  # re-check against a newly released Fedora without pushing anything.
+  # re-check against a newer Void image without pushing anything.
   workflow_dispatch:
 
 # Cancel superseded runs on the same ref so pushes don't queue stale CI.
@@ -59,43 +58,40 @@ jobs:
   # packages/*.lst resolves against enabled repos) and never invokes
   # scripts/install-void.sh at all; build-suckless compiles the C programs
   # without installing anything around them. Between them, "does a full
-  # install actually complete on a clean Fedora?" was unproven — which is why
+  # install actually complete on a clean Void?" was unproven — which is why
   # "run install-void.sh end-to-end" sat open in MASTER_PLAN.md from
   # 2026-08-04.
   #
-  # Deliberately slow and real: ~100 packages, a COPR, two git clones and five
-  # suckless builds. The failures it is here to catch are a stage that aborts
-  # and a package that resolves but does not install — neither is reachable
-  # from a lint or a dry run.
+  # Deliberately slow and real: a full upgrade, ~100 packages, the nonfree
+  # repo, two git clones, five suckless builds and ly built from source. The
+  # failures it is here to catch are a stage that aborts and a package that
+  # resolves but does not install — neither is reachable from a lint or a
+  # dry run.
   install-container:
-    name: install-container (${{ matrix.fedora }})
+    name: install-container (void-glibc)
     runs-on: ubuntu-latest
-    # Measured, not guessed: with one dnf transaction per tier, the legs of
-    # run a1f8054 took 2:38 (fedora:43) and 3:25 (fedora:latest); the last
-    # per-package CI legs took ~8 minutes. 20 is ~6x the slowest leg, so a slow
-    # mirror does not fail the job. A run that exceeds it has hung, not been
-    # slow. It was 90 while a leg could take half an hour.
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        # Same two images, same reasoning, and the same bump-don't-delete rule
-        # as the two container jobs in ci.yml. See build-suckless there for the
-        # full note on why an EOL pin breaks dnf rather than failing to pull.
-        fedora: ["fedora:latest", "fedora:43"]
+    # A full local run in this image took ~7 minutes (2026-10-15, docker on
+    # the dev host: bootstrap, then install-void.sh 16:30:37 -> 16:37:11, ly
+    # build included); 40 leaves room for a slow mirror and a slower runner.
+    # A run that exceeds it has hung, not been slow.
+    timeout-minutes: 40
+    # One leg: Void is rolling (see ci.yml's container jobs).
     container:
-      image: ${{ matrix.fedora }}
+      image: ghcr.io/void-linux/void-glibc-full:latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
+      # The image is bare (no bash, no git). The installer upgrades the
+      # system itself; this only makes checkout and `run:` possible.
+      - name: Bring the image up to date, add bash and git
+        shell: sh
+        run: |
+          xbps-install -Syu xbps
+          xbps-install -yu
+          xbps-install -y bash git
 
-      # See ci.yml's build-suckless job for the dnf4-vs-dnf5 cache-path caveat.
-      - name: Cache dnf metadata + packages
-        uses: actions/cache@v6.1.0
-        with:
-          path: /var/cache/dnf
-          key: dnf-install-${{ matrix.fedora }}-${{ hashFiles('packages/*.lst') }}
-          restore-keys: |
-            dnf-install-${{ matrix.fedora }}-
+      - uses: actions/checkout@v7
 
       # No --dry-run, no --skip-suckless: the point is the real thing. Runs as
       # root, so install-services.sh's SUDO array stays empty and install-pre's
@@ -109,11 +105,6 @@ jobs:
       # package failures from the installer's own closing summary. A hardcoded
       # copy of any of them would be one more enumeration to go stale — this
       # repo has been bitten by that three separate times.
-      # The effect, not the file: dnf itself must report the drop-in's floor
-      # (config/dnf/30-dots-speed.conf, minrate=20k).
-      - name: Assert dnf reads the speed drop-in
-        run: dnf --dump-main-config | grep -qx 'minrate = 20480'
-
       - name: Assert the install actually landed
         run: |
           fail=0
@@ -192,11 +183,11 @@ jobs:
           # only check that covers the login-shell path — and that path is exactly
           # where the `$USER: unbound variable` bug lived, so leaving it
           # unasserted would let the same class of regression ship green.
-          # The directory is resolved physically, as the script does: root's
-          # PATH puts /usr/sbin first, and since f42 that is a symlink to
-          # /usr/bin, so `command -v` alone answers /usr/sbin/zsh — the
-          # spelling the 2026-10-05 VM install recorded. Comparing against the
-          # resolved path makes this the regression guard for that fix too.
+          # The directory is resolved physically, as the script does: a PATH
+          # with /usr/sbin first finds zsh through the /usr/sbin -> /usr/bin
+          # link (Fedora 42+; Void merges /usr/sbin the same way), and that
+          # spelling once went into passwd. Comparing against the resolved path
+          # makes this the regression guard for that fix too.
           zsh_bin="$(command -v zsh || true)"
           [ -n "$zsh_bin" ] && zsh_bin="$(cd "$(dirname "$zsh_bin")" && pwd -P)/zsh"
           current_shell="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f7 || true)"
@@ -209,33 +200,56 @@ jobs:
           fi
           echo "::endgroup::"
 
-          echo "::group::display manager enabled"
-          # A SERVICE row exists only if `systemctl enable` actually returned 0.
-          # `systemctl enable` on a templated unit is offline symlink creation,
-          # so it works in a container — which makes this the direct regression
-          # guard for the bug this job found on its first run: install-services.sh
-          # enabled `ly.service`, which does not exist (ly ships `ly@.service`),
-          # so no display manager had ever been enabled on any machine. Asserting
-          # the ROW rather than the unit NAME keeps the TTY choice out of CI.
+          echo "::group::runit services enabled"
+          # Enabling a runit service is a symlink, so it works in a container
+          # with nothing running. The container's /var/service dangles (it
+          # points into /run, which only a booted system has), so the installer
+          # links into the default runsvdir instead; every SERVICE row must be
+          # a link there. ly must be among them, or no display manager is
+          # enabled — the bug the Fedora version of this job found on its first
+          # run (a unit name that did not exist).
           manifest="${XDG_STATE_HOME:-$HOME/.local/state}/dots/manifest"
-          if grep -q '^SERVICE' "$manifest" 2>/dev/null; then
-            # Process substitution, not `grep | while`: a pipeline runs the loop
-            # in a subshell, so any note() inside it would set fail=1 in a copy
-            # and the job would go green on a real finding. Every other loop in
-            # this step avoids the same trap.
-            while IFS="$(printf '\t')" read -r _t unit; do
-              echo "OK: enabled $unit"
-            done < <(grep '^SERVICE' "$manifest")
+          rundir=/etc/runit/runsvdir/default
+          n=0
+          # Process substitution, not `grep | while`: a pipeline runs the loop
+          # in a subshell, so any note() inside it would set fail=1 in a copy
+          # and the job would go green on a real finding.
+          while IFS="$(printf '\t')" read -r _t name; do
+            n=$((n + 1))
+            if [ -L "$rundir/$name" ]; then
+              echo "OK: $name linked in $rundir"
+            else
+              note "SERVICE row for $name, but no link in $rundir"
+            fi
+          # The tab matters: '^SERVICE' alone also matches SERVICEOFF rows,
+          # the services dots deliberately UNlinked (tty2's getty).
+          done < <(grep "^SERVICE$(printf '\t')" "$manifest" 2>/dev/null || true)
+          [ "$n" -gt 0 ] || note "no SERVICE row in the manifest — no runit service was enabled"
+          grep -qx "$(printf 'SERVICE\tly')" "$manifest" 2>/dev/null || note "ly was not enabled (no SERVICE row for it)"
+          echo "::endgroup::"
+
+          echo "::group::ly built from source"
+          # The pinned build (scripts/install-services-ly.sh): every staged
+          # file recorded and present, /usr/bin/ly among them.
+          n=0
+          while IFS="$(printf '\t')" read -r _t _k path; do
+            n=$((n + 1))
+            [ -e "$path" ] || [ -L "$path" ] || note "LYBUILD row for $path, but it is not there"
+          done < <(grep '^LYBUILD' "$manifest" 2>/dev/null || true)
+          if [ "$n" -gt 0 ] && [ -x /usr/bin/ly ]; then
+            echo "OK: ly built and installed ($n files)"
           else
-            note "no SERVICE row in the manifest — systemctl enable never succeeded (wrong unit name?)"
+            note "ly was not built (no LYBUILD rows, or no /usr/bin/ly)"
           fi
           echo "::endgroup::"
 
           echo "::group::ly login screen themed"
           # The services stage runs scripts/theme/ly-theme.sh after enabling ly.
-          # This is the only place it writes the REAL /etc/ly/config.ini of a
-          # real ly package; tests/ly-theme.sh covers it against a fixture.
-          if grep -q '^LY' "$manifest" 2>/dev/null && grep -qx 'bigclock = en' /etc/ly/config.ini; then
+          # This is the only place it writes the REAL /etc/ly/config.ini of the
+          # ly it built; tests/ly-theme.sh covers it against a fixture.
+          # Tab-anchored: '^LY' alone also matches the LYBUILD rows, and would
+          # pass with no theme row at all.
+          if grep -q "^LY$(printf '\t')" "$manifest" 2>/dev/null && grep -qx 'bigclock = en' /etc/ly/config.ini; then
             echo "OK: /etc/ly/config.ini themed, LY row recorded"
           else
             note "ly config not themed (no LY row, or no 'bigclock = en' in /etc/ly/config.ini)"
@@ -269,26 +283,25 @@ jobs:
           echo "::warning::NOT COVERED by this job — needs real hardware or a VM"
           cat <<'EOF'
           ┌─ COVERED, with a caveat ────────────────────────────────────┐
-          usermod -s <zsh> <user>
-              Works here, and is asserted above by comparing getent's
-              shell field against `command -v zsh`. But the job runs as
-              ROOT, where SUDO is empty and nothing asks for a password —
-              which is how the old `chsh -s` passed here for months while
+          usermod -s <zsh> <user>, usermod -aG <groups>
+              Work here, and the shell is asserted above. But the job runs
+              as ROOT, where SUDO is empty and nothing asks for a password
+              — which is how the old `chsh -s` passed here for months while
               failing silently for every real (non-root) user (first VM
-              install, 2026-10-05). The sudo path is NOT proved here, nor
-              that a real login then starts zsh.
+              install, 2026-10-05). The sudo path and the wheel check are
+              NOT proved here, nor that a real login then starts zsh.
 
-          systemctl enable ly@<tty>.service
-              Also works here, and is asserted above: enabling a unit is
-              offline symlink creation, which needs the unit FILE, not a
-              running systemd. That is precisely why it catches a wrong
-              unit name — the failure this job found on its first run.
+          runit service links (dbus, elogind, NetworkManager, ly, ...)
+              Asserted above: enabling is a symlink, which needs the
+              service DIRECTORY, not a running runit. In the container they
+              go to the default runsvdir, since /var/service dangles.
           └─────────────────────────────────────────────────────────────┘
           ┌─ NOT COVERED ───────────────────────────────────────────────┐
-          ly actually running
-              Enabling is not starting. Whether ly presents a working
-              greeter on tty2, hands off to the session, and releases the
-              TTY from getty is a VM/hardware question entirely.
+          Any service actually running
+              Linking is not starting. Whether runit brings up dbus and
+              elogind, whether ly presents a working greeter on tty2 and
+              hands off to the session, and whether NetworkManager takes
+              the network over from dhcpcd is a VM/hardware question.
 
           Anything graphical
               No display server exists here. dwm/st/dmenu/dwmblocks/slock

@@ -96,50 +96,43 @@ jobs:
       - name: Run repo tests
         run: tests/run-tests.sh
 
+  # The two container jobs below run in Void's own image. One leg, not a
+  # matrix: Void is rolling, so there is no "oldest supported release" to pin
+  # beside latest (the Fedora jobs had fedora:latest + the oldest supported).
+  #
+  # The image is bare (checked 2026-10-15: 64 packages, no bash, no git), so
+  # each job starts with a step under plain sh that does what the installer
+  # does first — sync, update xbps, full upgrade (Void has no partial
+  # upgrades) — and adds bash and git, which actions/checkout and every later
+  # `run:` need.
   build-suckless:
-    name: build-suckless (${{ matrix.fedora }})
+    name: build-suckless (void-glibc)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Two images on purpose: `latest` catches "broken on the newest
-        # Fedora", the pinned one catches "only works on the newest Fedora".
-        # The pin must therefore track the OLDEST SUPPORTED release.
-        #
-        # An EOL pin does not fail by vanishing — Docker Hub still carries
-        # `fedora:41` long after 41 died. It fails because an EOL release's
-        # repos move to the archive mirrors, so every `dnf` call in these two
-        # jobs starts erroring while the image itself still pulls fine. That is
-        # the failure to expect here, and it is why `fedora:41` sat in this
-        # matrix through both 41 and 42 going EOL without anyone noticing.
-        # Bump this on each Fedora release; do not delete it.
-        fedora: ["fedora:latest", "fedora:43"]
     container:
-      image: ${{ matrix.fedora }}
+      image: ghcr.io/void-linux/void-glibc-full:latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - name: Bring the image up to date, add bash and git
+        shell: sh
+        run: |
+          xbps-install -Syu xbps
+          xbps-install -yu
+          xbps-install -y bash git
 
-      # /var/cache/dnf is dnf4's cache path. Fedora releases that default to
-      # dnf5 (a different cache layout under /var/cache/libdnf5) simply get
-      # no cache hit here — harmless, just a slower cold run on that image.
-      - name: Cache dnf metadata + packages
-        uses: actions/cache@v6.1.0
-        with:
-          path: /var/cache/dnf
-          key: dnf-build-${{ matrix.fedora }}-${{ hashFiles('scripts/install-suckless.sh') }}
-          restore-keys: |
-            dnf-build-${{ matrix.fedora }}-
+      - uses: actions/checkout@v7
 
       - name: Install build dependencies
         run: |
           # Reads packages/build.lst instead of restating its names — same
           # parsing as read_pkg_list() in scripts/install-suckless.sh /
           # scripts/install-pkg-tiers.sh / tests/pkglist.sh (CLAUDE.md rule
-          # 10). tests/ci-build-deps.sh shims dnf and asserts this step
-          # installs exactly what build.lst declares, so this can't drift
+          # 10). tests/ci-build-deps.sh shims xbps-install and asserts this
+          # step installs exactly what build.lst declares, so this can't drift
           # back into a hardcoded list unnoticed.
           mapfile -t pkgs < <(sed 's/#.*//' packages/build.lst | tr -s '[:space:]' '\n' | grep -v '^$')
-          dnf install -y "${pkgs[@]}"
+          xbps-install -y "${pkgs[@]}"
 
       # tests/build.sh owns the program list and the make invocation. It
       # deliberately does not install build dependencies — that is the step
@@ -148,80 +141,56 @@ jobs:
         run: bash tests/build.sh
 
       # tests/bidi.sh compiles the bidi() helpers out of the shipped dwm.c and
-      # dmenu.c against fribidi (fribidi-devel came in with build.lst above)
-      # under AddressSanitizer. libasan is NOT in build.lst — gcc does not
-      # pull it in, and a real build never needs it. --strict makes a missing
-      # compiler, header or ASan runtime a failure; the tests job, which has
-      # none of them, skips the script instead.
+      # dmenu.c against fribidi (from build.lst above) under AddressSanitizer.
+      # The ASan runtime is NOT in build.lst — a real build never needs it.
+      # On Void it is libsanitizer-devel. --strict makes a missing compiler,
+      # header or ASan runtime a failure; the tests job, which has none of
+      # them, skips the script instead.
       - name: Install the ASan runtime for tests/bidi.sh
-        run: dnf install -y libasan
+        run: xbps-install -y libsanitizer-devel
 
       - name: Check the fribidi patches' bidi() under ASan
         run: bash tests/bidi.sh --strict
 
       # Deliberately NOT in packages/build.lst: these back tests/dwm-runtime.sh
-      # (scope-d slot C) only, and a real install never needs a virtual
-      # framebuffer, xdotool, or ImageMagick. build.lst is what
-      # install-suckless.sh reads for actual builds — mixing CI-only test
-      # tooling into it would mean a standalone build pulling in packages
-      # with no purpose outside this job, the same reasoning the "Install
-      # linters" step above already follows.
+      # only, and a real install never needs a virtual framebuffer, xdotool,
+      # or ImageMagick. Void names (checked against the repo index).
       - name: Install dwm-runtime.sh test dependencies
-        run: dnf install -y xorg-x11-server-Xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng
+        run: xbps-install -y xorg-server-xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng
 
-      # First-ever execution of the built dwm binary by this test suite.
       # Asserts real EWMH state plus xresources/actualfullscreen/pertag/
       # restartsig patch behaviour under Xvfb, every check a hard failure.
-      # Skips loudly (not a failure) if any of the tools above are somehow
-      # still missing. procps-ng is for its cleanup's pkill: without it the
-      # EXIT trap's "command not found" failed this step from 2026-09-08 to
-      # 2026-10-06 although every check passed.
       - name: Run dwm under Xvfb
         run: bash tests/dwm-runtime.sh
 
-  install-dry-run:
-    name: install-dry-run (${{ matrix.fedora }})
+  # The installer's INPUTS against the live repos. tests/void-pkgnames.sh
+  # (in the tests job) checks the same names offline against a committed
+  # snapshot of the index; this job is what notices the snapshot going stale,
+  # because Void renames and drops packages as it rolls. A failure here means
+  # a list needs fixing, then `tests/void-pkgnames.sh --refresh`.
+  package-names:
+    name: package-names (void-glibc, live index)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Two images on purpose: `latest` catches "broken on the newest
-        # Fedora", the pinned one catches "only works on the newest Fedora".
-        # The pin must therefore track the OLDEST SUPPORTED release.
-        #
-        # An EOL pin does not fail by vanishing — Docker Hub still carries
-        # `fedora:41` long after 41 died. It fails because an EOL release's
-        # repos move to the archive mirrors, so every `dnf` call in these two
-        # jobs starts erroring while the image itself still pulls fine. That is
-        # the failure to expect here, and it is why `fedora:41` sat in this
-        # matrix through both 41 and 42 going EOL without anyone noticing.
-        # Bump this on each Fedora release; do not delete it.
-        fedora: ["fedora:latest", "fedora:43"]
     container:
-      image: ${{ matrix.fedora }}
+      image: ghcr.io/void-linux/void-glibc-full:latest
+    defaults:
+      run:
+        shell: bash
     steps:
+      - name: Sync the repo index, add bash and git
+        shell: sh
+        run: |
+          xbps-install -Syu xbps
+          xbps-install -y bash git
+
       - uses: actions/checkout@v7
 
-      # See the build-suckless job for the dnf4-vs-dnf5 cache-path caveat.
-      - name: Cache dnf metadata
-        uses: actions/cache@v6.1.0
-        with:
-          path: /var/cache/dnf
-          key: dnf-pkglist-${{ matrix.fedora }}-${{ hashFiles('packages/*.lst') }}
-          restore-keys: |
-            dnf-pkglist-${{ matrix.fedora }}-
-
-      - name: Validate packages/*.lst against enabled repos
+      - name: Every packages/*.lst name is in Void's main repo
         run: |
           # Same comment/blank-line stripping as read_pkg_list() in
-          # scripts/install-pkg-tiers.sh, so this validates exactly what the
-          # installer will try to install.
-          #
-          # Globs rather than naming the lists: the repo has four tiers
-          # (core, build, desktop, extra) and a named loop silently stops
-          # covering whichever one is added next. build.lst is included even
-          # though install-suckless.sh installs it rather than install-pkg.sh
-          # — a renamed -devel header breaks the build just as hard.
+          # scripts/install-pkg-tiers.sh. Globs the lists, never names them
+          # (CLAUDE.md rule 10). Main only: the package stages run before the
+          # repos step enables nonfree.
           fail=0
           shopt -s nullglob
           lists=(packages/*.lst)
@@ -229,14 +198,13 @@ jobs:
             echo "::error::no packages/*.lst found"
             exit 1
           fi
-          echo "validating ${#lists[@]} package lists"
           for list in "${lists[@]}"; do
             echo "::group::$list"
             while IFS= read -r pkg; do
-              if dnf list --available "$pkg" >/dev/null 2>&1; then
+              if xbps-query -R "$pkg" >/dev/null 2>&1; then
                 echo "OK: $pkg"
               else
-                echo "::error file=$list::unknown package: $pkg"
+                echo "::error file=$list::not in Void's main repo: $pkg"
                 fail=1
               fi
             done < <(sed 's/#.*//' "$list" | tr -s '[:space:]' '\n' | grep -v '^$')
