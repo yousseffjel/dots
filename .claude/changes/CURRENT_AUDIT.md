@@ -2337,3 +2337,17 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   + rebuilt dmenu under Xvfb; reviewer WARN (stray pid file, removed), READY.
 - **Not verified:** live desktop, the F44 VM, a real app's link. Next release
   migration must refresh an unedited `blocks.h` (bell interval 0 → 5).
+
+## 2026-10-15 — dunst-keep-state (1 slot)
+
+- **`dunst-keep-state`** (`c51a26e`, fast-forward): the theming engine killed
+  dunst on every theme apply, so each wallpaper change emptied the
+  notification centre and ended focus mode. `reload_dunst` (now
+  `scripts/theme/reload-dunst.sh`, sourced) runs `dunstctl reload` and puts
+  the pause level back (reload resets it); dunst.dcol post-command → `true`.
+  `[dots_osd]` rule (`history_ignore`) in dunst.dcol + static dunstrc keeps
+  dwm-osd pop-ups out of history.
+- `tests/dunst-reload.sh` incl. a real-dunst private-bus run; 8 mutations
+  caught; suite 74 OK + 1 SKIP; lint ✓; reviewer READY.
+- **Not verified:** on the VM (root cause inferred from the update log and
+  probes; ssh agent was down).

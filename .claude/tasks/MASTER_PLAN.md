@@ -76,6 +76,11 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-15 — **ad-hoc: `dunst-keep-state`** (`c51a26e`, ff). Found on the VM
+  right after notify-center: a theme apply restarted dunst (empty history,
+  focus mode off). Now `dunstctl reload` with the pause level restored, and
+  OSD pop-ups kept out of history. **Not verified:** on the VM.
+
 - 2026-10-15 — **ad-hoc: `notify-center`** (`34facae`, ff) + `xdg-utils-desktop`
   (`6460356`). Notification centre (dmenu, top-right via a local xyw patch:
   open / delete / clear all) and an always-visible bell/FOCUS button.
