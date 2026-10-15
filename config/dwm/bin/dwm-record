@@ -13,9 +13,9 @@
 #   dwm-record --full     start full-screen, or stop if running
 #   dwm-record --region   start region, or stop if running
 #
-# Video only, VP9 in WebM. Fedora's ffmpeg-free carries no H.264 encoder
-# (patents), but it is built with x11grab (libxcb) and libvpx. RPM Fusion's
-# ffmpeg works the same way here. The encoder runs at libvpx's realtime
+# Video only, VP9 in WebM. Chosen when Fedora's ffmpeg-free had no H.264
+# encoder; Void's ffmpeg6 has x11grab (libxcb) and libvpx too (its
+# configure line, 6.1.6_3), so the same command works unchanged. The encoder runs at libvpx's realtime
 # speed so recording does not lag on a modest CPU.
 #
 # Stopping sends SIGINT, not SIGTERM: that is ffmpeg's "q" — it finishes the

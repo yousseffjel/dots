@@ -142,9 +142,9 @@ if ! pgrep -x dwmblocks >/dev/null 2>&1; then
 	dwmblocks &
 fi
 
-# Clipboard history for dwm-clipmenu (Super+v) — only present if clipmenu's
-# COPR was enabled (Fedora, via install-void.sh). Silently skipped
-# elsewhere so this line is harmless on distros without it wired up yet.
+# Clipboard history for dwm-clipmenu (Super+v) — clipmenu is in
+# packages/desktop.lst. Silently skipped when it is not installed, so this
+# line is harmless if that package failed.
 if command -v clipmenud >/dev/null 2>&1 && ! pgrep -x clipmenud >/dev/null 2>&1; then
 	clipmenud &
 fi

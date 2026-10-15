@@ -7,7 +7,7 @@
 #
 # Where each .desktop comes from (tests/default-apps.sh checks every one):
 #   firefox, thunar, file-roller, mpv  packages/desktop.lst or extra.lst
-#   sublime_text                       Sublime HQ's repo (install-pkg-repos.sh)
+#   sublime_text                       sublime-text4, Void nonfree (install-pkg-repos.sh)
 #   nsxiv                              built from suckless/nsxiv
 #   dots-nvim                          shipped in config/applications/
 # A name pointing at an app that is not installed is ignored, not an error:
@@ -87,7 +87,7 @@ audio/x-ms-wma=mpv.desktop
 audio/x-aiff=mpv.desktop
 
 # Archives -> file-roller, which shells out to unar for RAR (locked
-# decision 8: unar is in Fedora proper, unrar is RPM Fusion nonfree).
+# decision 8: unar is in Void's main repo, unrar only in nonfree).
 application/zip=org.gnome.FileRoller.desktop
 application/x-7z-compressed=org.gnome.FileRoller.desktop
 application/vnd.rar=org.gnome.FileRoller.desktop
@@ -103,7 +103,7 @@ application/zstd=org.gnome.FileRoller.desktop
 
 # Text and code -> Sublime Text. nvim (dots-nvim.desktop, in alacritty) is
 # listed second for every type, here and in [Added Associations], so it is
-# one Open With away and GIO falls back to it when sublime-text is missing.
+# one Open With away and GIO falls back to it when sublime-text4 is missing.
 text/plain=sublime_text.desktop;dots-nvim.desktop;
 text/markdown=sublime_text.desktop;dots-nvim.desktop;
 text/csv=sublime_text.desktop;dots-nvim.desktop;

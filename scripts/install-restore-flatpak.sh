@@ -25,9 +25,8 @@
 #   * fonts — Flatpak itself binds the host's system and user font directories
 #     into every sandbox (/run/host/fonts, /run/host/user-fonts).
 
-# Rule 4 exception, explicitly authorised by the user (2026-10-06) — the second
-# after the clipmenu COPR in install-pkg.sh. Flathub is where nearly every
-# desktop Flatpak lives; Fedora's own remote carries a small subset.
+# Rule 4 exception, explicitly authorised by the user (2026-10-06). Flathub is
+# where nearly every desktop Flatpak lives; Void ships no remote of its own.
 FLATHUB_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
 
 # The literal "~" is flatpak's own syntax for $HOME, not a shell path.

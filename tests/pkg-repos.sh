@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
-# Exercises scripts/install-pkg-repos.sh and scripts/uninstall-repos.sh — the
-# Sublime HQ repo, RPM Fusion and the ffmpeg swap — against fake rpm, dnf and
-# uname on a sealed PATH. The fakes keep a package database in a file, so the
-# install and the uninstall act on the same simulated system.
+# Exercises the repos step (scripts/install-pkg-repos.sh) and its revert
+# (scripts/uninstall-repos.sh) against fake xbps-query, xbps-install,
+# xbps-remove and xbps-uhelper on a sealed PATH. On Void that step is one
+# repository: the official nonfree repo, for sublime-text4.
+#
+# The fakes reproduce xbps-static 0.60.7, probed in a scratch root against
+# the live repos (2026-10-15):
+#   * installing void-repo-nonfree only adds a repo config; the nonfree index
+#     is fetched by the NEXT `xbps-install -S`, so until then nothing from it
+#     resolves;
+#   * `xbps-query -L` prints "<count> <url> (RSA signed)" per synced repo;
+#   * `xbps-query -i --repository=<url> -Rs ''` lists that repo only, "[*]"
+#     marking installed packages and "[-]" the rest.
 #
 # What is asserted:
-#   * a fresh install adds the Sublime repo file, both RPM Fusion release
-#     packages, swaps ffmpeg-free for ffmpeg, installs sublime-text, runs
-#     the drivers step (intel-media-driver for the fixture's Intel GPU — the
-#     per-device logic is tests/drivers.sh's job), and writes one REPO row
-#     per change it made;
-#   * a re-run changes nothing: no second swap, no new rows;
-#   * a repo that already existed gets no REPO row, so uninstall leaves it;
-#   * an arch Sublime HQ does not publish for skips Sublime and nothing else;
-#   * a failed repo add is reported in FAILED_EXTRA, with no REPO row;
-#   * uninstall swaps ffmpeg back BEFORE packages go, then removes the repo
-#     file and the release packages once nothing installed comes from them;
-#   * a package of yours from rpmfusion-nonfree-updates keeps BOTH releases
-#     (nonfree's release requires free's), and a sublime-text that is still
-#     installed keeps the repo file;
-#   * when dnf repoquery itself fails, RPM Fusion is kept (fails closed).
+#   * a fresh run enables nonfree, re-syncs, installs sublime-text4, and
+#     writes one REPO row plus one PACKAGE row;
+#   * a re-run changes nothing: no install, no sync, no new rows;
+#   * nonfree already enabled by the user: no REPO row (uninstall must not
+#     remove what it did not add);
+#   * enabling fails: sublime is not attempted, the failure is summarised;
+#   * not glibc x86_64: skipped with the nvim fallback named;
+#   * --dry-run: no xbps-install at all;
+#   * uninstall keeps nonfree while a nonfree package is installed, removes
+#     it once none is, and leaves a repo it never added alone.
 
-# The predicates below are called only through check's "$@", which shellcheck
-# cannot follow. Both codes, as in tests/autostart-daemons.sh: the finding was
-# SC2317 before shellcheck 0.10.0 and SC2329 after.
+# The predicates are only called through check's "$@". Both codes: SC2317
+# for older shellcheck, SC2329 since 0.10.0 renamed it (tests/linter-pins.sh).
 # shellcheck disable=SC2317,SC2329
 
 set -euo pipefail
@@ -31,70 +34,57 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# No red/green/blue of its own (CLAUDE.md rule 2): it sources global_fn.sh,
-# and then replaces those with plain ones below, so the scripts' output can
-# be matched without colour codes. Same exemption as tests/manifest-has-path.sh.
-
 # shellcheck source=lib/sealed-path.sh
 source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
-export DB="$SB/rpmdb" LOG="$SB/calls.log" SUBLIME_REPO_FILE="$SB/yum.repos.d/sublime-text.repo"
-mkdir -p "$SB/yum.repos.d"
+# All four XDG variables: HOME alone leaks into the real install manifest.
+export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
+    XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache" \
+    DB="$SB/pkgdb" LOG="$SB/calls.log" CONF="$SB/nonfree.conf" SYNCED="$SB/nonfree.synced"
+NONFREE_URL=https://repo-default.voidlinux.org/current/nonfree
+export NONFREE_URL
 
-seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail cut sort cat wc basename tr \
-    dirname readlink head od
+seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk tee mktemp readlink dirname
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
-    fake "$SB/bin" uname 'echo "${FAKE_ARCH:-x86_64}"'
-    fake "$SB/bin" rpm 'echo "rpm $*" >>"$LOG"
+    fake "$SB/bin" xbps-uhelper '[[ "$1" == arch ]] && echo "${FAKE_ARCH:-x86_64}"'
+    # The nonfree packages a synced index offers.
+    fake "$SB/bin" xbps-query 'nf="sublime-text4 unrar"
 case "$1" in
--q) grep -q "^$2 " "$DB" ;;
--E) echo 43 ;;
---import) exit 0 ;;
-esac'
-    fake "$SB/bin" dnf 'echo "dnf $*" >>"$LOG"
-add() { echo "$1 ${2:-fedora}" >>"$DB"; }
-del() { grep -v "^$1 " "$DB" >"$DB.new" || true; mv "$DB.new" "$DB"; }
+-L) [[ -n "${FAKE_L_FAIL:-}" ]] && exit 1
+    echo "14823 https://repo-default.voidlinux.org/current (RSA signed)"
+    [[ -e "$SYNCED" ]] && echo "   67 $NONFREE_URL (RSA signed)"; exit 0 ;;
+-i) [[ "$2" == "--repository=$NONFREE_URL" && -e "$SYNCED" ]] || exit 2
+    for p in $nf; do grep -qx "$p" "$DB" && echo "[*] $p-1_1" || echo "[-] $p-1_1"; done; exit 0 ;;
+-R) [[ " $nf " == *" $2 "* ]] && { [[ -e "$SYNCED" ]]; exit $?; }; exit 0 ;;
+esac
+grep -qx "$1" "$DB" || exit 2; echo "$1-1_1"'
+    fake "$SB/bin" xbps-install 'echo "xbps-install $*" >>"$LOG"
 case "$1" in
-install)
-    p="${3##*/}"; p="${p%-43.noarch.rpm}"
-    [[ " ${FAKE_FAIL:-} " == *" $p "* ]] && exit 1
-    grep -q "^$p " "$DB" || add "$p" "${p%-release}" ;;
-config-manager)
-    [[ " ${FAKE_FAIL:-} " == *" addrepo "* ]] && exit 1
-    touch "$SUBLIME_REPO_FILE" ;;
-swap) del "$3"; if [[ "$4" == ffmpeg ]]; then add "$4" rpmfusion-free; else add "$4"; fi ;;
-remove) shift 2; for p in "$@"; do del "$p"; done ;;
-repoquery)
-    [[ " ${FAKE_FAIL:-} " == *" repoquery "* ]] && exit 1
-    cat "$DB" ;;
-copr)
-    # `dnf copr list` prints each enabled COPR as host/owner/project.
-    if [[ "$2" == list ]]; then cat "$DB.copr" 2>/dev/null; exit 0; fi
-    [[ " ${FAKE_FAIL:-} " == *" copr "* ]] && exit 1
-    echo "copr.fedorainfracloud.org/$4" >>"$DB.copr" ;;
-esac'
+-S) [[ -e "$CONF" ]] && touch "$SYNCED"; exit 0 ;;
+-y) shift
+    for p in "$@"; do
+        [[ "$p" == void-repo-nonfree && -n "${FAKE_NONFREE_FAIL:-}" ]] && { echo "ERROR: [trans] failed to download" >&2; exit 1; }
+        [[ "$p" == sublime-text4 && ! -e "$SYNCED" ]] && { echo "ERROR: Package '"'"'$p'"'"' not found in repository pool." >&2; exit 2; }
+    done
+    for p in "$@"; do echo "$p" >>"$DB"; [[ "$p" == void-repo-nonfree ]] && touch "$CONF"; done; exit 0 ;;
+esac; exit 1'
+    fake "$SB/bin" xbps-remove 'echo "xbps-remove $*" >>"$LOG"; shift
+for p in "$@"; do grep -qx "$p" "$DB" || exit 2; sed -i "/^$p\$/d" "$DB"
+    [[ "$p" == void-repo-nonfree ]] && rm -f "$CONF" "$SYNCED"; done'
 }
 PATH="$SB/bin"
-# The drivers step reads this machine instead of the real one: one Intel GPU,
-# in a VM (so no microcode or fwupd), with a clean kernel log.
-mkdir -p "$SB/sys/bus/pci/devices/0000:00:02.0"
-printf '%s\n' 0x030000 >"$SB/sys/bus/pci/devices/0000:00:02.0/class"
-printf '%s\n' 0x8086 >"$SB/sys/bus/pci/devices/0000:00:02.0/vendor"
-printf '%s\n' 0x9a49 >"$SB/sys/bus/pci/devices/0000:00:02.0/device"
-: >"$SB/kmsg"
-export DOTS_SYSFS="$SB/sys" DOTS_VIRT=kvm DOTS_KERNEL_LOG="$SB/kmsg"
-export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
-    XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache"
 
+# No red/green/blue of its own (CLAUDE.md rule 2): it sources global_fn.sh,
+# then replaces them with plain ones so output is greppable.
 # shellcheck source=../scripts/global_fn.sh
 source "$DOTS_DIR/scripts/global_fn.sh"
-red() { printf '%s\n' "$*"; }
-green() { red "$@"; }
-yellow() { red "$@"; }
-blue() { red "$@"; }
+red() { printf 'RED %s\n' "$*"; }
+green() { printf '%s\n' "$*"; }
+yellow() { green "$@"; }
+blue() { green "$@"; }
 # install-pkg.sh sources the tier machinery (CONSEQUENCE, FAILED_*) first;
 # the repos step writes into it.
 PACKAGES_DIR="$SB"
@@ -104,7 +94,9 @@ source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
 source "$DOTS_DIR/scripts/install-pkg-repos.sh"
 # shellcheck source=../scripts/uninstall-repos.sh
 source "$DOTS_DIR/scripts/uninstall-repos.sh"
-DRY_RUN=0 SUDO=() ASSUME_YES=1
+# The drivers are their own test (tests/drivers.sh); here they only must run.
+drivers_install() { echo "drivers_install" >>"$LOG"; }
+SUDO=() DRY_RUN=0 ASSUME_YES=1
 
 FAILS=0
 check() {
@@ -115,136 +107,97 @@ check() {
         FAILS=$((FAILS + 1))
     fi
 }
-has() { grep -q "^$1 " "$DB"; }
+said() { grep -qF -- "$1" "$SB/out"; }
+logged() { grep -qxF -- "$1" "$LOG"; }
+not_logged() { ! grep -qF -- "$1" "$LOG"; }
+has() { grep -qx "$1" "$DB"; }
 lacks() { ! has "$1"; }
-rows() { manifest_rows REPO | wc -l; }
-# Captured first: `manifest_rows | grep -q` under pipefail can report a match
-# as a failure (SIGPIPE, 141), which `!` would turn into a false pass.
-no_row_kind() {
-    local kinds
-    kinds="$(manifest_rows REPO | cut -f2)"
-    ! grep -qx "$1" <<<"$kinds"
+rows() { manifest_rows "$1" | wc -l; }
+fresh() {
+    rm -rf "$SB/state" "$CONF" "$SYNCED"
+    printf '%s\n' "$@" >"$DB"
+    : >"$LOG"
+    FAILED_EXTRA=()
 }
-logged() { grep -q -- "$1" "$LOG"; }
-not_logged() { ! logged "$1"; }
-# in_list <word> <list...> — FAILED_EXTRA membership.
-in_list() {
-    local want="$1"
-    shift
-    [[ " $* " == *" $want "* ]]
-}
-# reset <package>... — a system with only these installed and no manifest.
-reset() {
-    rm -rf "$SB/state" "$SUBLIME_REPO_FILE" "$LOG" "$DB.copr"
-    : >"$DB"
-    for p in "$@"; do echo "$p fedora" >>"$DB"; done
-    touch "$LOG"
-    FAILED_EXTRA=() FAILED_DESKTOP=()
-}
-# What uninstall_packages would do: dnf remove every PACKAGE row.
-remove_our_packages() {
-    local p
-    while read -r p; do
-        grep -v "^$p " "$DB" >"$DB.new" || true
-        mv "$DB.new" "$DB"
-    done \
-        < <(manifest_rows PACKAGE | cut -f2)
-}
+: >"$SB/stdin"
+install_run() { repos_install >"$SB/out" 2>&1 <"$SB/stdin"; }
+uninstall_run() { uninstall_repos >"$SB/out" 2>&1 <"$SB/stdin"; }
 
-blue "==> fresh install"
-reset ffmpeg-free
-repos_install >/dev/null
-check "Sublime repo file added" test -e "$SUBLIME_REPO_FILE"
-check "sublime-text installed" has sublime-text
-check "rpmfusion-free-release installed" has rpmfusion-free-release
-check "rpmfusion-nonfree-release installed" has rpmfusion-nonfree-release
-check "ffmpeg-free swapped out" lacks ffmpeg-free
-check "ffmpeg swapped in" has ffmpeg
-check "intel-media-driver installed" has intel-media-driver
-check "four REPO rows (file, two releases, swap)" test "$(rows)" -eq 4
-check "PACKAGE rows for clipmenu, clipnotify, sublime-text, intel-media-driver" \
-    test "$(manifest_rows PACKAGE | cut -f2 | sort | tr '\n' ' ')" = "clipmenu clipnotify intel-media-driver sublime-text "
-check "the clipmenu COPR was enabled" logged "dnf copr enable -y skidnik/clipmenu"
-check "nothing reported failed" test "${#FAILED_EXTRA[@]}" -eq 0
+printf '\033[34m%s\033[0m\n' "==> a fresh install"
+fresh xbps
+install_run
+check "nonfree enabled" logged "xbps-install -y void-repo-nonfree"
+check "...then the index re-synced" logged "xbps-install -S"
+check "sublime-text4 installed after the sync" test "$(grep -n . "$LOG" | tr '\n' ' ')" = "1:xbps-install -y void-repo-nonfree 2:xbps-install -S 3:xbps-install -y sublime-text4 4:drivers_install "
+check "one REPO row, naming the package" test "$(manifest_rows REPO)" = $'REPO\tpackage\tnonfree\tvoid-repo-nonfree'
+check "one PACKAGE row, the editor" test "$(manifest_rows PACKAGE | cut -f2)" = sublime-text4
+check "nothing failed" test "${#FAILED_EXTRA[@]}" -eq 0
 
-blue "==> re-run is a no-op"
+printf '\033[34m%s\033[0m\n' "==> a re-run"
 : >"$LOG"
-repos_install >/dev/null
-check "no second swap" not_logged "dnf swap"
-check "no dnf install at all: everything is already there" not_logged "dnf install"
-check "an enabled COPR is not enabled again" not_logged "dnf copr enable"
-check "no new REPO rows" test "$(rows)" -eq 4
+install_run
+check "no install, no sync" not_logged "xbps-install"
+check "...the drivers still run" logged "drivers_install"
+check "no new rows" test "$(rows REPO):$(rows PACKAGE)" = "1:1"
 
-# The ffmpeg-free -> ffmpeg SATISFIED_BY case left with the mechanism (scope
-# I, I-3: Void's ffmpeg6 is the full build). This whole file is rewritten for
-# Void's nonfree repo in I-4.
+printf '\033[34m%s\033[0m\n' "==> nonfree already enabled by the user"
+fresh xbps void-repo-nonfree
+touch "$CONF" "$SYNCED"
+install_run
+check "not enabled again" not_logged "void-repo-nonfree"
+check "no REPO row (uninstall must not remove it)" test "$(rows REPO)" -eq 0
+check "sublime-text4 still installed" has sublime-text4
 
-blue "==> uninstall reverts in order"
-remove_our_packages
-uninstall_repo_swaps >/dev/null
-check "ffmpeg-free back" has ffmpeg-free
-check "RPM Fusion ffmpeg gone" lacks ffmpeg
-uninstall_repos >/dev/null
-check "repo file removed" test ! -e "$SUBLIME_REPO_FILE"
-check "rpmfusion-free-release removed" lacks rpmfusion-free-release
-check "rpmfusion-nonfree-release removed" lacks rpmfusion-nonfree-release
+printf '\033[34m%s\033[0m\n' "==> enabling nonfree fails"
+fresh xbps
+FAKE_NONFREE_FAIL=1 install_run
+check "sublime is not attempted" not_logged "sublime-text4"
+check "the failure is summarised" test "${FAILED_EXTRA[*]}" = void-repo-nonfree
+check "...naming the fallback" said "text files open in nvim instead"
+check "no REPO row" test "$(rows REPO)" -eq 0
 
-blue "==> uninstall keeps what is still in use"
-reset ffmpeg-free
-repos_install >/dev/null
-uninstall_repo_swaps >/dev/null
-remove_our_packages
-# Swapped back first, as uninstall.sh does: otherwise RPM Fusion's ffmpeg
-# alone keeps rpmfusion-free, and the family rule below is never exercised.
-check "only a nonfree package is left from RPM Fusion" lacks ffmpeg
-echo "steam rpmfusion-nonfree-updates" >>"$DB"
-echo "sublime-text sublime-text" >>"$DB"
-uninstall_repos >/dev/null
-check "a nonfree package keeps rpmfusion-free-release too" has rpmfusion-free-release
-check "and rpmfusion-nonfree-release" has rpmfusion-nonfree-release
-check "an installed sublime-text keeps the repo file" test -e "$SUBLIME_REPO_FILE"
+printf '\033[34m%s\033[0m\n' "==> not glibc x86_64"
+fresh xbps
+FAKE_ARCH=x86_64-musl install_run
+check "skipped, no xbps-install" not_logged "xbps-install"
+check "...saying why" said "nonfree has no sublime-text4 for x86_64-musl"
 
-blue "==> uninstall fails closed"
-reset ffmpeg-free
-repos_install >/dev/null
-uninstall_repo_swaps >/dev/null
-remove_our_packages
-FAKE_FAIL=repoquery uninstall_repos >/dev/null
-check "dnf cannot answer: RPM Fusion kept" has rpmfusion-free-release
+printf '\033[34m%s\033[0m\n' "==> --dry-run"
+fresh xbps
+DRY_RUN=1 install_run
+check "no xbps-install at all" not_logged "xbps-install"
+check "says what it would do" said "(dry-run) would install void-repo-nonfree"
+DRY_RUN=0
 
-blue "==> pre-existing repos are not ours"
-reset ffmpeg rpmfusion-free-release rpmfusion-nonfree-release
-touch "$SUBLIME_REPO_FILE"
-repos_install >/dev/null
-check "no REPO rows" test "$(rows)" -eq 0
-check "no rpm --import for an existing repo" not_logged "rpm --import"
+printf '\033[34m%s\033[0m\n' "==> uninstall: kept while a nonfree package is installed"
+fresh xbps
+install_run
+uninstall_run
+check "kept, with the reason" said "kept void-repo-nonfree — installed packages still come from nonfree"
+check "...still installed" has void-repo-nonfree
 
-blue "==> clipmenu already installed by other means"
-reset ffmpeg-free clipmenu clipnotify
-repos_install >/dev/null
-check "no PACKAGE row for a clipmenu that was already there" \
-    test "$(manifest_rows PACKAGE | cut -f2 | grep -c clip || true)" -eq 0
-reset ffmpeg-free
-FAKE_FAIL=copr repos_install >/dev/null
-check "a COPR that cannot be enabled is reported in the red tier" in_list clipmenu "${FAILED_DESKTOP[@]}"
-check "...and nothing from it is attempted" not_logged "dnf install -y clipmenu"
+printf '\033[34m%s\033[0m\n' "==> uninstall: xbps cannot list its repositories"
+FAKE_L_FAIL=1 uninstall_run
+check "fails closed: kept" said "xbps-query -L failed — cannot tell what comes from nonfree, so it is kept"
+check "...still installed" has void-repo-nonfree
 
-blue "==> arch and failure paths"
-reset ffmpeg-free
-FAKE_ARCH=armv7l repos_install >/dev/null
-check "unsupported arch: no Sublime repo" test ! -e "$SUBLIME_REPO_FILE"
-check "unsupported arch: codecs still set up" has ffmpeg
-reset ffmpeg-free
-FAKE_FAIL=addrepo repos_install >/dev/null
-check "failed repo add is reported" in_list sublime-text "${FAILED_EXTRA[@]}"
-check "failed repo add writes no file row" no_row_kind file
-reset ffmpeg-free
-FAKE_FAIL=rpmfusion-nonfree-release repos_install >/dev/null
-check "failed RPM Fusion: no swap attempted" not_logged "dnf swap"
-check "failed RPM Fusion is reported" in_list rpmfusion-nonfree-release "${FAILED_EXTRA[@]}"
+printf '\033[34m%s\033[0m\n' "==> uninstall: removed once nothing comes from it"
+sed -i '/^sublime-text4$/d' "$DB"
+uninstall_run
+check "xbps-remove void-repo-nonfree" logged "xbps-remove -y void-repo-nonfree"
+check "...gone" lacks void-repo-nonfree
+uninstall_run
+check "a second uninstall: says it is gone, no call" said "void-repo-nonfree is no longer installed"
+
+printf '\033[34m%s\033[0m\n' "==> uninstall: a repo it never added is left alone"
+fresh xbps void-repo-nonfree
+touch "$CONF" "$SYNCED"
+uninstall_run
+check "no REPO rows: nothing removed" not_logged "xbps-remove"
+check "...said so" said "no REPO rows in manifest"
 
 if [[ $FAILS -eq 0 ]]; then
-    printf '\033[32m%s\033[0m\n' "✓ third-party repos: added once, reverted only when unused"
+    printf '\033[32m%s\033[0m\n' "✓ repos: nonfree added once, reverted only when unused"
 else
     printf '\033[31m%s\033[0m\n' "✗ $FAILS check(s) failed"
 fi

@@ -54,6 +54,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `dots uninstall` removes recorded packages with `xbps-remove -R`, skipping
   any you already removed. `dots version` reports `os_version` instead of
   `fedora_version`.
+- **The editor comes from Void's nonfree repository.** The installer enables
+  it (`void-repo-nonfree`) and installs `sublime-text4`. `dots uninstall`
+  disables nonfree again only if the installer enabled it and nothing
+  installed still comes from it.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.
@@ -76,6 +80,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Removed
 
+- The clipmenu COPR, Sublime HQ's rpm repo and RPM Fusion (with its ffmpeg
+  swap). Void's main repo has clipmenu and a full ffmpeg.
 - The dnf speed settings file (`/etc/dnf/libdnf5.conf.d/30-dots-speed.conf`),
   the starship download script and the `fd` shim. Void packages starship and
   fd under their real names, and xbps has no speed setting to tune.

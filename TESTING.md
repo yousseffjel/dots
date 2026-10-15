@@ -454,7 +454,7 @@ which only happens when `enable` returns 0.
 
 To iterate locally instead of pushing, never run
 `scripts/install-void.sh` on a machine you care about — it installs
-packages, enables a COPR, and changes your login shell and display manager.
+packages, enables Void's nonfree repo, and changes your login shell and display manager.
 Use a disposable Fedora container:
 
 ```sh

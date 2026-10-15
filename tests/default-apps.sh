@@ -31,15 +31,15 @@ REPOS="$DOTS_DIR/scripts/install-pkg-repos.sh"
 SUCKLESS="$DOTS_DIR/scripts/install-suckless.sh"
 
 # desktop id -> the package that ships it. This is the one fact the repo
-# cannot derive without dnf (CLAUDE.md rule 8: no dnf on the dev host). Each
-# was read from the package itself: sublime_text.desktop from the
-# sublime-text-4215 rpm, mpv.desktop from mpv's upstream etc/.
+# cannot derive without xbps on the target. Each was read from the package
+# itself: sublime_text.desktop from Void's sublime-text4-4215_1 .xbps
+# (2026-10-15), mpv.desktop from mpv's upstream etc/.
 declare -A PACKAGE_OF=(
     ["firefox.desktop"]=firefox
     ["thunar.desktop"]=Thunar
     ["org.gnome.FileRoller.desktop"]=file-roller
     ["mpv.desktop"]=mpv
-    ["sublime_text.desktop"]=sublime-text
+    ["sublime_text.desktop"]=sublime-text4
 )
 
 FAILS=0
@@ -61,9 +61,9 @@ declared_in_lst() {
     sed 's/#.*//' "$DOTS_DIR"/packages/*.lst | tr -s '[:space:]' '\n' | grep -qxF "$1"
 }
 
-# install-pkg-repos.sh installs by literal name: `drivers_pkg <name>`.
+# install-pkg-repos.sh installs by literal name: `pkg_ensure <name>`.
 installed_by_repos() {
-    grep -qE "drivers_pkg $1( |\$)" "$REPOS"
+    grep -qE "pkg_ensure $1( |\$)" "$REPOS"
 }
 
 vendored_provider() {

@@ -125,10 +125,10 @@ Thunar re-themes the whole desktop exactly as picking one with `Super+Shift+w` d
 | ----- | ------- | ------------------- |
 | Directories | `thunar` | `packages/desktop.lst` |
 | Web, PDF, SVG | `firefox` | `packages/desktop.lst` |
-| Images | `nsxiv` | built from `suckless/nsxiv` (Fedora does not package it) |
+| Images | `nsxiv` | built from `suckless/nsxiv` (vendored when Fedora did not package it) |
 | Video and audio | `mpv` | `packages/extra.lst`; config in `config/mpv/mpv.conf` |
 | Archives (zip, rar, 7z, tar.*) | `file-roller` | `packages/extra.lst` (RAR through `unar`) |
-| Text and code | Sublime Text, then `dots-nvim.desktop` | Sublime HQ's repo, added by `scripts/install-pkg-repos.sh` |
+| Text and code | Sublime Text, then `dots-nvim.desktop` | `sublime-text4` from Void's nonfree repo, enabled by `scripts/install-pkg-repos.sh` |
 
 `tests/default-apps.sh` fails the build if a handler named there has no
 package, build or shipped file behind it. Things worth knowing:
@@ -139,17 +139,17 @@ package, build or shipped file behind it. Things worth knowing:
   `text/plain`, and neither nsxiv nor file-roller declares every type listed.
 - **nvim stays one Open With away.** Every text type lists
   `sublime_text.desktop;dots-nvim.desktop;`, so nvim is the fallback GIO uses
-  when sublime-text is not installed (an arch Sublime HQ does not publish
-  for, or a failed repo add).
+  when sublime-text4 is not installed (musl or another arch, which nonfree
+  has no build for, or nonfree could not be enabled).
 - **`dots-nvim.desktop` exists because `nvim.desktop` is `Terminal=true`.**
   That hands the job of finding a terminal to GLib, which picks from a
   compiled-in list of terminal names — so whether alacritty is chosen
   depends on the installed GLib version. Ours spells the terminal out:
   `alacritty --title nvim -e nvim %F`.
 - **HDR video.** Most HDR releases are 10-bit HEVC, which Fedora's own
-  `ffmpeg-free` cannot decode at all. The installer enables RPM Fusion free
-  and nonfree, swaps in RPM Fusion's `ffmpeg`, and installs the VA-API
-  decoding driver for your GPU (`docs/HARDWARE.md`). mpv's `gpu-next`
+  `ffmpeg-free` could not decode at all. Void's `ffmpeg6` (in
+  `packages/desktop.lst`) is the full build and decodes it; the installer
+  also installs the VA-API decoding driver for your GPU (`docs/HARDWARE.md`). mpv's `gpu-next`
   output then tone-maps HDR to SDR. X11 has no HDR output path, so no player
   on this desktop can send real HDR to the monitor.
 - **nsxiv opens what you picked.** `nsxiv.desktop` runs `nsxiv %F`, so

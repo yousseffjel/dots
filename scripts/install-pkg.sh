@@ -92,8 +92,8 @@ install_tier "installing optional packages (best-effort)" \
 # Fedora's fd ships as `fdfind`, so it needed a ~/.local/bin/fd shim. Void
 # packages both under their real names (extra.lst), so both steps are gone.
 
-# The clipmenu COPR, Sublime HQ's repo and RPM Fusion — all explicitly
-# authorised rule-4 exceptions — then the hardware drivers. See that file's
+# Void's nonfree repository (for sublime-text4, an explicitly authorised
+# rule-4 choice) — then the hardware drivers. See that file's
 # header for what each adds and how uninstall reverts it.
 source "$SCRIPT_DIR/install-pkg-repos.sh"
 repos_install

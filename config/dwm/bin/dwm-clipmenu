@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dwm-clipmenu — clipmenu (clipboard history), themed to match dwm's dmenu.
-# Requires clipmenu + clipnotify (Fedora: skidnik/clipmenu COPR, enabled by
-# install-void.sh) and a running clipmenud (started by dwm's autostart.sh,
+# Requires clipmenu + clipnotify (packages/desktop.lst, Void's main repo)
+# and a running clipmenud (started by dwm's autostart.sh,
 # see scripts/install-suckless.sh). clipmenu forwards all its args straight
 # to dmenu, so no manual list-building/selection plumbing is needed here.
 set -euo pipefail

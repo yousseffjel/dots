@@ -1,32 +1,28 @@
 #!/usr/bin/env bash
-# Reverts what scripts/install-pkg-repos.sh changed: its REPO rows.
+# Reverts what scripts/install-pkg-repos.sh (and drivers-lib.sh) changed: the
+# REPO rows.
 #
 # Sourced by uninstall.sh, never standalone: it assumes `set -euo pipefail`,
 # DRY_RUN, SUDO, global_fn.sh (confirm, manifest_rows) and the colour helpers.
 #
 # Two functions, because they must straddle uninstall_packages:
-#   uninstall_repo_swaps  BEFORE it. Undoes every REPO swap row: RPM Fusion's
-#                         ffmpeg back to Fedora's ffmpeg-free, and the AMD
-#                         mesa-va-drivers swap drivers-gpu.sh makes up to f43.
-#                         Removing ffmpeg instead would take everything that
-#                         depends on it with it, and ffmpeg-free is then
-#                         removed by uninstall_packages if this installer put
-#                         it there in the first place.
-#   uninstall_repos       AFTER it. A repo is removed only while nothing
-#                         installed still comes from it, the same rule
-#                         uninstall-flatpak.sh applies to Flathub. With our
-#                         own packages already gone, what is left is yours.
-#
-# Never touched: the rpm signing keys install-pkg-repos.sh imported. A key with
-# no repo pointing at it signs nothing, and removing one by hand means picking
-# a gpg-pubkey-* package by id — `rpm -qa gpg-pubkey* --qf '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'`.
+#   uninstall_repo_swaps  BEFORE it. Undoes REPO swap rows, which only
+#                         drivers-gpu.sh's Fedora mesa-va-drivers swap still
+#                         writes. That path, and this function with it, goes
+#                         in scope I sub-task I-7; a Void install never has
+#                         such a row, so here it is a no-op.
+#   uninstall_repos       AFTER it. The nonfree repository is removed only
+#                         while nothing installed still comes from it, the
+#                         same rule uninstall-flatpak.sh applies to Flathub.
+#                         With our own packages already gone, what is left
+#                         is yours.
 
 uninstall_repo_swaps() {
     local swaps kind from to
     swaps="$(manifest_rows REPO | awk -F'\t' '$2=="swap"')"
     [[ -n "$swaps" ]] || return 0
     blue "=== package swaps ==="
-    confirm "Swap back the package(s) this installer replaced with RPM Fusion builds?" || {
+    confirm "Swap back the package(s) this installer replaced?" || {
         yellow "  skipped package swaps"
         return 0
     }
@@ -40,47 +36,58 @@ uninstall_repo_swaps() {
         elif "${SUDO[@]}" dnf swap -y "$to" "$from" --allowerasing >/dev/null 2>&1; then
             green "  swapped $to back to $from"
         else
-            red "  dnf swap $to $from failed — run it by hand before removing RPM Fusion"
+            red "  dnf swap $to $from failed — run it by hand"
         fi
     done <<<"$swaps"
 }
 
-# True while an installed package other than a release package came from a
-# repo whose id starts with $1. Called with the family ("rpmfusion"), not the
-# repo: rpmfusion-nonfree-release requires rpmfusion-free-release, so removing
-# free while nonfree is still in use would take nonfree with it. The prefix
-# also covers each repo's -updates twin.
-repo_in_use() {
-    local prefix="$1" installed name from
-    # Fails CLOSED: if dnf cannot say what is installed, the repo is in use.
-    # Failing open would remove RPM Fusion from under the packages that need it.
-    if ! installed="$(dnf repoquery --installed --queryformat '%{name} %{from_repo}\n' 2>/dev/null)"; then
-        yellow "  dnf repoquery failed — cannot tell what comes from $prefix, so it is kept"
+# nonfree_in_use — true while an installed package is one the nonfree repo
+# ships. One query, probed with xbps-static 0.60.7: `-i --repository=<url>
+# -Rs ''` lists only that repository's packages, `[*]` marking the installed
+# ones. FAILS CLOSED: if xbps cannot answer, the repo counts as in use, since
+# failing open would remove nonfree from under the packages that need it.
+nonfree_in_use() {
+    local repos url="" u listing
+    # Both queries fail closed. Captured, not piped into awk: an early awk
+    # exit would SIGPIPE xbps-query and, under pipefail, read as a failure.
+    if ! repos="$(xbps-query -L 2>/dev/null)"; then
+        yellow "  xbps-query -L failed — cannot tell what comes from nonfree, so it is kept"
         return 0
     fi
-    while read -r name from; do
-        [[ "$name" == *-release ]] && continue
-        [[ "$from" == "$prefix"* ]] && return 0
-    done <<<"$installed"
-    return 1
+    while read -r _ u _; do
+        [[ "$u" == */nonfree ]] && url="$u" && break
+    done <<<"$repos"
+    if [[ -z "$url" ]]; then
+        # Enabled but never synced: nothing can have come from it.
+        return 1
+    fi
+    if ! listing="$(xbps-query -i --repository="$url" -Rs '' 2>/dev/null)"; then
+        yellow "  xbps-query failed — cannot tell what comes from nonfree, so it is kept"
+        return 0
+    fi
+    # Captured, not piped into grep -q: under pipefail an early grep exit can
+    # SIGPIPE the producer and read a match as a failure.
+    [[ "$listing" == *$'\n[*] '* || "$listing" == '[*] '* ]]
 }
 
-uninstall_repo_file() {
-    local name="$1" path="$2"
-    if rpm -q "$name" >/dev/null 2>&1; then
-        yellow "  kept $path — $name is still installed"
+uninstall_repo_package() {
+    local pkg="$1"
+    if ! xbps-query "$pkg" >/dev/null 2>&1; then
+        blue "  $pkg is no longer installed — nothing to remove"
+    elif nonfree_in_use; then
+        yellow "  kept $pkg — installed packages still come from nonfree"
     elif [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would remove $path"
-    elif "${SUDO[@]}" rm -f "$path"; then
-        green "  removed $path"
+        blue "  (dry-run) would run: xbps-remove -y $pkg"
+    elif "${SUDO[@]}" xbps-remove -y "$pkg" >/dev/null 2>&1 </dev/null; then
+        green "  removed $pkg (nonfree repository disabled)"
     else
-        red "  failed to remove $path"
+        red "  xbps-remove failed — remove by hand: $pkg"
     fi
 }
 
 uninstall_repos() {
-    blue "=== third-party repositories ==="
-    local rows row releases=() kind name what
+    blue "=== extra repositories ==="
+    local rows row kind name what
     mapfile -t rows < <(manifest_rows REPO | awk -F'\t' '$2!="swap"')
     if [[ ${#rows[@]} -eq 0 ]]; then
         blue "  no REPO rows in manifest — nothing to remove"
@@ -93,23 +100,8 @@ uninstall_repos() {
     for row in "${rows[@]}"; do
         IFS=$'\t' read -r _ kind name what <<<"$row"
         case "$kind" in
-            file) uninstall_repo_file "$name" "$what" ;;
-            release)
-                if repo_in_use "${name%%-*}"; then
-                    yellow "  kept $name — installed packages still come from ${name%%-*}"
-                else
-                    releases+=("$what")
-                fi
-                ;;
-            *) yellow "  unknown REPO row kind '$kind' — left alone" ;;
+            package) uninstall_repo_package "$what" ;;
+            *) yellow "  unknown REPO row kind '$kind' ($name) — left alone" ;;
         esac
     done
-    [[ ${#releases[@]} -eq 0 ]] && return 0
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would run: dnf remove -y ${releases[*]}"
-    elif "${SUDO[@]}" dnf remove -y "${releases[@]}" >/dev/null 2>&1; then
-        green "  removed ${releases[*]}"
-    else
-        red "  dnf remove failed — remove by hand: ${releases[*]}"
-    fi
 }

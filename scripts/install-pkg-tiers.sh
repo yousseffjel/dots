@@ -72,6 +72,31 @@ pkg_install_one() {
     PKG_ERR="$("${SUDO[@]}" xbps-install -y "$1" 2>&1 >/dev/null </dev/null)" || return 1
 }
 
+# pkg_ensure <pkg> <what its absence costs> — install one package outside
+# the tiers (the repos step's editor; the drivers next): skip it when already
+# installed, honour --dry-run, write a PACKAGE row only for what this run
+# installed, and put a failure in the yellow tier of the closing summary.
+pkg_ensure() {
+    local pkg="$1" cost="$2"
+    if pkg_installed "$pkg"; then
+        green "  ok      $pkg already installed"
+        return 0
+    fi
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would install $pkg"
+        return 0
+    fi
+    if pkg_install_one "$pkg"; then
+        green "  installed: $pkg"
+        manifest_append_row PACKAGE "$pkg"
+        return 0
+    fi
+    yellow "  FAILED: $pkg — $cost"
+    [[ -n "$PKG_ERR" ]] && yellow "    xbps: $(printf '%s' "$PKG_ERR" | tail -n1)"
+    FAILED_EXTRA+=("$pkg")
+    return 1
+}
+
 # pkg_run_streamed <cmd>... — runs a privileged xbps command with its output
 # shown as it comes (a silent ten-minute download looks hung), indented, and
 # kept in PKG_LOG. Returns the command's own status.

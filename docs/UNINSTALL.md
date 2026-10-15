@@ -134,12 +134,11 @@ partial uninstall is a normal, supported outcome, not an error.
    package that was already present on your system before you ran
    `install-void.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
-6b. **Third-party repositories.** The Sublime HQ repo file
-   (`/etc/yum.repos.d/sublime-text.repo`) and the RPM Fusion free and
-   nonfree release packages, each only if the installer added it. Runs after
-   the package step, and a repository is removed only while nothing
-   installed still comes from it. Both RPM Fusion repos are kept together,
-   because nonfree's release package requires free's.
+6b. **Extra repositories.** Void's nonfree repository: the
+   `void-repo-nonfree` package is removed only if the installer added it,
+   and only while nothing installed still comes from nonfree. Runs after
+   the package step, so the editor the installer put there is already
+   gone; anything still installed from nonfree is yours, and keeps it.
 7. **Services.** Disables whatever `SERVICE` rows the manifest holds
    (`ly@tty2.service` on a current install) if (and only if) the installer was
    the one that enabled it — same "only what we recorded" rule as
@@ -174,9 +173,8 @@ partial uninstall is a normal, supported outcome, not an error.
 - The wallpaper collection, if you have added, changed or committed
   anything in it since installing (step 5c says which). Delete
   `wallpapers/dots/` in your pictures folder by hand if you want it gone.
-- A third-party repository (Sublime HQ, RPM Fusion) while anything installed
-  still comes from it, and the rpm signing keys the installer imported for
-  them. A key with no repository signs nothing; list them with
+- The nonfree repository while anything installed still comes from it
+  (and always, if it was enabled before the installer ran). A key with no repository signs nothing; list them with
   `rpm -qa 'gpg-pubkey*' --qf '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'`
   and remove one with `sudo rpm -e <name>` if you want it gone.
 - The Flathub remote, while any installed Flatpak still comes from it. Run

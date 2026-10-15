@@ -96,7 +96,7 @@ adwaita-icon-theme
 xdg-desktop-portal-gtk
 dconf
 # Flatpak, with the Flathub remote added --user by install-restore-flatpak.sh
-# (an explicit rule-4 exception, like the clipmenu COPR) and four read-only
+# (an explicit rule-4 exception, like the nonfree repository) and four read-only
 # global overrides so sandboxed apps see the vendored cursor, the icon theme
 # and the wallpaper gtk.css. Dark mode reaches them through the portal above.
 flatpak

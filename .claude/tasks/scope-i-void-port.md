@@ -214,7 +214,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
 - **I-2b Font asset:** ✅ done 2026-10-15; vendor Cascadia Code NF under `assets/fonts/` (D3), restore + manifest + uninstall, drop the fontconfig-stack pending entry.
 - **I-3 Package engine:** ✅ done 2026-10-15 (see I-3 outcome); `install-pkg*.sh` dnf → xbps (tiers, retry,
   summaries, SATISFIED_BY), remove the dnf drop-in and the fd shim.
-- **I-4 Repos:** shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to
+- **I-4 Repos:** ✅ done 2026-10-15 (nonfree + sublime-text4; `pkg_ensure` added to the tiers for I-7's drivers_pkg to reuse); shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to
   nonfree; delete COPR, Sublime HQ and RPM Fusion paths and tests.
 - **I-5 Services & login:** runit linking (+ uninstall rows), D1, D2, D4 (user groups),
   login shell.
