@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # void: the Void Linux port's branch (scope I), until it merges.
+    branches: [main, void]
   pull_request:
     branches: [main]
 

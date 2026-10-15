@@ -21,7 +21,8 @@ name: install-container
 
 on:
   push:
-    branches: [main]
+    # void: the Void Linux port's branch (scope I), until it merges.
+    branches: [main, void]
     # Allowlist, not a denylist: everything the installer installs, deploys,
     # builds or reads. A new top-level directory is NOT covered until it is
     # added here — which is the safe direction for a 30-minute job.
