@@ -95,6 +95,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `sudo xbps-install -Su`. fastfetch shows the Void logo. `dots doctor`
   says when you are missing one of the `network`, `bluetooth` or `kvm`
   groups, or were added to it but have not logged in again.
+- **Tested end to end on a Void Linux virtual machine**: install, login
+  through ly, the session, audio, the portal, power actions and `dots
+  doctor`. `docs/HARDWARE.md` now covers a VM's screen and login-screen
+  size.
 - **CI runs in Void's own image** (`ghcr.io/void-linux/void-glibc-full`):
   the suckless builds, dwm under Xvfb, the ASan check, a live check of every
   package name, and the full installer. Runit services are linked into the

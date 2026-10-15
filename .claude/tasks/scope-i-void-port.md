@@ -226,8 +226,8 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   (elogind), every doctor check that asks systemd; a D4 group check (`id -nG`).
 - **I-9 CI:** ✅ done 2026-10-15 (all three container jobs replayed locally in the real image; full install passed); void-glibc container for build, install, dry-run; linter pins
   unchanged.
-- **I-10 Real run:** fresh Void glibc VM end-to-end (the Fedora VM at
-  192.168.122.172 is replaced, not reused). In progress 2026-10-15 at
+- **I-10 Real run:** ✅ done 2026-10-15. Fresh Void glibc VM end-to-end (the
+  Fedora VM at 192.168.122.172 is replaced, not reused). Run at
   192.168.122.243: installed, `dots doctor` all passed. Found: the VOL block
   drawn before WirePlumber restored the volume, fixed by `dwm-audiowatch`
   (user chose "watch PipeWire").

@@ -477,4 +477,4 @@ table above — plus the absence of a real TTY. This flow validates package
 installation, symlinking, and the suckless build, not the graphical session.
 For that, use a Void VM (e.g. `virt-install` from the Void live ISO) or real
 hardware — scope I's I-10. On Fedora a VM run was done (2026-10-05); on Void
-it has not been yet.
+one was done on 2026-10-15 (QXL, login via ly).

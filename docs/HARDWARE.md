@@ -36,6 +36,20 @@ A virtual machine gets none of the CPU and firmware rows: its microcode and
 firmware belong to the host. An emulated GPU (virtio, QXL, VMware, ...) needs
 no video driver.
 
+Two things in a VM are settings of that VM, not of dots:
+
+- **The screen size.** A fresh VM's X session starts at 1024x768. Pick a mode
+  with `Super+Shift+d` (or `xrandr`), then `autorandr --save <name>`;
+  `autostart.sh` re-applies it at every login. Or enable the viewer's "auto
+  resize VM with window", which `spice-vdagent` follows.
+- **The login screen size.** ly draws on the kernel console, which keeps the
+  VM's boot mode (1024x768 on QXL) whatever X uses. A viewer stretching that
+  to a large window makes ly blurry and the frozen pointer huge, right over
+  the login box (nothing moves the pointer before the session's agent runs).
+  Give the kernel the mode: add `video=Virtual-1:1920x1080` (the output name
+  is in `ls /sys/class/drm`) to `GRUB_CMDLINE_LINUX_DEFAULT` in
+  `/etc/default/grub`, then run `sudo update-grub` and reboot.
+
 ## How it decides
 
 Everything is read from `/sys` and `/proc` — no `lspci`. Each PCI display
