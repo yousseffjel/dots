@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 # Exercises `dots drivers` (scripts/drivers-*.sh) and doctor's drivers checks
-# against generated /sys trees and fake rpm, dnf and fwupdmgr on a sealed
-# PATH. No real hardware, package database or kernel log is read.
+# against generated /sys trees and fake xbps-query, xbps-install,
+# xbps-reconfigure, uname and fwupdmgr on a sealed PATH, with the runit dirs
+# in the sandbox. No real hardware, package database or kernel log is read.
+#
+# The xbps fakes answer as the real 0.60.7 does (probed 2026-10-15):
+# `xbps-query <n>` 0/2 installed; `-R <n>` 0/2 in the index; `-Rs <pattern>`
+# "[-] <pkgver> <desc>" lines; `-Rf <pkg>` one path per line.
 #
 # What is asserted:
 #   * GPU -> package: Intel Broadwell+ gets intel-media-driver, pre-Broadwell
-#     libva-intel-driver, AMD the freeworld mesa — a swap with a REPO row where
-#     a separate mesa-va-drivers is installed (f43), a plain install where it
-#     is not (f44); a virtual GPU and a non-display PCI device get nothing;
-#   * NVIDIA is never installed: the branch comes from pci.ids (scoped to the
-#     vendor block), Secure Boot adds the MOK steps, an unknown codename only
-#     points at the guide, and libva-nvidia-driver follows a loaded driver;
+#     libva-intel-driver, AMD mesa-vaapi; a virtual GPU and a non-display PCI
+#     device get nothing;
+#   * NVIDIA is never installed: the branch package (Void's nonfree names)
+#     comes from pci.ids (scoped to the vendor block), Secure Boot adds a
+#     warning, an unknown codename only points at the guide, and
+#     nvidia-vaapi-driver follows a loaded driver;
 #   * firmware is installed only for files the kernel failed to load AND a
-#     package ships — a driver's fallback attempts install nothing;
-#   * microcode and fwupd on bare metal, by CPU vendor; skipped in a VM;
-#   * without RPM Fusion the video drivers are skipped, never a repo added;
+#     linux-firmware* package ships (matched with Void's .zst suffix and
+#     vendor subdirectories) — a driver's fallback attempts install nothing;
+#   * microcode on bare metal by CPU vendor (intel-ucode, or
+#     linux-firmware-amd), with the initramfs rebuilt; intel-ucode out of reach
+#     (nonfree off) is said, never a repo added; fwupd; all skipped in a VM;
+#   * VM detection without systemd: the hypervisor CPU flag and DMI vendor;
 #   * a re-run is a no-op, --dry-run changes nothing, and every install has
 #     the manifest row uninstall needs;
 #   * doctor's check_drivers agrees with what was installed.
@@ -35,26 +43,30 @@ source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
-export DB="$SB/rpmdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap" SB
+export DB="$SB/pkgdb" LOG="$SB/calls.log" FWMAP="$SB/fwmap" SB \
+    DOTS_RUNIT_SV="$SB/sv" DOTS_RUNIT_SERVICE="$SB/service"
 
 seal_path "$SB/bin" bash grep awk sed mkdir touch mktemp mv rm tail head cut sort cat wc \
     basename dirname readlink od tr ln chmod cmp install git cp
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
-    fake "$SB/bin" rpm 'echo "rpm $*" >>"$LOG"; [[ "$1" == -q ]] && grep -qx "$2" "$DB"'
-    fake "$SB/bin" dnf 'echo "dnf $*" >>"$LOG"
-case "$1" in
-install) [[ " ${FAKE_FAIL:-} " == *" $3 "* ]] && exit 1; echo "$3" >>"$DB" ;;
-swap) grep -vx "$3" "$DB" >"$DB.new" || true; mv "$DB.new" "$DB"; echo "$4" >>"$DB" ;;
-repoquery) [[ " ${FAKE_FAIL:-} " == *" repoquery "* ]] && exit 1; f="${@: -1}"; f="${f#/usr/lib/firmware/}"; awk -v f="${f%\*}" "\$1 == f {print \$2}" "$FWMAP" ;;
+    # FWMAP: "<package> <path>" — the firmware packages' file lists.
+    fake "$SB/bin" xbps-query 'case "$1" in
+-R) [[ " ${FAKE_UNAVAIL:-} " == *" $2 "* ]] && exit 2; exit 0 ;;
+-Rs) [[ " ${FAKE_FAIL:-} " == *" fwquery "* ]] && exit 1
+    cut -d" " -f1 "$FWMAP" | sort -u | sed "s/.*/[-] &-20260810_1 Binary firmware blobs/" ;;
+-Rf) awk -v p="$2" "\$1 == p {print \$2}" "$FWMAP" ;;
+*) grep -qx "$1" "$DB" || exit 2; echo "$1-1_1" ;;
 esac'
+    fake "$SB/bin" xbps-install 'echo "xbps-install $*" >>"$LOG"
+[[ "$1" == -y ]] || exit 1
+[[ " ${FAKE_FAIL:-} " == *" $2 "* ]] && { echo "ERROR: $2: failed to download" >&2; exit 1; }
+echo "$2" >>"$DB"
+[[ "$2" == power-profiles-daemon ]] && mkdir -p "$DOTS_RUNIT_SV/power-profiles-daemon"
+exit 0'
+    fake "$SB/bin" xbps-reconfigure 'echo "xbps-reconfigure $*" >>"$LOG"'
+    fake "$SB/bin" uname '[[ "$1" == -r ]] && echo 6.12.5_1'
     fake "$SB/bin" fwupdmgr 'exit "${FAKE_FWUPD_RC:-2}"'
-    # systemctl: is-enabled answers from $SB/enabled; enable --now records.
-    fake "$SB/bin" systemctl 'echo "systemctl $*" >>"$LOG"
-case "$1" in
-is-enabled) grep -qx "$2" "$SB/enabled" 2>/dev/null && echo enabled || { echo disabled; exit 1; } ;;
-enable) [[ " ${FAKE_FAIL:-} " == *" $3 "* ]] && exit 1; echo "$3" >>"$SB/enabled" ;;
-esac'
 }
 PATH="$SB/bin"
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
@@ -75,7 +87,10 @@ cat >"$SB/pci.ids" <<'EOF'
 EOF
 export DOTS_PCI_IDS="$SB/pci.ids" DOTS_CPUINFO="$SB/cpuinfo" DOTS_KERNEL_LOG="$SB/kmsg" \
     DOTS_XORG_CONF_DIR="$SB/xorg.conf.d"
-printf '%s\t%s\n' iwlwifi-so-a0-gf-a0-89.ucode iwlwifi-mvm-firmware >"$FWMAP"
+# Void keeps iwlwifi under intel/iwlwifi/, compressed; the kernel asks for the
+# bare name. The -90 file is in no package (a driver's fallback attempt).
+printf '%s\n' 'linux-firmware-network /usr/lib/firmware/intel/iwlwifi/iwlwifi-so-a0-gf-a0-89.ucode.zst' \
+    'linux-firmware-intel /usr/lib/firmware/i915/adlp_dmc.bin.zst' >"$FWMAP"
 
 # shellcheck source=../scripts/global_fn.sh
 source "$DOTS_DIR/scripts/global_fn.sh"
@@ -105,7 +120,8 @@ lacks() { ! has "$1"; }
 not() { ! "$@"; }
 said() { grep -qF -- "$1" <<<"$OUT"; }
 not_said() { ! said "$1"; }
-no_dnf_writes() { ! grep -qE '^dnf (install|swap)' "$LOG"; }
+no_installs() { ! grep -q '^xbps-install' "$LOG"; }
+no_rebuild() { ! grep -q '^xbps-reconfigure' "$LOG"; }
 row() {
     local rows
     rows="$(manifest_rows "$1" | cut -f2-)"
@@ -122,18 +138,22 @@ gpu() {
     [[ "$5" == - ]] || ln -s "../../../bus/pci/drivers/$5" "$d/driver"
 }
 # machine <cpu vendor_id> <virt> <installed package>... — fresh state.
+# <virt> sets DOTS_VIRT, except "detect": then the CPU flags (with the
+# hypervisor flag) and DMI decide, as on a real machine.
 machine() {
     SYSFS="$SB/sys-$RANDOM$RANDOM"
     export DOTS_SYSFS="$SYSFS" DOTS_VIRT="$2"
+    [[ "$2" == detect ]] && unset DOTS_VIRT
     mkdir -p "$SYSFS/bus/pci/devices"
-    printf 'vendor_id\t: %s\n' "$1" >"$DOTS_CPUINFO"
+    printf 'vendor_id\t: %s\nflags\t\t: fpu vme de%s\n' "$1" "${HYPERVISOR_FLAG:-}" >"$DOTS_CPUINFO"
     shift 2
-    rm -rf "$SB/state" "$SB/xorg.conf.d" "$SB/enabled"
+    rm -rf "$SB/state" "$SB/xorg.conf.d" "$SB/sv" "$SB/service"
+    mkdir -p "$SB/sv" "$SB/service"
     : >"$DB"
     : >"$LOG"
     : >"$DOTS_KERNEL_LOG"
     local p
-    for p in rpmfusion-free-release rpmfusion-nonfree-release "$@"; do echo "$p" >>"$DB"; done
+    for p in "$@"; do echo "$p" >>"$DB"; done
     FAILED_EXTRA=()
 }
 # chassis <smbios type> — the firmware's chassis_type.

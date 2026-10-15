@@ -7,7 +7,7 @@
 # (install-pkg-repos.sh), so this is for after a hardware change, or to see
 # what would happen.
 #
-# Re-runnable: installed packages are skipped. Every package and swap this
+# Re-runnable: installed packages are skipped. Every package and service this
 # run makes is recorded in the install manifest, so `dots uninstall`
 # reverts it. Never enables a repository — that stays the installer's job.
 #
@@ -28,7 +28,7 @@ usage() {
     echo "usage: ${DOTS_CMD:-drivers.sh} [--dry-run]"
     echo
     echo "Detects GPUs, CPU and missing firmware, and installs the matching"
-    echo "packages from Fedora and RPM Fusion. NVIDIA: reported, not installed."
+    echo "packages from Void's repos. NVIDIA: reported, not installed."
     echo "--dry-run: detect and print, change nothing."
 }
 
@@ -48,8 +48,8 @@ for arg in "$@"; do
     esac
 done
 
-if ! command -v dnf >/dev/null 2>&1; then
-    red "dnf not found — this command targets Fedora."
+if ! command -v xbps-install >/dev/null 2>&1; then
+    red "xbps not found — this command targets Void Linux."
     exit 1
 fi
 

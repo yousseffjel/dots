@@ -11,7 +11,7 @@
 #   DOTS_SYSFS      /sys      (tests build a fake tree; also covers dmi + power_supply)
 #   DOTS_CPUINFO    /proc/cpuinfo
 #   DOTS_PCI_IDS    /usr/share/hwdata/pci.ids    (names only; may be absent)
-#   DOTS_VIRT       systemd-detect-virt's answer ("none" on bare metal)
+#   DOTS_VIRT       drivers_virt's answer, short-circuited ("none" on bare metal)
 
 #
 # Each is read at CALL time, not when this file is sourced: a test that moves
@@ -74,14 +74,11 @@ drivers_system_battery() {
 }
 
 # drivers_is_vm — true inside a virtual machine (not a container: a container
-# runs on real hardware, and its chassis is the host's). DOTS_VIRT, the test
-# override drivers_virt reads too, counts as a VM unless it is none/unknown.
+# runs on real hardware, and its chassis is the host's).
 drivers_is_vm() {
-    if [[ -n "${DOTS_VIRT:-}" ]]; then
-        [[ "$DOTS_VIRT" != none && "$DOTS_VIRT" != unknown ]]
-        return
-    fi
-    command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --vm -q 2>/dev/null
+    local v
+    v="$(drivers_virt)"
+    [[ "$v" != none && "$v" != unknown ]]
 }
 
 # drivers_chassis — vm, laptop, desktop or unknown. vm first: a hypervisor
@@ -129,17 +126,36 @@ drivers_cpu_vendor() {
     esac
 }
 
-# drivers_virt — "none" on bare metal, else the hypervisor's name. Microcode
+# drivers_virt — "none" on bare metal, else a short hypervisor name. Microcode
 # and firmware updates belong to the host, not the guest.
+#
+# No systemd-detect-virt on Void. Two signals, either one enough:
+#   * the `hypervisor` CPU flag, which the kernel sets in every x86 guest;
+#   * a DMI vendor that is a hypervisor's, which also covers guests whose
+#     CPU has no such flag (aarch64).
+# A container shares the host's /proc/cpuinfo AND /sys, so it reads as bare
+# metal on both, which is right (it runs on the host's hardware). The DMI
+# vendor names it, in systemd-detect-virt's words where they exist. A QEMU
+# guest is called kvm: the accelerated case is the one this repo is run in
+# (the libvirt VMs), and the name is only ever shown, never acted on. A
+# Microsoft vendor counts only with the flag: Microsoft also makes laptops.
 drivers_virt() {
+    local dmi id flag=0
     if [[ -n "${DOTS_VIRT:-}" ]]; then
         echo "$DOTS_VIRT"
-    elif command -v systemd-detect-virt >/dev/null 2>&1; then
-        # Exits 1 while printing "none" on bare metal — the text is the answer.
-        systemd-detect-virt 2>/dev/null || true
-    else
-        echo unknown
+        return 0
     fi
+    grep -qw hypervisor "${DOTS_CPUINFO:-/proc/cpuinfo}" 2>/dev/null && flag=1
+    dmi="$(drivers_sysfs)/class/dmi/id"
+    id="$(cat "$dmi/sys_vendor" "$dmi/product_name" 2>/dev/null || true)"
+    case "$id" in
+        *QEMU* | *KVM*) echo kvm ;;
+        *VMware*) echo vmware ;;
+        *innotek* | *VirtualBox*) echo oracle ;;
+        *Xen*) echo xen ;;
+        *Microsoft*) ((flag)) && echo microsoft || echo none ;;
+        *) ((flag)) && echo vm || echo none ;;
+    esac
 }
 
 # drivers_secure_boot — yes, no, or unknown (BIOS boot, or efivars unreadable).
@@ -188,22 +204,23 @@ drivers_intel_legacy() {
     return 1
 }
 
-# drivers_nvidia_branch <vendor-name-from-pci.ids> — the RPM Fusion package
-# suffix for this card's driver branch, read from the chip codename that
-# pci.ids puts first ("GP104 [GeForce GTX 1080]" -> Pascal -> 580xx):
-#   ""        current branch (Turing and newer)
-#   -580xx    Maxwell, Pascal, Volta — the last branch that supports them
-#   -470xx    Kepler
-#   -390xx    Fermi
-#   none      older than Fermi: RPM Fusion has no driver, nouveau only
-#   unknown   no name, or a codename this table does not know
+# drivers_nvidia_branch <vendor-name-from-pci.ids> — the Void nonfree package
+# for this card's driver branch, read from the chip codename that pci.ids
+# puts first ("GP104 [GeForce GTX 1080]" -> Pascal -> nvidia580). The names
+# are Void's (nonfree index, 2026-10-15):
+#   nvidia     current branch (Turing and newer)
+#   nvidia580  Maxwell, Pascal, Volta — the last branch that supports them
+#   nvidia470  Kepler
+#   nvidia390  Fermi
+#   none       older than Fermi: no driver, nouveau only
+#   unknown    no name, or a codename this table does not know
 drivers_nvidia_branch() {
     local chip="${1%% *}"
     case "$chip" in
-        TU* | GA* | AD* | GB* | GH*) echo "" ;;
-        GM* | GP* | GV*) echo -580xx ;;
-        GK*) echo -470xx ;;
-        GF*) echo -390xx ;;
+        TU* | GA* | AD* | GB* | GH*) echo nvidia ;;
+        GM* | GP* | GV*) echo nvidia580 ;;
+        GK*) echo nvidia470 ;;
+        GF*) echo nvidia390 ;;
         G[0-9]* | GT[0-9]* | NV* | C[0-9]* | MCP*) echo none ;;
         *) echo unknown ;;
     esac

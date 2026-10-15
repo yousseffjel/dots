@@ -145,9 +145,9 @@ check "on a laptop: laptop.lst is checked, and a missing package warns" row warn
 check "...only warns: exit 0" rc_is 0
 check "chassis says laptop" grep -qE $'^ok\tdrivers\tchassis\tlaptop ' "$SB/out.tsv"
 check "laptop without the touchpad snippet warns" row warn drivers touchpad
-check "laptop with tuned enabled: power ok" row ok drivers power
+check "laptop with power-profiles-daemon enabled: power ok" row ok drivers power
 FAKE_SERVICE=disabled tsv
-check "tuned not enabled: power warns" row warn drivers power
+check "power-profiles-daemon not enabled: power warns" row warn drivers power
 tsv
 mkdir -p "$SB/xorg.conf.d"
 cp "$DOTS_DIR/config/xorg/40-dots-touchpad.conf" "$SB/xorg.conf.d/"
@@ -187,7 +187,7 @@ check "a one-shot autostart.sh never runs warns, not 'runs once'" \
 cp "$SB/autostart.bak" "$H/.local/share/dwm/autostart.sh"
 FAKE_DOWN=xss-lock tsv
 check "dwm-lock without xss-lock warns" row warn session daemon-dwm-lock
-FAKE_DOWN=spice-vdagent FAKE_NOT_VM=1 tsv
+FAKE_DOWN=spice-vdagent FAKE_VIRT=none tsv
 check "spice-vdagent off a VM is skipped" row skip session daemon-spice-vdagent
 FAKE_DOWN=nm-applet tsv
 check "nm-applet without NetworkManager is skipped" row skip session daemon-nm-applet

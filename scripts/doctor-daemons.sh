@@ -18,7 +18,7 @@ declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="" ["xdg-user-d
 # holds each one to the report.
 daemon_applies() {
     case "$1" in
-        spice-vdagent) systemd-detect-virt --vm --quiet 2>/dev/null ;;
+        spice-vdagent) drivers_is_vm ;;
         blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
         nm-applet) pgrep -x NetworkManager >/dev/null 2>&1 ;;
         *) return 0 ;;

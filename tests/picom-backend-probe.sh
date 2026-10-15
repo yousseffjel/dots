@@ -12,14 +12,14 @@
 #
 # HOW. dwm-picom runs under `env -i` with PATH holding nothing but fakes and
 # the few real tools it needs (sed, grep) — so `command -v glxinfo` can be
-# made to fail, and no real picom, glxinfo, pgrep or systemd-detect-virt on
-# this machine is touched. The autostart block is RUN by /bin/sh the same way.
+# made to fail, and no real picom, glxinfo or pgrep on this machine is
+# touched. The machine itself is a fake too: a cpuinfo (with or without the
+# kernel's `hypervisor` flag) and a DMI vendor, passed as DOTS_CPUINFO and
+# DOTS_SYSFS to the drivers-detect.sh that dwm-picom sources. The autostart block is RUN by /bin/sh the same way.
 #
 # The fake glxinfo output follows the layout mesa-demos' glxinfo.c prints for
 # -B ("direct rendering: Yes|No", "OpenGL renderer string: ..."). It is taken
-# from that source, not captured live: the dev host has no glxinfo. The fake
-# systemd-detect-virt mirrors `--vm`: the hypervisor's name and exit 0, or
-# "none" and exit 1.
+# from that source, not captured live: the dev host has no glxinfo.
 
 set -euo pipefail
 
@@ -60,16 +60,23 @@ box() {
     local d="$SB/box-$1"
     rm -rf "$d"
     # bash: dwm-picom's `#!/usr/bin/env bash` looks it up on PATH.
-    seal_path "$d" sed grep cat bash
+    seal_path "$d" sed grep cat bash readlink dirname tr awk
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
         fake "$d" picom 'echo "$*" >>"'"$d"'/picom.log"'
         fake "$d" pgrep "exit $([[ "${5:-}" == running ]] && echo 0 || echo 1)"
         [[ "${4:-}" == notimeout ]] || fake "$d" timeout 'shift; exec "$@"'
+        # The machine: no hypervisor flag on bare metal; in a guest the flag
+        # and a DMI vendor (QEMU for kvm, as libvirt sets it).
+        mkdir -p "$d/sys/class/dmi/id"
         if [[ "$3" == none ]]; then
-            fake "$d" systemd-detect-virt 'echo none; exit 1'
+            printf 'flags\t\t: fpu vme de pse tsc msr\n' >"$d/cpuinfo"
         else
-            fake "$d" systemd-detect-virt "echo $3"
+            printf 'flags\t\t: fpu vme de pse tsc msr hypervisor\n' >"$d/cpuinfo"
+            case "$3" in
+                kvm) echo QEMU >"$d/sys/class/dmi/id/sys_vendor" ;;
+                vmware) echo 'VMware, Inc.' >"$d/sys/class/dmi/id/sys_vendor" ;;
+            esac
         fi
         case "$2" in
             absent) ;;
@@ -80,10 +87,10 @@ box() {
     printf '%s\n' "$d"
 }
 # pick <box dir> — dwm-picom's backend line.
-pick() { env -i PATH="$1" "$(type -P bash)" "$SUT" backend 2>&1; }
+pick() { env -i PATH="$1" DOTS_CPUINFO="$1/cpuinfo" DOTS_SYSFS="$1/sys" "$(type -P bash)" "$SUT" backend 2>&1; }
 # launched <box dir> — what `dwm-picom` (start) ran picom with.
 launched() {
-    env -i PATH="$1" "$(type -P bash)" "$SUT" >/dev/null 2>&1 || true
+    env -i PATH="$1" DOTS_CPUINFO="$1/cpuinfo" DOTS_SYSFS="$1/sys" "$(type -P bash)" "$SUT" >/dev/null 2>&1 || true
     cat "$1/picom.log" 2>/dev/null || true
 }
 
@@ -129,10 +136,10 @@ session_autostart_compositor >"$SB/compositor.sh"
 echo wait >>"$SB/compositor.sh"
 d="$(box blk "$SB/radeon.out" kvm)"
 ln -s "$SUT" "$d/dwm-picom"
-env -i PATH="$d" /bin/sh "$SB/compositor.sh" 2>/dev/null || true
+env -i PATH="$d" DOTS_CPUINFO="$d/cpuinfo" DOTS_SYSFS="$d/sys" /bin/sh "$SB/compositor.sh" 2>/dev/null || true
 expect "runs dwm-picom (a VM gets xrender)" "--backend xrender" "$(cat "$d/picom.log" 2>/dev/null || true)"
 d="$(box nodwm "$SB/radeon.out" none)"
-env -i PATH="$d" /bin/sh "$SB/compositor.sh" 2>/dev/null || true
+env -i PATH="$d" DOTS_CPUINFO="$d/cpuinfo" DOTS_SYSFS="$d/sys" /bin/sh "$SB/compositor.sh" 2>/dev/null || true
 expect "without dwm-picom on PATH: plain xrender, never glx" "--backend xrender" "$(cat "$d/picom.log" 2>/dev/null || true)"
 
 blue "==> report on an existing autostart.sh"

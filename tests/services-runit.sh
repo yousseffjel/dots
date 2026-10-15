@@ -32,7 +32,7 @@ trap 'rm -rf "$SB"' EXIT
 # All four XDG variables: HOME alone leaks into the real install manifest.
 export HOME="$SB/home" XDG_STATE_HOME="$SB/state" XDG_CONFIG_HOME="$SB/config" \
     XDG_DATA_HOME="$SB/data" XDG_CACHE_HOME="$SB/cache" \
-    DOTS_RUNIT_SV="$SB/sv" DOTS_RUNIT_SERVICE="$SB/service"
+    DOTS_RUNIT_SV="$SB/sv" DOTS_RUNIT_SERVICE="$SB/service" DOTS_VIRT=none
 
 # No red/green/blue of its own (CLAUDE.md rule 2): it sources global_fn.sh,
 # then replaces them with plain ones so output is greppable.
@@ -78,6 +78,16 @@ check "...one SERVICE row each, dbus first" test "$(rows SERVICE)" = "dbus|elogi
 check "dhcpcd unlinked once NetworkManager is in" unlinked dhcpcd
 check "...recorded, with no down file" test "$(rows SERVICEOFF)" = "dhcpcd |"
 check "wpa_supplicant was not enabled: nothing to do, no row" test "$(manifest_rows SERVICEOFF | grep -c wpa || true)" -eq 0
+
+printf '\033[34m%s\033[0m\n' "==> in a VM: the SPICE guest agent's system half too"
+box dbus spice-vdagentd
+DOTS_VIRT=kvm services_enable_desktop >"$SB/out" 2>&1
+check "spice-vdagentd linked in a VM" linked spice-vdagentd
+box dbus spice-vdagentd
+services_enable_desktop >"$SB/out" 2>&1
+check "...never on bare metal" unlinked spice-vdagentd
+box dbus elogind NetworkManager bluetoothd dhcpcd wpa_supplicant agetty-tty2 -- dhcpcd agetty-tty2
+services_enable_desktop >/dev/null 2>&1
 
 printf '\033[34m%s\033[0m\n' "==> a re-run"
 services_enable_desktop >"$SB/out" 2>&1

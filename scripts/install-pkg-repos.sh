@@ -84,7 +84,6 @@ repos_add_sublime() {
 repos_install() {
     repos_add_sublime
     # The same code as `dots drivers`, run in-process so its failures land in
-    # this stage's closing summary. (Its Fedora-only RPM Fusion paths are
-    # scope I sub-task I-7.)
-    DRIVERS_ASSUME_RPMFUSION=$DRY_RUN drivers_install
+    # this stage's closing summary. After nonfree, which intel-ucode comes from.
+    drivers_install
 }

@@ -29,12 +29,7 @@ make_fakes() {
         ls sort id date mkdir touch mktemp mv cp cmp
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
-        # `rpm -q a` (the drivers checks, still Fedora names until scope I
-        # sub-task I-7) answers from FAKE_MISSING.
-        fake "$BIN" rpm 'rc=0; shift; [[ "${1:-}" == --whatprovides ]] && shift; for p in "$@"; do
-    case " ${FAKE_MISSING:-} " in *" $p "*) echo "no package provides $p"; rc=1 ;; *) echo "$p-1.0" ;; esac
-done; exit $rc'
-        # `xbps-query <name>` (check_packages, via pkg_installed): exit 0 when
+        # `xbps-query <name>` (check_packages and the drivers checks): exit 0 when
         # installed, 2 when not, as the real one does (xbps 0.60.7, probed).
         fake "$BIN" xbps-query 'case " ${FAKE_MISSING:-} " in *" $1 "*) exit 2 ;; esac; echo "$1-1.0_1"'
         fake "$BIN" pgrep 'case "$1" in
@@ -47,8 +42,6 @@ esac'
 [[ -z "${FAKE_XCURSOR:-}" ]] || echo "Xcursor.theme:	$FAKE_XCURSOR"'
         fake "$BIN" pamixer 'echo 40'
         fake "$BIN" nmcli 'echo connected'
-        # systemctl only for doctor-drivers' tuned check (Fedora, until I-7).
-        fake "$BIN" systemctl 'echo "${FAKE_SERVICE:-enabled}"'
         # ReadOne returns one variant: gdbus prints "(<uint32 1>,)". The error
         # text is what the Fedora VM printed when the portal could not start.
         fake "$BIN" gdbus 'case "${FAKE_PORTAL:-dark}" in
@@ -60,7 +53,6 @@ esac'
         fake "$BIN" dconf "echo \"'prefer-dark'\""
         # is-paused: false / true (do not disturb), or "dead" = no answer.
         fake "$BIN" dunstctl 'case "${FAKE_DUNST:-false}" in dead) exit 1 ;; *) echo "${FAKE_DUNST:-false}" ;; esac'
-        fake "$BIN" systemd-detect-virt '[[ -z "${FAKE_NOT_VM:-}" ]]'
     }
     fake_flatpak "$BIN/flatpak" "$SB/fp"
     local d
@@ -110,9 +102,13 @@ make_home() {
 # The drivers section reads $SB/sys and $SB/cpuinfo, never the host's: an
 # empty PCI tree and a VM, so it only reports the host-firmware skip.
 run_doctor() {
-    # The runit service dir: ly linked unless FAKE_SERVICE=disabled.
-    rm -rf "$SB/service" && mkdir -p "$SB/sv/ly" "$SB/service"
-    [[ "${FAKE_SERVICE:-enabled}" == disabled ]] || ln -s "$SB/sv/ly" "$SB/service/ly"
+    # The runit service dir: ly and power-profiles-daemon linked unless
+    # FAKE_SERVICE=disabled.
+    rm -rf "$SB/service" && mkdir -p "$SB/sv/ly" "$SB/sv/power-profiles-daemon" "$SB/service"
+    if [[ "${FAKE_SERVICE:-enabled}" != disabled ]]; then
+        ln -s "$SB/sv/ly" "$SB/service/ly"
+        ln -s "$SB/sv/power-profiles-daemon" "$SB/service/power-profiles-daemon"
+    fi
     # A session bus address unless FAKE_NOBUS; empty reads as "no bus".
     local bus="unix:path=$SB/bus"
     [[ -z "${FAKE_NOBUS:-}" ]] || bus=""
@@ -125,6 +121,6 @@ run_doctor() {
         DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
-        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
+        FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

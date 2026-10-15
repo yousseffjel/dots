@@ -30,6 +30,10 @@ DESKTOP_SERVICES=(dbus elogind NetworkManager bluetoothd)
 # or they fight over the interfaces.
 NM_CONFLICTS=(dhcpcd wpa_supplicant)
 
+# drivers_is_vm, for the VM-only guest agent below.
+# shellcheck source=drivers-detect.sh
+source "$(dirname "${BASH_SOURCE[0]}")/drivers-detect.sh"
+
 runit_enabled() { [[ -e "$(runit_service)/$1" || -L "$(runit_service)/$1" ]]; }
 
 # runit_enable <name> — link the service; returns 1 when it is not installed.
@@ -84,6 +88,12 @@ services_enable_desktop() {
     for name in "${DESKTOP_SERVICES[@]}"; do
         runit_enable "$name" || true
     done
+    # The SPICE guest agent's system half: Void ships it as a runit service
+    # that nothing starts by itself (Fedora activated it from the package).
+    # Inside a VM only; autostart.sh starts the session half.
+    if drivers_is_vm; then
+        runit_enable spice-vdagentd || true
+    fi
     # Only once NetworkManager is actually enabled: disabling dhcpcd without
     # it would leave the box with no network at all.
     if runit_enabled NetworkManager || [[ $DRY_RUN -eq 1 ]]; then

@@ -220,7 +220,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   login shell.
 - **I-6 Session:** ✅ done 2026-10-15 (dbus-run-session re-exec, portal via D-Bus activation, pipewire + LINK rows; see the change log); `.xinitrc` without systemd user units: D-Bus session,
   portal, `dots_session_end`; update the `session_*report` paste text.
-- **I-7 Drivers & VM detection:** replace `systemd-detect-virt`; GPU,
+- **I-7 Drivers & VM detection:** ✅ done 2026-10-15 (see the change log); replace `systemd-detect-virt`; GPU,
   firmware, microcode names; laptop power via power-profiles-daemon.
 - **I-8 Runtime scripts & doctor:** `dwm-powermenu`, `dwm-picom`, `dwm-lock`
   (elogind), every doctor check that asks systemd; a D4 group check (`id -nG`).

@@ -237,17 +237,19 @@ one is installed. **`xcolor` is not a Fedora package** — §3 named it for year
 REVERSAL of scope-b locked decisions 9 and 12, which made this desktop-only.
 A desktop keeps exactly its old behaviour; laptop behaviour activates only
 where `drivers_chassis` (`scripts/drivers-detect.sh`) says laptop. Since
-2026-10-14 a virtual machine reads as `vm` (from `systemd-detect-virt --vm`,
-winning over any chassis type or battery a hypervisor exposes) and gets desktop
-behaviour; bare metal reporting an odd chassis type is `unknown`, also treated
-as a desktop.
+2026-10-14 a virtual machine reads as `vm` (winning over any chassis type or
+battery a hypervisor exposes) and gets desktop behaviour; bare metal reporting
+an odd chassis type is `unknown`, also treated as a desktop. On Void (I-7,
+2026-10-15) "vm" comes from the kernel's `hypervisor` CPU flag plus the DMI
+vendor, not `systemd-detect-virt`; `dwm-picom` sources the same
+`drivers_virt`, so the two cannot disagree.
 Landed so far: the checker, `packages/laptop.lst`, the real backlight in
 `dwm-brightness` (block `BL` vs `GAMMA`), the `BAT` block with
 low/critical alerts (`dwm-battery`, no daemon), and the touchpad snippet
 (`config/xorg/`, an Xorg InputClass, not xinput), and power profiles
-(`tuned-ppd` + `dwm-power`, which talks to the profiles D-Bus API with
-gdbus: Fedora ships no `powerprofilesctl` without the conflicting
-power-profiles-daemon). All five scope-h slots are done
+(`dwm-power`, which talks to the profiles D-Bus API with gdbus; served by
+`tuned-ppd` on Fedora, by `power-profiles-daemon` and its runit service on
+Void). All five scope-h slots are done
 (`.claude/tasks/scope-h-laptop-support.md`). There is no Fedora laptop to
 verify on, only the VM, so laptop paths are fixture-tested.
 

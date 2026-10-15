@@ -126,7 +126,7 @@ session_autostart_report() {
         'Hotplug still works: that is the udev rule the package ships, not this.'
 
     session_report_daemon "$autostart" spice-vdagent \
-        'add this line yourself:  command -v spice-vdagent >/dev/null && systemd-detect-virt --vm -q && ! pgrep -x spice-vdagent >/dev/null && spice-vdagent &' \
+        'add this line yourself:  command -v spice-vdagent >/dev/null && grep -qw hypervisor /proc/cpuinfo && ! pgrep -x spice-vdagent >/dev/null && spice-vdagent &' \
         'only matters inside a VM: without it the screen never resizes to' \
         'the viewer window and the host clipboard is not shared.'
 

@@ -11,14 +11,13 @@
 #   config/xorg/40-dots-touchpad.conf
 #                                copied to /etc/X11/xorg.conf.d with a SYSFILE
 #                                row: `SYSFILE xorg <installed path> <repo path>`
-#   tuned.service, tuned-ppd.service
-#                                enabled (SERVICE rows, only for a unit this run
-#                                enabled) so the profile dwm-power picks is
-#                                re-applied at boot; tuned-ppd itself is
-#                                D-Bus-activated, tuned would otherwise not run
+#   power-profiles-daemon        its runit service linked (a SERVICE row, only
+#                                when this run linked it), so the profile
+#                                dwm-power picks survives a reboot. It replaced
+#                                Fedora's tuned + tuned-ppd: same D-Bus API.
 #
 # The SYSFILE contract (an edit is never overwritten, a file we did not write
-# is never claimed) lives in sysfile-lib.sh, shared with the dnf drop-in.
+# is never claimed) lives in sysfile-lib.sh.
 
 # DOTS_XORG_CONF_DIR overrides /etc/X11/xorg.conf.d, for tests only.
 DRIVERS_TOUCHPAD_REL="config/xorg/40-dots-touchpad.conf"
@@ -38,30 +37,23 @@ drivers_laptop() {
         return 1
     fi
     while IFS= read -r pkg; do
-        drivers_pkg "$pkg" "a laptop feature that needs it stays off (see packages/laptop.lst)" || true
+        pkg_ensure "$pkg" "a laptop feature that needs it stays off (see packages/laptop.lst)" || true
     done < <(read_pkg_list "$lst" || true)
     drivers_touchpad
     drivers_power
 }
 
-# drivers_power — see the header. `--now` so the switcher works before the
-# next boot. A unit already enabled is the user's (or a distribution preset's)
-# and gets no row, so uninstall never disables it.
+# drivers_power — see the header. runit starts it within seconds of the link,
+# so the switcher works before the next boot. One already enabled is the
+# user's and gets no row, so uninstall never disables it (runit_enable's rule).
 drivers_power() {
-    local unit
-    for unit in tuned.service tuned-ppd.service; do
-        if [[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" == enabled ]]; then
-            green "  ok      $unit already enabled"
-        elif [[ $DRY_RUN -eq 1 ]]; then
-            blue "  (dry-run) would enable $unit (power profiles)"
-        elif "${SUDO[@]}" systemctl enable --now "$unit" >/dev/null 2>&1; then
-            manifest_append_row SERVICE "$unit"
-            green "  enabled $unit"
-        else
-            yellow "  FAILED: systemctl enable --now $unit — power profiles are not kept across reboots"
-            FAILED_EXTRA+=("$unit")
-        fi
-    done
+    # A dry run installed nothing, so the service dir is not there to link.
+    if [[ $DRY_RUN -eq 1 ]] && ! [[ -d "$(runit_sv)/power-profiles-daemon" ]]; then
+        blue "  (dry-run) would enable power-profiles-daemon"
+        return 0
+    fi
+    runit_enable power-profiles-daemon \
+        || FAILED_EXTRA+=(power-profiles-daemon)
 }
 
 # drivers_touchpad — the Xorg snippet; the contract is sysfile_install's

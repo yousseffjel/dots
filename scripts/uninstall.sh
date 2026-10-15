@@ -138,8 +138,6 @@ uninstall_ly
 uninstall_wallpapers
 # Before uninstall_packages too: it needs git to prove a system file unedited.
 uninstall_sysfiles
-# Before uninstall_packages: ffmpeg-free must be back before it can be removed.
-uninstall_repo_swaps
 uninstall_packages
 # After uninstall_packages: a repo goes only once none of its packages remain.
 uninstall_repos

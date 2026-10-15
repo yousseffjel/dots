@@ -73,6 +73,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `~/.config/pipewire`. All of it stops when you log out. An existing
   `~/.xinitrc` is told which lines to add (`docs/THEMING.md`, Desktop
   portal).
+- **`dots drivers` uses Void's packages.** Video decoding comes from
+  `intel-media-driver`, `libva-intel-driver` or `mesa-vaapi` in the main
+  repo, with no third-party repo. Missing firmware is looked up in the
+  `linux-firmware*` packages' file lists. Microcode is `intel-ucode` (nonfree)
+  or `linux-firmware-amd`, with the initramfs rebuilt. NVIDIA is still only
+  reported, now with Void's `nvidia*` packages. Laptops get
+  `power-profiles-daemon` and its runit service instead of tuned. Virtual
+  machines are recognised from the CPU's `hypervisor` flag, and get the SPICE
+  agent's `spice-vdagentd` service enabled.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

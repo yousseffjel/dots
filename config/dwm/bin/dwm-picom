@@ -20,8 +20,11 @@
 # runs `dwm-picom &`, and `dots doctor` asks `dwm-picom backend` what picom
 # should be running and compares.
 #
-# The VM test matches scripts/drivers-detect.sh's drivers_is_vm (a container
-# is not a VM). DOTS_VIRT overrides it, for tests only, as it does there.
+# The VM test IS scripts/drivers-detect.sh's drivers_virt, sourced from the
+# repo this file lives in (~/.config/dwm/bin links into it), so the two can
+# never disagree. Without the repo (a copied-out dwm-picom) it falls back to
+# the same first test, the kernel's `hypervisor` CPU flag. DOTS_VIRT,
+# DOTS_CPUINFO and DOTS_SYSFS override it, for tests only, as they do there.
 #
 # usage: dwm-picom [start] | backend
 #   start    exec picom with the chosen backend, unless picom already runs
@@ -30,14 +33,23 @@ set -euo pipefail
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 
+DETECT="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../scripts/drivers-detect.sh"
+
 # The hypervisor's name, or nothing on bare metal (or in a container).
 vm_name() {
-    if [[ -n "${DOTS_VIRT:-}" ]]; then
-        [[ "$DOTS_VIRT" == none || "$DOTS_VIRT" == unknown ]] || echo "$DOTS_VIRT"
-        return 0
+    local v
+    if [[ -r "$DETECT" ]]; then
+        # shellcheck source=../../../scripts/drivers-detect.sh
+        source "$DETECT"
+        v="$(drivers_virt)"
+    elif [[ -n "${DOTS_VIRT:-}" ]]; then
+        v="$DOTS_VIRT"
+    elif grep -qw hypervisor "${DOTS_CPUINFO:-/proc/cpuinfo}" 2>/dev/null; then
+        v=vm
+    else
+        v=none
     fi
-    command -v systemd-detect-virt >/dev/null 2>&1 || return 0
-    systemd-detect-virt --vm 2>/dev/null | grep -v '^none$' || true
+    [[ "$v" == none || "$v" == unknown ]] || echo "$v"
 }
 
 backend() {

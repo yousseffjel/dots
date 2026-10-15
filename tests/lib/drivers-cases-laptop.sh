@@ -80,39 +80,36 @@ ASSUME_YES=1 DOTS_DIR="$REPO" uninstall_sysfiles >"$SB/out" 2>&1
 check "uninstall removed what drivers installed" test ! -e "$DST"
 check "...and said so" grep -q "removed $DST" "$SB/out"
 
-blue "==> power profiles: tuned enabled on a laptop only"
+blue "==> power profiles: power-profiles-daemon on a laptop only"
 machine GenuineIntel none
 chassis 10
 tp_run
-# laptop.lst now names power-profiles-daemon (scope I); the tuned service
-# enables below are drivers-laptop.sh code that sub-task I-7 replaces.
 check "laptop: power-profiles-daemon installed from laptop.lst" has power-profiles-daemon
-check "tuned.service enabled --now" grep -q "systemctl enable --now tuned.service" "$LOG"
-check "tuned-ppd.service enabled --now" grep -q "systemctl enable --now tuned-ppd.service" "$LOG"
-check "SERVICE rows for both, so uninstall disables them" \
-    test "$(manifest_rows SERVICE | cut -f2 | sort | tr '\n' ' ')" = "tuned-ppd.service tuned.service "
-: >"$LOG"
+check "its runit service linked" test -L "$DOTS_RUNIT_SERVICE/power-profiles-daemon"
+check "a SERVICE row, so uninstall unlinks it" test "$(manifest_rows SERVICE | cut -f2)" = power-profiles-daemon
 tp_run
-check "re-run: no second enable" not grep -q "systemctl enable" "$LOG"
+check "re-run: no second row" test "$(manifest_rows SERVICE | wc -l)" -eq 1
+machine GenuineIntel none power-profiles-daemon
+chassis 10
+mkdir -p "$DOTS_RUNIT_SV/power-profiles-daemon"
+ln -s "$DOTS_RUNIT_SV/power-profiles-daemon" "$DOTS_RUNIT_SERVICE/"
+tp_run
+check "an already-enabled service gets no row (uninstall leaves it)" test -z "$(manifest_rows SERVICE)"
 machine GenuineIntel none
 chassis 10
-echo tuned.service >"$SB/enabled"
-tp_run
-check "an already-enabled tuned gets no row (uninstall leaves it)" \
-    test "$(manifest_rows SERVICE | cut -f2 | tr '\n' ' ')" = "tuned-ppd.service "
-machine GenuineIntel none
-chassis 10
-FAKE_FAIL=tuned.service tp_run
-check "a failed enable is reported" grep -qx tuned.service <<<"$(printf '%s\n' "${FAILED_EXTRA[@]}")"
-check "...with no row" not grep -q "tuned.service" <<<"$(manifest_rows SERVICE)"
+FAKE_FAIL=power-profiles-daemon tp_run
+check "package failed: the service cannot be linked, and that is reported" \
+    grep -qx power-profiles-daemon <<<"$(printf '%s\n' "${FAILED_EXTRA[@]}")"
+check "...with no SERVICE row" test -z "$(manifest_rows SERVICE)"
 machine GenuineIntel none
 chassis 10
 DRY_RUN=1 tp_run
-check "dry run: nothing enabled" not grep -q "systemctl enable" "$LOG"
+check "dry run: nothing linked" test ! -e "$DOTS_RUNIT_SERVICE/power-profiles-daemon"
+check "dry run: said what it would do" said "(dry-run) would enable power-profiles-daemon"
 machine GenuineIntel none
 chassis 3
 tp_run
-check "desktop: no systemctl enable at all" not grep -q "systemctl enable" "$LOG"
+check "desktop: no power-profiles-daemon at all" test ! -e "$DOTS_RUNIT_SERVICE/power-profiles-daemon"
 
 blue "==> touchpad: a failed write"
 # A read-only directory stops only a non-root writer; root would just write.

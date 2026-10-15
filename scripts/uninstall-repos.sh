@@ -5,41 +5,12 @@
 # Sourced by uninstall.sh, never standalone: it assumes `set -euo pipefail`,
 # DRY_RUN, SUDO, global_fn.sh (confirm, manifest_rows) and the colour helpers.
 #
-# Two functions, because they must straddle uninstall_packages:
-#   uninstall_repo_swaps  BEFORE it. Undoes REPO swap rows, which only
-#                         drivers-gpu.sh's Fedora mesa-va-drivers swap still
-#                         writes. That path, and this function with it, goes
-#                         in scope I sub-task I-7; a Void install never has
-#                         such a row, so here it is a no-op.
-#   uninstall_repos       AFTER it. The nonfree repository is removed only
+# Runs after uninstall_packages:
+#   uninstall_repos       The nonfree repository is removed only
 #                         while nothing installed still comes from it, the
 #                         same rule uninstall-flatpak.sh applies to Flathub.
 #                         With our own packages already gone, what is left
 #                         is yours.
-
-uninstall_repo_swaps() {
-    local swaps kind from to
-    swaps="$(manifest_rows REPO | awk -F'\t' '$2=="swap"')"
-    [[ -n "$swaps" ]] || return 0
-    blue "=== package swaps ==="
-    confirm "Swap back the package(s) this installer replaced?" || {
-        yellow "  skipped package swaps"
-        return 0
-    }
-    while IFS=$'\t' read -r _ kind from to; do
-        if ! rpm -q "$to" >/dev/null 2>&1; then
-            blue "  $to is no longer installed — nothing to swap back"
-            continue
-        fi
-        if [[ $DRY_RUN -eq 1 ]]; then
-            blue "  (dry-run) would run: dnf swap $to $from --allowerasing"
-        elif "${SUDO[@]}" dnf swap -y "$to" "$from" --allowerasing >/dev/null 2>&1; then
-            green "  swapped $to back to $from"
-        else
-            red "  dnf swap $to $from failed — run it by hand"
-        fi
-    done <<<"$swaps"
-}
 
 # nonfree_in_use — true while an installed package is one the nonfree repo
 # ships. One query, probed with xbps-static 0.60.7: `-i --repository=<url>
@@ -88,7 +59,7 @@ uninstall_repo_package() {
 uninstall_repos() {
     blue "=== extra repositories ==="
     local rows row kind name what
-    mapfile -t rows < <(manifest_rows REPO | awk -F'\t' '$2!="swap"')
+    mapfile -t rows < <(manifest_rows REPO)
     if [[ ${#rows[@]} -eq 0 ]]; then
         blue "  no REPO rows in manifest — nothing to remove"
         return 0

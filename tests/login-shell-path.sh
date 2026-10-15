@@ -66,7 +66,7 @@ run_case() {
     # also enables services, adds groups and builds ly, and none of that may
     # reach the host's /etc/sv, /var/service or /usr/bin.
     env -i HOME="$dir/home" USER=tuser \
-        DOTS_RUNIT_SV="$dir/sv" DOTS_RUNIT_SERVICE="$dir/service" DOTS_LY_ROOT="$dir/root" \
+        DOTS_RUNIT_SV="$dir/sv" DOTS_RUNIT_SERVICE="$dir/service" DOTS_LY_ROOT="$dir/root" DOTS_VIRT=none \
         XDG_STATE_HOME="$dir/state" XDG_CONFIG_HOME="$dir/home/.config" \
         XDG_CACHE_HOME="$dir/home/.cache" XDG_DATA_HOME="$dir/home/.local/share" \
         PATH="$dir/fake:$SB/root/usr/sbin:$SB/root/usr/bin:$SB/real" \
