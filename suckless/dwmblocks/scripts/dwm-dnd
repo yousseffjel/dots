@@ -1,16 +1,16 @@
 #!/bin/sh
-# Do-not-disturb indicator: `DND` while dunst is paused, and NOTHING otherwise.
-# dwmblocks appends its delimiter only to blocks that printed something
-# (dwmblocks.c getcmd), so while notifications flow this block takes no space.
+# Notification button: a bell and the number of notifications in dunst's
+# history while they flow, a crossed bell and FOCUS while dunst is paused
+# (focus mode = do not disturb), plus the count it is holding back, if any.
+# Always visible, so it is the one place to click.
 #
-# Interval 0 -- signal-driven only. Super+Shift+n (config/sxhkd/sxhkdrc)
-# toggles the pause and sends `pkill -RTMIN+12 dwmblocks`; dwmblocks still
-# renders it once at startup. Pausing by any other route (`dunstctl` from a
-# shell) shows up at the next signal or restart, the same trade the VOL/MIC/
-# GAMMA blocks make.
+#   left-click   the notification centre (config/dwm/bin/dwm-notify menu)
+#   right-click  focus mode on/off
 #
-# Left-click turns DND off: the mutation happens before the read below, so
-# the click itself re-renders the block empty.
+# Polled every few seconds (blocks.def.h): the history count grows each time
+# a popup times out, and nothing signals that. Anything that changes the
+# state on purpose -- Super+Shift+n, dwm-notify -- also sends signal 12 so
+# the bar follows at once.
 #
 # dunstctl asks dunst over D-Bus, which starts dunst if it is not running --
 # the notification daemon is D-Bus activated anyway. Every call is wrapped in
@@ -25,13 +25,40 @@ colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
 : "${STATUS_MUTED:=^c#888888^}"
 : "${STATUS_RESET:=^d^}"
 
+# Shared click helpers (block_bin) -- see dwm-blockutil.
+util="${0%/*}/dwm-blockutil"
+[ -r "$util" ] || util="$HOME/.local/bin/dwm-blockutil"
+[ -r "$util" ] && . "$util"
+
 DUNST_TIMEOUT=2
+ICON_BELL="󰂚"
+ICON_FOCUS="󰂛"
 
 command -v dunstctl >/dev/null 2>&1 || exit 0
 
 case "$BUTTON" in
-1) timeout "$DUNST_TIMEOUT" dunstctl set-paused false >/dev/null 2>&1 ;;
+1)
+	# Backgrounded with its output detached: dwmblocks reads this block's
+	# stdout, and a menu still holding it open would stall the bar.
+	if command -v block_bin >/dev/null 2>&1 && notify=$(block_bin dwm-notify); then
+		"$notify" menu >/dev/null 2>&1 &
+	fi
+	;;
+3) timeout "$DUNST_TIMEOUT" dunstctl set-paused toggle >/dev/null 2>&1 ;;
 esac
 
-[ "$(timeout "$DUNST_TIMEOUT" dunstctl is-paused 2>/dev/null)" = "true" ] || exit 0
-printf '%sDND%s\n' "$STATUS_MUTED" "$STATUS_RESET"
+paused=$(timeout "$DUNST_TIMEOUT" dunstctl is-paused 2>/dev/null)
+case "$paused" in
+true)
+	held=$(timeout "$DUNST_TIMEOUT" dunstctl count waiting 2>/dev/null)
+	[ "${held:-0}" -gt 0 ] 2>/dev/null || held=
+	printf '%s%s FOCUS%s%s\n' "$STATUS_MUTED" "$ICON_FOCUS" "$STATUS_RESET" "${held:+ $held}"
+	;;
+false)
+	count=$(timeout "$DUNST_TIMEOUT" dunstctl count history 2>/dev/null)
+	[ "${count:-0}" -gt 0 ] 2>/dev/null || count=
+	printf '%s%s\n' "$ICON_BELL" "${count:+ $count}"
+	;;
+# dunst did not answer: still a button, so the centre can say why.
+*) printf '%s%s%s\n' "$STATUS_MUTED" "$ICON_BELL" "$STATUS_RESET" ;;
+esac

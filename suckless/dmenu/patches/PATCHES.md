@@ -99,3 +99,34 @@ nothing else.
 
 **Verified**: `tests/dmenu-path-cache.sh` runs this script and the unpatched
 one against the real `stest`, compiled from this directory's `stest.c`.
+
+## dmenu-xyw-20261015-local.diff
+
+**Source**: adapted from upstream's
+[xyw](https://tools.suckless.org/dmenu/patches/xyw/) patch
+(`dmenu-xyw-5.2.diff`), captured against this tree. Upstream rewrites the
+`x`/`y`/`mw` assignments in `setup()`, which the center and border patches
+had already rewritten, so it cannot apply here.
+
+**What**: `-x xoffset`, `-y yoffset` and `-z width`. One helper,
+`placexyw()`, runs after whichever branch (centered or edge-to-edge) sized
+the box, in both the Xinerama and the embedded path, against the same
+border-adjusted usable area (`aw`/`ah`) those branches use.
+
+**Where it departs from upstream**:
+- A **negative `-x` is the gap from the right edge**. Upstream adds it to the
+  monitor's left edge, which puts the window off-screen. `dwm-notify` uses
+  `-x -12` to drop the notification centre under the bar's right end.
+- `-x`/`-y` given as `0` still count — `dmxset`/`dmyset` record that the flag
+  was passed, so `-x 0` pins the left edge even while centered.
+- `-z` alone under the default centering keeps the box centered at the new
+  width; upstream had no centering to keep.
+- The result is clamped onto the monitor, and `-z` is capped at its width.
+- `-z` parses into a temporary first: `MAX()` evaluates its argument twice,
+  so `MAX(0, atoi(argv[++i]))` advanced `i` twice and crashed on a NULL
+  `argv` entry (found while testing this patch).
+
+**Verified**: Xvfb at 1920x1080, `xwininfo` on the mapped window:
+`-x -12 -y 30 -z 400 -bw 2` lands at x=1504 (outer right edge 12 px from
+the screen edge), `-x 5000 -y 5000 -z 9999` clamps onto the screen, `-b -y
+20` counts from the bottom, and the plain default and `-nc` are unchanged.

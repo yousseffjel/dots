@@ -47,6 +47,7 @@ procps-ng  # pgrep/pkill missing: the status bar never refreshes after a volume 
 picom  # no compositor: no vsync, and the tuned ~/.config/picom/picom.conf is read by nothing
 glx-utils  # autostart.sh cannot probe the GL renderer, so picom always runs on the slower xrender backend, even on a real GPU
 dunst  # no notification daemon: every notify-send in the shipped scripts is silently dropped
+jq  # the notification centre (Super+Ctrl+n, a left-click on the bell) cannot read dunst's history and never opens (verified on mdapi for f43/f44, 2026-10-15)
 libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feedback all vanish
 xss-lock  # the screen never locks on idle or on suspend; only the manual Super+Shift+l keybind still works
 xsettingsd  # GTK apps get no XSETTINGS: Xft DPI, antialiasing and hinting fall back to each toolkit's own defaults, and a themes/dark/theme.conf edit needs an app restart instead of a theme reload

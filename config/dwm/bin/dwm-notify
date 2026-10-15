@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+# dwm-notify — notification centre and focus mode, on top of dunst.
+#
+#   dwm-notify [menu]  dmenu list of dunst's history, dropped down under the
+#                      bar's right end: pick one to open or delete it; the
+#                      first entries toggle focus mode and clear everything
+#   dwm-notify toggle  focus mode on/off (dunst paused = do not disturb)
+#
+# Reached from the bell block on the bar (left-click: menu, right-click:
+# toggle — suckless/dwmblocks/scripts/dwm-dnd), Super+Ctrl+n and
+# Super+Shift+n (config/sxhkd/sxhkdrc). Every change re-renders that block
+# through signal 12; the block is signal-only, so the pkill is load-bearing.
+#
+# "open" re-shows the notification and opens the first link in it. It cannot
+# run the sending app's action: once a notification has left the screen dunst
+# sends only NotificationClosed for it, never ActionInvoked, and the history
+# keeps no actions at all (probed against dunst 1.13). A notification
+# re-shown while dunst is paused would only queue, so opening one ends focus
+# mode first — which also shows whatever arrived during it.
+#
+# dunst's history lives in the running dunst only: it is gone after a logout,
+# and history_length in config/dunst/dunstrc caps it.
+set -euo pipefail
+
+# --help answers before anything opens a menu (tests/dwm-help.sh).
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-notify [menu|toggle] — notification centre (Super+Ctrl+n) and focus mode (Super+Shift+n)"
+        exit 0
+        ;;
+esac
+
+# Colours come from the X resource database, as in every dwm-* menu: an
+# explicit -nb/-nf/-sb/-sf would override the theme.
+FONT="monospace:size=10"
+# Placement: dmenu's xyw patch (suckless/dmenu/patches/PATCHES.md). A negative
+# -x is the gap from the right edge; X_GAP/Y_TOP match dunst's offset in
+# config/dunst/dunstrc, so the list opens where the popups appear.
+X_GAP=12
+Y_TOP=36
+MENU_WIDTH=560
+MAX_LINES=15
+# Characters of "app: summary — body" shown per line.
+LINE_CHARS=72
+DUNST_TIMEOUT=2
+BAR_SIGNAL=12
+
+# Menu entries above the list. Matched by exact text, so they are constants.
+ENTRY_FOCUS_ON="󰂛  Turn on focus mode"
+ENTRY_FOCUS_OFF="󰂚  Turn off focus mode"
+ENTRY_CLEAR="󰎟  Clear all"
+ENTRY_EMPTY="No notifications"
+ENTRY_OPEN="open"
+ENTRY_DELETE="delete"
+ENTRY_BACK="back"
+
+# One record per notification, newest first: id, display line, first link.
+# Fields are joined with US (0x1f) rather than @tsv, which would escape
+# backslashes in the text. The body's markup and entities are stripped and
+# its newlines folded; &amp; is decoded last so "&amp;lt;" stays literal.
+# A urls line is "[label] url" or a bare url, still entity-escaped.
+# shellcheck disable=SC2016 # jq program, not shell
+JQ_FILTER='
+def clean: gsub("<[^>]*>"; "") | gsub("&lt;"; "<") | gsub("&gt;"; ">")
+    | gsub("&quot;"; "\"") | gsub("&apos;"; "'"'"'") | gsub("&amp;"; "&")
+    | gsub("[\t\n\r]+"; " ") | gsub("^ +| +$"; "");
+.data[0] | sort_by(-.timestamp.data) | .[]
+| (.appname.data // "" | clean) as $app
+| (.summary.data // "" | clean) as $sum
+| (.body.data // "" | clean) as $body
+| [ (.id.data | tostring),
+    ((if $app == "" then "" else $app + ": " end) + $sum
+        + (if $body == "" then "" else " — " + $body end))[0:$chars],
+    ((.urls.data // "") | (split("\n")[0] // "") | sub("^\\[[^]]*\\] "; "")
+        | gsub("&amp;"; "&"))
+  ] | join("\u001f")'
+
+dctl() { timeout "$DUNST_TIMEOUT" dunstctl "$@"; }
+refresh_bar() { pkill -RTMIN+"$BAR_SIGNAL" dwmblocks 2>/dev/null || true; }
+is_paused() { [[ "$(dctl is-paused 2>/dev/null || true)" == "true" ]]; }
+
+pick() { # pick <prompt> <lines> — one dmenu, top-right; empty on Escape
+    dmenu -i -fn "$FONT" -x "-$X_GAP" -y "$Y_TOP" -z "$MENU_WIDTH" \
+        -l "$2" -p "$1" || true
+}
+
+say() { printf '%s\n' "$1" | pick "notifications" 1 >/dev/null; }
+
+toggle() {
+    dctl set-paused toggle >/dev/null
+    refresh_bar
+}
+
+# Only links a browser should get: a notification's text is attacker-shaped
+# input as far as xdg-open is concerned (a "-flag" or an odd scheme).
+open_link() {
+    [[ "$1" =~ ^(https?|ftp|mailto):[^[:space:]]+$ ]] || return 0
+    command -v xdg-open >/dev/null 2>&1 || return 0
+    setsid -f xdg-open "$1" >/dev/null 2>&1 || true
+}
+
+open_item() { # open_item <id> <url>
+    if is_paused; then
+        dctl set-paused false >/dev/null
+        refresh_bar
+    fi
+    dctl history-pop "$1" >/dev/null
+    open_link "$2"
+}
+
+item_menu() { # item_menu <id> <line> <url> — returns 1 to leave the centre
+    local choice
+    choice=$(printf '%s\n' "$ENTRY_OPEN" "$ENTRY_DELETE" "$ENTRY_BACK" \
+        | pick "${2:0:40}" 3)
+    case "$choice" in
+        "$ENTRY_OPEN") open_item "$1" "$3" && return 1 ;;
+        "$ENTRY_DELETE") dctl history-rm "$1" >/dev/null && refresh_bar ;;
+        "$ENTRY_BACK") ;;
+        *) return 1 ;;
+    esac
+}
+
+# One pass of the centre. Returns 0 to show the list again (after a delete
+# or "back"), 1 to close it.
+menu_once() {
+    local -a ids=() lines=() urls=() entries=()
+    local id line url history records choice i n
+    history=$(dctl history 2>/dev/null) || {
+        say "dunst does not answer"
+        return 1
+    }
+    # Into a variable first: from a process substitution a jq failure (a
+    # changed history format) would read as an empty history.
+    records=$(jq -r --argjson chars "$LINE_CHARS" "$JQ_FILTER" <<<"$history") || {
+        say "cannot read dunst's history"
+        return 1
+    }
+    while IFS=$'\x1f' read -r id line url; do
+        [[ -n "$id" ]] || continue
+        ids+=("$id") lines+=("$line") urls+=("$url")
+    done <<<"$records"
+    n=${#ids[@]}
+
+    if is_paused; then entries=("$ENTRY_FOCUS_OFF"); else entries=("$ENTRY_FOCUS_ON"); fi
+    if ((n > 0)); then entries+=("$ENTRY_CLEAR (${n})" "${lines[@]}"); else entries+=("$ENTRY_EMPTY"); fi
+    choice=$(printf '%s\n' "${entries[@]}" \
+        | pick "󰂚 ${n}" "$((${#entries[@]} < MAX_LINES ? ${#entries[@]} : MAX_LINES))")
+
+    case "$choice" in
+        "" | "$ENTRY_EMPTY") return 1 ;;
+        "$ENTRY_FOCUS_ON" | "$ENTRY_FOCUS_OFF") toggle && return 1 ;;
+        "$ENTRY_CLEAR ("*")") dctl history-clear >/dev/null && refresh_bar && return 1 ;;
+    esac
+    # Exact text back to its record; identical lines resolve to the newest.
+    for ((i = 0; i < n; i++)); do
+        [[ "${lines[i]}" == "$choice" ]] || continue
+        item_menu "${ids[i]}" "${lines[i]}" "${urls[i]}"
+        return
+    done
+    return 1 # typed text that matches no entry
+}
+
+menu() {
+    local cmd
+    for cmd in dunstctl jq dmenu; do
+        command -v "$cmd" >/dev/null 2>&1 || {
+            echo "dwm-notify: $cmd not found" >&2
+            exit 1
+        }
+    done
+    while menu_once; do :; done
+}
+
+case "${1:-menu}" in
+    menu) menu ;;
+    toggle) toggle ;;
+    *)
+        echo "dwm-notify: unknown command '$1' — try --help" >&2
+        exit 2
+        ;;
+esac

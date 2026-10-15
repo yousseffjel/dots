@@ -1,4 +1,6 @@
 # CURRENT
 
 Phase: idle
-Last log: 2026-10-15-ci-timeout.md
+Task: _(none)_
+Task folder: _(none)_
+Last log: 2026-10-15-notify-center.md

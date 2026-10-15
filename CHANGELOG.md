@@ -16,7 +16,25 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Added
+
+- **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
+  bell in the bar, opens dunst's history as a list under the right end of the
+  bar. Open a notification (shows it again and opens its link) or delete it,
+  clear them all, or switch focus mode. dmenu gained `-x`, `-y` and `-z` to
+  place it there.
+- **Focus mode button.** The bar always shows a bell with the number of past
+  notifications, or `FOCUS` while notifications are held back. Right-click
+  switches focus mode. It replaces the `DND` block, which appeared only while
+  paused.
+
 ### Changed
+
+- `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
+  the last closed notification; **open** in the centre does that for any of
+  them.
+- `jq` is in the desktop package tier, because the notification centre needs
+  it. A failed install of it is now reported in red.
 
 - **Faster installs.** Each package tier now installs in one dnf transaction
   instead of one per package (about 130 dnf runs on a fresh install), with

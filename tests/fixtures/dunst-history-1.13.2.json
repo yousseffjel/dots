@@ -1,0 +1,181 @@
+{
+	"type" : "aa{sv}",
+	"data" : [
+		[
+			{
+				"body" : {
+					"type" : "s",
+					"data" : "report.pdf saved — <a href=\"https://example.org/files?id=1&amp;v=2\">open</a> or https://example.org/b"
+				},
+				"message" : {
+					"type" : "s",
+					"data" : "<b>Download complete</b>\nreport.pdf saved — open or https://example.org/b"
+				},
+				"summary" : {
+					"type" : "s",
+					"data" : "Download complete"
+				},
+				"appname" : {
+					"type" : "s",
+					"data" : "Firefox"
+				},
+				"category" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"default_action_name" : {
+					"type" : "s",
+					"data" : "default"
+				},
+				"icon_path" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"id" : {
+					"type" : "i",
+					"data" : 4
+				},
+				"timestamp" : {
+					"type" : "x",
+					"data" : 3886090100
+				},
+				"timeout" : {
+					"type" : "x",
+					"data" : 0
+				},
+				"progress" : {
+					"type" : "i",
+					"data" : -1
+				},
+				"urgency" : {
+					"type" : "s",
+					"data" : "NORMAL"
+				},
+				"stack_tag" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"urls" : {
+					"type" : "s",
+					"data" : "[open] https://example.org/files?id=1&amp;v=2\nhttps://example.org/b"
+				}
+			},
+			{
+				"body" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"message" : {
+					"type" : "s",
+					"data" : "<b>Plain summary</b>"
+				},
+				"summary" : {
+					"type" : "s",
+					"data" : "Plain summary"
+				},
+				"appname" : {
+					"type" : "s",
+					"data" : "notify-send"
+				},
+				"category" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"default_action_name" : {
+					"type" : "s",
+					"data" : "default"
+				},
+				"icon_path" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"id" : {
+					"type" : "i",
+					"data" : 3
+				},
+				"timestamp" : {
+					"type" : "x",
+					"data" : 3886026291
+				},
+				"timeout" : {
+					"type" : "x",
+					"data" : 0
+				},
+				"progress" : {
+					"type" : "i",
+					"data" : -1
+				},
+				"urgency" : {
+					"type" : "s",
+					"data" : "NORMAL"
+				},
+				"stack_tag" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"urls" : {
+					"type" : "s",
+					"data" : ""
+				}
+			},
+			{
+				"body" : {
+					"type" : "s",
+					"data" : "first line\nsecond &amp;lt;kept&amp;gt; line"
+				},
+				"message" : {
+					"type" : "s",
+					"data" : "<b>Re: tabs\tand lines</b>\nfirst line\nsecond &amp;lt;kept&amp;gt; line"
+				},
+				"summary" : {
+					"type" : "s",
+					"data" : "Re: tabs\tand lines"
+				},
+				"appname" : {
+					"type" : "s",
+					"data" : "Mail"
+				},
+				"category" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"default_action_name" : {
+					"type" : "s",
+					"data" : "default"
+				},
+				"icon_path" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"id" : {
+					"type" : "i",
+					"data" : 2
+				},
+				"timestamp" : {
+					"type" : "x",
+					"data" : 3885960290
+				},
+				"timeout" : {
+					"type" : "x",
+					"data" : 0
+				},
+				"progress" : {
+					"type" : "i",
+					"data" : -1
+				},
+				"urgency" : {
+					"type" : "s",
+					"data" : "NORMAL"
+				},
+				"stack_tag" : {
+					"type" : "s",
+					"data" : ""
+				},
+				"urls" : {
+					"type" : "s",
+					"data" : ""
+				}
+			}
+		]
+	]
+}

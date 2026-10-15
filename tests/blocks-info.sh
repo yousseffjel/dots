@@ -13,8 +13,9 @@
 #     the block, then waits for Enter;
 #   * BT: n/a without bluetoothctl or an adapter, off when unpowered, the
 #     connected count, `on` with none; left opens blueman-manager;
-#   * DND: empty (no bar space) unless dunst is paused; left resumes, and
-#     the same run renders the block gone;
+#   * notification button (dwm-dnd): always visible — bell + history count,
+#     FOCUS + held count while paused; right toggles and the same run renders
+#     the new state, left opens dwm-notify;
 #   * block_bin prefers PATH, falls back to ~/.config/dwm/bin, fails cleanly;
 #     block_term fails cleanly with no terminal at all, and the class it
 #     gives a terminal is one config.def.h's rules[] floats.
@@ -116,33 +117,54 @@ rm "$SB/fake/bluetoothctl"
 block dwm-bluetooth
 check "no bluetoothctl" is "BT n/a"
 
-blue "DND"
-# dunstctl answers is-paused from a state file; set-paused writes it.
+blue "notification button (dwm-dnd)"
+# dunstctl answers from state files: paused, and the history/waiting counts.
 # shellcheck disable=SC2016
 fake "$SB/fake" dunstctl 'echo "dunstctl $*" >>"$LOG"
-case "$1" in
-is-paused) cat "'"$SB"'/paused" ;;
-set-paused) echo "$2" >"'"$SB"'/paused" ;;
+case "$1 ${2:-}" in
+"is-paused "*) cat "'"$SB"'/paused" ;;
+"set-paused toggle") v=true; [ "$(cat "'"$SB"'/paused")" = true ] && v=false; echo "$v" >"'"$SB"'/paused" ;;
+"count history") cat "'"$SB"'/history" ;;
+"count waiting") cat "'"$SB"'/waiting" ;;
 esac'
+# shellcheck disable=SC2016
+fake "$DWM_BIN" dwm-notify 'echo "dwm-notify $*" >>"$LOG"'
 echo false >"$SB/paused"
+echo 0 >"$SB/history"
+echo 0 >"$SB/waiting"
 block dwm-dnd
-check "notifications flowing: prints nothing (no bar space)" test -z "$RAW"
+check "flowing, empty history: a bare bell (always visible)" is "󰂚"
+echo 3 >"$SB/history"
+block dwm-dnd
+check "flowing: bell and the history count" is "󰂚 3"
 echo true >"$SB/paused"
 block dwm-dnd
-check "paused: DND" is "DND"
+check "paused, nothing held: FOCUS" is "󰂛 FOCUS"
+echo 2 >"$SB/waiting"
+block dwm-dnd
+check "paused: FOCUS and the count held back" is "󰂛 FOCUS 2"
+block dwm-dnd 3
+check "right: toggles focus mode" logged "dunstctl set-paused toggle"
+check "right: the same run renders the new state" is "󰂚 3"
 block dwm-dnd 1
-check "left: resumes notifications" logged "dunstctl set-paused false"
-check "left: the same run renders it gone" test -z "$RAW"
+check "left: opens the notification centre" logged "dwm-notify menu"
+check "left: changes nothing itself" not_logged "set-paused"
+echo garbage >"$SB/history"
+block dwm-dnd
+check "a count that is not a number is not shown" is "󰂚"
 # For this one run, a timeout that records what it wraps: every dunstctl call
 # must go through it, or a wedged bus freezes the whole bar.
 # shellcheck disable=SC2016
 fake "$SB/fake" timeout 'echo "timeout $*" >>"$LOG"; shift; exec "$@"'
-block dwm-dnd
+block dwm-dnd 3
 check "every dunstctl call is wrapped in timeout" \
     test "$(grep -c '^dunstctl' "$LOG")" = "$(grep -c '^timeout [0-9]* dunstctl' "$LOG")"
-check "...and there was a call to wrap" grep -q '^dunstctl is-paused' "$LOG"
+check "...and there were calls to wrap" test "$(grep -c '^dunstctl' "$LOG")" -ge 2
 # shellcheck disable=SC2016
 fake "$SB/fake" timeout 'shift; exec "$@"'
+: >"$SB/paused"
+block dwm-dnd
+check "dunst does not answer: still a (muted) button" is "󰂚"
 rm "$SB/fake/dunstctl"
 block dwm-dnd
 check "no dunstctl: nothing" test -z "$RAW"

@@ -88,16 +88,19 @@ super + n
 	dwm-nightlight toggle
 
 # --- notifications -----------------------------------------------------
-# Do not disturb: a paused dunst holds new notifications and shows them all
-# on resume. The DND block (signal 12, suckless/dwmblocks/scripts/dwm-dnd)
-# shows the state — it is signal-only, so the pkill is load-bearing, exactly
-# as for the volume keys.
+# Focus mode (do not disturb): a paused dunst holds new notifications and
+# shows them all on resume. The bell block (signal 12,
+# suckless/dwmblocks/scripts/dwm-dnd) shows the state; the pkill makes it
+# follow at once instead of at its next poll. Right-clicking the bell does
+# the same.
 super + shift + n
 	dunstctl set-paused toggle; pkill -RTMIN+12 dwmblocks
-# Re-show the most recently closed notification; repeat to walk further back
-# through dunst's history (history_length in config/dunst/dunstrc).
+# Notification centre (config/dwm/bin/dwm-notify): dunst's history in a
+# dmenu list under the bar's right end — open or delete one, clear all,
+# toggle focus mode. Left-clicking the bell opens it too. Until 2026-10-15
+# this key was `dunstctl history-pop`; "open" in the list re-shows any one.
 super + ctrl + n
-	dunstctl history-pop
+	dwm-notify
 
 # --- theming -----------------------------------------------------------
 # These live here rather than in dwm on purpose: config.def.h shipped them

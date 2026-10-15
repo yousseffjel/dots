@@ -30,6 +30,10 @@
 // dwm-battery (13, scope-h 2026-10-13) prints nothing without a system
 // battery, so on a desktop it takes no space and adds no delimiter.
 //
+// dwm-dnd (12) is the notification button. It is polled (5 s) as well as
+// signalled, because its count grows whenever a popup times out into dunst's
+// history and nothing sends a signal then.
+//
 // SIGNALS ARE POSITION-INDEPENDENT BUT NOT FREE TO RENUMBER. Anything that
 // sends SIGRTMIN+n has to move with the number here, so grep for `RTMIN+` in
 // config/ before touching this column.
@@ -55,7 +59,7 @@ static const Block blocks[] = {
 
 	{"",		"$HOME/.local/bin/dwm-bluetooth",		30,			9},
 
-	{"",		"$HOME/.local/bin/dwm-dnd",			0,			12},
+	{"",		"$HOME/.local/bin/dwm-dnd",			5,			12},
 
 	{"",		"$HOME/.local/bin/dwm-battery",			60,			13},
 

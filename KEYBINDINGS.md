@@ -239,7 +239,7 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
 | 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
 | 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
-| 11 | `DND` | Shown **only** while notifications are paused; otherwise empty and takes no space | **on change only** | left → resume notifications |
+| 11 | `󰂚` / `󰂛 FOCUS` | The notification button, always shown: a bell and the number of notifications in dunst's history, or a crossed bell and `FOCUS` in focus mode, plus how many it is holding back | 5 s, and at once on a change | left → the notification centre, right → focus mode on / off |
 | 12 | `BAT` | Battery percent, `+` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
 | 13 | `` | Day, date and time | 60 s | left → this month's calendar |
 
@@ -262,22 +262,23 @@ Enter, so a failed upgrade can be read.
 > scripts/install-suckless.sh --skip-deps
 > ```
 
-**`NET` and `DND` need a dwmblocks rebuild with a fresh `blocks.h` on an
-existing install.** The block list is compiled in, and `blocks.h` is generated from
-`blocks.def.h` once and then left alone:
+**`NET`, and the notification button's 5 s refresh, need a dwmblocks rebuild
+with a fresh `blocks.h` on an existing install.** Without it the button still
+works, but its count only moves when you click it or press a notification key.
+The block list is compiled in, and `blocks.h` is generated from `blocks.def.h`
+once and then left alone:
 
 ```sh
 rm -f suckless/dwmblocks/blocks.h
 scripts/install-suckless.sh --skip-deps
 ```
 
-**`BL`/`GAMMA`, `MIC`, `VOL` and `DND` are never polled.** They run once at startup
+**`BL`/`GAMMA`, `MIC` and `VOL` are never polled.** They run once at startup
 and then only when something sends their signal — `config/sxhkd/sxhkdrc` fires
-`pkill -RTMIN+6/7/8 dwmblocks` after every brightness, mic and volume change, and
-`-RTMIN+12` after `Super` + `Shift` + `n`. That keeps them off the CPU
+`pkill -RTMIN+6/7/8 dwmblocks` after every brightness, mic and volume change. That keeps them off the CPU
 entirely (`tests/blocks-info.sh` holds every signal-only block in
 `blocks.def.h` to a sender in `sxhkdrc`). The cost is that changing any of
-those values by some *other* route (`pamixer` or `dunstctl` straight from a
+those values by some *other* route (`pamixer` straight from a
 shell, say) leaves the bar stale until the next keypress.
 
 > **`BL` is a backlight, and `GAMMA` is not.** On a laptop, `dwm-brightness`
@@ -509,12 +510,26 @@ doing nothing.
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `Shift` + `n` | Do not disturb on / off (dunst holds notifications, shows them on resume) |
-| `Super` + `Ctrl` + `n` | Re-show the last closed notification; repeat to go further back |
+| `Super` + `Shift` + `n` | Focus mode on / off (do not disturb: dunst holds notifications, shows them when it ends) |
+| `Super` + `Ctrl` + `n` | Notification centre |
 
-While do-not-disturb is on, the bar shows `DND` (click it to resume), and
-`dots doctor` warns — a pause left on silently swallows every notification.
-dunst keeps the last 20 (`history_length` in `config/dunst/dunstrc`).
+The **notification centre** (`dwm-notify`) is a dmenu list that drops down
+under the right end of the bar, where the popups appear. It lists dunst's
+history, newest first, under two entries: focus mode on / off, and
+**Clear all**. Pick a notification to **open** it or **delete** it; after a
+delete the list comes back. A left-click on the bell opens it too.
+
+**Open** shows the notification again and opens the first link in it, if it
+has one. It cannot run the app's own action ("reply", "show"): once a
+notification has left the screen, dunst no longer sends actions back to the
+app. In focus mode, opening one ends focus mode first, so anything held back
+shows as well.
+
+In focus mode the bar shows `󰂛 FOCUS`, and `dots doctor` warns, because focus
+mode left on silently holds back every notification. dunst keeps the last 20
+(`history_length` in `config/dunst/dunstrc`), and only until you log out.
+`Super` + `Ctrl` + `n` used to re-show the last closed notification;
+**open** in the centre now does that for any of them.
 
 ### Applications
 

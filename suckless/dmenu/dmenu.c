@@ -51,6 +51,10 @@ static char numbers[NUMBERSBUFSIZE] = "";
 static char text[BUFSIZ] = "";
 static char *embed;
 static int bh, mw, mh;
+/* xyw-local patch: -x/-y place the window, -z sets its width. dmxset/dmyset
+ * record that the flag was given at all, because 0 is a valid offset. */
+static int dmx, dmy, dmxset, dmyset;
+static unsigned int dmw;
 static int inputw = 0, promptw;
 static int lrpad; /* sum of left and right padding */
 static size_t cursor;
@@ -917,6 +921,26 @@ run(void)
 	}
 }
 
+/* xyw-local patch: apply -z, then -x/-y, to a box already sized by the
+ * center or edge-to-edge branch. ox/oy/aw/ah is the usable area (screen minus
+ * the border, as setup() computes it). A NEGATIVE -x is the gap from the
+ * RIGHT edge (upstream would push the window off-screen left); -y counts from
+ * the bottom under -b, as upstream. The result is clamped onto the screen. */
+static void
+placexyw(int ox, int oy, int aw, int ah, int *x, int *y)
+{
+	if (dmw > 0)
+		mw = MIN((int)dmw, aw);
+	if (dmxset)
+		*x = ox + (dmx >= 0 ? dmx : aw - mw + dmx);
+	else if (dmw > 0 && centered)
+		*x = ox + (aw - mw) / 2;
+	if (dmyset)
+		*y = oy + (topbar ? dmy : ah - mh - dmy);
+	*x = MAX(ox, MIN(*x, ox + aw - mw));
+	*y = MAX(oy, MIN(*y, oy + MAX(0, ah - mh)));
+}
+
 static void
 setup(void)
 {
@@ -994,6 +1018,7 @@ setup(void)
 			x = info[i].x_org;
 			y = info[i].y_org + (topbar ? 0 : MAX(0, ah - mh));
 		}
+		placexyw(info[i].x_org, info[i].y_org, aw, ah, &x, &y);
 		XFree(info);
 	} else
 #endif
@@ -1013,6 +1038,7 @@ setup(void)
 			x = 0;
 			y = topbar ? 0 : MAX(0, ah - mh);
 		}
+		placexyw(0, 0, aw, ah, &x, &y);
 	}
 	inputw = mw / 3; /* input width: ~33% of monitor width */
 	match();
@@ -1057,6 +1083,7 @@ static void
 usage(void)
 {
 	die("usage: dmenu [-bcFfsv] [-nc] [-l lines] [-h height] [-bw width]\n"
+	    "             [-x xoffset] [-y yoffset] [-z width]\n"
 	    "             [-p prompt] [-fn font] [-m monitor] [-nb color] [-nf color]\n"
 	    "             [-sb color] [-sf color] [-w windowid]");
 }
@@ -1108,7 +1135,7 @@ int
 main(int argc, char *argv[])
 {
 	XWindowAttributes wa;
-	int i, fast = 0;
+	int i, fast = 0, zw;
 
 	XrmInitialize();
 	xresupdate();
@@ -1148,7 +1175,16 @@ main(int argc, char *argv[])
 		}
 		else if (!strcmp(argv[i], "-bw"))  /* border width of the menu window */
 			border_width = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-m"))
+		else if (!strcmp(argv[i], "-x")) { /* window x offset (negative: from the right) */
+			dmx = atoi(argv[++i]);
+			dmxset = 1;
+		} else if (!strcmp(argv[i], "-y")) { /* window y offset (from the bottom with -b) */
+			dmy = atoi(argv[++i]);
+			dmyset = 1;
+		} else if (!strcmp(argv[i], "-z")) { /* window width */
+			zw = atoi(argv[++i]); /* MAX() evaluates twice: no ++i inside */
+			dmw = MAX(0, zw);
+		} else if (!strcmp(argv[i], "-m"))
 			mon = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */
 			prompt = argv[++i];

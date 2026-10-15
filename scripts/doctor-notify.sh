@@ -8,7 +8,7 @@
 # dunst itself (checks-must-test-the-effect: a process list proves nothing
 # about delivery). `dunstctl is-paused` both proves it answers and catches the
 # one state that silently swallows every notification — do-not-disturb left
-# on (Super+Shift+n).
+# on (Super+Shift+n, or a right-click on the bell block).
 
 check_notifications() {
     local s=session reply to=()
@@ -22,7 +22,7 @@ check_notifications() {
     reply="$("${to[@]}" dunstctl is-paused 2>/dev/null || true)"
     case "$reply" in
         false) report ok "$s" notifications "dunst answers and is showing notifications" ;;
-        true) report warn "$s" notifications "do not disturb is ON: dunst is holding every notification — Super+Shift+n, or a click on the DND block, resumes them" ;;
+        true) report warn "$s" notifications "focus mode (do not disturb) is ON: dunst is holding every notification — Super+Shift+n, or a right-click on the bell, resumes them" ;;
         *) report warn "$s" notifications "dunst does not answer over D-Bus, so no notification will show — run dunst in a terminal to see why" ;;
     esac
 }
