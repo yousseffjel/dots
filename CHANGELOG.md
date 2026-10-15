@@ -27,6 +27,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   downloads, and a 20 KiB/s floor. Before, a mirror sending 3 KiB/s held a
   fresh install for an hour. `dots uninstall` removes the file while it is
   unedited. Repository metadata is refreshed once, up front.
+- **CI install job times out at 20 minutes** instead of 90. With batched
+  installs a leg takes about 3 minutes, so a hung run now fails in 20 minutes
+  rather than holding a runner for an hour and a half.
 
 ### Removed
 
