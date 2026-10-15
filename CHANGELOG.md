@@ -45,6 +45,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   index by a new test (`tests/void-pkgnames.sh`). clipmenu and starship now
   come from the distro's own repo, and the full ffmpeg build replaces
   ffmpeg-free plus the RPM Fusion swap.
+- **Cascadia Code NF ships with dots.** Void does not package it, so the two
+  variable Nerd Font faces are vendored in `assets/fonts/` and installed to
+  `~/.local/share/fonts/`. `dots uninstall` removes them again.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

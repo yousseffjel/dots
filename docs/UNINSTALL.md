@@ -47,9 +47,10 @@ partial uninstall is a normal, supported outcome, not an error.
 4. **Theme files.** The base configs the installer *copied* rather than
    symlinked (`~/.config/dunst/dunstrc`, `~/.config/picom/picom.conf`, the
    GTK `settings.ini`/`gtk.css`), the vendored cursor theme unpacked into
-   `~/.local/share/icons/` and the GTK3 `Adwaita-dark` shim copied into
-   `~/.local/share/themes/` — the two entries that are directories rather
-   than files, which is why this step uses `rm -rf` (an `Adwaita-dark` that
+   `~/.local/share/icons/`, the vendored Cascadia Code NF unpacked into
+   `~/.local/share/fonts/CascadiaCodeNF/`, and the GTK3 `Adwaita-dark` shim
+   copied into `~/.local/share/themes/` — the entries that are directories
+   rather than files, which is why this step uses `rm -rf` (a directory that
    was already there is yours and has no row) — plus the wholly generated
    `~/.cache/dots/theme/`, and `~/.fehbg` when it points at the wallpaper
    generated there (one naming an image you picked is left alone). Copies can't be identified by a readlink check

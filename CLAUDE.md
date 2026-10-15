@@ -75,6 +75,7 @@ dots/
 │                        # those two configs are written ONLY by their templates (see docs/THEMING.md)
 ├── assets/
 │   ├── cursors/         # vendored upstream cursor tarball + its .sha256 + LICENSE.Bibata
+│   ├── fonts/           # Cascadia Code NF, repacked from the upstream zip (reproducible; README.md) + .sha256 + OFL
 │   └── themes/          # Adwaita-dark/gtk-3.0/gtk.css — the GTK3 shim gnome-themes-extra used to ship (README.md)
 │                        # (Fedora packages no Bibata; see that dir's README.md before touching it)
 ├── scripts/
@@ -97,6 +98,9 @@ dots/
 │   ├── install-restore-gtk3-shim.sh # sourced by install-restore-theme.sh: copies assets/themes/Adwaita-dark to ~/.local/share/themes
 │   ├── install-restore-theme-active.sh # sourced by install-restore-theme.sh: theme_active — what a re-run re-applies
 │   │                                   # (--wallbash or theme.set's theme, whichever is newer; dark only when neither)
+│   ├── install-restore-vendored.sh # sourced: shared select/verify/extract/claim for assets/*/ tarballs
+│   ├── install-restore-font.sh  # sourced by install-restore-theme.sh: extracts the vendored Cascadia Code NF
+│   │                            # into ~/.local/share/fonts (THEME row; no fc-cache — see its header)
 │   ├── install-restore-cursor.sh # sourced by install-restore-theme.sh: extracts the vendored cursor tarball
 │   │                             # into ~/.local/share/icons and claims it as a THEME row
 │   ├── install-restore-theme-identity.sh # the identity writers: render a theme.conf into settings.ini + xsettingsd.conf

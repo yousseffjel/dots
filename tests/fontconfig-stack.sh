@@ -48,10 +48,11 @@ declare -A FAMILY_PKG=(
     ["Noto Sans Arabic"]="noto-fonts-ttf"
     ["Noto Naskh Arabic"]="noto-fonts-ttf"
 )
-# Families no Void package ships and that are not vendored YET. Each one is
-# a yellow line, never a pass. Delete an entry when its asset lands.
-declare -A FAMILY_PENDING=(
-    ["Cascadia Code NF"]="not packaged on Void; vendoring under assets/ is scope I sub-task I-2b (decision D3)"
+# Families no Void package ships, vendored instead: family -> its assets/
+# directory. This test only requires that directory to hold a tarball;
+# tests/font-asset.sh proves the faces inside register under this family.
+declare -A FAMILY_VENDORED=(
+    ["Cascadia Code NF"]="assets/fonts"
 )
 GENERICS=" sans-serif serif monospace "
 
@@ -112,8 +113,13 @@ fi
 for fam in "${families[@]}"; do
     [[ "$GENERICS" == *" $fam "* ]] && continue
     pkg="${FAMILY_PKG[$fam]:-}"
-    if [[ -n "${FAMILY_PENDING[$fam]:-}" ]]; then
-        yellow "  pending: '$fam' — ${FAMILY_PENDING[$fam]}"
+    vendored="${FAMILY_VENDORED[$fam]:-}"
+    if [[ -n "$vendored" ]]; then
+        if compgen -G "$DOTS_DIR/$vendored/*.tar.xz" >/dev/null; then
+            ok "'$fam' <- vendored in $vendored"
+        else
+            bad "'$fam' is mapped to $vendored, which holds no tarball"
+        fi
     elif [[ -z "$pkg" ]]; then
         bad "'$fam' has no FAMILY_PKG entry — which package ships it?"
     elif [[ -n "${DECLARED[$pkg]:-}" ]]; then

@@ -76,9 +76,11 @@ Checked by reading the downloaded `.xbps` file lists:
   udev rule for the `video` group (Void installer default; D4).
 
 Handed on to later sub-tasks:
-- **I-2b (new): vendor Cascadia Code NF (D3).** `tests/fontconfig-stack.sh`
-  shows it as `pending` (yellow) until then. Remove the FAMILY_PENDING entry
-  when it lands.
+- **I-2b: vendor Cascadia Code NF (D3).** ✅ Done 2026-10-15:
+  `assets/fonts/CascadiaCodeNF-2407.24.tar.xz` (1.2 MB, a reproducible repack
+  of the two variable NF TTFs from the 150 MB upstream zip). Extraction is
+  shared with the cursor (`install-restore-vendored.sh`). No fc-cache: the
+  symmetry test showed it leaves `~/.cache/fontconfig` behind.
 - **I-3:** delete the upstream starship installer and the fd shim (both now
   packaged). Delete SATISFIED_BY (only ffmpeg-free used it; the doctor test
   cases are already gone).
@@ -183,7 +185,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   reversal; rename `install-fedora.sh`.
 - **I-2 Package lists:** ✅ done 2026-10-15 (see I-2 outcome above); remap `packages/*.lst` with the table above; add a
   test that checks every name against a vendored or fetched Void index.
-- **I-2b Font asset:** vendor Cascadia Code NF under `assets/fonts/` (D3), restore + manifest + uninstall, drop the fontconfig-stack pending entry.
+- **I-2b Font asset:** ✅ done 2026-10-15; vendor Cascadia Code NF under `assets/fonts/` (D3), restore + manifest + uninstall, drop the fontconfig-stack pending entry.
 - **I-3 Package engine:** `install-pkg*.sh` dnf → xbps (tiers, retry,
   summaries, SATISFIED_BY), remove the dnf drop-in and the fd shim.
 - **I-4 Repos:** shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to

@@ -7,7 +7,7 @@
 # not files, so conf.d/99-prompt.zsh has to set $STARSHIP_CONFIG either way.
 #
 # REQUIRES A NERD FONT. The glyphs below (distro mark, git branch, per-language
-# symbols) come from cascadia-code-nf-fonts in packages/extra.lst. Without it
+# symbols) come from Cascadia Code NF, vendored in assets/fonts/. Without it
 # they render as tofu boxes.
 #
 # THEMED FROM THE WALLPAPER. The five colours this config actually paints now

@@ -23,10 +23,14 @@ fallback: the Latin face has no Arabic glyphs, and `fonts.conf` puts the
 Arabic face directly behind it, ahead of whatever the system ranks next
 (DejaVu Sans on most installs, whose Arabic is a minimal fallback set).
 
-The packages are declared in `packages/desktop.lst` (the two Arabic faces,
-since without them Arabic silently renders as tofu) and `packages/extra.lst`
-(Noto Sans, Serif and Sans Mono). `tests/fontconfig-stack.sh` fails the build
-if any family named anywhere in the repo is not installed by some list.
+Every Noto face comes from one Void package, `noto-fonts-ttf`, declared in
+`packages/desktop.lst` because without it Arabic silently renders as tofu.
+Cascadia Code NF is not packaged on Void: it is vendored in `assets/fonts/`
+and extracted to `~/.local/share/fonts/` by the restore stage (see that
+directory's README.md). `tests/fontconfig-stack.sh` fails the build if any
+family named anywhere in the repo is neither installed by some list nor
+vendored, and `tests/font-asset.sh` checks the vendored faces really register
+as `Cascadia Code NF`.
 
 ## fontconfig
 
@@ -92,7 +96,8 @@ if Arabic in the terminal turns out to matter.
   `scripts/install-suckless.sh --skip-deps`.
 
 Whichever you change, add the new family's package to `packages/*.lst` and
-its name to `FAMILY_PKG` in `tests/fontconfig-stack.sh`. Then check what
+its name to `FAMILY_PKG` in `tests/fontconfig-stack.sh` (or, for a vendored
+font, to `FAMILY_VENDORED`). Then check what
 fontconfig actually picks:
 
 ```sh

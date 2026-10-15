@@ -60,11 +60,11 @@ history = 10000
 multiplier = 3
 
 [font]
-# Cascadia Code NF is the family name Fedora's cascadia-code-nf-fonts
-# actually registers — it packages Microsoft's own Nerd Font release, NOT
+# Cascadia Code NF is the family name the vendored font (assets/fonts/)
+# actually registers — it is Microsoft's own Nerd Font release, NOT
 # the ryanoasis/nerd-fonts patch that names the same typeface
 # "CaskaydiaCove Nerd Font". Using the CaskaydiaCove spelling here would
-# silently fall through fontconfig to plain monospace on a clean Fedora box
+# silently fall through fontconfig to plain monospace on a clean box
 # and every glyph in the starship prompt would render as tofu.
 size = 11.0
 

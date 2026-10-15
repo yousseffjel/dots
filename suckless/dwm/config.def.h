@@ -10,8 +10,8 @@ static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display 
 static const int showsystray        = 1;        /* 0 means no systray */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
-/* "Cascadia Code NF" is the family Fedora's cascadia-code-nf-fonts actually
- * registers — it packages Microsoft's Nerd Font release, not the
+/* "Cascadia Code NF" is the family the vendored font (assets/fonts/) actually
+ * registers — it is Microsoft's Nerd Font release, not the
  * ryanoasis/nerd-fonts patch that calls the same typeface "CaskaydiaCove
  * Nerd Font". The bar needs the Nerd glyph range for the status blocks, so
  * a wrong family here falls through fontconfig to plain monospace and every

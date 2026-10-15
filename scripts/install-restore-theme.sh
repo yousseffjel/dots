@@ -27,6 +27,8 @@ source "$THEME_DIR/install-restore-theme-identity.sh"
 # test can then run the shipped function instead of a copy of it.
 # shellcheck source=install-restore-cursor.sh
 source "$THEME_DIR/install-restore-cursor.sh"
+# shellcheck source=install-restore-font.sh
+source "$THEME_DIR/install-restore-font.sh"
 # shellcheck source=install-restore-gtk3-shim.sh
 source "$THEME_DIR/install-restore-gtk3-shim.sh"
 # shellcheck source=install-restore-theme-active.sh
@@ -217,6 +219,8 @@ restore_theme() {
     # Before the identity writers: both name cursor_theme from theme.conf, and
     # the cursor they name should exist on disk by the time xsettingsd reloads.
     restore_cursor_theme
+    # The Nerd Font every terminal, bar and dmenu config names (vendored, D3).
+    restore_font_assets
     # Likewise the theme settings.ini and xsettingsd name (Adwaita-dark).
     restore_gtk3_shim
     theme_write_gtk_ini
