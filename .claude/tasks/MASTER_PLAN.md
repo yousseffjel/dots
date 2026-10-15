@@ -15,6 +15,14 @@ when slots run concurrently.
 
 ## Queue
 
+- **Scope J — live-ISO install (Epic, opened 2026-10-15).** One command
+  from the Void live ISO: partition (UEFI or BIOS, GRUB, plain `/boot` +
+  optional LUKS2 root, ext4, zram + swapfile, dracut, `linux` + `linux-lts`,
+  `dialog` menus),
+  base system, user, then `install-void.sh` in a chroot, then reboot into
+  ly. Five sub-tasks, J-1 `live-core` first. Locked decisions and open
+  questions: `.claude/tasks/scope-j-live-install.md`.
+
 - ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
   ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,
   both corrected there: it was absent from **f43 as well as f44**, and the fix
