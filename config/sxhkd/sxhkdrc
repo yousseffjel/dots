@@ -181,7 +181,7 @@ super + shift + l
 	dwm-lock
 
 # --- power profile -----------------------------------------------------------
-# power-saver / balanced / performance, through tuned-ppd — installed on
+# power-saver / balanced / performance, through power-profiles-daemon — installed on
 # laptops only (packages/laptop.lst). On a desktop the key says so instead.
 super + shift + p
 	dwm-power

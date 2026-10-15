@@ -167,6 +167,17 @@ blue "==> install"
 FAKE_SERVICE=disabled tsv
 check "a disabled service fails" row fail install service-ly
 check "...saying the login screen will not start" grep -q "login screen will not start" <<<"$(detail service-ly)"
+tsv
+check "every D4 group: ok" row ok install group-network
+FAKE_DB_GROUPS="probe wheel bluetooth kvm" tsv
+check "not in network: warns, naming the fix" grep -q -- '--only-services' <<<"$(detail group-network)"
+FAKE_DB_GROUPS="probe wheel network bluetooth kvm" FAKE_SESSION_GROUPS="probe wheel" tsv
+check "added but not logged in again: says so" grep -q 'log out and back in' <<<"$(detail group-kvm)"
+FAKE_NOGROUP=bluetooth tsv
+check "bluez not installed: the bluetooth group skips" row skip install group-bluetooth
+FAKE_NOID=1 tsv
+check "id -un fails: one skip" row skip install groups
+check "...and no false warning per group" no_row '[a-z]+' install group-network
 mv "$H/.local/state/dots/manifest" "$SB/manifest.bak"
 tsv
 check "no manifest fails" row fail install manifest

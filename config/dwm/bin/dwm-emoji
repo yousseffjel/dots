@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dwm-emoji — pick an emoji from a dmenu list; it lands on the clipboard.
 #
-# The list comes from Unicode's own test file (Fedora package unicode-emoji),
+# The list comes from Unicode's own test file (package unicode-emoji),
 # so it carries every emoji the installed release knows, each with its
 # official name and group to search on — "heart", "flag", "smileys". Only
 # fully-qualified entries are kept: those are the sequences every font and

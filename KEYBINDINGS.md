@@ -229,7 +229,7 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 
 | # | Block | Shows | Refreshes | Clicks |
 | --- | --- | --- | --- | --- |
-| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification, right → `sudo dnf upgrade --refresh` in a terminal |
+| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification, right → `sudo xbps-install -Su` in a terminal |
 | 2 | `DISK` | Free space on `/` | 5 min | left → open `/` in thunar |
 | 3 | `TEMP` | CPU package temperature | 5 s | left → htop |
 | 4 | `CPU` | CPU utilisation | 2 s | left → htop |
@@ -295,10 +295,11 @@ order and changes between boots. A machine whose CPU sensor is named something
 else shows `n/a` rather than silently reporting an NVMe drive or the
 motherboard; add the name to `CPU_SENSORS` in `dwm-temp` to fix it.
 
-`UPD` runs `dnf -C check-update` — cache-only, never the network, since
-dwmblocks runs blocks synchronously and one slow block stalls the whole bar.
-The count is therefore as fresh as Fedora's own `dnf-makecache.timer` and no
-fresher.
+`UPD` runs `xbps-install -nu` — a dry run against the repo index already on
+disk, never the network, since dwmblocks runs blocks synchronously and one
+slow block stalls the whole bar. The count is therefore as fresh as the last
+sync (`xbps-install -S`, which every installer run and `dots update` do) and
+no fresher.
 
 ---
 
@@ -501,10 +502,10 @@ calls `slock` directly instead, so the key never silently does nothing.
 | --- | --- |
 | `Super` + `Shift` + `p` | Power profile menu: power-saver, balanced or performance, with the current one marked |
 
-Laptops only. dots installs `tuned-ppd` there, and the power menu
-(`Super` + `Shift` + `x`) gains a `profile` entry wherever a profile service
-answers. On a desktop the key says profiles need `tuned-ppd` instead of
-doing nothing.
+Laptops only. dots installs `power-profiles-daemon` there, and the power
+menu (`Super` + `Shift` + `x`) gains a `profile` entry wherever a profile
+service answers. On a desktop the key says profiles need
+`power-profiles-daemon` instead of doing nothing.
 
 ### Notifications
 

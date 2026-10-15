@@ -222,7 +222,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   portal, `dots_session_end`; update the `session_*report` paste text.
 - **I-7 Drivers & VM detection:** ✅ done 2026-10-15 (see the change log); replace `systemd-detect-virt`; GPU,
   firmware, microcode names; laptop power via power-profiles-daemon.
-- **I-8 Runtime scripts & doctor:** `dwm-powermenu`, `dwm-picom`, `dwm-lock`
+- **I-8 Runtime scripts & doctor:** ✅ done 2026-10-15 (incl. doctor's D4 group check); `dwm-powermenu`, `dwm-picom`, `dwm-lock`
   (elogind), every doctor check that asks systemd; a D4 group check (`id -nG`).
 - **I-9 CI:** void-glibc container for build, install, dry-run; linter pins
   unchanged.

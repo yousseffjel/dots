@@ -90,7 +90,7 @@ check "an unexpected gdbus shape is not passed off as a profile" test "$RC" -eq 
 blue "==> a desktop (no service)"
 run FAKE_NO_PPD=1 -- menu
 check "menu fails with a reason" test "$RC" -eq 1
-check "...told to the user, laptops only" logged "tuned-ppd, which dots installs on laptops only"
+check "...told to the user, laptops only" logged "power-profiles-daemon, which dots installs on laptops only"
 check "...and opens no dmenu" not_logged "dmenu"
 
 blue "==> the menu"

@@ -15,8 +15,8 @@
 #     forward their arguments verbatim; dwm-theme's menu lists wallbash first,
 #     maps it to --wallbash, and exits quietly on Escape.
 #
-# SAFETY: dmenu, systemctl, pkill, clipmenu and dwm-lock are fakes on a
-# sealed PATH (a real `systemctl poweroff` needs no explanation). dwm-theme
+# SAFETY: dmenu, loginctl, pkill, clipmenu and dwm-lock are fakes on a
+# sealed PATH (a real `loginctl poweroff` needs no explanation). dwm-theme
 # and dwm-wallpaper run from a COPY of config/dwm/bin inside a throwaway tree
 # whose scripts/theme/*.sh are fakes that record their arguments: the real
 # ones drive the theming engine, whose post-commands pkill the tester's
@@ -64,11 +64,11 @@ fake "$BIN" dmenu "echo \"dmenu \$* <\$(tr '\n' ',' </dev/stdin)>\" >>'$LOG'
 n=\$(cat '$TMP/menu.n' 2>/dev/null || echo 0); echo \$((n + 1)) >'$TMP/menu.n'
 IFS='|' read -ra a <<<\"\${FAKE_MENU:-}\"; ans=\"\${a[\$n]:-ESC}\"; [[ \"\$ans\" == ESC ]] && exit 1; echo \"\$ans\""
 seal_path "$BIN" tr
-for t in systemctl pkill clipmenu dwm-lock; do
+for t in loginctl pkill clipmenu dwm-lock; do
     fake "$BIN" "$t" "echo \"$t \$*\" >>'$LOG'"
 done
 # dwm-power answers `available` only with FAKE_PPD=1 (a laptop with
-# tuned-ppd); every other call is logged. Unset, every case below is a desktop.
+# power-profiles-daemon); every other call is logged. Unset, every case below is a desktop.
 fake "$BIN" dwm-power "[[ \"\${1:-}\" == available ]] && { [[ \"\${FAKE_PPD:-}\" == 1 ]]; exit; }; echo \"dwm-power \$*\" >>'$LOG'"
 
 # The throwaway repo: a copy of config/dwm/bin, fake engine scripts, and the
@@ -104,11 +104,11 @@ check "lock goes through dwm-lock" "$(actions)" "dwm-lock ;"
 run "$P" FAKE_MENU=logout --
 check "logout terminates dwm" "$(actions)" "pkill -TERM -x dwm;"
 run "$P" FAKE_MENU=suspend --
-check "suspend needs no confirmation" "$(actions)" "systemctl suspend;"
+check "suspend needs no confirmation" "$(actions)" "loginctl suspend;"
 run "$P" 'FAKE_MENU=reboot|yes' --
-check "reboot confirmed -> systemctl reboot" "$(actions)" "systemctl reboot;"
+check "reboot confirmed -> loginctl reboot" "$(actions)" "loginctl reboot;"
 run "$P" 'FAKE_MENU=shutdown|yes' --
-check "shutdown confirmed -> systemctl poweroff" "$(actions)" "systemctl poweroff;"
+check "shutdown confirmed -> loginctl poweroff" "$(actions)" "loginctl poweroff;"
 run "$P" 'FAKE_MENU=reboot|no' --
 check "reboot answered no -> nothing" "$(actions)" ""
 run "$P" 'FAKE_MENU=shutdown|ESC' --

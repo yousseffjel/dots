@@ -64,6 +64,35 @@ check_install() {
         report warn "$s" login-shell "login shell is ${shell:-unknown}, not zsh — scripts/install-void.sh --only-services"
     fi
     check_services
+    check_groups
+}
+
+# The groups the services stage adds (scope I, decision D4), read from its
+# own list so the two cannot drift. Two ways to be missing one: not in the
+# group database at all (re-run the services stage), or added but not in THIS
+# session's groups yet (new groups apply to new logins only).
+# shellcheck source=install-services-groups.sh
+source "$(dirname "${BASH_SOURCE[0]}")/install-services-groups.sh"
+check_groups() {
+    local g me db now
+    me="$(id -un 2>/dev/null || true)"
+    if [[ -z "$me" ]]; then
+        report skip install groups "cannot tell who you are (id -un failed) — groups not checked"
+        return 0
+    fi
+    db=" $(id -nG "$me" 2>/dev/null || true) "
+    now=" $(id -nG 2>/dev/null || true) "
+    for g in "${USER_GROUPS[@]}"; do
+        if ! getent group "$g" >/dev/null 2>&1; then
+            report skip install "group-$g" "group $g does not exist (its package is not installed)"
+        elif [[ "$db" != *" $g "* ]]; then
+            report warn install "group-$g" "$me is not in $g — scripts/install-void.sh --only-services"
+        elif [[ "$now" != *" $g "* ]]; then
+            report warn install "group-$g" "$me was added to $g, but this session predates it — log out and back in"
+        else
+            report ok install "group-$g" "$me is in $g"
+        fi
+    done
 }
 
 # The runit services the installer enabled, read from its manifest rather

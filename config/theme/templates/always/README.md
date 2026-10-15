@@ -28,7 +28,7 @@ whole file; alacritty avoids that trade entirely because `general.import`
 lets the colours live somewhere else.
 
 Two properties were **verified** against alacritty 0.17.0 (the version
-Fedora 44 ships): a missing import is not fatal, so a fresh install works
+Void ships, and Fedora 44 did): a missing import is not fatal, so a fresh install works
 before any palette exists — confirmed with a `HOME` containing no `.cache`
 at all; and `~` in an import path expands to `$HOME`, but nothing else does,
 so the import cannot follow a relocated `$XDG_CACHE_HOME` the way

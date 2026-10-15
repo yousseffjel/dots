@@ -9,7 +9,7 @@
 #                       dwm-powermenu's Lock entry.
 #
 # WHY xss-lock AND NOT xautolock. xss-lock hooks both X's MIT-SCREEN-SAVER
-# extension and systemd-logind, so the screen also locks on suspend — which
+# extension and logind (elogind on Void), so the screen also locks on suspend — which
 # xautolock structurally cannot do. The target is a desktop (roster Epic
 # locked decision 9): no lid to close, but it still suspends.
 #

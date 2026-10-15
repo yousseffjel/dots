@@ -9,8 +9,8 @@
 # Contrast with config/dunst and config/picom, which are COPIED rather than
 # symlinked precisely because the engine rewrites those whole files.
 #
-# Verified against alacritty 0.17.0, which is what Fedora 44 and rawhide
-# both ship — the `[general]` and `[terminal]` tables used below were
+# Verified against alacritty 0.17.0, which is what Fedora 44 shipped and
+# Void ships (0.17.0_1) — the `[general]` and `[terminal]` tables used below were
 # introduced in 0.14 and are not available on older releases.
 
 [general]

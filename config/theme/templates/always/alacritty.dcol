@@ -19,7 +19,7 @@ ${cacheDir}/alacritty-colors.toml|true
 #
 # Absence is a supported state: alacritty starts cleanly when this file has
 # not been generated yet and falls back to its built-in colours. Verified on
-# 0.17.0, the version Fedora 44 ships.
+# 0.17.0, the version Void ships (and Fedora 44 did).
 #
 # The ANSI mapping below is deliberately IDENTICAL to the st/generic mapping
 # in xresources.dcol. Both terminals are in daily use (alacritty primary, st

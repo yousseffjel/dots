@@ -2,14 +2,16 @@
 # dwm-power — power profiles: power-saver, balanced, performance (scope-h).
 #
 # Talks to the power-profiles D-Bus API with gdbus (glib2, always installed;
-# doctor-portal.sh uses it too). On a laptop that API is served by tuned-ppd,
-# which packages/laptop.lst installs and which maps each profile onto a tuned
-# profile. Fedora ships no `powerprofilesctl` without power-profiles-daemon,
-# and that conflicts with tuned-ppd, hence gdbus.
+# doctor-portal.sh uses it too). On a laptop that API is served by
+# power-profiles-daemon, which packages/laptop.lst installs and dots drivers
+# enables as a runit service (on Fedora it was tuned-ppd; same bus name,
+# org.freedesktop.UPower.PowerProfiles, checked in Void's 0.30_1). gdbus
+# rather than powerprofilesctl so the same code ran on both.
 #
 # Switching is allowed for the session at the seat with no password
-# (tuned-ppd.policy: allow_active yes). From ssh it is refused, and said so.
-# A desktop has no tuned-ppd: the key then explains instead of failing.
+# (power-profiles-daemon.policy: allow_active yes, elogind's active session).
+# From ssh it is refused, and said so. A desktop has no power-profiles-daemon:
+# the key then explains instead of failing.
 #
 # Bound to Super+Shift+p in config/sxhkd/sxhkdrc, and the "profile" entry of
 # dwm-powermenu, which asks `available` first.
@@ -67,8 +69,8 @@ set_profile() {
 menu() {
     local cur choice p lines=()
     if ! cur="$(get)"; then
-        notify "Power profile" "Power profiles need tuned-ppd, which dots installs on laptops only (dots drivers)."
-        red "dwm-power: no power-profiles service answers (tuned-ppd is installed on laptops only)"
+        notify "Power profile" "Power profiles need power-profiles-daemon, which dots installs on laptops only (dots drivers)."
+        red "dwm-power: no power-profiles service answers (power-profiles-daemon is installed on laptops only)"
         return 1
     fi
     for p in "${PROFILES[@]}"; do

@@ -57,8 +57,8 @@ image/x-tga=nsxiv.desktop
 # did, and imlib2 renders most SVGs badly or not at all.
 image/svg+xml=firefox.desktop
 
-# Video and audio -> mpv (config/mpv/mpv.conf). HEVC and HDR need RPM
-# Fusion's ffmpeg, which install-pkg-repos.sh swaps in. mpv.desktop declares
+# Video and audio -> mpv (config/mpv/mpv.conf). HEVC and HDR decode with
+# Void's ffmpeg6 (desktop.lst), the full build. mpv.desktop declares
 # every type below, so none needs an [Added Associations] line.
 video/mp4=mpv.desktop
 video/x-matroska=mpv.desktop

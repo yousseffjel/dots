@@ -6,9 +6,10 @@
 # notification showing a swatch of it.
 #
 # WHY A SCRIPT AND NOT A PROGRAM. ROADMAP §3 named `xcolor` for this row, but
-# no such package exists in Fedora — the only `xcolor` in the repos is
+# no such package existed in Fedora — the only `xcolor` there was
 # `texlive-xcolor`, a LaTeX package (verified against
-# packages.fedoraproject.org 2026-08-12). `gpick` is packaged and is in
+# packages.fedoraproject.org 2026-08-12). Void does package xcolor; the script
+# stays because it works and needs nothing new. `gpick` is packaged and is in
 # extra.lst for anyone who wants a real palette tool, but a GUI app is a heavy
 # answer to "what hex is that pixel". Everything this needs was already
 # installed for the screenshot and theming features: maim, ImageMagick, xclip,

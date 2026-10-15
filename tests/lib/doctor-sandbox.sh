@@ -26,7 +26,7 @@ daemon_names() {
 make_fakes() {
     BIN="$SB/bin"
     seal_path "$BIN" bash sed grep awk tr cut cat head readlink dirname basename \
-        ls sort id date mkdir touch mktemp mv cp cmp
+        ls sort date mkdir touch mktemp mv cp cmp
     # shellcheck disable=SC2016 # the bodies expand when the fakes run
     {
         # `xbps-query <name>` (check_packages and the drivers checks): exit 0 when
@@ -49,7 +49,22 @@ dark) echo "(<uint32 1>,)" ;;
 light) echo "(<uint32 0>,)" ;;
 *) echo "Error: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer '"'"'org.freedesktop.portal.Desktop'"'"': startup job failed" >&2; exit 1 ;;
 esac'
-        fake "$BIN" getent 'echo "probe:x:1000:1000::/home/probe:/usr/bin/zsh"'
+        # passwd for the login-shell check; group for the D4 group check
+        # (FAKE_NOGROUP: groups that do not exist).
+        fake "$BIN" getent 'case "$1" in
+group) [[ " ${FAKE_NOGROUP:-} " == *" $2 "* ]] && exit 2; echo "$2:x:1:probe" ;;
+*) echo "probe:x:1000:1000::/home/probe:/usr/bin/zsh" ;;
+esac'
+        # id: the group database (-nG <user>) and this session's groups (-nG)
+        # differ when a group was added after login (FAKE_DB_GROUPS /
+        # FAKE_SESSION_GROUPS).
+        fake "$BIN" id 'all="probe wheel network bluetooth kvm"
+case "$*" in
+-un) [[ -n "${FAKE_NOID:-}" ]] || echo probe ;;
+-u) echo 1000 ;;
+"-nG probe") echo "${FAKE_DB_GROUPS:-$all}" ;;
+-nG) echo "${FAKE_SESSION_GROUPS:-${FAKE_DB_GROUPS:-$all}}" ;;
+esac'
         fake "$BIN" dconf "echo \"'prefer-dark'\""
         # is-paused: false / true (do not disturb), or "dead" = no answer.
         fake "$BIN" dunstctl 'case "${FAKE_DUNST:-false}" in dead) exit 1 ;; *) echo "${FAKE_DUNST:-false}" ;; esac'
@@ -121,6 +136,7 @@ run_doctor() {
         DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
+        FAKE_NOGROUP="${FAKE_NOGROUP:-}" FAKE_DB_GROUPS="${FAKE_DB_GROUPS:-}" FAKE_SESSION_GROUPS="${FAKE_SESSION_GROUPS:-}" FAKE_NOID="${FAKE_NOID:-}" \
         FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

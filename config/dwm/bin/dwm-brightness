@@ -7,8 +7,9 @@
 #   backlight  brightnessctl --class=backlight, when a /sys/class/backlight
 #              device answers. Only a laptop has one, and only a laptop gets
 #              brightnessctl (packages/laptop.lst, installed by dots drivers).
-#              Fedora builds it to go through logind, so the user logged in at
-#              the seat needs no udev rule or group. This dims the lamp.
+#              Void builds it without logind: it writes /sys through the
+#              udev rule it ships, which grants the `video` group (a Void
+#              installer default). This dims the lamp.
 #   gamma      xrandr --brightness, everywhere else. A desktop GPU exposes no
 #              backlight, so this scales the output signal instead: the panel
 #              keeps drawing full power and the image gets darker (scope-b
@@ -130,10 +131,10 @@ apply() {
     if ((pct < MIN)); then pct=$MIN; fi
     if ((pct > MAX)); then pct=$MAX; fi
     if backlight_info >/dev/null; then
-        # Fails without a logind session at the seat (e.g. over ssh): said,
-        # never silently swapped for gamma, which `get` would not read back.
+        # Fails when the user is not in the `video` group: said, never
+        # silently swapped for gamma, which `get` would not read back.
         if ! brightnessctl --class=backlight -q set "${pct}%" 2>/dev/null; then
-            red "dwm-brightness: brightnessctl could not set the backlight (it needs your session at the seat)"
+            red "dwm-brightness: brightnessctl could not set the backlight (you need to be in the video group)"
             return 1
         fi
         printf '%d\n' "$pct"

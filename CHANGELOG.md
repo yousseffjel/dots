@@ -82,6 +82,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `power-profiles-daemon` and its runit service instead of tuned. Virtual
   machines are recognised from the CPU's `hypervisor` flag, and get the SPICE
   agent's `spice-vdagentd` service enabled.
+- **The power menu and status bar speak Void.** Suspend, reboot and shut
+  down go through elogind's `loginctl`. The `UPD` block counts pending
+  updates with a local `xbps-install -nu` (no network), and right-click runs
+  `sudo xbps-install -Su`. fastfetch shows the Void logo. `dots doctor`
+  says when you are missing one of the `network`, `bluetooth` or `kvm`
+  groups, or were added to it but have not logged in again.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

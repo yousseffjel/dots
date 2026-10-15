@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # dwm-powermenu — dmenu-driven power/session menu (lock/logout/suspend/reboot/shutdown,
-# plus a power "profile" entry on a laptop with tuned-ppd — dwm-power).
+# plus a power "profile" entry on a laptop with power-profiles-daemon — dwm-power).
 # Colors/font mirror suckless/dwm/config.def.h's dmenucmd theme.
 set -euo pipefail
 
@@ -26,8 +26,8 @@ confirm() {
 }
 
 entries=(lock logout suspend reboot shutdown)
-# "profile" only where a power-profiles service answers: tuned-ppd, which
-# dots installs on laptops only (scope-h). A desktop's menu is unchanged.
+# "profile" only where a power-profiles service answers: power-profiles-daemon,
+# which dots installs on laptops only (scope-h). A desktop's menu is unchanged.
 if command -v dwm-power >/dev/null 2>&1 && dwm-power available 2>/dev/null; then
     entries+=(profile)
 fi
@@ -40,8 +40,12 @@ case "$choice" in
     # Super+Shift+l takes the same path.
     lock)     exec dwm-lock ;;
     logout)   pkill -TERM -x dwm ;;
-    suspend)  systemctl suspend ;;
-    reboot)   confirm "reboot"   && systemctl reboot ;;
-    shutdown) confirm "shutdown" && systemctl poweroff ;;
+    # elogind's loginctl, not systemctl (Void has no systemd): the same
+    # verbs, and polkit lets the active session's user run them unprompted
+    # (org.freedesktop.login1.{suspend,reboot,power-off}: allow_active yes,
+    # read in Void's elogind-252.39_1).
+    suspend)  loginctl suspend ;;
+    reboot)   confirm "reboot"   && loginctl reboot ;;
+    shutdown) confirm "shutdown" && loginctl poweroff ;;
     profile)  exec dwm-power ;;
 esac

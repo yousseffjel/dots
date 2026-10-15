@@ -6,8 +6,9 @@
 #
 # What is asserted:
 #   * clock: one formatted date; left-click notifies the month's calendar;
-#   * UPD: counts dnf's package lines from the LOCAL cache (`-C`), skipping
-#     the header and any Obsoleting section, and lists exactly those lines; n/a when dnf fails or is missing; left lists them; right
+#   * UPD: counts the `update` lines of a LOCAL dry run (`xbps-install -nu`,
+#     no -S), not the `install` lines of new dependencies, and lists exactly
+#     those packages; n/a when xbps fails or is missing; left lists them; right
 #     opens the upgrade in a floating terminal EVEN when the count failed —
 #     and that command, run for real against fakes, upgrades, then refreshes
 #     the block, then waits for Enter;
@@ -20,9 +21,9 @@
 #     block_term fails cleanly with no terminal at all, and the class it
 #     gives a terminal is one config.def.h's rules[] floats.
 #
-# The dnf fixture is dnf5's real `check-update` shape (exit 100, an
-# "Upgrades" header, `name.arch  version  repo`), captured on the Fedora 44
-# VM 2026-10-07; bluetoothctl's from bluez 5.8x on the dev host.
+# The xbps fixture is `xbps-install -nu`'s real shape (`<pkgver> <action>
+# <arch> <repo> <installed> <download>`, exit 0), captured with xbps-static
+# 0.60.7 on 2026-10-15; bluetoothctl's from bluez 5.8x on the dev host.
 
 set -euo pipefail
 
@@ -59,39 +60,35 @@ check "left: the month's calendar" logged "notify-send -u low October 2026 CAL"
 
 blue "UPD"
 # shellcheck disable=SC2016
-fake "$SB/fake" dnf 'echo "dnf $*" >>"$LOG"; cat "'"$SB"'/dnf.out"; exit "$(cat "'"$SB"'/dnf.rc")"'
-printf '%s\n' 'Upgrades' \
-    'SDL3.x86_64                   3.4.18-1.fc44              updates' \
-    'cairo.x86_64                  1.18.6-1.fc44              updates' \
-    'cairo-devel.x86_64            1.18.6-1.fc44              updates' >"$SB/dnf.out"
-echo 100 >"$SB/dnf.rc"
+fake "$SB/fake" xbps-install 'echo "xbps-install $*" >>"$LOG"; cat "'"$SB"'/xbps.out"; exit "$(cat "'"$SB"'/xbps.rc")"'
+printf '%s\n' \
+    'oniguruma-6.9.10_1 update x86_64 https://repo-default.voidlinux.org/current 640404 199767' \
+    'cairo-1.18.6_1 update x86_64 https://repo-default.voidlinux.org/current 1924096 731242' \
+    'libnew-1.0_1 install x86_64 https://repo-default.voidlinux.org/current 10240 4096' \
+    'mesa-26.2.5_1 update x86_64 https://repo-default.voidlinux.org/current 52428800 9437184' >"$SB/xbps.out"
+echo 0 >"$SB/xbps.rc"
 block dwm-updates
-check "three pending, header not counted" is "UPD 3"
-check "local cache only (-C), never the network" logged "dnf -C check-update -q"
+check "three pending, the new dependency not counted" is "UPD 3"
+check "a local dry run (-nu), never a sync" logged "xbps-install -nu"
 block dwm-updates 1
-check "left: lists them" has "notify-send -u low 3 update(s) pending SDL3.x86_64"
-printf '%s\n' 'SDL3.x86_64    3.4.18-1.fc44    updates' 'Obsoleting Packages' \
-    'grub2-tools.x86_64    1:2.12-30.fc44    updates' >"$SB/dnf.out"
-block dwm-updates
-check "the Obsoleting Packages section is not counted" is "UPD 1"
-: >"$SB/dnf.out"
-echo 0 >"$SB/dnf.rc"
+check "left: lists them" has "notify-send -u low 3 update(s) pending oniguruma-6.9.10_1"
+: >"$SB/xbps.out"
 block dwm-updates
 check "none pending" is "UPD 0"
-echo 1 >"$SB/dnf.rc"
+echo 1 >"$SB/xbps.rc"
 block dwm-updates 3
-check "dnf failed (no cache yet): n/a" is "UPD n/a"
-check "right: the upgrade terminal opens anyway" has "alacritty --class dots-float-updates -e sh -c sudo dnf upgrade --refresh;"
+check "xbps failed (no index yet): n/a" is "UPD n/a"
+check "right: the upgrade terminal opens anyway" has "alacritty --class dots-float-updates -e sh -c sudo xbps-install -Su;"
 upgrade="$(sed -n 's/^alacritty --class dots-float-updates -e sh -c //p' "$LOG")"
 # shellcheck disable=SC2016
 for t in sudo pkill; do fake "$SB/fake" "$t" 'echo "${0##*/} $*" >>"$LOG"'; done
 : >"$LOG"
 env -i LOG="$LOG" PATH="$SB/fake:$SB/real" /bin/sh -c "$upgrade" <<<"" >/dev/null
-check "the upgrade command runs dnf, then refreshes UPD (signal 1)" \
-    test "$(tr '\n' '|' <"$LOG")" = "sudo dnf upgrade --refresh|pkill -RTMIN+1 dwmblocks|"
-mv "$SB/fake/dnf" "$SB/dnf.off"
+check "the upgrade command syncs and upgrades everything, then refreshes UPD (signal 1)" \
+    test "$(tr '\n' '|' <"$LOG")" = "sudo xbps-install -Su|pkill -RTMIN+1 dwmblocks|"
+mv "$SB/fake/xbps-install" "$SB/xbps.off"
 block dwm-updates
-check "no dnf" is "UPD n/a"
+check "no xbps" is "UPD n/a"
 
 blue "BT"
 # shellcheck disable=SC2016
