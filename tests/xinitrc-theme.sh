@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Runs the generated ~/.xinitrc against a sandbox HOME and asserts what it does
-# about the theme before `exec dwm`, and the systemd session target around
-# dwm (started first, stopped after, never in dwm's way), and the session-end
-# step that stops clipmenud however dwm exits.
+# about the theme before `exec dwm`, the session around dwm (a D-Bus bus via
+# dbus-run-session, the display handed to D-Bus activation, PipeWire; never
+# in dwm's way), and the session-end step that stops the non-X daemons
+# however dwm exits.
 #
 # WHY. The first real install (Fedora 44 Server VM, 2026-10-05) came up on
 # dwm's compiled-in colours with no wallpaper: a headless install cannot theme
@@ -55,10 +56,14 @@ fi
 
 # $1 case; $2 "cache" to seed the theme cache, "cache+cursor" to add the
 # xcursor file theme_write_xcursor_resources writes; $3 "fehbg" to seed ~/.fehbg;
-# $4 dots mode: ok | fail | absent; $5 systemctl mode: absent (default) | ok |
-# fail (the start fails); $6 "hup" makes dwm HUP the xinitrc shell, the way a
-# dying X server does; $7 "random" sets the `dots wallpaper --login-random`
-# flag. Prints the call log, one call per line.
+# $4 dots mode: ok | fail | absent; $5 session mode: absent (default: no
+# dbus-run-session, no pipewire) | nobus (they exist, no bus yet: the script
+# must re-run itself under dbus-run-session) | bus (they exist and a bus is
+# already set); $6 "hup" makes dwm HUP the xinitrc shell, the way a dying X
+# server does; $7 "random" sets the `dots wallpaper --login-random` flag.
+# Prints the call log, one call per line; pipewire, started in the
+# background, logs to calls.log.pw instead, so its race with dwm cannot
+# reorder the main log.
 run_case() {
     local home="$SB/$1" fake="$SB/$1/fakebin" log="$SB/$1/calls.log"
     mkdir -p "$fake" "$home/.local/bin" "$home/cache"
@@ -82,15 +87,24 @@ run_case() {
     esac
     # shellcheck disable=SC2016 # $PPID belongs to the fake
     [[ "${6:-}" == hup ]] && printf '#!/bin/sh\necho "dwm $*" >>"%s"\nkill -HUP $PPID\n' "$log" >"$fake/dwm"
-    # shellcheck disable=SC2016 # $* belongs to the fakes
+    local bus=""
+    # shellcheck disable=SC2016 # $* and $@ belong to the fakes
     case "${5:-absent}" in
-        ok) printf '#!/bin/sh\necho "systemctl $*" >>"%s"\n' "$log" >"$fake/systemctl" ;;
-        fail) printf '#!/bin/sh\necho "systemctl $*" >>"%s"\ncase "$*" in *start*) exit 1 ;; esac\n' "$log" >"$fake/systemctl" ;;
+        nobus | bus)
+            # FAKE_BUS_FAIL: the bus daemon cannot start — real dbus-run-session
+            # then exits 127 and runs nothing (probed on the dev host, 1.16).
+            printf '#!/bin/sh\necho "dbus-run-session $*" >>"%s"\n[ -n "$FAKE_BUS_FAIL" ] && exit 127\nshift\nDBUS_SESSION_BUS_ADDRESS=unix:fake exec "$@"\n' "$log" >"$fake/dbus-run-session"
+            printf '#!/bin/sh\necho "dbus-update-activation-environment $*" >>"%s"\n' "$log" >"$fake/dbus-update-activation-environment"
+            printf '#!/bin/sh\necho "pipewire $*" >>"%s.pw"\n' "$log" >"$fake/pipewire"
+            [[ "$5" == bus ]] && bus=unix:already
+            ;;
     esac
     chmod +x "$fake"/* "$home/.local/bin"/* "$home/.fehbg" 2>/dev/null || true
-    env -i PATH="$fake" HOME="$home" XDG_CACHE_HOME="$home/cache" /bin/sh "$SB/xinitrc"
+    env -i PATH="$fake" HOME="$home" XDG_CACHE_HOME="$home/cache" ${bus:+DBUS_SESSION_BUS_ADDRESS=$bus} \
+        ${FAKE_BUS_FAIL:+FAKE_BUS_FAIL=1} \
+        /bin/sh "$SB/xinitrc"
     # The cache path is per case; normalise it so expectations stay readable.
-    sed "s|$home|HOME|g" "$log"
+    sed "s|$home|HOME|g; s|$SB|SB|g" "$log"
 }
 
 rc=0
@@ -107,12 +121,14 @@ expect() {
     fi
 }
 
-# What dots_session_end does on every exit path, before stopping the target.
+# What dots_session_end does on every exit path.
 END='pkill -u 4242 -x clipmenud
 pkill -u 4242 -x clipnotify
 pkill -u 4242 -x dwmblocks
 pkill -u 4242 -f /dwm-nightlight daemon$
-pkill -u 4242 -x xss-lock'
+pkill -u 4242 -x xss-lock
+pkill -u 4242 -x wireplumber
+pkill -u 4242 -x pipewire'
 
 blue "==> theme step in the generated ~/.xinitrc"
 expect "cache + wallpaper: merge, re-apply, then dwm" \
@@ -140,32 +156,37 @@ expect "no dots command at all: dwm still starts" \
     "$(printf '%s\n' 'dwm ' "$END")" \
     "$(run_case no-dots '' '' absent)"
 
-blue "==> the session target around dwm"
-ST='systemctl --user import-environment DISPLAY XAUTHORITY
-systemctl --user daemon-reload
-systemctl --user start dots-session.target'
-expect "systemd: target started before dwm, stopped after it exits" \
-    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ' "$END" 'systemctl --user stop dots-session.target')" \
-    "$(run_case target cache '' ok ok)"
-expect "the start fails: dwm still starts, no target to stop" \
-    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ' "$END")" \
-    "$(run_case target-fails cache '' ok fail)"
-# On bash — Fedora's /bin/sh — the EXIT trap fires on a fatal HUP even without
-# the template's `trap 'exit 0' HUP INT TERM`, so this case cannot tell that
-# line is there (mutation-tested 2026-10-06: dropping it survives). The line is
-# for strict POSIX shells such as dash, where an untrapped signal skips EXIT.
-expect "X dies (HUP to the session shell): the target is still stopped" \
-    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$ST" 'dwm ' "$END" 'systemctl --user stop dots-session.target')" \
-    "$(run_case target-hup cache '' ok ok hup)"
-expect "no systemd, X dies: clipmenud is still stopped" \
-    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'dwm ' "$END")" \
-    "$(run_case nosystemd-hup cache '' ok absent hup)"
-unit="$DOTS_DIR/config/systemd/user/dots-session.target"
-if grep -qx 'BindsTo=graphical-session.target' "$unit" && grep -q 'dots-session.target' "$SB/xinitrc.shipped" \
-    && grep -qF 'config/systemd/user/dots-session.target' "$DOTS_DIR/scripts/install-restore-apps.sh"; then
-    green "  ok: the unit binds graphical-session.target, and restore deploys the one the template starts"
+blue "==> the session around dwm (D-Bus bus, portal display, PipeWire)"
+SESSION='dbus-update-activation-environment DISPLAY XAUTHORITY'
+expect "no bus yet: the script re-runs itself under dbus-run-session, first of all" \
+    "$(printf '%s\n' 'dbus-run-session -- /bin/sh SB/xinitrc' 'xrdb -merge HOME/cache/dots/theme/xresources' "$SESSION" 'dwm ' "$END")" \
+    "$(run_case nobus cache '' ok nobus)"
+if grep -qx 'pipewire ' "$SB/nobus/calls.log.pw" 2>/dev/null; then
+    green "  ok: ...and starts pipewire"
 else
-    red "  the unit, the template and the deploy line disagree about dots-session.target"
+    red "  pipewire was not started"
+    rc=1
+fi
+expect "the bus cannot start (127): the session still runs, once, without one" \
+    "$(printf '%s\n' 'dbus-run-session -- /bin/sh SB/xinitrc' 'xrdb -merge HOME/cache/dots/theme/xresources' "$SESSION" 'dwm ' "$END")" \
+    "$(FAKE_BUS_FAIL=1 run_case busfail cache '' ok nobus)"
+expect "a bus already set: no re-run, the rest the same" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$SESSION" 'dwm ' "$END")" \
+    "$(run_case bus cache '' ok bus)"
+# On bash the EXIT trap fires on a fatal HUP even without the template's
+# `trap 'exit 0' HUP INT TERM`, so this case cannot tell that line is there
+# (mutation-tested 2026-10-06: dropping it survives). The line is for strict
+# POSIX shells such as dash, where an untrapped signal skips EXIT.
+expect "X dies (HUP to the session shell): everything is still stopped" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' "$SESSION" 'dwm ' "$END")" \
+    "$(run_case bus-hup cache '' ok bus hup)"
+expect "no dbus-run-session, no pipewire at all: dwm still starts, still cleaned up" \
+    "$(printf '%s\n' 'xrdb -merge HOME/cache/dots/theme/xresources' 'dwm ' "$END")" \
+    "$(run_case nobus-tools cache '' ok absent hup)"
+if ! grep -q 'systemctl' "$SB/xinitrc.shipped"; then
+    green "  ok: the template calls no systemctl (Void has no systemd user manager)"
+else
+    red "  the template still calls systemctl"
     rc=1
 fi
 

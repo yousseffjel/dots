@@ -111,6 +111,7 @@ source "$SCRIPT_DIR/uninstall_steps.sh"
 source "$SCRIPT_DIR/uninstall-apps.sh"
 source "$SCRIPT_DIR/uninstall-theme.sh"
 source "$SCRIPT_DIR/uninstall-flatpak.sh"
+source "$SCRIPT_DIR/uninstall-pipewire.sh"
 source "$SCRIPT_DIR/uninstall-repos.sh"
 # shellcheck source=uninstall-runit.sh
 source "$SCRIPT_DIR/uninstall-runit.sh"
@@ -130,6 +131,7 @@ uninstall_dconf
 # Before uninstall_packages too: removing the flatpak package would leave no
 # binary to delete the remote with.
 uninstall_flatpak
+uninstall_pipewire
 # Before uninstall_packages, which may remove ly.
 uninstall_ly
 # Before uninstall_packages too: it needs git to prove the clone unchanged.

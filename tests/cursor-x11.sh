@@ -128,7 +128,7 @@ printf '#!/bin/sh\nexec dwm\n' >"$SB/old-xinitrc"
 grep -v 'xcursor' "$SB/xinitrc.shipped" >"$SB/pre-cursor-xinitrc"
 out="$(report "$SB/pre-cursor-xinitrc")"
 if grep -q -- 'never loads the cursor size' <<<"$out" && ! grep -q -- 'never restores' <<<"$out" \
-    && ! grep -q -- 'never starts dots-session.target' <<<"$out" && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
+    && ! grep -q -- 'never starts a D-Bus session' <<<"$out" && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
     green "  ok: a pre-cursor ~/.xinitrc gets only the cursor line"
 else
     red "  the pre-cursor ~/.xinitrc report is wrong: $out"

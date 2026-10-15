@@ -396,54 +396,74 @@ never edited; the installer prints the lines to paste.
 GTK4/libadwaita apps, Firefox and Electron get dark mode from the desktop
 portal's Settings interface, which `xdg-desktop-portal-gtk` serves from the
 dconf `color-scheme` key. Apps also get the portal file chooser from it. In a
-dwm session that only works if `~/.xinitrc` starts **`dots-session.target`**:
+dwm session that only works if `~/.xinitrc` starts a **session D-Bus bus**:
 
-- `xdg-desktop-portal.service` (1.22) has
-  `Requisite=graphical-session.target`, so it refuses to start unless that
-  target is active;
-- a full desktop such as GNOME activates it, but startx/ly + dwm never did;
-- `graphical-session.target` has `RefuseManualStart=yes`, so
-  `~/.config/systemd/user/dots-session.target` (copied there by the restore
-  stage) pulls it in with `BindsTo=`.
+- Void has no systemd user manager, so nothing else starts one: neither
+  startx nor ly does;
+- the portal is started on demand by that bus (its D-Bus `.service` file has
+  an `Exec=` line, read from Void's `xdg-desktop-portal-1.22.1_1`), and it
+  needs `DISPLAY` handed to the bus to open a file chooser;
+- PipeWire and the notification daemon need the same bus.
 
-Until 2026-10-06 nothing did this, and *no* portal worked in a dwm session.
+So the `~/.xinitrc` the installer writes re-runs itself under
+`dbus-run-session` first of all, hands `DISPLAY` to D-Bus activation, starts
+`pipewire` (which starts WirePlumber and the PulseAudio server through the
+two links the restore stage puts in `~/.config/pipewire/pipewire.conf.d/`),
+and then dwm. On Fedora this was `dots-session.target`, a systemd user unit
+that pulled in `graphical-session.target`; it is gone.
 
-The `~/.xinitrc` the installer writes starts the target before dwm and stops it
-when the session ends. The same exit step (2026-10-07) also stops
-`clipmenud`, the clipboard daemon. It is a shell loop over `clipnotify` and
-`xsel` and holds no X connection of its own, so it outlives X. Once X is gone
-both commands fail instantly in an endless loop, which floods the login TTY with
-`xsel: Can't open display` after every logout. It stops two more that outlive
-X: the night-light daemon (also a shell loop) and `dwmblocks`, which only
-notices X is gone on its next bar update. A quick re-login used to find the old
-copies still running, so `autostart.sh` started neither, and once they died the
-bar was empty (`dwm-6.8`) and night light was off. Since 2026-10-12 it also
-stops `xss-lock` (the screen-lock daemon) while X is still up: left to die
-with X, it aborts with a core dump at every logout. If you had a `~/.xinitrc` before
-installing, replace its `exec dwm`, and any `dots-session.target` block above
-it, with:
+The same exit step (2026-10-07) also stops `clipmenud`, the clipboard daemon.
+It is a shell loop over `clipnotify` and `xsel` and holds no X connection of
+its own, so it outlives X. Once X is gone both commands fail instantly in an
+endless loop, which floods the login TTY with `xsel: Can't open display`
+after every logout. It stops two more that outlive X: the night-light daemon
+(also a shell loop) and `dwmblocks`, which only notices X is gone on its next
+bar update. A quick re-login used to find the old copies still running, so
+`autostart.sh` started neither, and once they died the bar was empty
+(`dwm-6.8`) and night light was off. Since 2026-10-12 it also stops
+`xss-lock` (the screen-lock daemon) while X is still up: left to die with X,
+it aborts with a core dump at every logout. Since 2026-10-15 it stops
+PipeWire and WirePlumber too, which hold no X connection either.
+
+If you had a `~/.xinitrc` before installing, make two changes. Right after
+its `#!/bin/sh` line, add:
 
 ```sh
-dots_session_target=
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -z "${DOTS_BUS_TRIED:-}" ] &&
+  command -v dbus-run-session >/dev/null 2>&1; then
+  DOTS_BUS_TRIED=1 dbus-run-session -- /bin/sh "$0" "$@"
+  dots_rc=$?
+  [ "$dots_rc" -eq 127 ] || exit "$dots_rc"
+fi
+```
+
+If the bus daemon cannot start, `dbus-run-session` exits 127 having run
+nothing, and the session carries on without a bus instead of ending before
+dwm.
+
+Then replace its `exec dwm`, and any `dots_session_end` or
+`dots-session.target` lines above it, with:
+
+```sh
 dots_session_end() {
   pkill -u "$(id -u)" -x clipmenud
   pkill -u "$(id -u)" -x clipnotify
   pkill -u "$(id -u)" -x dwmblocks
   pkill -u "$(id -u)" -f '/dwm-nightlight daemon$'
   pkill -u "$(id -u)" -x xss-lock
-  [ -z "$dots_session_target" ] || systemctl --user stop dots-session.target
+  pkill -u "$(id -u)" -x wireplumber
+  pkill -u "$(id -u)" -x pipewire
 }
 trap dots_session_end EXIT
 trap 'exit 0' HUP INT TERM
-systemctl --user import-environment DISPLAY XAUTHORITY
-systemctl --user daemon-reload
-systemctl --user start dots-session.target && dots_session_target=1
+dbus-update-activation-environment DISPLAY XAUTHORITY
+pipewire &
 dwm
 ```
 
 then log out and back in. `dots doctor` checks both halves:
 
-- `graphical-session.target` is active;
+- the session has a D-Bus bus;
 - the portal really answers `color-scheme`.
 
 The dconf line only proves the preference is stored.

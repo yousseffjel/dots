@@ -13,8 +13,8 @@
 #     different advice, a VM-only daemon off a VM is skipped, dwm-lock is
 #     found as xss-lock;
 #   * no X session, not Fedora: whole sections skip instead of failing;
-#   * the desktop portal: graphical-session.target, then a real ReadOne of
-#     color-scheme (dark ok; light, dead, no target warn; no X skips);
+#   * the desktop portal: a session D-Bus bus, then a real ReadOne of
+#     color-scheme (dark ok; light, dead, no bus warn; no X skips);
 #   * the GTK3 theme name: missing -> warn, a GTK built-in -> ok;
 #   * flatpak: a missing grant or remote warns, a grant set the user's own
 #     way is ok, no flatpak at all skips;

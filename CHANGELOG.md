@@ -66,6 +66,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   (an official tarball checked by sha256, used for the build only). It takes
   over tty2 from its getty; tty1 stays a rescue login. `dots uninstall`
   removes the files it built and gives tty2's getty and `dhcpcd` back.
+- **The session starts its own D-Bus bus and PipeWire.** `~/.xinitrc`
+  re-runs itself under `dbus-run-session`, hands the display to D-Bus
+  activation (the desktop portal starts on demand), and starts `pipewire`,
+  which brings up WirePlumber and the PulseAudio server through two links in
+  `~/.config/pipewire`. All of it stops when you log out. An existing
+  `~/.xinitrc` is told which lines to add (`docs/THEMING.md`, Desktop
+  portal).
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.
@@ -88,6 +95,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Removed
 
+- `dots-session.target`, the systemd user unit that started
+  `graphical-session.target` for the portal. Void has no systemd user
+  manager; the session bus does that job.
 - The clipmenu COPR, Sublime HQ's rpm repo and RPM Fusion (with its ffmpeg
   swap). Void's main repo has clipmenu and a full ffmpeg.
 - The dnf speed settings file (`/etc/dnf/libdnf5.conf.d/30-dots-speed.conf`),

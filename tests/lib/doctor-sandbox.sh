@@ -47,12 +47,10 @@ esac'
 [[ -z "${FAKE_XCURSOR:-}" ]] || echo "Xcursor.theme:	$FAKE_XCURSOR"'
         fake "$BIN" pamixer 'echo 40'
         fake "$BIN" nmcli 'echo connected'
-        fake "$BIN" systemctl 'case "$*" in
-*is-active*graphical-session.target*) echo "${FAKE_GST:-active}"; [[ "${FAKE_GST:-active}" == active ]] ;;
-*) echo "${FAKE_SERVICE:-enabled}" ;;
-esac'
+        # systemctl only for doctor-drivers' tuned check (Fedora, until I-7).
+        fake "$BIN" systemctl 'echo "${FAKE_SERVICE:-enabled}"'
         # ReadOne returns one variant: gdbus prints "(<uint32 1>,)". The error
-        # text is what the VM printed with no graphical-session.target.
+        # text is what the Fedora VM printed when the portal could not start.
         fake "$BIN" gdbus 'case "${FAKE_PORTAL:-dark}" in
 dark) echo "(<uint32 1>,)" ;;
 light) echo "(<uint32 0>,)" ;;
@@ -115,14 +113,18 @@ run_doctor() {
     # The runit service dir: ly linked unless FAKE_SERVICE=disabled.
     rm -rf "$SB/service" && mkdir -p "$SB/sv/ly" "$SB/service"
     [[ "${FAKE_SERVICE:-enabled}" == disabled ]] || ln -s "$SB/sv/ly" "$SB/service/ly"
+    # A session bus address unless FAKE_NOBUS; empty reads as "no bus".
+    local bus="unix:path=$SB/bus"
+    [[ -z "${FAKE_NOBUS:-}" ]] || bus=""
     env -i PATH="$BIN" HOME="$H" USER=probe DISPLAY="${DISPLAY_SET-:9}" \
         XDG_CONFIG_HOME="$H/.config" XDG_CACHE_HOME="$H/.cache" \
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
+        DBUS_SESSION_BUS_ADDRESS="$bus" \
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/os-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" DOTS_RUNIT_SERVICE="$SB/service" \
         DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
         DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
-        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_GST="${FAKE_GST:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
+        FAKE_NOT_VM="${FAKE_NOT_VM:-}" FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

@@ -89,6 +89,21 @@ session_xinitrc_template_theme() {
 # Started by startx, and by ly (its xinitrc session). dwm runs in the
 # foreground; when it exits, X exits.
 
+# A session D-Bus bus, before anything else. Void has no systemd user
+# manager, and neither startx nor ly starts one, so the script re-runs itself
+# under dbus-run-session: everything below (the theme's dconf writes, the
+# desktop portal, PipeWire, notifications) then shares one bus, which ends
+# with the session. Not exec'd: when the bus daemon cannot start,
+# dbus-run-session exits 127 without running anything, and the session then
+# carries on below with no bus rather than ending before dwm. DOTS_BUS_TRIED
+# keeps it from trying twice.
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ -z "${DOTS_BUS_TRIED:-}" ] &&
+	command -v dbus-run-session >/dev/null 2>&1; then
+	DOTS_BUS_TRIED=1 dbus-run-session -- /bin/sh "$0" "$@"
+	dots_rc=$?
+	[ "$dots_rc" -eq 127 ] || exit "$dots_rc"
+fi
+
 # Merge the distro's xinit fragments (keyboard layout, dbus, ssh-agent, ...).
 if [ -d /etc/X11/xinit/xinitrc.d ]; then
 	for f in /etc/X11/xinit/xinitrc.d/?*.sh; do
@@ -127,7 +142,7 @@ unset dots_theme_cache
 EOF
 }
 
-# The session tail: the end-of-session cleanup, the systemd session target, dwm.
+# The session tail: the end-of-session cleanup, the portal's display, PipeWire, dwm.
 session_xinitrc_template_session() {
     cat <<'EOF'
 
@@ -143,32 +158,32 @@ session_xinitrc_template_session() {
 # xss-lock (dwm-lock's daemon) is the opposite case: it DOES die with X, but by
 # aborting with a core dump, every logout (seen on the Fedora VM, 2026-10-12).
 # This trap runs after dwm exits and before xinit stops X, so a plain SIGTERM
-# here lets it exit cleanly. Every other autostart daemon waits on its X
-# connection and dies quietly with the server.
-dots_session_target=
+# here lets it exit cleanly. PipeWire and the WirePlumber it starts hold no X
+# connection either, and nothing else stops them. Every other autostart daemon
+# waits on its X connection and dies quietly with the server.
 dots_session_end() {
 	pkill -u "$(id -u)" -x clipmenud >/dev/null 2>&1
 	pkill -u "$(id -u)" -x clipnotify >/dev/null 2>&1
 	pkill -u "$(id -u)" -x dwmblocks >/dev/null 2>&1
 	pkill -u "$(id -u)" -f '/dwm-nightlight daemon$' >/dev/null 2>&1
 	pkill -u "$(id -u)" -x xss-lock >/dev/null 2>&1
-	[ -z "$dots_session_target" ] || systemctl --user stop dots-session.target >/dev/null 2>&1
+	pkill -u "$(id -u)" -x wireplumber >/dev/null 2>&1
+	pkill -u "$(id -u)" -x pipewire >/dev/null 2>&1
 }
 trap dots_session_end EXIT
 trap 'exit 0' HUP INT TERM
 
-# The systemd side of the session. dots-session.target pulls in
-# graphical-session.target, without which xdg-desktop-portal refuses to start
-# (see ~/.config/systemd/user/dots-session.target): no dark mode for GTK4 apps,
-# no portal file chooser. DISPLAY is handed to the user manager first so the
-# portal can open windows. Stopped by dots_session_end. If systemd is missing
-# or the start fails, dwm starts exactly as before.
-if command -v systemctl >/dev/null 2>&1 &&
-	systemctl --user import-environment DISPLAY XAUTHORITY >/dev/null 2>&1 &&
-	systemctl --user daemon-reload >/dev/null 2>&1 &&
-	systemctl --user start dots-session.target >/dev/null 2>&1; then
-	dots_session_target=1
-fi
+# The desktop portal is started on demand by the session bus (Void has no
+# systemd user units), and needs DISPLAY to open its file chooser. GTK4 apps,
+# Firefox and Electron read dark mode from it.
+command -v dbus-update-activation-environment >/dev/null 2>&1 &&
+	dbus-update-activation-environment DISPLAY XAUTHORITY >/dev/null 2>&1
+
+# Sound. PipeWire starts WirePlumber and its PulseAudio server itself, through
+# the two config links the restore stage puts in ~/.config/pipewire (the
+# Void handbook's setup). Here and not in autostart.sh: it must end with the
+# session, which dots_session_end sees to.
+command -v pipewire >/dev/null 2>&1 && pipewire >/dev/null 2>&1 &
 
 dwm
 EOF

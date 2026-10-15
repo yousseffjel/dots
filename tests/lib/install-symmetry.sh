@@ -35,6 +35,12 @@ make_fakes() {
     real_git="$(command -v git)"
     WALLPAPER_FIXTURE="$TMP/wallpaper-fixture.git"
     make_wallpaper_fixture "$WALLPAPER_FIXTURE"
+    # Stand-ins for Void's /usr/share/examples, so restore_pipewire really
+    # makes its two links and the round trip proves their removal.
+    EXAMPLES_FIXTURE="$TMP/examples"
+    mkdir -p "$EXAMPLES_FIXTURE/wireplumber" "$EXAMPLES_FIXTURE/pipewire"
+    : >"$EXAMPLES_FIXTURE/wireplumber/10-wireplumber.conf"
+    : >"$EXAMPLES_FIXTURE/pipewire/20-pipewire-pulse.conf"
     cat >"$FAKEBIN/git" <<EOF
 #!/usr/bin/env bash
 if [[ "\${1:-}" == clone && " \$* " != *" $TMP/"* ]]; then
@@ -105,7 +111,7 @@ in_sandbox() {
     env -i PATH="$FAKEBIN:$PATH" HOME="$home" USER=probe LANG=C.UTF-8 \
         XDG_CONFIG_HOME="$home/.config" XDG_CACHE_HOME="$home/.cache" \
         XDG_STATE_HOME="$home/.local/state" XDG_DATA_HOME="$home/.local/share" \
-        DOTS_WALLPAPER_REPO="$WALLPAPER_FIXTURE" \
+        DOTS_WALLPAPER_REPO="$WALLPAPER_FIXTURE" DOTS_EXAMPLES_DIR="$EXAMPLES_FIXTURE" \
         bash "$@"
 }
 
@@ -122,4 +128,30 @@ snapshot() {
                 printf '%s %s\n' "$p" "$(sha256sum <"$p" | cut -c1-16)"
             fi
         done)
+}
+
+# check_specific_claims <manifest> — a restore that skipped one of these steps
+# would still round-trip perfectly, so each must leave its own row. Uses the
+# caller's pass/fail. Split out of install-uninstall-symmetry.sh at the cap.
+check_specific_claims() {
+    # The GTK3 Adwaita-dark shim: restore_theme must actually call it.
+    if grep -q "^THEME	theme	.*/themes/Adwaita-dark$" "$1"; then
+        pass "manifest claims the GTK3 Adwaita-dark shim"
+    else
+        fail "no THEME row for themes/Adwaita-dark — restore_gtk3_shim did not run"
+    fi
+    # The PipeWire session links (scope I, I-6): both made, so the round trip
+    # proves their removal.
+    if [[ "$(grep -c "^LINK	pipewire	" "$1")" == 2 ]]; then
+        pass "manifest claims both PipeWire config links"
+    else
+        fail "expected 2 LINK pipewire rows — restore_pipewire did not run"
+    fi
+    # The vendored Nerd Font (scope I, D3): restore_theme must extract it, so
+    # this round trip proves its removal and not an absence.
+    if grep -q "^THEME	theme	.*/fonts/CascadiaCodeNF$" "$1"; then
+        pass "manifest claims the vendored Cascadia Code NF"
+    else
+        fail "no THEME row for fonts/CascadiaCodeNF — restore_font_assets did not run"
+    fi
 }

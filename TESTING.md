@@ -197,10 +197,12 @@ for adding CI; new docs you add are linted normally.
   a cache exists, `dots theme dark` on a first login, and dwm in every case,
   including when the theme apply fails. Every exit path, a HUP included, must
   end with `pkill` of `clipmenud`, `clipnotify`, `dwmblocks` and the
-  night-light daemon. With a fake `systemctl`, it also checks that
-  `dots-session.target` is started before dwm and stopped after it exits,
-  including when the shell is HUP'd as a dying X server does. A failed start
-  still runs dwm. The host's `/etc/X11/xinit/xinitrc.d` is swapped for an
+  night-light daemon, `xss-lock`, `wireplumber` and `pipewire`. With fake
+  `dbus-run-session`, `dbus-update-activation-environment` and `pipewire`, it
+  also checks the session: with no bus the script re-runs itself under
+  `dbus-run-session` before anything else, hands DISPLAY to D-Bus activation
+  and starts pipewire before dwm, including when the shell is HUP'd as a
+  dying X server does. Without those tools dwm still starts. The host's `/etc/X11/xinit/xinitrc.d` is swapped for an
   empty dir in the copy that runs, so its fragments are never sourced.
 - **`tests/xinitrc-report.sh`** — split out of `xinitrc-theme.sh` at the
   250-line cap: what the installer prints for a `~/.xinitrc` the user already

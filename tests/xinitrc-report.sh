@@ -50,53 +50,64 @@ else
 fi
 printf '#!/bin/sh\nexec dwm\n' >"$SB/old-xinitrc"
 out="$(report "$SB/old-xinitrc")"
-if grep -q -- 'never restores the dots theme' <<<"$out" && grep -q -- 'never starts dots-session.target' <<<"$out" \
+if grep -q -- 'never restores the dots theme' <<<"$out" && grep -q -- 'never starts a D-Bus session' <<<"$out" \
     && ! grep -q -- 'never stops clipmenud' <<<"$out"; then
-    green "  ok: a pre-2026-10-05 ~/.xinitrc is reported, for both"
+    green "  ok: a ~/.xinitrc with neither step is reported, for both"
 else
     red "  an ~/.xinitrc with neither step was NOT reported for both"
     rc=1
 fi
-# What the installer generated between 2026-10-05 and 2026-10-06: the theme
-# block, no session target. Built from the shipped template, not by hand.
-{ sed '/^# Session end/,$d' "$SB/xinitrc.shipped" && echo 'exec dwm'; } >"$SB/pre-portal-xinitrc"
-out="$(report "$SB/pre-portal-xinitrc")"
-if ! grep -q 'dots-session.target' "$SB/pre-portal-xinitrc" && grep -q -- 'never starts dots-session.target' <<<"$out" \
+# A Fedora-era themed ~/.xinitrc with no session bus at all: the shipped
+# theme half minus the dbus-run-session block, then `exec dwm`. Built from the
+# shipped template, not by hand.
+{ sed -e '/^# A session D-Bus bus/,/^fi$/d' -e '/^# Session end/,$d' "$SB/xinitrc.shipped" && echo 'exec dwm'; } >"$SB/no-bus-xinitrc"
+out="$(report "$SB/no-bus-xinitrc")"
+if ! grep -q 'dbus-run-session' "$SB/no-bus-xinitrc" && grep -q -- 'never starts a D-Bus session' <<<"$out" \
     && ! grep -q -- 'never restores the dots theme' <<<"$out"; then
-    green "  ok: a themed but pre-portal ~/.xinitrc gets only the session-target lines"
+    green "  ok: a themed ~/.xinitrc with no session bus gets only the session lines"
 else
-    red "  the pre-portal ~/.xinitrc report is wrong: $out"
+    red "  the no-bus ~/.xinitrc report is wrong: $out"
     rc=1
 fi
-
-# 2026-10-06 to 2026-10-07: a session target, no session-end step. Its exact
-# block is gone from the template, so only its marker is reproduced.
-{ sed '$d' "$SB/pre-portal-xinitrc" && printf '%s\n' \
-    'systemctl --user start dots-session.target && { dwm; exit 0; }' 'exec dwm'; } >"$SB/pre-cleanup-xinitrc"
+# The last Fedora template: a full dots_session_end, but the session came from
+# dots-session.target, not a bus. On Void that block can never work, so it
+# gets the whole session block, never only the stops.
+{ sed -e '/^# A session D-Bus bus/,/^fi$/d' "$SB/xinitrc.shipped" | sed '$d' && printf '%s\n' \
+    'systemctl --user start dots-session.target && dots_session_target=1' 'dwm'; } >"$SB/fedora-xinitrc"
+out="$(report "$SB/fedora-xinitrc")"
+if grep -q -- 'never starts a D-Bus session' <<<"$out" && grep -qF -- 'dots-session.target lines above it' <<<"$out" \
+    && ! grep -q -- 'Add inside dots_session_end' <<<"$out"; then
+    green "  ok: the last Fedora ~/.xinitrc (dots-session.target) gets the whole session block"
+else
+    red "  the Fedora-era ~/.xinitrc report is wrong: $out"
+    rc=1
+fi
+# A Void ~/.xinitrc with the bus but no session-end step.
+{ sed '/^# Session end/,$d' "$SB/xinitrc.shipped" && echo 'exec dwm'; } >"$SB/pre-cleanup-xinitrc"
 out="$(report "$SB/pre-cleanup-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
 if grep -q -- 'never stops clipmenud at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x clipmenud' <<<"$out" \
-    && ! grep -q -- 'never starts dots-session.target' <<<"$out" && ! grep -q -- 'never restores' <<<"$out"; then
-    green "  ok: a pre-cleanup ~/.xinitrc gets only the session-end lines"
+    && ! grep -q -- 'never starts a D-Bus session' <<<"$out" && ! grep -q -- 'never restores' <<<"$out"; then
+    green "  ok: a bus without a session end gets the session-end lines"
 else
     red "  the pre-cleanup ~/.xinitrc report is wrong: $out"
     rc=1
 fi
 
-# Earlier on 2026-10-07: a session-end step that stops only clipmenud. The
-# current template minus the two later pkills.
+# A session end that stops only clipmenud: the current template minus the
+# dwmblocks and night-light pkills.
 grep -v -e '-x dwmblocks' -e 'dwm-nightlight' "$SB/xinitrc.shipped" >"$SB/pre-blocks-xinitrc"
 out="$(report "$SB/pre-blocks-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
 if grep -q -- 'never stops dwmblocks at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x dwmblocks' <<<"$out" \
-    && ! grep -q -- 'never stops clipmenud' <<<"$out" && ! grep -q -- 'never starts dots-session.target' <<<"$out" \
+    && ! grep -q -- 'never stops clipmenud' <<<"$out" && ! grep -q -- 'never starts a D-Bus session' <<<"$out" \
     && ! grep -qF -- 'pkill -u "$(id -u)" -x clipmenud' <<<"$out"; then
     green "  ok: a session end without dwmblocks gets only the missing lines"
 else
     red "  the pre-dwmblocks ~/.xinitrc report is wrong: $out"
     rc=1
 fi
-# 2026-10-12: a session end that stops everything except xss-lock.
+# A session end that stops everything except xss-lock.
 grep -v -e '-x xss-lock' "$SB/xinitrc.shipped" >"$SB/pre-xsslock-xinitrc"
 out="$(report "$SB/pre-xsslock-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
@@ -106,6 +117,17 @@ if grep -q -- 'never stops xss-lock at logout' <<<"$out" && grep -qF -- '       
     green "  ok: a session end without the xss-lock stop gets that ONE line, not the block"
 else
     red "  the pre-xss-lock ~/.xinitrc report is wrong: $out"
+    rc=1
+fi
+# A session end that stops everything except PipeWire (2026-10-15).
+grep -v -e '-x wireplumber' -e '-x pipewire' "$SB/xinitrc.shipped" >"$SB/pre-pipewire-xinitrc"
+out="$(report "$SB/pre-pipewire-xinitrc")"
+# shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
+if grep -q -- 'never stops PipeWire at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x pipewire' <<<"$out" \
+    && [[ "$(grep -c 'pkill -u' <<<"$out")" == 2 ]]; then
+    green "  ok: a session end without the PipeWire stops gets those TWO lines"
+else
+    red "  the pre-pipewire ~/.xinitrc report is wrong: $out"
     rc=1
 fi
 # pkill -f must match the daemon's own self-detection pattern, or the stop
@@ -127,9 +149,9 @@ while IFS= read -r line; do
         red "  docs/THEMING.md lacks the paste line: $line"
         missing=1
     }
-done < <(report "$SB/old-xinitrc" | sed -n '/never starts dots-session.target/,$p' | sed -n 's/^          //p')
+done < <(report "$SB/old-xinitrc" | sed -n '/never starts a D-Bus session/,$p' | sed -n 's/^          //p')
 if ((missing == 0)); then
-    green "  ok: docs/THEMING.md carries every session-target paste line"
+    green "  ok: docs/THEMING.md carries every session paste line"
 else
     rc=1
 fi

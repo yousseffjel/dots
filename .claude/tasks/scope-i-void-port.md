@@ -218,7 +218,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   nonfree; delete COPR, Sublime HQ and RPM Fusion paths and tests.
 - **I-5 Services & login:** ✅ done 2026-10-15 (ly v1.4.1 + zig 0.16.0, built and staged for real; see the change log); runit linking (+ uninstall rows), D1, D2, D4 (user groups),
   login shell.
-- **I-6 Session:** `.xinitrc` without systemd user units: D-Bus session,
+- **I-6 Session:** ✅ done 2026-10-15 (dbus-run-session re-exec, portal via D-Bus activation, pipewire + LINK rows; see the change log); `.xinitrc` without systemd user units: D-Bus session,
   portal, `dots_session_end`; update the `session_*report` paste text.
 - **I-7 Drivers & VM detection:** replace `systemd-detect-virt`; GPU,
   firmware, microcode names; laptop power via power-profiles-daemon.

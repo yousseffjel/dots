@@ -6,34 +6,35 @@
 #
 # Why this exists: until 2026-10-06 the doctor only checked that the dark-mode
 # preference was STORED (dconf), and reported "ok" while xdg-desktop-portal
-# could not start at all — its unit has Requisite=graphical-session.target,
-# which a dwm session never activated. These checks ask the portal itself.
+# could not start at all. These checks ask the portal itself.
+#
+# On Void the portal is started on demand by the SESSION D-Bus bus (no systemd
+# user manager), which ~/.xinitrc starts with dbus-run-session. No bus in the
+# session's environment means no portal, no PipeWire and no notifications.
 
 PORTAL_DEST=org.freedesktop.portal.Desktop
 PORTAL_PATH=/org/freedesktop/portal/desktop
 
-# graphical-session.target first: without it the portal refuses to start, and
-# the D-Bus call would only repeat that as "startup job failed". The fix is
-# told apart by whether ~/.xinitrc already starts dots-session.target (then a
-# re-login is all it takes) or not (rule 6: the file is the user's, so the
-# lines to add are documented rather than written).
+# The session bus first: without one the D-Bus call can only fail. The fix is
+# told apart by whether ~/.xinitrc already starts one (then a re-login is all
+# it takes) or not (rule 6: the file is the user's, so the lines to add are
+# documented rather than written).
 # shellcheck disable=SC2088 # "~/.xinitrc" is text for the user, not a path
 check_portal() {
-    local s=theme state
-    if [[ -z "${DISPLAY:-}" ]] || ! command -v systemctl >/dev/null 2>&1; then
+    local s=theme
+    if [[ -z "${DISPLAY:-}" ]]; then
         report skip "$s" portal "desktop portal: run dots doctor inside the dwm session to check it"
         return 0
     fi
-    state="$(systemctl --user is-active graphical-session.target 2>/dev/null || true)"
-    if [[ "$state" != active ]]; then
-        if grep -qs 'dots-session.target' "$HOME/.xinitrc"; then
-            report warn "$s" session-target "graphical-session.target is ${state:-unknown}, so no desktop portal can start — log out and back in"
+    if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+        if grep -qs 'dbus-run-session' "$HOME/.xinitrc"; then
+            report warn "$s" session-bus "this session has no D-Bus bus, though ~/.xinitrc starts one — log out and back in"
         else
-            report warn "$s" session-target "~/.xinitrc does not start dots-session.target, so no desktop portal can start — add the lines in docs/THEMING.md (Desktop portal), then log out and back in"
+            report warn "$s" session-bus "~/.xinitrc starts no D-Bus session, so no desktop portal, sound or notifications — add the lines in docs/THEMING.md (Desktop portal), then log out and back in"
         fi
         return 0
     fi
-    report ok "$s" session-target "graphical-session.target is active (dots-session.target)"
+    report ok "$s" session-bus "a session D-Bus bus is running"
     check_portal_answers
 }
 

@@ -25,13 +25,15 @@ FAKE_PORTAL=dead tsv
 check "a portal that does not answer warns, quoting why" grep -q 'startup job failed' <(detail portal)
 FAKE_PORTAL=light tsv
 check "a portal answering light warns" row warn theme portal
-FAKE_GST=inactive tsv
-check "no graphical-session.target, no dots-session.target in ~/.xinitrc: names the fix" \
-    grep -q 'does not start dots-session.target' <(detail session-target)
+check "healthy: the session bus is ok" row ok theme session-bus
+FAKE_NOBUS=1 tsv
+check "no session bus, none in ~/.xinitrc: names the fix" \
+    grep -q 'starts no D-Bus session' <(detail session-bus)
 check "...and does not also ask the portal" no_row '[a-z]+' theme portal
-printf 'systemctl --user start dots-session.target\n' >"$H/.xinitrc"
-FAKE_GST=inactive tsv
-check ".xinitrc already starts it: just log out and in" grep -q 'log out and back in' <(detail session-target)
+# shellcheck disable=SC2016 # $0 is the xinitrc's own, written literally
+printf 'exec dbus-run-session -- /bin/sh "$0"\n' >"$H/.xinitrc"
+FAKE_NOBUS=1 tsv
+check ".xinitrc already starts one: just log out and in" grep -q 'log out and back in' <(detail session-bus)
 rm -f "$H/.xinitrc"
 DISPLAY_SET="" tsv
 check "no X: the portal check skips" row skip theme portal

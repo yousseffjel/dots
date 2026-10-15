@@ -129,6 +129,11 @@ restore_apps
 source "$SCRIPT_DIR/install-restore-flatpak.sh"
 restore_flatpak
 
+# PipeWire's two session-config links, so the `pipewire` ~/.xinitrc starts
+# brings WirePlumber and the PulseAudio server up with it.
+source "$SCRIPT_DIR/install-restore-pipewire.sh"
+restore_pipewire
+
 # Pre-clone plugin managers so first launch isn't blocked on a network round-trip.
 ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 if [[ ! -d "$ZINIT_HOME/.git" ]]; then
