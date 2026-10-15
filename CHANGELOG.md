@@ -58,6 +58,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   it (`void-repo-nonfree`) and installs `sublime-text4`. `dots uninstall`
   disables nonfree again only if the installer enabled it and nothing
   installed still comes from it.
+- **Services run under runit.** The installer enables `dbus`, `elogind`,
+  `NetworkManager` and `bluetoothd` (turning off `dhcpcd`/`wpa_supplicant`
+  once NetworkManager is on), and adds you to `network`, `bluetooth` and
+  `kvm`. It stops early, saying how to fix it, if you are not in `wheel`.
+- **ly is built from source**, pinned to v1.4.1 and built with zig 0.16.0
+  (an official tarball checked by sha256, used for the build only). It takes
+  over tty2 from its getty; tty1 stays a rescue login. `dots uninstall`
+  removes the files it built and gives tty2's getty and `dhcpcd` back.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

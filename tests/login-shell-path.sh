@@ -62,7 +62,11 @@ run_case() {
     fake "$dir/fake" usermod "echo \"usermod \$*\" >>'$dir/usermod.log'"
     fake "$dir/fake" tee "cat >>'$dir/tee.log'"
     fake "$dir/fake" getent "echo \"\$2:x:1000:1000::/home/\$2:$shell\""
+    # The runit dirs and ly's install root in the sandbox too: the stage
+    # also enables services, adds groups and builds ly, and none of that may
+    # reach the host's /etc/sv, /var/service or /usr/bin.
     env -i HOME="$dir/home" USER=tuser \
+        DOTS_RUNIT_SV="$dir/sv" DOTS_RUNIT_SERVICE="$dir/service" DOTS_LY_ROOT="$dir/root" \
         XDG_STATE_HOME="$dir/state" XDG_CONFIG_HOME="$dir/home/.config" \
         XDG_CACHE_HOME="$dir/home/.cache" XDG_DATA_HOME="$dir/home/.local/share" \
         PATH="$dir/fake:$SB/root/usr/sbin:$SB/root/usr/bin:$SB/real" \
@@ -71,6 +75,9 @@ run_case() {
 }
 
 shell_rows() { grep "^SHELL" "$SB/$1/state/dots/manifest" 2>/dev/null || true; }
+# The stage's group step calls `usermod -aG` too; only `-s` is a shell change.
+# shellcheck disable=SC2329 # called through check's "$@"
+not_shell_change() { ! grep -q '^usermod -s ' "$SB/$1/usermod.log"; }
 
 blue "case fresh: bash -> zsh, with sbin first on PATH"
 run_case fresh /bin/bash
@@ -91,13 +98,13 @@ check "no new SHELL row: uninstall still restores bash" \
 
 blue "case canonical: already the resolved path"
 run_case canonical "$CANON"
-check "no usermod call" test ! -s "$SB/canonical/usermod.log"
+check "no usermod -s call" not_shell_change canonical
 check "reports it as already zsh" grep -q "already zsh" "$SB/canonical/out"
 check "no SHELL row" test -z "$(shell_rows canonical)"
 
 blue "case dry: --dry-run on the respell case"
 run_case dry "$SBIN_ZSH" --dry-run
-check "no usermod call" test ! -s "$SB/dry/usermod.log"
+check "no usermod -s call" not_shell_change dry
 check "says what it would do" grep -q "would usermod -s $CANON" "$SB/dry/out"
 
 if [[ $FAILS -gt 0 ]]; then

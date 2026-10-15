@@ -139,35 +139,6 @@ uninstall_packages() {
     fi
 }
 
-uninstall_services() {
-    blue "=== services ==="
-    mapfile -t services < <(manifest_rows SERVICE | cut -f2 | sort -u)
-    if [[ ${#services[@]} -eq 0 ]]; then
-        blue "  no SERVICE rows in manifest — nothing to disable"
-    elif confirm "Disable ${#services[@]} service(s) enabled by this installer (${services[*]})?"; then
-        for svc in "${services[@]}"; do
-            # uninstall_packages ran first: a unit that came with a package
-            # dots installed (tuned, for laptop power profiles) is gone, and
-            # its package's own scriptlet already disabled it.
-            if ! systemctl cat "$svc" >/dev/null 2>&1; then
-                blue "  $svc is gone with its package — nothing to disable"
-                continue
-            fi
-            if [[ $DRY_RUN -eq 1 ]]; then
-                blue "  (dry-run) would run: systemctl disable $svc"
-                continue
-            fi
-            if "${SUDO[@]}" systemctl disable "$svc" >/dev/null 2>&1; then
-                green "  disabled $svc"
-            else
-                red "  failed to disable $svc"
-            fi
-        done
-    else
-        yellow "  skipped services"
-    fi
-}
-
 uninstall_shell() {
     blue "=== login shell ==="
     mapfile -t shell_rows < <(manifest_rows SHELL)

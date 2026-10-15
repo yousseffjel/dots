@@ -63,3 +63,12 @@ fribidi-devel
 
 # tic(1), which st's Makefile runs to compile st.info into a terminfo entry
 ncurses
+
+# ly, the login screen, built from source by the services stage (scope I,
+# decision D1; scripts/install-services-ly.sh). It links PAM and xcb, and its
+# zig dependencies ship as a .tar.zst. Listed here so the install stage puts
+# them in place before the services stage needs them; the services stage
+# checks for them and skips ly, never aborts, when they are missing.
+pam-devel
+libxcb-devel
+zstd

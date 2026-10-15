@@ -39,6 +39,20 @@ if [[ $EUID -ne 0 ]] && ! command -v sudo >/dev/null 2>&1; then
 fi
 green "ok      privilege escalation available"
 
+# wheel is the one group the install cannot add for you (scope I, decision
+# D4): every privileged step runs through sudo, and Void's sudoers grants it
+# to %wheel. Not in it means every later sudo fails, so stop here, saying how
+# to fix it. Root needs no sudo, so it is exempt.
+if [[ $EUID -ne 0 ]]; then
+    me="$(id -un 2>/dev/null || true)"
+    if [[ " $(id -nG 2>/dev/null || true) " != *" wheel "* ]]; then
+        red "$me is not in the wheel group — sudo will refuse every step of the install."
+        red "        As root:  usermod -aG wheel $me   then log in again and re-run."
+        exit 1
+    fi
+    green "ok      $me is in wheel"
+fi
+
 # The supported target is Void glibc (scope I). A musl install shares most
 # package names, but the nonfree repo the default editor comes from is
 # glibc-only and nothing here has been tried on musl. Said up front and

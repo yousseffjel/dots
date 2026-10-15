@@ -139,10 +139,15 @@ partial uninstall is a normal, supported outcome, not an error.
    and only while nothing installed still comes from nonfree. Runs after
    the package step, so the editor the installer put there is already
    gone; anything still installed from nonfree is yours, and keeps it.
-7. **Services.** Disables whatever `SERVICE` rows the manifest holds
-   (`ly@tty2.service` on a current install) if (and only if) the installer was
-   the one that enabled it — same "only what we recorded" rule as
-   packages.
+7. **Services.** Unlinks from `/var/service` every runit service the
+   installer linked (`dbus`, `elogind`, `NetworkManager`, `bluetoothd`, `ly`,
+   each only if it was the one that enabled it), then re-links what it
+   unlinked for them: `dhcpcd`/`wpa_supplicant`, so the box keeps a network,
+   and tty2's getty, removing its `down` file only if the installer created
+   it. It all takes effect at once, and stopping `dbus` ends a graphical
+   session, so run uninstall from a TTY and reboot after. Then the ly the
+   installer built from source is removed file by file, and its directories
+   once empty (a custom session you added keeps its directory).
 8. **Login shell.** Offers to switch back (`sudo usermod -s`) to whatever your login shell was
    before the installer switched it to zsh — only if the installer
    actually changed it (recorded in the manifest at that moment).
@@ -153,6 +158,9 @@ partial uninstall is a normal, supported outcome, not an error.
 
 ## What's kept, always
 
+- Your group memberships (`network`, `bluetooth`, `kvm`, added by the
+  services stage). Taking `network` away could lock you out of your own
+  network settings, so it is never reverted.
 - Anything in the manifest's config target that isn't currently *this
   repo's own symlink* — e.g. if you deleted `~/.config/dwm` and replaced
   it with your own directory after installing, uninstall.sh leaves it

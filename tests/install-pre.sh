@@ -6,6 +6,8 @@
 #   * Void glibc (xbps-uhelper arch prints x86_64): passes, no musl note;
 #   * Void musl (x86_64-musl, not the supported target): the note is printed
 #     and the stage still passes — it warns, it does not refuse;
+#   * not in wheel (and not root): a hard failure naming the fix, because
+#     every later step runs through sudo (scope I, decision D4);
 #   * no xbps-install: a hard failure.
 
 set -euo pipefail
@@ -24,6 +26,8 @@ SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
 seal_path "$SB/bin"
 for t in xbps-install sudo; do fake "$SB/bin" "$t" 'exit 0'; done
+# shellcheck disable=SC2016 # the body expands when the fake runs
+fake "$SB/bin" id 'case "$1" in -un) echo ysf ;; -nG) echo "${FAKE_GROUPS:-ysf wheel audio video}" ;; -u) echo 1000 ;; esac'
 # Real output, xbps-static 0.60.7: "x86_64", or "x86_64-musl" on musl.
 # shellcheck disable=SC2016 # the body expands when the fake runs
 fake "$SB/bin" xbps-uhelper '[[ "$1" == arch ]] || exit 1; echo "x86_64${FAKE_MUSL:+-musl}"'
@@ -52,6 +56,9 @@ run FAKE_MUSL=1
 check "Void musl: still passes (a note, not a refusal)" test "$RC" -eq 0
 check "...naming the arch" grep -q "x86_64-musl" <<<"$OUT"
 check "...and the supported target" grep -q "supported target is Void glibc" <<<"$OUT"
+run FAKE_GROUPS="ysf audio video"
+check "not in wheel: fails" test "$RC" -ne 0
+check "...naming the fix" grep -q "usermod -aG wheel ysf" <<<"$OUT"
 rm "$SB/bin/xbps-install"
 run
 check "no xbps-install: fails" test "$RC" -ne 0

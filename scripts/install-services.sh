@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# "services" stage: sets zsh as the default login shell and enables the ly
-# display manager on tty2 (`ly@tty2.service` — the unit is templated per TTY).
-# Still does not touch getty units by hand: the unit's own
-# `Conflicts=getty@%i.service` releases tty2 when ly starts, and tty1's getty
+# "services" stage: sets zsh as the default login shell, enables the runit
+# services the desktop needs (dbus, elogind, NetworkManager, bluetoothd —
+# install-services-runit.sh), adds the user to the groups it needs
+# (install-services-groups.sh), builds ly from source
+# (install-services-ly.sh) and hands tty2 from its getty to ly. tty1's getty
 # is deliberately left alone as a rescue login.
 #
 # usage: install-services.sh [--dry-run]
@@ -38,6 +39,13 @@ if [[ $DRY_RUN -eq 0 ]]; then
         "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)" \
         "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 fi
+
+# shellcheck source=install-services-runit.sh
+source "$SCRIPT_DIR/install-services-runit.sh"
+# shellcheck source=install-services-groups.sh
+source "$SCRIPT_DIR/install-services-groups.sh"
+# shellcheck source=install-services-ly.sh
+source "$SCRIPT_DIR/install-services-ly.sh"
 
 SUDO=()
 if [[ $EUID -ne 0 ]]; then
@@ -123,37 +131,15 @@ else
     yellow "zsh not found on PATH — run the install stage first (packages/core.lst) so this stage can set it as the default shell"
 fi
 
-# ly ships a TEMPLATED unit — `ly@.service`, instantiated per TTY — and no
-# plain `ly.service` and no Alias= for one. This stage enabled `ly.service`
-# from the day it was written, so it has never enabled a display manager on
-# any machine; `systemctl enable ly.service` fails with "Unit ly.service does
-# not exist". Found 2026-08-13 by the install-container CI job, on its first
-# real run, which is the entire reason that job exists.
-#
-# tty2 rather than tty1: the unit carries `Conflicts=getty@%i.service`, so
-# instantiating it takes that TTY away from its getty by itself — no manual
-# getty step, and tty1's getty survives as a rescue login if ly misbehaves.
-LY_UNIT="ly@tty2.service"
-if command -v ly >/dev/null 2>&1 || rpm -q ly >/dev/null 2>&1; then
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would enable $LY_UNIT"
-    elif systemctl is-enabled "$LY_UNIT" >/dev/null 2>&1; then
-        green "ok      $LY_UNIT already enabled"
-    # Same degrade-don't-abort shape as the usermod call above, so a failure here
-    # cannot take the whole stage down via set -e after every earlier stage has
-    # already succeeded. Like usermod, stderr is NOT suppressed: systemctl's own
-    # message is the useful half of this branch. The observed one was
-    # "Failed to enable unit: Unit ly.service does not exist" — which is how
-    # the wrong-unit bug above was finally caught, and exactly the text someone
-    # debugging a fresh install needs to see.
-    elif "${SUDO[@]}" systemctl enable "$LY_UNIT"; then
-        # Recorded only on the run that actually enables it, so a re-run
-        # never appends a duplicate row.
-        manifest_append_row SERVICE "$LY_UNIT"
-        green "enabled $LY_UNIT"
-    else
-        yellow "could not enable $LY_UNIT — run manually:  sudo systemctl enable $LY_UNIT"
-    fi
+services_enable_desktop
+groups_add "${USER:-$(id -un 2>/dev/null || true)}"
+
+# ly, then tty2. tty2 is handed over only once a ly binary is really there and
+# ly_take_tty2 can link its service; every other path leaves tty2's login
+# prompt alone (install-services-ly.sh). Uninstall re-links the getty
+# (uninstall-runit.sh).
+if ly_install || [[ -x "$(ly_bin)" ]]; then
+    ly_take_tty2 || true
     # The login screen's colours, from the active static theme (themes/dark on
     # a first install). Its own script, because a theme switch runs it too;
     # it never aborts this stage — a refusal is a yellow line, not a failure.

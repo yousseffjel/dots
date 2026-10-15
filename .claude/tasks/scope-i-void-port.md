@@ -216,7 +216,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
   summaries, SATISFIED_BY), remove the dnf drop-in and the fd shim.
 - **I-4 Repos:** ✅ done 2026-10-15 (nonfree + sublime-text4; `pkg_ensure` added to the tiers for I-7's drivers_pkg to reuse); shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to
   nonfree; delete COPR, Sublime HQ and RPM Fusion paths and tests.
-- **I-5 Services & login:** runit linking (+ uninstall rows), D1, D2, D4 (user groups),
+- **I-5 Services & login:** ✅ done 2026-10-15 (ly v1.4.1 + zig 0.16.0, built and staged for real; see the change log); runit linking (+ uninstall rows), D1, D2, D4 (user groups),
   login shell.
 - **I-6 Session:** `.xinitrc` without systemd user units: D-Bus session,
   portal, `dots_session_end`; update the `session_*report` paste text.

@@ -13,9 +13,10 @@
 # land, this script does not work on either distro.
 #
 # A thin orchestrator over four stages, each its own standalone-runnable,
-# idempotent script: pre (sanity checks) -> install (dnf packages + suckless
+# idempotent script: pre (sanity checks) -> install (xbps packages + suckless
 # build) -> restore (config symlinks + shell/tmux plugin managers) ->
-# services (default shell + ly@tty2.service). Re-runnable: every stage is
+# services (default shell, runit services, groups, ly built from source on
+# tty2). Re-runnable: every stage is
 # idempotent on its own, so re-running this script after a partial or full
 # success converges to the same state rather than erroring or duplicating
 # work.
@@ -26,7 +27,7 @@
 #   --only-pre        run only the pre stage (sanity checks).
 #   --only-install    run only the install stage (dnf packages + suckless build).
 #   --only-restore    run only the restore stage (config symlinks + plugin managers).
-#   --only-services   run only the services stage (default shell + ly@tty2.service).
+#   --only-services   run only the services stage (shell, runit services, groups, ly).
 #                      Any combination of --only-* flags may be given; with
 #                      none given, all four stages run in order (the
 #                      default, full-install path).

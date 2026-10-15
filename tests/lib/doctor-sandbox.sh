@@ -85,7 +85,7 @@ make_home() {
         # shellcheck source=../../scripts/global_fn.sh
         source "$DOTS_DIR/scripts/global_fn.sh"
         manifest_set_meta version "$(tr -d '[:space:]' <"$DOTS_DIR/VERSION")"
-        manifest_append_row SERVICE ly@tty2.service
+        manifest_append_row SERVICE ly
     )
     # The Flatpak grants and remote, the GTK3 settings.ini, the Adwaita-dark
     # shim and the XDG default cursor theme — each written by the installer's own function.
@@ -112,10 +112,13 @@ make_home() {
 # The drivers section reads $SB/sys and $SB/cpuinfo, never the host's: an
 # empty PCI tree and a VM, so it only reports the host-firmware skip.
 run_doctor() {
+    # The runit service dir: ly linked unless FAKE_SERVICE=disabled.
+    rm -rf "$SB/service" && mkdir -p "$SB/sv/ly" "$SB/service"
+    [[ "${FAKE_SERVICE:-enabled}" == disabled ]] || ln -s "$SB/sv/ly" "$SB/service/ly"
     env -i PATH="$BIN" HOME="$H" USER=probe DISPLAY="${DISPLAY_SET-:9}" \
         XDG_CONFIG_HOME="$H/.config" XDG_CACHE_HOME="$H/.cache" \
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
-        DOTS_DOCTOR_RELEASE="${RELEASE-$SB/os-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" \
+        DOTS_DOCTOR_RELEASE="${RELEASE-$SB/os-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" DOTS_RUNIT_SERVICE="$SB/service" \
         DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
         DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \

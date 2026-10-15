@@ -112,6 +112,8 @@ source "$SCRIPT_DIR/uninstall-apps.sh"
 source "$SCRIPT_DIR/uninstall-theme.sh"
 source "$SCRIPT_DIR/uninstall-flatpak.sh"
 source "$SCRIPT_DIR/uninstall-repos.sh"
+# shellcheck source=uninstall-runit.sh
+source "$SCRIPT_DIR/uninstall-runit.sh"
 source "$SCRIPT_DIR/uninstall-sysfiles.sh"
 # For wallpapers_prune_parents alone; its top level only assigns.
 source "$SCRIPT_DIR/install-restore-wallpapers.sh"
@@ -140,6 +142,8 @@ uninstall_packages
 # After uninstall_packages: a repo goes only once none of its packages remain.
 uninstall_repos
 uninstall_services
+# After it: the ly service must be gone before its binary is.
+uninstall_ly_build
 uninstall_shell
 uninstall_state
 

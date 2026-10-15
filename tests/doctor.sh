@@ -69,7 +69,7 @@ tsv
 check "exit 0" rc_is 0
 check "no warn or fail" none_of 'warn|fail'
 check "packages checked per tier" row ok packages tier-desktop
-check "the manifest's service is checked" row ok install service-ly@tty2.service
+check "the manifest's service is checked" row ok install service-ly
 check "every linked config is checked" \
     test "$(grep -cE $'^ok\tinstall\tlink-' "$SB/out.tsv")" -eq "$(HOME="$H" bash "$DOTS_DIR/scripts/symlinks.sh" --list-links | grep -c .)"
 check "every reported daemon is checked" \
@@ -165,7 +165,8 @@ unset FAKE_VIRT
 
 blue "==> install"
 FAKE_SERVICE=disabled tsv
-check "a disabled service fails" row fail install service-ly@tty2.service
+check "a disabled service fails" row fail install service-ly
+check "...saying the login screen will not start" grep -q "login screen will not start" <<<"$(detail service-ly)"
 mv "$H/.local/state/dots/manifest" "$SB/manifest.bak"
 tsv
 check "no manifest fails" row fail install manifest

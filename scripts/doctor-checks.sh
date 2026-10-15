@@ -66,20 +66,21 @@ check_install() {
     check_services
 }
 
-# The services the installer enabled, read from its manifest rather than
-# named here. A SERVICE row is SERVICE<TAB>unit (install-services.sh), read
-# the way uninstall_services reads it.
+# The runit services the installer enabled, read from its manifest rather
+# than named here. A SERVICE row is SERVICE<TAB>name (install-services-runit.sh),
+# read the way uninstall_services reads it; enabled means linked into the
+# runit service dir (DOTS_RUNIT_SERVICE overrides it, as in that file).
 check_services() {
-    local unit state
-    command -v systemctl >/dev/null 2>&1 || return 0
-    while IFS= read -r unit; do
-        [[ -n "$unit" ]] || continue
-        state="$(systemctl is-enabled "$unit" 2>/dev/null || true)"
-        if [[ "$state" == enabled ]]; then
-            report ok install "service-$unit" "$unit is enabled"
-        else
-            report fail install "service-$unit" "$unit is ${state:-unknown}, not enabled — the login screen will not start; scripts/install-void.sh --only-services"
+    local name dir="${DOTS_RUNIT_SERVICE:-/var/service}" cost
+    while IFS= read -r name; do
+        [[ -n "$name" ]] || continue
+        if [[ -e "$dir/$name" ]]; then
+            report ok install "service-$name" "$name is enabled"
+            continue
         fi
+        cost="the desktop loses what it provides"
+        [[ "$name" == ly ]] && cost="the login screen will not start"
+        report fail install "service-$name" "$name is not enabled — $cost; scripts/install-void.sh --only-services"
     done < <(manifest_rows SERVICE | cut -f2 | sort -u)
 }
 
