@@ -14,8 +14,6 @@
 #   * a repo that already existed gets no REPO row, so uninstall leaves it;
 #   * an arch Sublime HQ does not publish for skips Sublime and nothing else;
 #   * a failed repo add is reported in FAILED_EXTRA, with no REPO row;
-#   * install-pkg-tiers.sh counts ffmpeg-free as satisfied by ffmpeg, so a
-#     re-run never tries to install it over RPM Fusion's build;
 #   * uninstall swaps ffmpeg back BEFORE packages go, then removes the repo
 #     file and the release packages once nothing installed comes from them;
 #   * a package of yours from rpmfusion-nonfree-updates keeps BOTH releases
@@ -97,6 +95,11 @@ red() { printf '%s\n' "$*"; }
 green() { red "$@"; }
 yellow() { red "$@"; }
 blue() { red "$@"; }
+# install-pkg.sh sources the tier machinery (CONSEQUENCE, FAILED_*) first;
+# the repos step writes into it.
+PACKAGES_DIR="$SB"
+# shellcheck source=../scripts/install-pkg-tiers.sh
+source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
 # shellcheck source=../scripts/install-pkg-repos.sh
 source "$DOTS_DIR/scripts/install-pkg-repos.sh"
 # shellcheck source=../scripts/uninstall-repos.sh
@@ -172,17 +175,9 @@ check "no dnf install at all: everything is already there" not_logged "dnf insta
 check "an enabled COPR is not enabled again" not_logged "dnf copr enable"
 check "no new REPO rows" test "$(rows)" -eq 4
 
-blue "==> ffmpeg-free is satisfied by ffmpeg in the tier loop"
-PACKAGES_DIR="$SB"
-# shellcheck source=../scripts/install-pkg-tiers.sh
-source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
-echo "ffmpeg-free  # recorder" >"$SB/tier.lst"
-: >"$LOG"
-out="$(install_tier t "$SB/tier.lst" desktop)"
-check "the tier loop ran to the end (no crash passing for success)" grep -q "ffmpeg-free" <<<"$out"
-check "no dnf install of ffmpeg-free" not_logged "dnf install -y ffmpeg-free"
-check "said why" grep -q "ffmpeg installed in its place" <<<"$out"
-FAILED_EXTRA=()
+# The ffmpeg-free -> ffmpeg SATISFIED_BY case left with the mechanism (scope
+# I, I-3: Void's ffmpeg6 is the full build). This whole file is rewritten for
+# Void's nonfree repo in I-4.
 
 blue "==> uninstall reverts in order"
 remove_our_packages

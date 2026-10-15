@@ -117,7 +117,7 @@ check "exit 1" rc_is 1
 FAKE_MISSING=pavucontrol tsv
 check "extra only: exit 0" rc_is 0
 RELEASE="" tsv
-check "not Fedora: the package section skips" row skip packages rpm
+check "not Void: the package section skips" row skip packages xbps
 # The ffmpeg-free/RPM Fusion SATISFIED_BY cases went with the Fedora package
 # names (scope I, I-2); I-4 deletes the swap and the mechanism together.
 

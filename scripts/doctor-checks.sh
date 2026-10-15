@@ -14,7 +14,7 @@ source "$DOTS_DIR/scripts/global_fn.sh"
 # function would make local to that function.
 PACKAGES_DIR="$DOTS_DIR/packages"
 # Test override (tests/doctor.sh), like DWM_NET_SYSFS in dwm-net.
-FEDORA_RELEASE="${DOTS_DOCTOR_RELEASE:-/etc/fedora-release}"
+OS_RELEASE="${DOTS_DOCTOR_RELEASE:-/etc/os-release}"
 # shellcheck source=install-pkg-tiers.sh
 source "$DOTS_DIR/scripts/install-pkg-tiers.sh"
 # drivers_chassis, for lists limited to one chassis (packages/laptop.lst).
@@ -83,34 +83,16 @@ check_services() {
     done < <(manifest_rows SERVICE | cut -f2 | sort -u)
 }
 
-# doctor_drop_satisfied — removes from `missing` every package whose
-# SATISFIED_BY stand-in (install-pkg-tiers.sh) is installed, and says so:
-# RPM Fusion's ffmpeg replaces ffmpeg-free and conflicts with it, so after
-# install-pkg-repos.sh's swap ffmpeg-free is never there — and must not FAIL.
-# Works on check_packages' own locals `missing` and `s` (bash dynamic scope);
-# call it only from there.
-doctor_drop_satisfied() {
-    local p sub kept=()
-    for p in "${missing[@]}"; do
-        sub="${SATISFIED_BY[$p]:-}"
-        if [[ -n "$sub" ]] && rpm -q "$sub" >/dev/null 2>&1; then
-            report ok "$s" "pkg-$p" "$p is replaced by $sub, which stands in for it"
-        else
-            kept+=("$p")
-        fi
-    done
-    missing=("${kept[@]}")
-}
-
 # Every packages/*.lst, by glob. A missing package in a tier whose absence is
 # silent breakage (desktop.lst, or core.lst) is a failure and carries its
 # consequence text; any other tier — including one added later — is a warning.
 check_packages() {
     local s=packages lst tier pkgs missing p want
-    # An rpm binary alone proves nothing: Arch ships one, over an empty
-    # database, and every package would read as missing.
-    if [[ ! -f "$FEDORA_RELEASE" ]] || ! command -v rpm >/dev/null 2>&1; then
-        report skip "$s" rpm "not Fedora — the package checks need its rpm database"
+    # An xbps binary alone proves nothing (xbps-static runs anywhere, over
+    # an empty database, and every package would read as missing): the OS
+    # must say it is Void too.
+    if ! grep -qE '^ID="?void"?$' "$OS_RELEASE" 2>/dev/null || ! command -v xbps-query >/dev/null 2>&1; then
+        report skip "$s" xbps "not Void — the package checks need its xbps database"
         return 0
     fi
     load_consequences
@@ -123,11 +105,12 @@ check_packages() {
         fi
         mapfile -t pkgs < <(read_pkg_list "$lst")
         [[ ${#pkgs[@]} -gt 0 ]] || continue
-        # --whatprovides also answers for a name that is a Provides rather
-        # than a package name. rpm exits non-zero whenever one is missing.
-        mapfile -t missing < <(rpm -q --whatprovides "${pkgs[@]}" 2>&1 \
-            | sed -n 's/^no package provides \(.*\)$/\1/p; s/^package \(.*\) is not installed$/\1/p' || true)
-        doctor_drop_satisfied
+        # One xbps-query per name (exit 0 installed, 2 not): it takes one
+        # package per call, and the lists are ~150 names.
+        missing=()
+        for p in "${pkgs[@]}"; do
+            pkg_installed "$p" || missing+=("$p")
+        done
         if [[ ${#missing[@]} -eq 0 ]]; then
             report ok "$s" "tier-$tier" "$tier.lst: all ${#pkgs[@]} installed"
         elif [[ "$tier" == desktop || "$tier" == core ]]; then

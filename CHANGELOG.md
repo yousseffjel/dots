@@ -48,6 +48,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - **Cascadia Code NF ships with dots.** Void does not package it, so the two
   variable Nerd Font faces are vendored in `assets/fonts/` and installed to
   `~/.local/share/fonts/`. `dots uninstall` removes them again.
+- **Packages install with xbps.** Every run first syncs, updates xbps, and
+  upgrades the whole system (`xbps-install -Su`), because Void does not
+  support partial upgrades. Then each tier installs in one transaction.
+  `dots uninstall` removes recorded packages with `xbps-remove -R`, skipping
+  any you already removed. `dots version` reports `os_version` instead of
+  `fedora_version`.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.
@@ -69,6 +75,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   rather than holding a runner for an hour and a half.
 
 ### Removed
+
+- The dnf speed settings file (`/etc/dnf/libdnf5.conf.d/30-dots-speed.conf`),
+  the starship download script and the `fd` shim. Void packages starship and
+  fd under their real names, and xbps has no speed setting to tune.
 
 - The `C Development Tools and Libraries` group install. It failed on every
   Fedora 44 run without saying why; `packages/build.lst` already declares the

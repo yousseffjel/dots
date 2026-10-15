@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Reverts the root-owned files dots copied outside $HOME: its
-# SYSFILE rows, `SYSFILE <kind> <installed path> <repo path>`: the dnf speed
-# drop-in (install-pkg-dnf.sh) and, on a laptop, the touchpad snippet
-# (drivers-laptop.sh). sysfile-lib.sh writes them.
+# SYSFILE rows, `SYSFILE <kind> <installed path> <repo path>`: on a laptop,
+# the touchpad snippet (drivers-laptop.sh). sysfile-lib.sh writes them.
+# Generic over <kind>, so a manifest from an older install's rows is still
+# handled.
 #
 # Sourced by uninstall.sh, never standalone: it assumes `set -euo pipefail`,
 # DRY_RUN, SUDO, DOTS_DIR, global_fn.sh (confirm, manifest_rows,
@@ -21,7 +22,7 @@ uninstall_sysfiles() {
         blue "  no SYSFILE rows in manifest — nothing to remove"
         return 0
     fi
-    confirm "Remove the ${#rows[@]} system file(s) dots installed (dnf speed settings, touchpad settings)?" || {
+    confirm "Remove the ${#rows[@]} system file(s) dots installed (e.g. touchpad settings)?" || {
         yellow "  skipped system files"
         return 0
     }

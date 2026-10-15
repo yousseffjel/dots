@@ -83,8 +83,8 @@ fi
 # X11 + Xft + Xinerama for dwm/st, Xext + Xrandr + libcrypt for slock,
 # imlib2 + libexif for nsxiv, and tic(1) from ncurses for st's terminfo.
 #
-# The dnf names live in packages/build.lst (CLAUDE.md rule 10) — this is the
-# Fedora path and the only one the repo supports. The pacman and apt-get
+# The xbps names live in packages/build.lst (CLAUDE.md rule 10) — this is the
+# Void path and the only one the repo supports. The pacman and apt-get
 # branches below keep inline arrays as a documented exception to that rule:
 # a .lst holds one distro's package names, and these two are different names
 # for the same libraries. They are vestigial fallbacks from when this repo
@@ -107,20 +107,35 @@ install_deps() {
         "${SUDO[@]}" pacman -S --needed --noconfirm \
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
             freetype2 fontconfig fribidi ncurses imlib2 libexif
-    elif command -v dnf >/dev/null 2>&1; then
+    elif command -v xbps-install >/dev/null 2>&1; then
         local build_lst="$DOTS_DIR/packages/build.lst"
         if [[ ! -f "$build_lst" ]]; then
             red "missing $build_lst — cannot resolve the build dependencies"
             exit 1
         fi
-        blue "==> installing build deps (dnf, from packages/build.lst)"
+        blue "==> installing build deps (xbps, from packages/build.lst)"
         local pkgs=()
         mapfile -t pkgs < <(read_pkg_list "$build_lst")
         if [[ ${#pkgs[@]} -eq 0 ]]; then
             red "$build_lst declares no packages — refusing to build without a toolchain"
             exit 1
         fi
-        "${SUDO[@]}" dnf install -y "${pkgs[@]}"
+        # Only what is missing: xbps exits 0 for an installed name but prints
+        # "ERROR: Package `x' already installed" for each, which on every
+        # re-run reads like a failure.
+        local need=() p
+        for p in "${pkgs[@]}"; do
+            xbps-query "$p" >/dev/null 2>&1 || need+=("$p")
+        done
+        if [[ ${#need[@]} -eq 0 ]]; then
+            green "ok      all ${#pkgs[@]} build deps installed"
+            return 0
+        fi
+        # -S syncs the index first, so a standalone run on a fresh box finds
+        # the packages. When install-void.sh calls this, install-pkg.sh has
+        # already upgraded the system; standalone, a stale system can still
+        # fail on shlibs (then: sudo xbps-install -Su).
+        "${SUDO[@]}" xbps-install -Sy "${need[@]}" </dev/null
     elif command -v apt-get >/dev/null 2>&1; then
         blue "==> installing build deps (apt)"
         export DEBIAN_FRONTEND=noninteractive
@@ -129,7 +144,7 @@ install_deps() {
             libxinerama-dev libxext-dev libxrandr-dev libcrypt-dev \
             libfontconfig1-dev libfreetype6-dev libfribidi-dev ncurses-bin libimlib2-dev libexif-dev
     else
-        yellow "no pacman, dnf or apt-get — skipping dependency install."
+        yellow "no xbps-install, pacman or apt-get — skipping dependency install."
         yellow "  needed: a C toolchain, Xlib, Xft, Xinerama, Xext, Xrandr,"
         yellow "  libcrypt, fontconfig, fribidi, imlib2, libexif, tic(1)"
     fi

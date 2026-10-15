@@ -108,19 +108,31 @@ uninstall_packages() {
         blue "  no PACKAGE rows in manifest — nothing to remove"
         return 0
     fi
+    if ! command -v xbps-remove >/dev/null 2>&1; then
+        yellow "  xbps not found — remove manually: ${pkgs[*]}"
+        return 0
+    fi
+    # Only what is still installed: xbps-remove fails the whole call (exit 2,
+    # "is not currently installed") on one name that is already gone.
+    local still=()
+    for p in "${pkgs[@]}"; do
+        xbps-query "$p" >/dev/null 2>&1 && still+=("$p")
+    done
+    if [[ ${#still[@]} -eq 0 ]]; then
+        green "  none of the ${#pkgs[@]} recorded package(s) is still installed"
+        return 0
+    fi
     blue "  packages installed by this installer:"
-    for p in "${pkgs[@]}"; do blue "    - $p"; done
-    if confirm "dnf remove these ${#pkgs[@]} package(s)? (pre-existing packages are never touched)"; then
+    for p in "${still[@]}"; do blue "    - $p"; done
+    if confirm "xbps-remove these ${#still[@]} package(s)? (pre-existing packages are never touched)"; then
+        # -R also removes the dependencies they pulled in that nothing else
+        # needs now, as dnf's clean_requirements_on_remove did on Fedora.
         if [[ $DRY_RUN -eq 1 ]]; then
-            blue "  (dry-run) would run: dnf remove -y ${pkgs[*]}"
-        elif command -v dnf >/dev/null 2>&1; then
-            if "${SUDO[@]}" dnf remove -y "${pkgs[@]}" >/dev/null 2>&1; then
-                green "  removed ${#pkgs[@]} package(s)"
-            else
-                red "  dnf remove failed — remove manually: ${pkgs[*]}"
-            fi
+            blue "  (dry-run) would run: xbps-remove -Ry ${still[*]}"
+        elif "${SUDO[@]}" xbps-remove -Ry "${still[@]}" >/dev/null 2>&1 </dev/null; then
+            green "  removed ${#still[@]} package(s)"
         else
-            yellow "  dnf not found — remove manually: ${pkgs[*]}"
+            red "  xbps-remove failed — remove manually: ${still[*]}"
         fi
     else
         yellow "  skipped packages"

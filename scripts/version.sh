@@ -34,11 +34,16 @@ installed_date="$(manifest_get_meta date)"
 installed_commit="$(manifest_get_meta commit)"
 repo_commit="$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
-fedora_version="unknown"
-if [[ -f /etc/fedora-release ]]; then
-    fedora_version="$(tr -d '\n' </etc/fedora-release)"
-elif command -v rpm >/dev/null 2>&1; then
-    fedora_version="Fedora $(rpm -E %fedora 2>/dev/null || echo unknown)"
+# PRETTY_NAME from os-release ("Void Linux": a rolling release has no
+# version number), plus xbps's native arch, which is what tells glibc
+# (x86_64) from musl (x86_64-musl). Was fedora_version until the Void port.
+os_version="unknown"
+if [[ -f /etc/os-release ]]; then
+    os_version="$(sed -n 's/^PRETTY_NAME="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/os-release)"
+    os_version="${os_version:-unknown}"
+fi
+if command -v xbps-uhelper >/dev/null 2>&1; then
+    os_version="$os_version ($(xbps-uhelper arch 2>/dev/null || echo unknown))"
 fi
 
 dwm_version="not installed"
@@ -63,7 +68,7 @@ if [[ $JSON -eq 1 ]]; then
     json_str_or_null installed_date "$installed_date" ","
     json_str_or_null installed_commit "$installed_commit" ","
     printf '  "repo_commit": "%s",\n' "$repo_commit"
-    printf '  "fedora_version": "%s",\n' "$fedora_version"
+    printf '  "os_version": "%s",\n' "$os_version"
     printf '  "dwm_version": "%s"\n' "$dwm_version"
     printf '}\n'
 else
@@ -73,6 +78,6 @@ else
     else
         echo "installed version:  not installed (no manifest at $MANIFEST_FILE)"
     fi
-    echo "fedora version:      $fedora_version"
+    echo "os version:          $os_version"
     echo "dwm version:          $dwm_version"
 fi

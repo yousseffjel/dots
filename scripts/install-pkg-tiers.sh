@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
 # Tiered package installation — the machinery install-pkg.sh drives.
 #
-# Sourced by install-pkg.sh only, never standalone: every function here
-# assumes the caller has already `set -euo pipefail` and defined DRY_RUN,
-# PACKAGES_DIR, SUDO and the red/green/yellow/blue helpers. Same split
-# install-restore.sh makes with install-restore-theme.sh — the tier logic
-# and the stage's own orchestration are separate concerns, and keeping both
-# in one file put it over the repo's 250-line cap.
+# Sourced by install-pkg.sh (and doctor-checks.sh, for the list helpers),
+# never standalone: every function here assumes the caller has already
+# `set -euo pipefail` and defined DRY_RUN, PACKAGES_DIR, SUDO and the
+# red/green/yellow/blue helpers.
 #
 # usage: source "$SCRIPT_DIR/install-pkg-tiers.sh"
 #
 # The tiers themselves (which list means what) are documented in
 # install-pkg.sh's header and in each packages/*.lst file.
+#
+# xbps behaviour this file is built on, probed with xbps-static 0.60.7 against
+# the live repos on 2026-10-15 (a scratch root via -r; tests/pkg-tiers.sh's
+# fakes reproduce exactly these exit codes and messages):
+#   * `xbps-install -y a b` with ONE unknown name installs nothing:
+#     "ERROR: Package 'b' not found in repository pool.", exit 2. There is no
+#     --skip-unavailable, so names are filtered with `xbps-query -R` first.
+#   * `xbps-query -R <name>` reads the synced local index, needs no root, and
+#     exits 0 for a package, 2 for an unknown name. Case matters (`Thunar`).
+#   * `xbps-query <name>` exits 0 when installed, 2 when not.
 
 # Strips '#' comments (whole-line or trailing) and blank lines from a .lst file.
 read_pkg_list() {
@@ -26,14 +34,21 @@ pkg_list_chassis() {
     sed -n 's/^# chassis: *\([a-z]*\).*/\1/p;T;q' "$1"
 }
 
+# pkg_installed <name> / pkg_available <name> — the two questions every
+# consumer asks xbps (doctor-checks.sh uses the first too).
+pkg_installed() { xbps-query "$1" >/dev/null 2>&1; }
+pkg_available() { xbps-query -R "$1" >/dev/null 2>&1; }
+# pkg_index_synced — is there a local repo index to ask at all? xbps itself
+# is in every Void index, so its absence means "never synced", not "missing".
+pkg_index_synced() { pkg_available xbps; }
+
 # Packages that failed, collected for the closing summary. Two arrays so the
 # report can lead with the ones that break the desktop.
 FAILED_DESKTOP=()
 FAILED_EXTRA=()
 
-# stderr from the most recent dnf_install, so a failure can say what actually
-# went wrong.
-DNF_ERR=""
+# Why the most recent package failed, so the report can say what went wrong.
+PKG_ERR=""
 
 # package -> consequence text, read from the trailing '#' comment on each
 # desktop.lst line. Keeping the note on the same line the name is read from
@@ -48,129 +63,115 @@ load_consequences() {
     done <"$PACKAGES_DIR/desktop.lst"
 }
 
-# package -> a package that stands in for it. RPM Fusion's ffmpeg replaces
-# Fedora's ffmpeg-free (install-pkg-repos.sh swaps them) and conflicts with it,
-# so without this every re-run would try to reinstall ffmpeg-free and report
-# a false red failure.
-declare -A SATISFIED_BY=(["ffmpeg-free"]=ffmpeg)
-
-dnf_install() {
-    local pkg="$1"
-    DNF_ERR=""
-    if [[ $DRY_RUN -eq 1 ]]; then
-        blue "  (dry-run) would install: $pkg"
-        return 0
-    fi
-    # Keep stderr rather than discarding it. The old code sent everything to
-    # /dev/null and then reported every failure as "not found in enabled
-    # repos" — the same message for a rename, a network drop, a GPG error and
-    # a transaction conflict.
-    DNF_ERR="$("${SUDO[@]}" dnf install -y "$pkg" 2>&1 >/dev/null)" || return 1
-    return 0
+# pkg_install_one <pkg> — one package, its own transaction. Used only after a
+# batch failed, so each package can succeed or fail on its own.
+pkg_install_one() {
+    PKG_ERR=""
+    # stderr kept, not discarded: a network drop, a signature error and a
+    # conflict must not all read as "not found".
+    PKG_ERR="$("${SUDO[@]}" xbps-install -y "$1" 2>&1 >/dev/null </dev/null)" || return 1
 }
 
-# dnf_install_batch <pkg>... — ONE dnf transaction for a whole tier. A run per
-# package (the old way) cost ~130 dnf processes on a fresh install, each
-# loading repo metadata, and serialised every download. --skip-unavailable
-# lets one renamed package skip instead of failing the transaction;
-# install_tier then asks rpm what actually landed. stderr — dnf's progress
-# and its errors — is shown as it comes (a silent ten-minute download looks
-# hung) and kept in DNF_BATCH_LOG for the per-package reasons. Returns dnf's
-# status: non-zero means the transaction itself failed (a conflict, the
-# network), and install_tier falls back to one package at a time.
+# pkg_run_streamed <cmd>... — runs a privileged xbps command with its output
+# shown as it comes (a silent ten-minute download looks hung), indented, and
+# kept in PKG_LOG. Returns the command's own status.
 #
 # </dev/null matters: with stdin on the terminal, sudo (use_pty) puts that
-# terminal in raw mode while dnf runs, and the indented lines this pipeline
-# writes to it lose their carriage returns — every line started where the
-# last one ended (Fedora 44 VM, 2026-10-14). sudo still prompts for a
-# password: it reads /dev/tty, not stdin.
-DNF_BATCH_LOG=""
-dnf_install_batch() {
+# terminal in raw mode while the command runs, and the indented lines this
+# pipeline writes lose their carriage returns (seen with dnf on the Fedora 44
+# VM, 2026-10-14; the mechanism is sudo's, not the package manager's). sudo
+# still prompts for a password: it reads /dev/tty, not stdin.
+PKG_LOG=""
+pkg_run_streamed() {
     local rcf rc
-    DNF_BATCH_LOG="$(mktemp)"
+    PKG_LOG="$(mktemp)"
     rcf="$(mktemp)"
-    # The status goes through a file: in a pipeline dnf runs in a subshell,
-    # and under pipefail its failure would abort the caller. `|| rc=$?`
-    # rather than `$?` on the next line: install_tier's `||` suppresses set -e
-    # here today, but a bare call would let set -e end the subshell first.
+    # The status goes through a file: in a pipeline the command runs in a
+    # subshell, and under pipefail its failure would abort the caller.
     {
         rc=0
-        "${SUDO[@]}" dnf install -y --skip-unavailable "$@" 2>&1 >/dev/null </dev/null || rc=$?
+        "${SUDO[@]}" "$@" 2>&1 </dev/null || rc=$?
         echo "$rc" >"$rcf"
-    } \
-        | tee "$DNF_BATCH_LOG" | sed -u 's/^/    /'
+    } | tee "$PKG_LOG" | sed -u 's/^/    /'
     rc="$(<"$rcf")"
-    rc="${rc:-1}"
     rm -f "$rcf"
-    return "$rc"
+    return "${rc:-1}"
 }
 
-# dnf's own line about <pkg> from the batch log ("No match for argument:
-# <pkg>"), else its last line.
-dnf_batch_reason() {
+# xbps's own line about <pkg> from the batch log, else its last line.
+pkg_batch_reason() {
     local line
-    line="$(grep -F -- "$1" "$DNF_BATCH_LOG" 2>/dev/null | tail -n1 || true)"
-    [[ -n "$line" ]] || line="$(tail -n1 "$DNF_BATCH_LOG" 2>/dev/null || true)"
+    line="$(grep -F -- "$1" "$PKG_LOG" 2>/dev/null | tail -n1 || true)"
+    [[ -n "$line" ]] || line="$(tail -n1 "$PKG_LOG" 2>/dev/null || true)"
     printf '%s' "$line"
 }
 
-# One loop for all three tiers; `mode` decides what a failure costs.
+# One loop for every tier; `mode` decides what a failure costs.
 install_tier() {
-    local label="$1" list="$2" mode="$3" pkg have=0 batch=0
-    local -a pending=()
+    local label="$1" list="$2" mode="$3" pkg have=0 batch=0 unsynced=0
+    local -a pending=() missing=()
     if [[ ! -f "$list" ]]; then
         red "missing package list: $list"
         exit 1
     fi
     blue "==> $label"
+    # A dry run skips xbps_prepare's sync (it writes as root), so on a box
+    # never synced every name would read as unknown and the core tier would
+    # abort. Say so once and list them as would-install, unchecked. A real
+    # run has just synced; there an unknown name is a real failure.
+    if [[ $DRY_RUN -eq 1 ]] && ! pkg_index_synced; then
+        unsynced=1
+        yellow "  note: no synced repo index (dry run skips the sync) — availability unchecked"
+    fi
     while IFS= read -r pkg; do
-        if [[ -n "${SATISFIED_BY[$pkg]:-}" ]] && rpm -q "${SATISFIED_BY[$pkg]}" >/dev/null 2>&1; then
-            green "  ok: $pkg (${SATISFIED_BY[$pkg]} installed in its place)"
-            continue
-        fi
-        # Already there: no dnf at all. `dnf install` never upgrades an
-        # installed package, so skipping it changes nothing but the output,
-        # which used to say "installed:" for every package on every re-run.
-        # --whatprovides, as doctor's check_packages asks: `thunar` is a
-        # Provides of Fedora's `Thunar`, so a name-only `rpm -q` called it
-        # missing on every run and, where Thunar came preinstalled, wrote a
-        # PACKAGE row that would have had `dots uninstall` remove a file
-        # manager dots never installed.
-        if rpm -q --whatprovides "$pkg" >/dev/null 2>&1; then
+        if pkg_installed "$pkg"; then
             have=$((have + 1))
-            continue
+        elif ((unsynced)) || pkg_available "$pkg"; then
+            pending+=("$pkg")
+        else
+            missing+=("$pkg")
         fi
-        pending+=("$pkg")
     done < <(read_pkg_list "$list")
     ((have == 0)) || green "  ok      $have already installed"
+    # Reported before the transaction: one unknown name would abort it.
+    for pkg in "${missing[@]}"; do
+        PKG_ERR="not in the repository index (xbps-query -R $pkg)"
+        tier_fail "$pkg" "$mode"
+    done
     ((${#pending[@]} > 0)) || return 0
     if [[ $DRY_RUN -eq 1 ]]; then
         for pkg in "${pending[@]}"; do blue "  (dry-run) would install: $pkg"; done
         return 0
     fi
-    blue "  installing ${#pending[@]} package(s) in one dnf transaction"
-    dnf_install_batch "${pending[@]}" || batch=$?
-    ((batch == 0)) || yellow "  the transaction failed (dnf exit $batch) — retrying one package at a time"
+    blue "  installing ${#pending[@]} package(s) in one xbps transaction"
+    pkg_run_streamed xbps-install -y "${pending[@]}" || batch=$?
+    ((batch == 0)) || yellow "  the transaction failed (xbps exit $batch) — retrying one package at a time"
     for pkg in "${pending[@]}"; do
         tier_settle "$pkg" "$mode" "$batch"
     done
-    rm -f "$DNF_BATCH_LOG"
+    rm -f "$PKG_LOG"
 }
 
 # tier_settle <pkg> <mode> <batch status> — report one package after the
-# batch: installed (with its PACKAGE row), or a failure whose cost is the
-# tier's. After a failed transaction nothing in it was installed, so each
-# package gets its own dnf run — which also names the one that broke it.
+# batch: installed (with its PACKAGE row), or a failure. After a failed
+# transaction nothing in it was installed, so each package gets its own run,
+# which also names the one that broke it.
 tier_settle() {
     local pkg="$1" mode="$2" batch="$3"
-    if rpm -q --whatprovides "$pkg" >/dev/null 2>&1 \
-        || { ((batch != 0)) && dnf_install "$pkg"; }; then
+    PKG_ERR=""
+    if pkg_installed "$pkg" || { ((batch != 0)) && pkg_install_one "$pkg"; }; then
         green "  installed: $pkg"
         manifest_append_row PACKAGE "$pkg"
         return 0
     fi
-    ((batch != 0)) || DNF_ERR="$(dnf_batch_reason "$pkg")"
-    [[ -n "$DNF_ERR" ]] && yellow "    dnf: $(printf '%s' "$DNF_ERR" | tail -n1)"
+    ((batch != 0)) || PKG_ERR="$(pkg_batch_reason "$pkg")"
+    tier_fail "$pkg" "$mode"
+}
+
+# tier_fail <pkg> <mode> — what a failure costs in this tier. Reads PKG_ERR.
+tier_fail() {
+    local pkg="$1" mode="$2"
+    [[ -n "$PKG_ERR" ]] && yellow "    xbps: $(printf '%s' "$PKG_ERR" | tail -n1)"
     case "$mode" in
         hard)
             red "required package failed to install: $pkg"

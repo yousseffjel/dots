@@ -179,6 +179,32 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
     bluez's `system_groups` in I-5 before shipping. They come from the
     handbook and package metadata, not from a live Void box.
 
+### I-3 outcome (2026-10-15)
+
+- xbps behaviour probed with the real **xbps-static 0.60.7** in a scratch
+  root (`-r`), not guessed:
+  - one unknown name aborts the whole transaction (exit 2), so names are
+    filtered with `xbps-query -R` first;
+  - re-installing is exit 0, but prints an `ERROR:` line;
+  - `xbps-remove` of a name that is not installed fails the whole call
+    (exit 2);
+  - `-Syu xbps` and `-yu` are exit 0 when there is nothing to do.
+- **User decision: a full upgrade on every run** (`-Syu xbps`, then `-yu`;
+  Void has no partial upgrades). Chosen over upgrading only on the first
+  install, and over warning only.
+- Removed: the dnf speed drop-in (+ its test), SATISFIED_BY, the starship
+  upstream script, and the fd shim. Uninstall uses `xbps-remove -Ry` on rows
+  still installed (new test). Doctor's package check uses `xbps-query`,
+  gated on os-release `ID=void`. `version.sh`'s `fedora_version` is now
+  `os_version` (no consumers). The pre-stage checks for xbps and notes musl.
+- Still dnf, by design, until their sub-task:
+  - `install-pkg-repos.sh` and `uninstall-repos.sh` (I-4);
+  - `drivers-*.sh` and `doctor-drivers.sh` (rpm) (I-7);
+  - `suckless/dwmblocks/scripts/dwm-updates`, the updates block (**I-8**:
+    `xbps-install -nu`, no network);
+  - `install-services.sh`'s `rpm -q ly` (I-5);
+  - CI and `tests/ci-build-deps.sh` (I-9).
+
 ## Sub-tasks (one slot each, in order)
 
 - **I-1 Docs & identity:** CLAUDE.md, README, TESTING, record this decision
@@ -186,7 +212,7 @@ The `Adwaita-dark` GTK3 shim may be unnecessary (Void still ships
 - **I-2 Package lists:** ✅ done 2026-10-15 (see I-2 outcome above); remap `packages/*.lst` with the table above; add a
   test that checks every name against a vendored or fetched Void index.
 - **I-2b Font asset:** ✅ done 2026-10-15; vendor Cascadia Code NF under `assets/fonts/` (D3), restore + manifest + uninstall, drop the fontconfig-stack pending entry.
-- **I-3 Package engine:** `install-pkg*.sh` dnf → xbps (tiers, retry,
+- **I-3 Package engine:** ✅ done 2026-10-15 (see I-3 outcome); `install-pkg*.sh` dnf → xbps (tiers, retry,
   summaries, SATISFIED_BY), remove the dnf drop-in and the fd shim.
 - **I-4 Repos:** shrink `install-pkg-repos.sh`/`uninstall-repos.sh` to
   nonfree; delete COPR, Sublime HQ and RPM Fusion paths and tests.

@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Exercises scripts/install-pre.sh, the installer's pre-flight stage, on a
-# sealed PATH with fake dnf, sudo and systemctl.
+# sealed PATH with fake xbps-install, xbps-uhelper and sudo.
 #
 # What is asserted:
-#   * Fedora Server (no GDM): passes, no Workstation note;
-#   * GDM enabled (Fedora Workstation, not a supported target since
-#     2026-10-14): the note is printed and the stage still passes — it warns,
-#     it does not refuse;
-#   * no dnf: a hard failure, as before.
+#   * Void glibc (xbps-uhelper arch prints x86_64): passes, no musl note;
+#   * Void musl (x86_64-musl, not the supported target): the note is printed
+#     and the stage still passes — it warns, it does not refuse;
+#   * no xbps-install: a hard failure.
 
 set -euo pipefail
 
@@ -24,9 +23,10 @@ source "$SCRIPT_DIR/lib/sealed-path.sh"
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
 seal_path "$SB/bin"
-for t in dnf sudo; do fake "$SB/bin" "$t" 'exit 0'; done
+for t in xbps-install sudo; do fake "$SB/bin" "$t" 'exit 0'; done
+# Real output, xbps-static 0.60.7: "x86_64", or "x86_64-musl" on musl.
 # shellcheck disable=SC2016 # the body expands when the fake runs
-fake "$SB/bin" systemctl '[[ "$1 $2" == "is-enabled gdm.service" && -n "${FAKE_GDM:-}" ]] && { echo enabled; exit 0; }; echo disabled; exit 1'
+fake "$SB/bin" xbps-uhelper '[[ "$1" == arch ]] || exit 1; echo "x86_64${FAKE_MUSL:+-musl}"'
 
 FAILS=0
 check() {
@@ -39,25 +39,25 @@ check() {
 }
 # Called only through check's "$@". See tests/pkg-repos.sh.
 # shellcheck disable=SC2317,SC2329
-no_gdm_note() { ! grep -q GDM <<<"$OUT"; }
+no_musl_note() { ! grep -q musl <<<"$OUT"; }
 run() {
     RC=0
     OUT="$(env -i PATH="$SB/bin" "${@}" "$(type -P bash)" "$SUT" 2>&1)" || RC=$?
 }
 
 run
-check "Fedora Server: passes" test "$RC" -eq 0
-check "...with no Workstation note" no_gdm_note
-run FAKE_GDM=1
-check "GDM enabled: still passes (a note, not a refusal)" test "$RC" -eq 0
-check "...and says Workstation is not supported" grep -q "not a" <<<"$OUT"
-check "...naming the supported target" grep -q "Fedora Server" <<<"$OUT"
-rm "$SB/bin/dnf"
+check "Void glibc: passes" test "$RC" -eq 0
+check "...with no musl note" no_musl_note
+run FAKE_MUSL=1
+check "Void musl: still passes (a note, not a refusal)" test "$RC" -eq 0
+check "...naming the arch" grep -q "x86_64-musl" <<<"$OUT"
+check "...and the supported target" grep -q "supported target is Void glibc" <<<"$OUT"
+rm "$SB/bin/xbps-install"
 run
-check "no dnf: fails" test "$RC" -ne 0
+check "no xbps-install: fails" test "$RC" -ne 0
 
 if [[ $FAILS -eq 0 ]]; then
-    green "✓ install-pre: Server passes, Workstation is told, no dnf fails"
+    green "✓ install-pre: glibc passes, musl is told, no xbps fails"
 else
     red "✗ $FAILS check(s) failed"
 fi

@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# "install" stage, package half: writes dnf's speed drop-in and refreshes its
-# metadata once (install-pkg-dnf.sh), installs three tiers of dnf packages —
-# one transaction per tier — the clipmenu/clipnotify COPR (backs dwm-clipmenu, Super+v),
-# the Sublime HQ + RPM Fusion repos behind the default apps
-# (install-pkg-repos.sh), and the fdfind -> fd shim. The suckless build
+# "install" stage, package half: brings the system up to date
+# (install-pkg-xbps.sh — Void does not support partial upgrades), installs
+# three tiers of xbps packages — one transaction per tier — then the repos
+# and drivers step (install-pkg-repos.sh). The suckless build
 # (dwm/st/dmenu/dwmblocks/slock/nsxiv) is the other half of the "install" stage — see install-suckless.sh, which
 # owns packages/build.lst and installs those deps itself.
 #
@@ -19,7 +18,7 @@
 #   extra.lst   never aborts. Applications and conveniences; failures are
 #               listed in the closing summary as a single yellow line.
 #
-# Re-runnable: every dnf install is idempotent.
+# Re-runnable: an installed package is skipped, never reinstalled.
 #
 # usage: install-pkg.sh [--dry-run]
 
@@ -56,8 +55,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
         "$(git -C "$DOTS_DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 fi
 
-if ! command -v dnf >/dev/null 2>&1; then
-    red "dnf not found — this script targets Fedora."
+if ! command -v xbps-install >/dev/null 2>&1 || ! command -v xbps-query >/dev/null 2>&1; then
+    red "xbps not found — this script targets Void Linux."
     exit 1
 fi
 
@@ -70,19 +69,14 @@ if [[ $EUID -ne 0 ]]; then
     SUDO=(sudo)
 fi
 
-# Tier machinery: read_pkg_list, dnf_install, install_tier, install_summary
-# and the desktop.lst consequence map. Split out to stay under the 250-line
-# cap — see that file's header.
+# Tier machinery: read_pkg_list, install_tier, install_summary and the
+# desktop.lst consequence map. Split out to stay under the 250-line cap — see
+# that file's header.
 source "$SCRIPT_DIR/install-pkg-tiers.sh"
 
-# Faster, stall-proof downloads before the first one. There used to be a
-# `dnf group install "C Development Tools and Libraries"` here; it failed on
-# every Fedora 44 run (stderr was discarded, so nobody saw why) and would have
-# pulled gdb, valgrind and perf that nothing uses. packages/build.lst is the
-# declared toolchain (CLAUDE.md rule 10).
-source "$SCRIPT_DIR/install-pkg-dnf.sh"
-dnf_speed_conf
-dnf_refresh
+# Sync, update xbps, upgrade the system — before the first install.
+source "$SCRIPT_DIR/install-pkg-xbps.sh"
+xbps_prepare
 
 load_consequences
 
@@ -93,71 +87,16 @@ install_tier "installing desktop-critical packages (never aborts; failures are r
 install_tier "installing optional packages (best-effort)" \
     "$PACKAGES_DIR/extra.lst" extra
 
-# starship is the prompt (config/zsh/conf.d/99-prompt.zsh reads
-# config/starship/starship.toml) but Fedora does not package it — it was
-# dropped around F37, verified 2026-08-06 against packages.fedoraproject.org.
-# Installing from the upstream script is a deliberate, user-approved choice
-# over the atim/starship COPR. Two consequences worth knowing:
-#
-#   1. dnf neither upgrades nor removes it. Re-run `starship upgrade`, or the
-#      command below, yourself.
-#   2. No manifest row is written, so `uninstall.sh` will NOT remove it. A
-#      PACKAGE row would be actively harmful — uninstall_packages() passes
-#      every PACKAGE value to a single `dnf remove`, and one un-removable name
-#      makes that call fail, taking every other package down with it.
-#
-#      A SCRIPT row was rejected for a second reason that no longer holds: it
-#      would have filed starship under a prompt reading "dwmblocks block
-#      scripts". That prompt was generalised on 2026-08-13 (it now counts rows
-#      instead of naming one kind), so a SCRIPT row would read correctly today.
-#      Adding one is a behaviour change — uninstall would start deleting a
-#      binary the user may upgrade independently via `starship upgrade` — so it
-#      is left as a deliberate open choice, not done in passing. Until then:
-#        rm -f ~/.local/bin/starship
-#
-# Best-effort: on failure 99-prompt.zsh falls back to its built-in prompt,
-# which is degraded but perfectly usable, so this never aborts the run.
-STARSHIP_BIN="$HOME/.local/bin"
-blue "==> installing starship (upstream script — not in Fedora repos)"
-if command -v starship >/dev/null 2>&1; then
-    green "  already installed: starship ($(command -v starship))"
-elif [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would install starship to $STARSHIP_BIN via https://starship.rs/install.sh"
-elif ! command -v curl >/dev/null 2>&1; then
-    yellow "  skipped — curl not available; install starship manually or use: dnf copr enable atim/starship"
-else
-    mkdir -p "$STARSHIP_BIN"
-    # --proto '=https' --tlsv1.2 refuse plaintext and downgraded transports;
-    # -f makes curl exit non-zero on an HTTP error instead of piping an error
-    # page into sh.
-    if curl --proto '=https' --tlsv1.2 -sSf https://starship.rs/install.sh \
-        | sh -s -- --yes --bin-dir "$STARSHIP_BIN" >/dev/null 2>&1; then
-        green "  installed: starship -> $STARSHIP_BIN/starship"
-        yellow "  note: not dnf-managed — uninstall.sh will not remove it (rm -f $STARSHIP_BIN/starship)"
-    else
-        yellow "  could not install starship — the shell falls back to its built-in prompt."
-        yellow "  retry manually, or let dnf own it: dnf copr enable atim/starship && dnf install starship"
-    fi
-fi
+# starship (the prompt) and fd used to need special handling here: Fedora
+# did not package starship, so it came from its upstream install script, and
+# Fedora's fd ships as `fdfind`, so it needed a ~/.local/bin/fd shim. Void
+# packages both under their real names (extra.lst), so both steps are gone.
 
 # The clipmenu COPR, Sublime HQ's repo and RPM Fusion — all explicitly
 # authorised rule-4 exceptions — then the hardware drivers. See that file's
 # header for what each adds and how uninstall reverts it.
 source "$SCRIPT_DIR/install-pkg-repos.sh"
 repos_install
-
-# Fedora's fd-find package ships its binary as `fdfind` (name clash with
-# another package, same as Debian/Ubuntu) — shim it under ~/.local/bin so
-# the configs' `command -v fd` checks succeed.
-if [[ $DRY_RUN -eq 1 ]]; then
-    blue "  (dry-run) would shim fdfind -> ~/.local/bin/fd (if fdfind present and fd absent)"
-else
-    mkdir -p "$HOME/.local/bin"
-    if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
-        ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-        green "shim    fdfind -> ~/.local/bin/fd"
-    fi
-fi
 
 install_summary
 green "✓ package stage complete"

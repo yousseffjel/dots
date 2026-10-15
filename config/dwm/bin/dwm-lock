@@ -86,7 +86,7 @@ start_daemon() {
 
     if ! have xss-lock; then
         red "dwm-lock: xss-lock is not installed — nothing will lock on idle or suspend"
-        red "          it is best-effort in packages/extra.lst: dnf install xss-lock"
+        red "          it is in packages/desktop.lst: sudo xbps-install xss-lock"
         return 1
     fi
     if ! have slock; then

@@ -5,8 +5,8 @@
 #
 # SOURCED, never run alone: it assumes DRY_RUN, SUDO, DOTS_DIR, global_fn.sh
 # (manifest_has_path, manifest_append_row, file_matches_history) and the
-# colour helpers. Callers: drivers-laptop.sh (the touchpad snippet),
-# install-pkg-dnf.sh (the dnf speed drop-in).
+# colour helpers. Caller: drivers-laptop.sh (the touchpad snippet). The dnf
+# speed drop-in was the other caller until the Void port removed it.
 #
 # The APP rows' contract (install-restore-apps.sh), with sudo: a re-run
 # replaces the installed copy only while it is byte-identical to a version

@@ -20,7 +20,7 @@
 #     flatpak would run here, remote-add included, which goes to the network.
 #     Overrides land in the sandbox HOME (the snapshot covers them); remotes
 #     in $FLATPAK_STATE, outside it.
-#   * sudo dnf systemctl chsh usermod pkill xrdb — SENTINELS. None has any business
+#   * sudo dnf xbps-install xbps-remove systemctl chsh usermod pkill xrdb — SENTINELS. None has any business
 #     running during a restore + uninstall of a HOME with no package, service,
 #     shell or suckless rows; each records its call and fails, and the test
 #     asserts the log stays empty. pkill/xrdb are scope-d decision 8's hazard:
@@ -78,7 +78,7 @@ EOF
     source "$DOTS_DIR/tests/lib/fake-flatpak.sh"
     fake_flatpak "$FAKEBIN/flatpak" "$FLATPAK_STATE"
     local s
-    for s in sudo dnf systemctl chsh usermod pkill xrdb; do
+    for s in sudo dnf xbps-install xbps-remove systemctl chsh usermod pkill xrdb; do
         printf '#!/usr/bin/env bash\necho "%s $*" >>"%s"\nexit 1\n' "$s" "$SENTINEL_LOG" >"$FAKEBIN/$s"
     done
     chmod +x "$FAKEBIN"/*
