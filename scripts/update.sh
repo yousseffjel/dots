@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # dots update — bring an existing install up to the latest pushed version:
-# pull the repo (fast-forward only), then re-run install-fedora.sh, which runs
+# pull the repo (fast-forward only), then re-run install-void.sh, which runs
 # the migrations, installs any newly declared packages, rebuilds the suckless
 # programs and prints any lines your own autostart.sh/.xinitrc still need.
 #
 #   update.sh               pull, then re-run the installer
 #   update.sh --dry-run     fetch and list what would come in; change nothing
-#   update.sh <args...>     pull, then pass <args> on to install-fedora.sh
+#   update.sh <args...>     pull, then pass <args> on to install-void.sh
 #
 # Refuses — before touching anything — a dirty tracked tree, a detached HEAD,
 # a branch with no upstream, and an upstream that is not a fast-forward:
@@ -17,7 +17,7 @@
 # (a `git pull` done by hand — which is how every 0.1.0 install gets this
 # script in the first place) the installer is re-run even with nothing to
 # pull. The commit compared is the manifest's `complete` stamp, which only a
-# full install-fedora.sh run writes, and only once every stage has finished:
+# full install-void.sh run writes, and only once every stage has finished:
 # an install stopped partway (Ctrl-C, a failed stage) or a lone --only-<stage>
 # run reads as stale and is re-run. DECISION REVERSAL (2026-10-13): this used
 # to read the `commit` each stage stamps as it STARTS, so an interrupted
@@ -53,7 +53,7 @@ gitd() { git -C "$DOTS_DIR" "$@"; }
 preflight() {
     gitd rev-parse --is-inside-work-tree >/dev/null 2>&1 \
         || fail "$DOTS_DIR is not a git checkout — dots update needs one" \
-            "re-clone the repo, or update it by hand and run scripts/install-fedora.sh"
+            "re-clone the repo, or update it by hand and run scripts/install-void.sh"
     gitd symbolic-ref -q HEAD >/dev/null \
         || fail "the repo is on a detached HEAD" "check out your branch first (git -C $DOTS_DIR switch main)"
     gitd rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 \
@@ -85,7 +85,7 @@ stale_reason() {
 
 run_installer() {
     blue "==> re-running the installer"
-    exec "$DOTS_DIR/scripts/install-fedora.sh" "$@"
+    exec "$DOTS_DIR/scripts/install-void.sh" "$@"
 }
 
 # Nothing was pulled: install only if the install is behind the checkout.
@@ -95,7 +95,7 @@ finish_unpulled() {
     shift 2
     if install_is_current; then
         green "$current"
-        yellow "  to re-apply the install anyway: scripts/install-fedora.sh"
+        yellow "  to re-apply the install anyway: scripts/install-void.sh"
         exit 0
     fi
     yellow "$stale, but $(stale_reason)"

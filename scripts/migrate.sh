@@ -6,7 +6,7 @@
 #
 # Idempotent and safe to re-run: a fresh install (no manifest yet) or an
 # install already at VERSION is a no-op. Called automatically by
-# install-fedora.sh; also runnable standalone.
+# install-void.sh; also runnable standalone.
 #
 # usage: migrate.sh [--dry-run]
 

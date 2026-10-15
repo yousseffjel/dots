@@ -99,7 +99,7 @@ TARGET="$DOTS_DIR/$TARGET_REL"
 if [[ ! -x "$TARGET" ]]; then
     red "cannot run $TARGET_REL — not found or not executable"
     yellow "  expected it at: $TARGET"
-    yellow "  if the repo moved, re-run scripts/install-fedora.sh --only-restore"
+    yellow "  if the repo moved, re-run scripts/install-void.sh --only-restore"
     exit 1
 fi
 

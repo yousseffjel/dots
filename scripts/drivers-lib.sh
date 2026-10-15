@@ -87,7 +87,7 @@ drivers_swap() {
 drivers_have_rpmfusion() {
     [[ "${DRIVERS_ASSUME_RPMFUSION:-0}" == 1 ]] && return 0
     rpm -q "rpmfusion-$1-release" >/dev/null 2>&1 && return 0
-    yellow "  skipped — RPM Fusion $1 is not enabled; scripts/install-fedora.sh --only-install enables it"
+    yellow "  skipped — RPM Fusion $1 is not enabled; scripts/install-void.sh --only-install enables it"
     return 1
 }
 

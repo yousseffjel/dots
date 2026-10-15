@@ -2,14 +2,25 @@
 
 Personal dotfiles + desktop bootstrap repo. Ships a suckless-based dwm/X11
 desktop (dwm, st, dmenu, dwmblocks, slock — all vendored and patched from
-upstream source — plus nsxiv, vendored unpatched) plus zsh/tmux shell config. **Fedora only** — one installer
-(`scripts/install-fedora.sh`) installs the full desktop on a fresh
-**Fedora Server** box, since it installs Xorg itself and assumes no GUI is
-pre-installed. **Server is the one supported target** (user decision
-2026-10-14): Workstation was claimed for months but never run, and nothing
-handles its pre-enabled GDM next to ly. No package manager, framework, or build
+upstream source — plus nsxiv, vendored unpatched) plus zsh/tmux shell config. **Void Linux only** (glibc,
+x86_64, runit) — one installer (`scripts/install-void.sh`) installs the full
+desktop on a fresh **Void base install**, since it installs Xorg itself and
+assumes no GUI is pre-installed. No package manager, framework, or build
 system beyond `make` for the suckless C programs and plain bash for
 orchestration.
+
+**PORT IN PROGRESS (branch `void`, opened 2026-10-15).** The target moved
+from Fedora Server to Void Linux by user decision. This is a DECISION REVERSAL
+of "Fedora only" and of the 2026-10-14 "Server is the one supported target".
+`.claude/tasks/scope-i-void-port.md` is the plan and holds the locked
+decisions: ly built from source with a sha256-pinned zig, elogind, and
+vendored Cascadia Code NF. **Everything below this paragraph still describes
+the Fedora implementation** (dnf, COPR, RPM Fusion, systemd units,
+packages.fedoraproject.org in rule 8). Each sub-task rewrites the part it
+ports. Until then, treat a Fedora-specific statement as describing code that
+is about to change, not as a rule to follow. Package names are now checked
+against Void's official repodata (`repo-default.voidlinux.org/current`),
+not packages.fedoraproject.org.
 
 `ROADMAP.md` is a comparison/aspiration doc (this repo vs. HyDE-Project's
 Arch+Hyprland+Wayland setup) — see **Roadmap status** below for what it gets
@@ -70,7 +81,7 @@ dots/
 │   ├── dots                    # THE user-facing command, symlinked to ~/.local/bin/dots by the restore stage.
 │   │                           # Thin dispatcher; its SUBCOMMANDS table is the ONLY declaration of the
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
-│   ├── install-fedora.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
+│   ├── install-void.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-pre.sh          # stage: sanity checks (dnf present, sudo available)
 │   ├── install-pkg.sh          # stage: dnf packages (packages/*.lst) + starship + fd shim
 │   ├── install-pkg-tiers.sh    # sourced by install-pkg.sh: install_tier — ONE dnf transaction per tier
@@ -107,7 +118,7 @@ dots/
 │   ├── version.sh, migrate.sh  # + global_fn.sh, migrations/ — versioning and migration framework
 │   │                           # (migrations/0.1.0-to-0.2.0.sh: the first real one — stale generated headers;
 │   │                           #  0.2.0-to-0.3.0.sh is a no-op, still REQUIRED: migrate.sh stops at a missing step)
-│   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-fedora.sh
+│   ├── update.sh               # `dots update`: refuse if unsafe, git pull --ff-only, then re-run install-void.sh
 │   ├── drivers.sh              # `dots drivers`: GPU VA-API driver, kernel-requested firmware, microcode, fwupd;
 │   │                           # NVIDIA REPORT-ONLY (user decision 2026-10-13). Logic in drivers-lib.sh +
 │   │                           # drivers-{detect,gpu,firmware,laptop}.sh, which install-pkg-repos.sh also sources.
@@ -137,7 +148,7 @@ dots/
 │                        # tests/lib/ holds SOURCED helpers, outside that depth-1 glob — never tests.
 │                        # tests/fixtures/ holds captured real-tool files (ly's config.ini), same reason.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / install-dry-run
-│                        # install-container.yml — the only job that RUNS install-fedora.sh (~3 min/leg, paths-filtered)
+│                        # install-container.yml — the only job that RUNS install-void.sh (~3 min/leg, paths-filtered)
 ├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md, FONTS.md, HARDWARE.md
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
@@ -149,7 +160,7 @@ dots/
     └── state/
 ```
 
-**Entry points**: `scripts/install-fedora.sh` is the single supported
+**Entry points**: `scripts/install-void.sh` is the single supported
 installer — run it on a fresh Fedora Server box to get
 the full desktop (zsh/tmux + X11 + dwm/st/dmenu/dwmblocks/slock + ly). It's a
 thin orchestrator over four idempotent, independently-runnable stages (pre ->
@@ -177,13 +188,13 @@ is **partly stale** — treat it as a backlog of ideas, not a source of truth
 for current state.
 
 **Already done, ahead of what ROADMAP.md assumes:**
-- A single Fedora installer (`scripts/install-fedora.sh`) covers the Fedora Server target (Workstation was dropped as a target on 2026-10-14 — never run, and its GDM was never reconciled with ly) — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-fedora-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
+- A single Fedora installer (`scripts/install-void.sh`) covers the Fedora Server target (Workstation was dropped as a target on 2026-10-14 — never run, and its GDM was never reconciled with ly) — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-void-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
 - dwm, st, dmenu, dwmblocks, and slock are all vendored *and* patched — ROADMAP §2.5 lists this as a "to do" with only a subset of patches recommended. The roster is 18 diffs for dwm (actualfullscreen, autostart, **bidi**, dragmfact, **dropterm**, **dynamicscratchpads**, hide_vacant_tags, pertag, **preservepertag**, **preserveonrestart**, restartsig, status2d, status2d-systray, statuscmd, statuscmd-status2d, systray, **wakeonsignal**, xresources), 10 for dmenu (**bidi**, border, caseinsensitive, center, fuzzymatch, lineheight, mousesupport, numbers, **pathcache**, xresources), and one each for st (xresources-signal-reload), dwmblocks (statuscmd) and slock (xresources). Each program's `patches/PATCHES.md` is the authoritative per-patch record; `ls suckless/*/patches/*.diff` is the source of truth for the list itself. The `*-local.diff` ones were captured against this tree rather than fetched from suckless.org, because they could not apply cleanly on top of the others.
   - **A dwm restart no longer scatters the desktop (2026-10-07).** `reload.sh` SIGHUPs dwm on every wallpaper change; `preserveonrestart` hands tags, view, stash, floating geometry and focus to the re-exec'd instance. `dropterm` (`Super+grave`) is a drop-down terminal built on dynamicscratchpads, so it survives restarts too. `tests/dwm-runtime.sh` covers both, and checks every floating class in `rules[]` actually floats. **`wakeonsignal` (2026-10-12)** makes dwm act on SIGHUP/SIGTERM at once: it used to wait for the next X event, so the VM's power-menu logout took 20-25 s. The runtime test no longer fakes an event to wake dwm. **`preservepertag` (2026-10-12)** adds each tag's layout, mfact, nmaster and bar, and Mod+Tab's history, to what a restart keeps.
   - **`scratchpads` was replaced by `dynamicscratchpads` on 2026-08-07** and the two are mutually exclusive (both claim bit `LENGTH(tags)` of the tag bitmask). Scratchpads are now assigned dynamically from the focused window rather than pre-declared as commands.
 - `install-suckless.sh` is the rebuild/build entry point already, doing the job ROADMAP §6 assigns to a not-yet-written `rebuild.sh`.
 - Idempotent, re-runnable installers with colored logging and backup-on-conflict symlinking already exist — ROADMAP §2.1/§2.3 describe this as future infrastructure to add.
-- Launcher, powermenu, and clipboard manager are done via dmenu (not rofi) — `Super+space` (`config/dwm/bin/dwm-apps`, a drun-style list of `.desktop` entries — `dmenu_run` on `Mod+p` until 2026-10-13), `Super+Shift+x` (`config/dwm/bin/dwm-powermenu`), `Super+v` (`config/dwm/bin/dwm-clipmenu`, a thin wrapper around `clipmenu`/`clipnotify`). ROADMAP.md's comparison table and package list have been updated to match — dmenu was chosen over rofi to keep a single menu tool. clipmenu is COPR-only (`skidnik/clipmenu`); `install-fedora.sh` auto-enables that COPR as a deliberate, explicitly-approved exception to the "COPR is opt-in" default in rule 4 below, since the feature backs a core keybind.
+- Launcher, powermenu, and clipboard manager are done via dmenu (not rofi) — `Super+space` (`config/dwm/bin/dwm-apps`, a drun-style list of `.desktop` entries — `dmenu_run` on `Mod+p` until 2026-10-13), `Super+Shift+x` (`config/dwm/bin/dwm-powermenu`), `Super+v` (`config/dwm/bin/dwm-clipmenu`, a thin wrapper around `clipmenu`/`clipnotify`). ROADMAP.md's comparison table and package list have been updated to match — dmenu was chosen over rofi to keep a single menu tool. clipmenu is COPR-only (`skidnik/clipmenu`); `install-void.sh` auto-enables that COPR as a deliberate, explicitly-approved exception to the "COPR is opt-in" default in rule 4 below, since the feature backs a core keybind.
 
 **Also done, superseding earlier "pending" entries (roster Epic, 2026-08-06/07 — scope file `.claude/tasks/scope-b-app-roster-finalization.md`):**
 - **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
@@ -231,7 +242,7 @@ verify on, only the VM, so laptop paths are fixture-tested.
 
 **Still genuinely pending (ROADMAP is accurate here):**
 - No `.Xresources` **file** in the repo — deliberately: the theming engine generates `~/.cache/dots/theme/xresources` and `xrdb -merge`s it, so a static checked-in one would be immediately overwritten.
-- `install-fedora.sh` has not been run end-to-end on real hardware (per `.claude/changes/archive/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested. **Nothing in the roster Epic changes this**: every sub-task was verified in sandboxed `$HOME` trees and against local binaries, never on a Fedora box. Treat "the installer works" as unproven.
+- `install-void.sh` has not been run end-to-end on real hardware (per `.claude/changes/archive/2026-08-04-fedora-arch-install-scripts-verify-fix.md`, written when an Arch installer still existed alongside it) — package names are verified against upstream repos, not live-tested. **Nothing in the roster Epic changes this**: every sub-task was verified in sandboxed `$HOME` trees and against local binaries, never on a Fedora box. Treat "the installer works" as unproven.
 - ~~The `core.lst` vs `extra.lst` split has never been reviewed as a whole.~~ **Done 2026-08-08** — reviewed as one pass and replaced with four tiers (see rule 10). The packages that back keybinds now sit in `desktop.lst`, whose failures are repeated in a red closing summary with what each one costs, so a failed install can no longer leave keys silently dead. Six packages that were declared nowhere are now declared: `libXext-devel`, `libXrandr-devel`, `libxcrypt-devel` and `ncurses` (they lived only in an inline array in `install-suckless.sh`), plus `procps-ng` and `desktop-file-utils`.
 
 **Theming engine (added 2026-08-05, 7 sub-tasks — see `docs/THEMING.md`):**
@@ -331,7 +342,7 @@ new pattern.
 1. **Every script is idempotent and re-runnable.** `set -euo pipefail` at the top; re-running after a partial or full success must be a safe no-op (or converge to the same state), never error out or duplicate work.
 2. **Colored logging helpers, not raw `echo`.** Each script defines its own `red()`/`green()`/`yellow()`/`blue()` (`printf '\033[3xm%s\033[0m\n'`) — red for hard errors, green for confirmed/success/already-ok, yellow for warnings/manual-follow-up, blue for informational. Reuse this pattern verbatim in new scripts rather than introducing a different color scheme or a shared sourced file.
 3. **`SCRIPT_DIR`/`DOTS_DIR` resolution pattern.** Every script computes its own location and the repo root the same way: `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` then `DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"`. Never hardcode paths.
-4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. **Vendoring is the third option**, and the one taken for the Bibata cursor theme (2026-08-13): the upstream release tarball lives in `assets/cursors/` with its checksum and license, and the restore stage unpacks it — no COPR, no network at install time, and the artifact is pinned rather than floating. It is only worth it for a self-contained asset; don't vendor anything that needs building or linking. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-fedora.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default. **Second exception (2026-10-06):** `install-restore-flatpak.sh` adds the **Flathub** remote (`--user`), also explicitly authorised in-session. Unlike the COPR it is reverted: a FLATPAK manifest row is written only when the remote did not already exist, and `dots uninstall` removes it only while no installed ref comes from it. **Third and fourth exceptions (2026-10-13), both explicitly authorised in-session:** `install-pkg-repos.sh` adds **Sublime HQ's rpm repo** (sublime-text, the default editor) and **RPM Fusion free + nonfree** (swaps `ffmpeg-free` for RPM Fusion's `ffmpeg` and installs `intel-media-driver`, because Fedora's ffmpeg has no HEVC decoder and HDR episodes would not play). Same contract as Flathub: REPO rows only for what this run added, the swap is undone with `dnf swap` (never by removing ffmpeg), and a repo is removed only while nothing installed comes from it. RAR stays on `unar`; nonfree being enabled does not reopen locked decision 8. **Vendoring exception (2026-10-13):** "don't vendor anything that needs building" above still holds, with one exception: **nsxiv**, a built program vendored because Fedora does not package it, at the user's explicit choice over sxiv (unmaintained) and imv. It lives under `suckless/nsxiv/` and is built like the suckless programs (rule 5 applies to it).
+4. **COPR-only packages are dropped from best-effort install loops, not silently attempted.** If a package isn't in Fedora's official repos (e.g. `lazygit`), remove it from `packages/extra.lst`, add a header-comment note with the exact enable command (`dnf copr enable ...`), and print a closing yellow reminder. **Vendoring is the third option**, and the one taken for the Bibata cursor theme (2026-08-13): the upstream release tarball lives in `assets/cursors/` with its checksum and license, and the restore stage unpacks it — no COPR, no network at install time, and the artifact is pinned rather than floating. It is only worth it for a self-contained asset; don't vendor anything that needs building or linking. Enabling a third-party repo automatically is a separate trust decision, always left to the user — don't bootstrap COPR helpers from an installer script by default. **Exception:** `install-void.sh` auto-enables `skidnik/clipmenu` (clipmenu + clipnotify, dwm-clipmenu's backend) — the user explicitly authorized this one, in-session, rather than the default deferral. Treat any further auto-enable the same way: only after an explicit ask, never by default. **Second exception (2026-10-06):** `install-restore-flatpak.sh` adds the **Flathub** remote (`--user`), also explicitly authorised in-session. Unlike the COPR it is reverted: a FLATPAK manifest row is written only when the remote did not already exist, and `dots uninstall` removes it only while no installed ref comes from it. **Third and fourth exceptions (2026-10-13), both explicitly authorised in-session:** `install-pkg-repos.sh` adds **Sublime HQ's rpm repo** (sublime-text, the default editor) and **RPM Fusion free + nonfree** (swaps `ffmpeg-free` for RPM Fusion's `ffmpeg` and installs `intel-media-driver`, because Fedora's ffmpeg has no HEVC decoder and HDR episodes would not play). Same contract as Flathub: REPO rows only for what this run added, the swap is undone with `dnf swap` (never by removing ffmpeg), and a repo is removed only while nothing installed comes from it. RAR stays on `unar`; nonfree being enabled does not reopen locked decision 8. **Vendoring exception (2026-10-13):** "don't vendor anything that needs building" above still holds, with one exception: **nsxiv**, a built program vendored because Fedora does not package it, at the user's explicit choice over sxiv (unmaintained) and imv. It lives under `suckless/nsxiv/` and is built like the suckless programs (rule 5 applies to it).
 5. **Suckless patches are vendored as `.diff` files under `suckless/<program>/patches/`**, named `<patch>-<version-or-date>-<hash>.diff`, **as a record — nothing applies them.** The vendored `.c`/`.h` sources are already patched — each diff was merged into them once, when it was vendored (some by a clean `patch -p1`, the ones that conflicted by hand, as each `PATCHES.md` entry records) — the build is plain `make`, and no `patch(1)` or `git apply` call exists in `scripts/`, `tests/`, `.github/` or any suckless `Makefile`. `suckless/<program>/patches/PATCHES.md` is the authority on what each patch is and how it was merged. A change to a patched behaviour therefore goes into the sources **and** its `.diff` + `PATCHES.md` entry in the same commit, so the tree could be rebuilt from upstream plus the recorded diffs; the `*-local.diff` files are diffs captured against this tree because they could not apply cleanly on top of the others. Don't turn this into a build-time apply step — the `*-local` diffs are exactly why that cannot work. (Until 2026-09-28 this rule claimed `install-suckless.sh` applied the diffs at build time; it never did.)
 6. **`install-suckless.sh` never overwrites user customizations** — `autostart.sh` and `.xinitrc` are treated as user-owned once they exist; preserve that guarantee in any change to the build/install flow.
 
@@ -348,7 +359,7 @@ new pattern.
     | List | Consumer | On failure |
     | ---- | -------- | ---------- |
     | `core.lst` | `install-pkg.sh` | **Aborts the run.** Only for things the installer's own next step needs unconditionally — `git` for the zinit/TPM clones, `zsh` for the login-shell step. Keep it tiny: rule 8 means these names are hand-checked, never checked against a live `dnf`, so a rename here turns a degraded install into no install. |
-    | `build.lst` | `install-suckless.sh` **only** | **Aborts the build stage.** The suckless toolchain and headers. `install-pkg.sh` deliberately does not read it — `install-fedora.sh` runs the build stage right after, without `--skip-deps`, so `--skip-suckless` needs no special handling anywhere. |
+    | `build.lst` | `install-suckless.sh` **only** | **Aborts the build stage.** The suckless toolchain and headers. `install-pkg.sh` deliberately does not read it — `install-void.sh` runs the build stage right after, without `--skip-deps`, so `--skip-suckless` needs no special handling anywhere. |
     | `desktop.lst` | `install-pkg.sh` | **Never aborts**, but every failure is repeated in a red closing summary. For packages whose absence is otherwise **silent**: a dead keybind, a daemon that never starts, a theming engine that cannot run. |
     | `extra.lst` | `install-pkg.sh` | **Never aborts.** Applications and conveniences; failures get one yellow line in the summary. |
     | `laptop.lst` | `drivers-lib.sh` **only**, on a laptop | **Never aborts**, best-effort like extra. Its `# chassis: laptop` header line is load-bearing: `pkg_list_chassis` reads it, so `dots doctor` (which globs every list) checks it only where `drivers_chassis` says laptop. A future chassis-limited list declares itself the same way; no consumer names it. (scope-h, 2026-10-13) |

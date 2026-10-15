@@ -669,7 +669,7 @@ installer will not edit it; `install-suckless.sh` prints the line to paste.
 meaning the app is not installed. Install it and re-run. The one case where
 that inference is wrong is `fastfetch`, whose directory is created by
 `scripts/install-restore-theme.sh` rather than by fastfetch itself — if it
-is skipped, run `scripts/install-fedora.sh --only-restore`, or just
+is skipped, run `scripts/install-void.sh --only-restore`, or just
 `mkdir -p ~/.config/fastfetch` and re-apply.
 
 **The prompt is not themed.** `conf.d/99-prompt.zsh` only prefers the themed

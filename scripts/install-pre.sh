@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# "pre" stage: sanity checks before install-fedora.sh's other stages run.
+# "pre" stage: sanity checks before install-void.sh's other stages run.
 # Standalone-runnable — the install/restore/services stages each re-check
 # what they individually need, but running this first gives a fast, clear
 # failure on a non-Fedora system instead of a confusing error partway

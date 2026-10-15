@@ -38,6 +38,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Changed
 
+- **The target is now Void Linux (glibc), not Fedora Server.** The installer
+  is renamed `scripts/install-void.sh`. The port is in progress: until it
+  lands, the installer works on neither distro.
 - `Super` + `Ctrl` + `n` opens the notification centre. It used to re-show
   the last closed notification; **open** in the centre does that for any of
   them.

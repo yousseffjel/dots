@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reverses what install-fedora.sh did, using ~/.local/state/dots/manifest
+# Reverses what install-void.sh did, using ~/.local/state/dots/manifest
 # as the source of truth: removes deployed configs (restoring backups
 # where one was made), uninstalls the vendored suckless binaries, removes
 # ONLY the dnf packages this installer itself installed (never anything
@@ -83,7 +83,7 @@ blue() {
 }
 
 if [[ ! -f "$MANIFEST_FILE" ]]; then
-    yellow "no manifest at $MANIFEST_FILE — nothing was installed by install-fedora.sh, or it's already uninstalled."
+    yellow "no manifest at $MANIFEST_FILE — nothing was installed by install-void.sh, or it's already uninstalled."
     exit 0
 fi
 

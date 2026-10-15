@@ -10,8 +10,10 @@ stale, so each fact is kept in one place and linked from the others.
 
 ## Before you change anything
 
-- **Fedora only.** `scripts/install-fedora.sh` is the one supported installer.
-  Package names are Fedora/dnf names.
+- **Void Linux only** (glibc, x86_64). `scripts/install-void.sh` is the one
+  supported installer, and package names are Void/xbps names. The port from
+  Fedora is in progress (`.claude/tasks/scope-i-void-port.md`); text below
+  that still names dnf or Fedora describes code that has not been ported yet.
 - **Read `CLAUDE.md`'s "Project-specific rules".** It is written for an AI
   assistant, but those ten rules are the repo's conventions, and the numbers
   below refer to them.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Exercises scripts/update.sh (`dots update`) against throwaway git repos — a
 # bare "origin" and an "install" clone holding the real update.sh beside a
-# stub install-fedora.sh that only records its arguments.
+# stub install-void.sh that only records its arguments.
 #
 # What is asserted:
 #   * new commits upstream: fast-forwarded, then the installer runs with the
@@ -50,14 +50,14 @@ g() { git -C "$1" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "${@:
 
 # A fresh origin with one commit, cloned as the "install". The stub installer
 # stamps the manifest the way a FINISHED full run does: `commit` (each stage,
-# as it starts) and `complete` (install-fedora.sh, once every stage is done).
+# as it starts) and `complete` (install-void.sh, once every stage is done).
 mkrepos() {
     rm -rf "$ORIGIN" "$INST" "$DEV" "$LOG" "$MANIFEST"
     git init -q --bare -b main "$ORIGIN"
     git clone -q "$ORIGIN" "$DEV" 2>/dev/null
     mkdir -p "$DEV/scripts"
     cp "$DOTS_DIR/scripts/update.sh" "$DOTS_DIR/scripts/global_fn.sh" "$DEV/scripts/"
-    cat >"$DEV/scripts/install-fedora.sh" <<EOF
+    cat >"$DEV/scripts/install-void.sh" <<EOF
 #!/bin/sh
 echo "installer \$*" >>"$LOG"
 d="\$HOME/.local/state/dots"
@@ -65,7 +65,7 @@ mkdir -p "\$d"
 c="\$(git -C "\$(dirname "\$0")/.." rev-parse --short HEAD)"
 printf 'META\tcommit\t%s\nMETA\tcomplete\t%s\n' "\$c" "\$c" >"\$d/manifest"
 EOF
-    chmod 755 "$DEV/scripts/install-fedora.sh"
+    chmod 755 "$DEV/scripts/install-void.sh"
     echo 0.1.0 >"$DEV/VERSION"
     g "$DEV" add -A
     g "$DEV" commit -qm one
@@ -122,13 +122,13 @@ rm -f "$LOG"
 blue "==> an install that never finished"
 head_short="$(git -C "$INST" rev-parse --short HEAD)"
 # What a Ctrl-C during the package stage leaves: the stages that started
-# stamped `commit`; install-fedora.sh never reached its `complete` stamp.
+# stamped `commit`; install-void.sh never reached its `complete` stamp.
 printf 'META\tcommit\t%s\n' "$head_short" >"$MANIFEST"
 update
 check "interrupted (commit stamped, no complete): the installer runs" \
     bash -c '[[ $1 == 0 && $2 == *"no finished install is recorded yet"* ]] && test -e "$3"' _ "$RC" "$OUT" "$LOG"
 rm -f "$LOG"
-# What `install-fedora.sh --only-restore` after an older full run leaves.
+# What `install-void.sh --only-restore` after an older full run leaves.
 printf 'META\tcommit\t%s\nMETA\tcomplete\t%s\n' "$head_short" "$(git -C "$INST" rev-parse --short HEAD~1)" >"$MANIFEST"
 update
 check "a lone --only run on top of an older full one: the installer runs" test -e "$LOG"
@@ -146,12 +146,12 @@ blue "==> refusals leave HEAD where it was"
 # A dirty file upstream does NOT touch: git itself would happily merge over
 # it, so only update.sh's own check can stop this (a first draft dirtied
 # VERSION, which upstream changes too, and git's refusal hid a missing check).
-echo '# local edit' >>"$INST/scripts/install-fedora.sh"
+echo '# local edit' >>"$INST/scripts/install-void.sh"
 update
 check "dirty tracked file: exit 1, naming the reason" bash -c '[[ $1 == 1 && $2 == *"uncommitted changes"* ]]' _ "$RC" "$OUT"
 check "...HEAD untouched" head_is "$before"
 check "...installer not run" test ! -e "$LOG"
-git -C "$INST" checkout -q -- scripts/install-fedora.sh
+git -C "$INST" checkout -q -- scripts/install-void.sh
 g "$INST" checkout -q --detach
 update
 check "detached HEAD: exit 1" bash -c '[[ $1 == 1 && $2 == *detached* ]]' _ "$RC" "$OUT"

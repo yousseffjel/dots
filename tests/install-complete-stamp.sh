@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install-fedora.sh writes the manifest's `complete` stamp — the one
+# install-void.sh writes the manifest's `complete` stamp — the one
 # `dots update` compares against HEAD — only when a FULL run reaches its end.
 #
 # WHY. Every stage stamps `commit` as it starts, so a run stopped partway
@@ -8,7 +8,7 @@
 # covers update.sh's side with a stub installer; this covers the real
 # orchestrator's side.
 #
-# HOW. The real install-fedora.sh and global_fn.sh run in a copied tree whose
+# HOW. The real install-void.sh and global_fn.sh run in a copied tree whose
 # stage scripts are stubs (each records its name; one can be told to fail),
 # against a sandbox HOME with all four XDG variables set.
 set -euo pipefail
@@ -36,7 +36,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
 TREE="$TMP/dots"
 mkdir -p "$TREE/scripts"
-cp "$DOTS_DIR/scripts/install-fedora.sh" "$DOTS_DIR/scripts/global_fn.sh" "$TREE/scripts/"
+cp "$DOTS_DIR/scripts/install-void.sh" "$DOTS_DIR/scripts/global_fn.sh" "$TREE/scripts/"
 for stage in install-pre install-pkg install-suckless install-restore install-services migrate; do
     # Each stub records its own name; the one named in $FAIL_STAGE fails.
     # shellcheck disable=SC2016 # expands when the stub runs
@@ -57,7 +57,7 @@ run() {
     env -i PATH="$PATH" HOME="$home" LANG=C.UTF-8 FAIL_STAGE="${FAIL_STAGE:-}" \
         XDG_CONFIG_HOME="$home/.config" XDG_CACHE_HOME="$home/.cache" \
         XDG_STATE_HOME="$home/.local/state" XDG_DATA_HOME="$home/.local/share" \
-        bash "$TREE/scripts/install-fedora.sh" "$@" >"$home/out" 2>&1 || true
+        bash "$TREE/scripts/install-void.sh" "$@" >"$home/out" 2>&1 || true
     awk -F'\t' '$1=="META" && $2=="complete" {print $3}' "$home/.local/state/dots/manifest" 2>/dev/null || true
 }
 

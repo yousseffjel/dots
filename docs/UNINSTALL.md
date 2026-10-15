@@ -1,6 +1,6 @@
 # Uninstalling
 
-`scripts/uninstall.sh` reverses what `scripts/install-fedora.sh` did, using
+`scripts/uninstall.sh` reverses what `scripts/install-void.sh` did, using
 the install manifest at `~/.local/state/dots/manifest` as its source of
 truth — it never guesses or hardcodes what to remove.
 
@@ -19,7 +19,7 @@ It refuses to run as root (it manages a per-user install) and logs every
 step to `~/.local/state/dots/uninstall.log`.
 
 If `~/.local/state/dots/manifest` doesn't exist, the script exits
-immediately — either nothing was installed via `install-fedora.sh` on this
+immediately — either nothing was installed via `install-void.sh` on this
 machine, or it's already been uninstalled.
 
 ## What gets removed, one category at a time
@@ -131,7 +131,7 @@ partial uninstall is a normal, supported outcome, not an error.
 6. **Packages.** Runs `dnf remove` on the packages list shown before you
    confirm — and **only** packages the installer itself installed. A
    package that was already present on your system before you ran
-   `install-fedora.sh` is never recorded in the manifest in the first
+   `install-void.sh` is never recorded in the manifest in the first
    place, so it's never a candidate for removal here.
 6b. **Third-party repositories.** The Sublime HQ repo file
    (`/etc/yum.repos.d/sublime-text.repo`) and the RPM Fusion free and
@@ -157,7 +157,7 @@ partial uninstall is a normal, supported outcome, not an error.
   repo's own symlink* — e.g. if you deleted `~/.config/dwm` and replaced
   it with your own directory after installing, uninstall.sh leaves it
   alone rather than guessing you want it gone.
-- Any dnf package that was already installed before `install-fedora.sh`
+- Any dnf package that was already installed before `install-void.sh`
   ran.
 - `~/.zshenv`'s `ZDOTDIR` export line (install-restore.sh appends it, but
   it's a one-line addition to a file that may contain your own content
@@ -219,4 +219,4 @@ are exercised by the `install-container` CI job instead.
 Same advice as `TESTING.md` gives for installing: don't iterate against a
 machine you care about. `--dry-run` is the fast local check; for a full
 real run, use the same disposable Fedora container/VM flow described
-there, `install-fedora.sh` first, then `uninstall.sh`.
+there, `install-void.sh` first, then `uninstall.sh`.

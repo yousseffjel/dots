@@ -102,7 +102,7 @@ check_theme() {
     value="$(dconf read "$COLOR_SCHEME_KEY" 2>/dev/null || true)"
     case "$value" in
         "'prefer-dark'") report ok "$s" color-scheme "dark-mode preference is set (dconf; the portal check below says whether apps get it)" ;;
-        "") report warn "$s" color-scheme "dark-mode preference unset — scripts/install-fedora.sh --only-restore" ;;
+        "") report warn "$s" color-scheme "dark-mode preference unset — scripts/install-void.sh --only-restore" ;;
         *) report skip "$s" color-scheme "dark-mode preference is $value (your choice, left alone)" ;;
     esac
 }
@@ -138,7 +138,7 @@ check_gtk3_theme() {
             return 0
         fi
     done
-    report warn "$s" gtk3 "GTK3 theme $name not found — GTK3 apps fall back to light Adwaita; scripts/install-fedora.sh --only-restore"
+    report warn "$s" gtk3 "GTK3 theme $name not found — GTK3 apps fall back to light Adwaita; scripts/install-void.sh --only-restore"
 }
 
 # Flatpak apps: the read-only grants and the Flathub remote restore_flatpak
@@ -162,7 +162,7 @@ check_flatpak() {
         fi
     done
     if [[ ${#missing[@]} -gt 0 ]]; then
-        report warn "$s" flatpak "Flatpak apps cannot see ${missing[*]} — scripts/install-fedora.sh --only-restore"
+        report warn "$s" flatpak "Flatpak apps cannot see ${missing[*]} — scripts/install-void.sh --only-restore"
     elif [[ $theirs -gt 0 ]]; then
         report ok "$s" flatpak "Flatpak apps see the cursor, icons, GTK3 theme and gtk.css ($theirs grant(s) set your own way)"
     else
@@ -172,7 +172,7 @@ check_flatpak() {
     if grep -qx flathub <<<"$remotes"; then
         report ok "$s" flathub "the Flathub remote is configured"
     else
-        report warn "$s" flathub "no Flathub remote — scripts/install-fedora.sh --only-restore"
+        report warn "$s" flathub "no Flathub remote — scripts/install-void.sh --only-restore"
     fi
 }
 

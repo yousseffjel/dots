@@ -95,7 +95,7 @@ check "a failed clone leaves no directory and no row behind" \
     "[[ ! -e '$TMP/nonet/Pictures' && \$(rows '$TMP/nonet') == 0 ]]"
 
 # Progress goes to the terminal, never to stdout/stderr — the streams
-# install-fedora.sh tees into install.log. `script` provides the terminal.
+# install-void.sh tees into install.log. `script` provides the terminal.
 if command -v script >/dev/null 2>&1; then
     P="$TMP/progress"
     mkdir -p "$P"

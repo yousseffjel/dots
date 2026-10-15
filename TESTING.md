@@ -416,7 +416,7 @@ default never tests it.**
 CI does this on every push that touches the installer or what it deploys
 (`.github/workflows/install-container.yml` carries a `paths:` allowlist, and
 `workflow_dispatch` triggers it by hand otherwise). The job runs
-`scripts/install-fedora.sh` to completion — no `--dry-run`, no
+`scripts/install-void.sh` to completion — no `--dry-run`, no
 `--skip-suckless` — inside `fedora:latest` and the pinned oldest-supported
 image, then asserts on what landed. It is the only job that executes the
 installer at all: `install-dry-run` validates the installer's *inputs*
@@ -453,7 +453,7 @@ nothing had ever executed that line to notice. It now enables
 which only happens when `enable` returns 0.
 
 To iterate locally instead of pushing, never run
-`scripts/install-fedora.sh` on a machine you care about — it installs
+`scripts/install-void.sh` on a machine you care about — it installs
 packages, enables a COPR, and changes your login shell and display manager.
 Use a disposable Fedora container:
 
@@ -468,8 +468,8 @@ podman run --rm -it --hostname dots-test fedora:latest bash
 dnf install -y git
 git clone https://github.com/<you>/dots.git ~/dots
 cd ~/dots
-./scripts/install-fedora.sh --dry-run   # see the full plan first
-./scripts/install-fedora.sh             # then run it for real
+./scripts/install-void.sh --dry-run   # see the full plan first
+./scripts/install-void.sh             # then run it for real
 ```
 
 Or, using `toolbox` on a Fedora host (keeps the container around as a
@@ -479,7 +479,7 @@ named, reusable dev box instead of `--rm`-ing it):
 toolbox create -i registry.fedoraproject.org/fedora:43 dots-test
 toolbox enter dots-test
 git clone https://github.com/<you>/dots.git ~/dots && cd ~/dots
-./scripts/install-fedora.sh --dry-run
+./scripts/install-void.sh --dry-run
 ```
 
 The same two caveats as the CI job apply, for the same reasons — see the

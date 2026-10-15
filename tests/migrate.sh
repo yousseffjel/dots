@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercises scripts/migrate.sh — the version chain install-fedora.sh runs
+# Exercises scripts/migrate.sh — the version chain install-void.sh runs
 # before every install stage — against a sandbox manifest. Untested until
 # 2026-10-12, the release that first ships a real migration.
 #

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 0.1.0 -> 0.2.0: refresh the suckless headers a build generated long ago.
 #
-# Run once by scripts/migrate.sh (install-fedora.sh calls it before the install
+# Run once by scripts/migrate.sh (install-void.sh calls it before the install
 # stage, so the rebuild right after picks the result up). migrate.sh records
 # the new version itself on success — this script never touches the manifest.
 #
@@ -96,6 +96,6 @@ for def_path in "$DOTS_DIR"/suckless/*/*.def.h; do
 done
 
 if ((refreshed)); then
-    blue "rebuild to pick up 0.2.0: install-fedora.sh / dots update does it next;"
+    blue "rebuild to pick up 0.2.0: install-void.sh / dots update does it next;"
     blue "  on its own: scripts/install-suckless.sh --skip-deps"
 fi

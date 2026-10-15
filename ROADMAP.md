@@ -1,5 +1,9 @@
 # 🖥️ Dots Desktop Roadmap — Fedora + dwm + X11
 
+> **2026-10-15:** the project is moving to **Void Linux** (glibc, runit). This
+> document predates that and still says Fedora throughout; see
+> `.claude/tasks/scope-i-void-port.md`.
+
 > Reference document based on a comparison between [HyDE-Project/HyDE](https://github.com/HyDE-Project/HyDE)
 > (Arch + Hyprland + Wayland) and [yousseffjel/dots](https://github.com/yousseffjel/dots)
 > (Fedora + dwm + X11). Goal: build a HyDE-like, full-desktop dotfiles framework

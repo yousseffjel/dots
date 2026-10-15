@@ -80,7 +80,7 @@ flatpak_add_flathub() {
         green "set     Flathub remote (--user)"
     else
         yellow "skip    could not add the Flathub remote (no network?)."
-        yellow "        Re-run scripts/install-fedora.sh --only-restore once online."
+        yellow "        Re-run scripts/install-void.sh --only-restore once online."
     fi
 }
 

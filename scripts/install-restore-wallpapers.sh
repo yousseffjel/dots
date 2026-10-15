@@ -94,10 +94,10 @@ wallpapers_clone() {
     rm -rf "$dir"
     [[ "$created" == "-" ]] || wallpapers_prune_parents "$dir" "$created"
     yellow "skip    could not clone $url (no network?)."
-    yellow "        Re-run scripts/install-fedora.sh --only-restore once online."
+    yellow "        Re-run scripts/install-void.sh --only-restore once online."
 }
 
-# git prints progress only to a terminal, and install-fedora.sh pipes all
+# git prints progress only to a terminal, and install-void.sh pipes all
 # output through tee into install.log — so a ~400 MB clone used to show one
 # line and then nothing for a minute, which reads as a hang (it was Ctrl-C'd
 # on the VM, 2026-10-13). Progress goes straight to the terminal instead, so

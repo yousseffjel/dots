@@ -3,7 +3,7 @@
 # slock, plus the suckless-style nsxiv), the dwmblocks block scripts, and the
 # dwm autostart hook that actually launches the status bar.
 #
-# Runs standalone, or as part of `install-fedora.sh` (which calls this
+# Runs standalone, or as part of `install-void.sh` (which calls this
 # unless run with --skip-suckless).
 # Re-runnable: every step is idempotent, and nothing that the user may have
 # customised (autostart.sh, .xinitrc) is ever overwritten.

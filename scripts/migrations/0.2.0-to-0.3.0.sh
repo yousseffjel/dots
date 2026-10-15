@@ -2,7 +2,7 @@
 # 0.2.0 -> 0.3.0: nothing to migrate — this script exists so migrate.sh can
 # take the step.
 #
-# Run once by scripts/migrate.sh (install-fedora.sh calls it before the install
+# Run once by scripts/migrate.sh (install-void.sh calls it before the install
 # stage). migrate.sh records the new version itself on success — this script
 # never touches the manifest. Without a <from>-to-<to> script it stops, the
 # manifest stays at 0.2.0, and `dots doctor` warns on every 0.2.0 install that

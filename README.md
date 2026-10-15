@@ -2,13 +2,16 @@
 
 [![CI](https://github.com/yousseffjel/dots/actions/workflows/ci.yml/badge.svg)](https://github.com/yousseffjel/dots/actions/workflows/ci.yml)
 
-Personal dotfiles + a suckless-based dwm/X11 desktop bootstrap for Fedora.
-**The target is a fresh Fedora Server install**: `scripts/install-fedora.sh`
-installs Xorg, the ly login screen and the whole desktop on it. Fedora
-Workstation is not supported, because its GNOME login screen (GDM) is already
-set up and has never been tested next to ly. Desktops, laptops and virtual
-machines are all handled (`docs/HARDWARE.md`). See `CLAUDE.md` for the full
-project map and installer usage.
+Personal dotfiles + a suckless-based dwm/X11 desktop bootstrap for Void Linux.
+**The target is a fresh Void Linux (glibc, x86_64) base install**:
+`scripts/install-void.sh` installs Xorg, the ly login screen and the whole
+desktop on it. Desktops, laptops and virtual machines are all handled
+(`docs/HARDWARE.md`). See `CLAUDE.md` for the full project map and installer
+usage.
+
+> **Port in progress.** This branch is moving the project from Fedora Server
+> to Void Linux. The installer does not work on either distro until the port
+> lands; `.claude/tasks/scope-i-void-port.md` tracks it.
 
 ## The `dots` command
 
@@ -57,10 +60,10 @@ This repo follows semver via the `VERSION` file at the repo root. What
 changed in each version is in `CHANGELOG.md`.
 `dots version` (`scripts/version.sh`) prints the repo version alongside
 what's actually installed (read from the manifest at `~/.local/state/dots/manifest`,
-written by `install-fedora.sh`).
+written by `install-void.sh`).
 
 - **Patch** (`0.1.0` → `0.1.1`): fixes, package-list corrections, or
-  anything that doesn't change what `install-fedora.sh` deploys or how —
+  anything that doesn't change what `install-void.sh` deploys or how —
   nothing on an existing install needs to change to pick it up.
 - **Minor** (`0.1.0` → `0.2.0`): additive, backward-compatible changes — a
   new config file gets symlinked, a new suckless patch, a new optional
@@ -77,13 +80,13 @@ written by `install-fedora.sh`).
   pick up passively and needs an explicit migration for.
 
 Pulling a version bump on an existing install: run `dots update`. It
-pulls (fast-forward only) and re-runs `install-fedora.sh`, which runs
+pulls (fast-forward only) and re-runs `install-void.sh`, which runs
 `scripts/migrate.sh` before anything else and so brings the manifest's
 recorded version forward. `dots update --dry-run` shows what would come in. With
 nothing to pull it still re-runs the installer when the last *finished* install
 is from an older commit than the checkout — so on a 0.1.0 install, which predates
 `dots update`, `git pull` then `dots update` works, and an install you stopped
 partway (Ctrl-C, a failed stage) or ran one `--only-<stage>` at a time is
-finished by the next `dots update`. Only a full `install-fedora.sh` run that
+finished by the next `dots update`. Only a full `install-void.sh` run that
 reaches its end counts as finished. See `docs/UNINSTALL.md`
 for reversing an install entirely.

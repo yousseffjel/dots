@@ -9,7 +9,12 @@ when slots run concurrently.
 
 ## Active
 
-*(none — scope-h closed 2026-10-13; see Recently Closed)*
+- **Scope I — port to Void Linux glibc** (Epic, opened 2026-10-15, branch
+  `void`): `.claude/tasks/scope-i-void-port.md`. DECISION REVERSAL of "Fedora
+  only" and the 2026-10-14 Server-only target. Sub-tasks I-1..I-10; I-1
+  (identity, docs, `install-fedora.sh` → `install-void.sh`) in progress.
+  Fedora-specific Queue entries below are superseded wherever the port
+  removes the code they are about.
 
 ---
 

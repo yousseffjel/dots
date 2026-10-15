@@ -4,7 +4,7 @@
 # CONSUMER: scripts/install-suckless.sh ONLY.
 #
 # install-pkg.sh does NOT read this list, and that is deliberate.
-# install-fedora.sh runs install-suckless.sh straight after install-pkg.sh
+# install-void.sh runs install-suckless.sh straight after install-pkg.sh
 # and without --skip-deps, so the build stage installs its own dependencies
 # immediately before it needs them. The useful consequence is that
 # --skip-suckless needs no special handling anywhere: skip the build and

@@ -194,7 +194,7 @@ tar
 # runs. The image viewer, nsxiv, is built from suckless/nsxiv.
 mpv
 
-# development stack (Node.js is handled by nvm, not dnf — see install-fedora.sh header)
+# development stack (Node.js is handled by nvm, not dnf — see install-void.sh header)
 neovim
 vim-enhanced
 tmux

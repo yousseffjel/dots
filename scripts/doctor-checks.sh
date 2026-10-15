@@ -25,20 +25,20 @@ check_install() {
     local s=install repo inst
     repo="$(tr -d '[:space:]' <"$DOTS_DIR/VERSION" 2>/dev/null || echo unknown)"
     if [[ ! -f "$MANIFEST_FILE" ]]; then
-        report fail "$s" manifest "no install manifest ($MANIFEST_FILE) — run scripts/install-fedora.sh as this user"
+        report fail "$s" manifest "no install manifest ($MANIFEST_FILE) — run scripts/install-void.sh as this user"
     else
         inst="$(manifest_get_meta version)"
         if [[ "$inst" == "$repo" ]]; then
             report ok "$s" manifest "installed version $inst matches the repo"
         else
-            report warn "$s" manifest "installed version ${inst:-unknown}, repo is $repo — re-run scripts/install-fedora.sh"
+            report warn "$s" manifest "installed version ${inst:-unknown}, repo is $repo — re-run scripts/install-void.sh"
         fi
     fi
 
     if [[ "$(readlink -f "$HOME/.local/bin/dots" 2>/dev/null || true)" == "$DOTS_DIR/scripts/dots" ]]; then
         report ok "$s" dots-command "the dots command (~/.local/bin/dots) points at this repo"
     else
-        report warn "$s" dots-command "the dots command (~/.local/bin/dots) is not this repo's — scripts/install-fedora.sh --only-restore"
+        report warn "$s" dots-command "the dots command (~/.local/bin/dots) is not this repo's — scripts/install-void.sh --only-restore"
     fi
 
     local src dst name links
@@ -61,7 +61,7 @@ check_install() {
     if [[ "${shell##*/}" == zsh ]]; then
         report ok "$s" login-shell "login shell is $shell"
     else
-        report warn "$s" login-shell "login shell is ${shell:-unknown}, not zsh — scripts/install-fedora.sh --only-services"
+        report warn "$s" login-shell "login shell is ${shell:-unknown}, not zsh — scripts/install-void.sh --only-services"
     fi
     check_services
 }
@@ -78,7 +78,7 @@ check_services() {
         if [[ "$state" == enabled ]]; then
             report ok install "service-$unit" "$unit is enabled"
         else
-            report fail install "service-$unit" "$unit is ${state:-unknown}, not enabled — the login screen will not start; scripts/install-fedora.sh --only-services"
+            report fail install "service-$unit" "$unit is ${state:-unknown}, not enabled — the login screen will not start; scripts/install-void.sh --only-services"
         fi
     done < <(manifest_rows SERVICE | cut -f2 | sort -u)
 }

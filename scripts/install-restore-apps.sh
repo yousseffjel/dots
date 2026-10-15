@@ -138,7 +138,7 @@ apps_xfconf_prefs() {
     if ! xfconf-query -c thunar -l >/dev/null 2>&1; then
         yellow "skip    no session D-Bus (headless install?) — Thunar preferences not applied."
         yellow "        They will apply from thunarrc the first time Thunar runs, or re-run"
-        yellow "        scripts/install-fedora.sh --only-restore from inside an X session."
+        yellow "        scripts/install-void.sh --only-restore from inside an X session."
         return 0
     fi
 
@@ -195,7 +195,7 @@ apps_dconf_prefs() {
             green "set     $key = $value"
         else
             yellow "skip    $key — no session bus and no dbus-run-session (dbus-daemon)."
-            yellow "        Re-run scripts/install-fedora.sh --only-restore from inside X."
+            yellow "        Re-run scripts/install-void.sh --only-restore from inside X."
         fi
     done
 }

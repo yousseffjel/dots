@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Bootstrap a full dwm desktop on Fedora: zsh + tmux, X11 + suckless build
-# deps, fonts/theming, desktop utilities, the ly display manager, and
+# Bootstrap a full dwm desktop on Void Linux: zsh + tmux, X11 + suckless
+# build deps, fonts/theming, desktop utilities, the ly display manager, and
 # dwm/st/dmenu/dwmblocks/slock built from suckless/.
 #
-# This is the ONE supported installer for this repo, and its supported target
-# is a fresh **Fedora Server** install (user decision 2026-10-14). It uses
-# plain `dnf` and installs Xorg itself — running it on a Server box is exactly
-# how you get the full desktop (dwm + this repo's config) on it. Fedora
-# Workstation is NOT supported: GNOME's GDM is already its display manager,
-# and this installer enables ly beside it, a combination nobody has tested.
+# This is the ONE supported installer for this repo. Its target is a fresh
+# **Void Linux glibc (x86_64) base install** with runit (user decision
+# 2026-10-15, replacing Fedora Server; .claude/tasks/scope-i-void-port.md).
+# It installs Xorg itself, so a base system with no GUI is the starting point.
+#
+# PORT IN PROGRESS: the stages below still speak dnf/systemd. Sub-tasks I-3
+# to I-8 in the scope file move each one to xbps/runit/elogind. Until those
+# land, this script does not work on either distro.
 #
 # A thin orchestrator over four stages, each its own standalone-runnable,
 # idempotent script: pre (sanity checks) -> install (dnf packages + suckless
@@ -18,7 +20,7 @@
 # success converges to the same state rather than erroring or duplicating
 # work.
 #
-# usage: install-fedora.sh [--only-pre] [--only-install] [--only-restore]
+# usage: install-void.sh [--only-pre] [--only-install] [--only-restore]
 #                           [--only-services] [--skip-suckless] [--dry-run]
 #
 #   --only-pre        run only the pre stage (sanity checks).
@@ -75,8 +77,8 @@ source "$SCRIPT_DIR/global_fn.sh"
 LOG_FILE="$DOTS_DIR/install.log"
 exec > >(tee >(sed -u 's/\x1b\[[0-9;]*m//g' >>"$LOG_FILE")) 2>&1
 
-echo "=== install-fedora.sh run started: $(date '+%Y-%m-%d %H:%M:%S') (args: $*) ==="
-trap 'echo "=== install-fedora.sh run finished: $(date "+%Y-%m-%d %H:%M:%S") ==="' EXIT
+echo "=== install-void.sh run started: $(date '+%Y-%m-%d %H:%M:%S') (args: $*) ==="
+trap 'echo "=== install-void.sh run finished: $(date "+%Y-%m-%d %H:%M:%S") ==="' EXIT
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }

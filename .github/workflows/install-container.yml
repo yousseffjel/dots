@@ -57,10 +57,10 @@ jobs:
   # The only job anywhere in this repo that runs the installer. In ci.yml,
   # install-dry-run validates the installer's INPUTS (every name in
   # packages/*.lst resolves against enabled repos) and never invokes
-  # scripts/install-fedora.sh at all; build-suckless compiles the C programs
+  # scripts/install-void.sh at all; build-suckless compiles the C programs
   # without installing anything around them. Between them, "does a full
   # install actually complete on a clean Fedora?" was unproven — which is why
-  # "run install-fedora.sh end-to-end" sat open in MASTER_PLAN.md from
+  # "run install-void.sh end-to-end" sat open in MASTER_PLAN.md from
   # 2026-08-04.
   #
   # Deliberately slow and real: ~100 packages, a COPR, two git clones and five
@@ -100,8 +100,8 @@ jobs:
       # No --dry-run, no --skip-suckless: the point is the real thing. Runs as
       # root, so install-services.sh's SUDO array stays empty and install-pre's
       # privilege check passes without sudo being installed.
-      - name: Run install-fedora.sh for real
-        run: bash scripts/install-fedora.sh
+      - name: Run install-void.sh for real
+        run: bash scripts/install-void.sh
 
       # Every expectation below is DERIVED from a shipped source of truth
       # rather than hand-listed here: the link set comes from `symlinks.sh
@@ -120,7 +120,7 @@ jobs:
           note() { echo "::error::$1"; fail=1; }
 
           echo "::group::stages reached"
-          # install-fedora.sh tees an ANSI-stripped copy of the whole run here.
+          # install-void.sh tees an ANSI-stripped copy of the whole run here.
           log=install.log
           [ -f "$log" ] || { note "no install.log written"; exit 1; }
           # The banner list is READ OUT OF THE ORCHESTRATOR, not restated here.
@@ -135,8 +135,8 @@ jobs:
             else
               note "stage banner missing from install.log: $stage"
             fi
-          done < <(grep -oE 'blue "=== [^"]+ ==="' scripts/install-fedora.sh | sed 's/^blue "//; s/"$//')
-          [ "$n" -gt 0 ] || note "no stage banners found in install-fedora.sh — extraction broke"
+          done < <(grep -oE 'blue "=== [^"]+ ==="' scripts/install-void.sh | sed 's/^blue "//; s/"$//')
+          [ "$n" -gt 0 ] || note "no stage banners found in install-void.sh — extraction broke"
           # The completion sentinel is separate: it is the last line of the
           # orchestrator, not one of the stage banners it prints along the way.
           if grep -qF "✓ install complete" "$log"; then
