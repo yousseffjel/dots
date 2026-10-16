@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Every name in packages/*.lst must exist in Void Linux's x86_64 repo index,
-# and in the MAIN repo: the package stages install these before the repos
-# step enables nonfree, so a nonfree name here would fail on every install.
+# Every name in packages/*.lst and packages/live/*.lst (scope J) must exist
+# in Void Linux's x86_64 repo index, and in the MAIN repo: the package stages
+# install these before the repos step enables nonfree (and the live
+# installer's target never has it), so a nonfree name here would fail on
+# every install.
 #
 # It checks against tests/fixtures/void-x86_64-pkgs.tsv, a snapshot of the
 # official index (name<TAB>repo). That keeps the test offline and
@@ -123,20 +125,20 @@ while IFS=$'\t' read -r name repo; do
     REPO_OF["$name"]="$repo"
 done < <(grep -v '^#' "$SNAPSHOT")
 
-blue "==> every packages/*.lst name is in Void's main repo"
+blue "==> every packages/*.lst and packages/live/*.lst name is in Void's main repo"
 lists=0
-for list in "$DOTS_DIR"/packages/*.lst; do
+for list in "$DOTS_DIR"/packages/*.lst "$DOTS_DIR"/packages/live/*.lst; do
     [[ -e $list ]] || continue
     lists=$((lists + 1))
     while IFS= read -r pkg; do
         case "${REPO_OF[$pkg]:-}" in
             main) ;;
             nonfree)
-                red "  FAIL: $(basename "$list"): $pkg is only in nonfree, which the package stages have not enabled yet"
+                red "  FAIL: ${list#"$DOTS_DIR"/packages/}: $pkg is only in nonfree, which the package stages have not enabled yet"
                 FAIL=1
                 ;;
             *)
-                red "  FAIL: $(basename "$list"): $pkg is not a Void package"
+                red "  FAIL: ${list#"$DOTS_DIR"/packages/}: $pkg is not a Void package"
                 FAIL=1
                 ;;
         esac

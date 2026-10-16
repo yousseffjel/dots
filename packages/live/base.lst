@@ -1,0 +1,23 @@
+# Installed into the TARGET root by the live-ISO installer
+# (scripts/install-live-base.sh, scope J), with `xbps-install -r`. Nothing
+# else reads this directory. dots doctor and install-pkg.sh only see
+# packages/*.lst (depth 1): these are what a fresh disk needs to boot, not a
+# tier of the desktop. tests/pkglist.sh and tests/void-pkgnames.sh glob
+# packages/live/*.lst as well, so every name is still checked against
+# Void's index.
+#
+# Hard-fail: without any one of these the disk does not boot.
+#
+# base-system already brings linux (→ linux-base → dracut + firmware),
+# sudo, glibc-locales, dhcpcd, e2fsprogs and dosfstools (base-system-0.114_2,
+# read from the repodata on 2026-10-16).
+
+# the system itself
+base-system
+
+# the backup kernel, a GRUB "Advanced options" entry (scope J, decision 9)
+linux-lts
+
+# the bootloader. The BIOS (i386-pc) modules are in this package: there is
+# no grub-i386-pc. UEFI also needs uefi.lst (scope J, decision 5).
+grub

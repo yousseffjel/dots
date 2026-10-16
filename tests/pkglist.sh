@@ -5,7 +5,8 @@
 # check — it does NOT hit dnf/network; see the CI "install-dry-run" job
 # (.github/workflows/ci.yml) for live repo validation of package names.
 #
-# Every check GLOBS packages/*.lst rather than naming the lists. That is
+# Every check GLOBS packages/*.lst and packages/live/*.lst (the live-ISO
+# installer's lists, scope J) rather than naming the lists. That is
 # deliberate: the repo went from two lists to four (core, build, desktop,
 # extra) and a test that names them silently stops covering whichever one is
 # added next. A new tier is picked up here for free.
@@ -44,20 +45,20 @@ read_pkg_list() {
 FAIL=0
 
 LISTS=()
-while IFS= read -r f; do LISTS+=("$f"); done < <(find "$PACKAGES_DIR" -maxdepth 1 -name '*.lst' | sort)
+while IFS= read -r f; do LISTS+=("$f"); done < <(find "$PACKAGES_DIR" "$PACKAGES_DIR/live" -maxdepth 1 -name '*.lst' 2>/dev/null | sort)
 
 blue "==> discovering package lists"
 if [[ ${#LISTS[@]} -eq 0 ]]; then
     red "  no packages/*.lst found at all — wrong PACKAGES_DIR, or the lists were removed"
     exit 1
 fi
-green "  found ${#LISTS[@]}: $(for l in "${LISTS[@]}"; do printf '%s ' "$(basename "$l")"; done)"
+green "  found ${#LISTS[@]}: $(for l in "${LISTS[@]}"; do printf '%s ' "${l#"$PACKAGES_DIR"/}"; done)"
 
 blue "==> checking package name format"
 for list in "${LISTS[@]}"; do
     while IFS= read -r pkg; do
         if ! [[ "$pkg" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
-            red "  invalid package name in $(basename "$list"): '$pkg'"
+            red "  invalid package name in ${list#"$PACKAGES_DIR"/}: '$pkg'"
             FAIL=1
         fi
     done < <(read_pkg_list "$list")
@@ -70,7 +71,7 @@ done
 blue "==> checking no list is empty"
 for list in "${LISTS[@]}"; do
     if [[ "$(read_pkg_list "$list" | wc -l)" -eq 0 ]]; then
-        red "  $(basename "$list") declares no packages at all"
+        red "  ${list#"$PACKAGES_DIR"/} declares no packages at all"
         FAIL=1
     fi
 done
@@ -80,7 +81,7 @@ blue "==> checking for duplicates within each list"
 for list in "${LISTS[@]}"; do
     dupes="$(read_pkg_list "$list" | sort | uniq -d)"
     if [[ -n "$dupes" ]]; then
-        red "  duplicate entries in $(basename "$list"):"
+        red "  duplicate entries in ${list#"$PACKAGES_DIR"/}:"
         while IFS= read -r d; do red "    $d"; done <<<"$dupes"
         FAIL=1
     fi
@@ -98,7 +99,7 @@ for ((i = 0; i < ${#LISTS[@]}; i++)); do
             <(read_pkg_list "${LISTS[i]}" | sort -u) \
             <(read_pkg_list "${LISTS[j]}" | sort -u))"
         if [[ -n "$overlap" ]]; then
-            red "  in both $(basename "${LISTS[i]}") and $(basename "${LISTS[j]}"):"
+            red "  in both ${LISTS[i]#"$PACKAGES_DIR"/} and ${LISTS[j]#"$PACKAGES_DIR"/}:"
             while IFS= read -r o; do red "    $o"; done <<<"$overlap"
             overlap_found=1
             FAIL=1

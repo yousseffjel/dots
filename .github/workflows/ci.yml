@@ -190,11 +190,12 @@ jobs:
         run: |
           # Same comment/blank-line stripping as read_pkg_list() in
           # scripts/install-pkg-tiers.sh. Globs the lists, never names them
-          # (CLAUDE.md rule 10). Main only: the package stages run before the
-          # repos step enables nonfree.
+          # (CLAUDE.md rule 10), including the live-ISO installer's
+          # packages/live/*.lst (scope J). Main only: the package stages run
+          # before the repos step enables nonfree.
           fail=0
           shopt -s nullglob
-          lists=(packages/*.lst)
+          lists=(packages/*.lst packages/live/*.lst)
           if [ ${#lists[@]} -eq 0 ]; then
             echo "::error::no packages/*.lst found"
             exit 1

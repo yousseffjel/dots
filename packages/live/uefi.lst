@@ -1,0 +1,5 @@
+# Installed into the target alongside base.lst, on UEFI firmware only
+# (/sys/firmware/efi exists on the live ISO). See base.lst's header.
+
+# GRUB's x86_64 EFI modules; pulls in efibootmgr for the NVRAM boot entry
+grub-x86_64-efi

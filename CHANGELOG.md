@@ -18,6 +18,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Install Void itself from the live ISO** (first part of scope J).
+  `scripts/install-live.sh`, run as root on the Void live ISO against a root
+  you have partitioned and mounted at `/mnt`, installs base-system with the
+  `linux` kernel and `linux-lts` as a backup. It sets the hostname,
+  timezone, keymap and locale, creates your user in wheel with sudo, and
+  installs GRUB for UEFI or BIOS. It asks with `dialog` menus, or reads
+  `--answers FILE` for an unattended run; `--dry-run` writes nothing.
+  Partitioning, encryption and running the dotfiles installer before the
+  reboot come in later parts.
 - **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
   bell in the bar, opens dunst's history as a list under the right end of the
   bar. Open a notification (shows it again and opens its link) or delete it,

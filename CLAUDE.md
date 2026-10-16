@@ -80,6 +80,11 @@ dots/
 │   │                           # Thin dispatcher; its SUBCOMMANDS table is the ONLY declaration of the
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-void.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
+│   ├── install-live.sh         # scope J (in progress): run as root ON THE LIVE ISO against a mounted /mnt —
+│   │                           # base-system + linux + linux-lts, config, user in wheel, GRUB (UEFI or BIOS).
+│   │                           # Refuses without root=live: on the cmdline. --answers FILE (unattended), --dry-run.
+│   ├── install-live-{answers,validate,base,config}.sh # sourced by it: dialog menus / answers parser + validators,
+│   │                           # preflight + xbps-install -r bootstrap, xchroot config + grub-install
 │   ├── install-pre.sh          # stage: sanity checks (xbps present, sudo available, in wheel; musl noted)
 │   ├── install-pkg.sh          # stage: full upgrade, then xbps packages (packages/*.lst), then repos + drivers
 │   ├── install-pkg-tiers.sh    # sourced by install-pkg.sh: install_tier — ONE xbps transaction per tier;
@@ -147,7 +152,9 @@ dots/
 │   ├── desktop.lst      # never aborts, but each failure is repeated in a red closing summary;
 │   │                    # the trailing '#' on each line IS that package's consequence text
 │   ├── extra.lst        # best-effort applications and conveniences
-│   └── laptop.lst       # `# chassis: laptop` — installed by drivers-lib.sh on laptops ONLY (rule 10)
+│   ├── laptop.lst       # `# chassis: laptop` — installed by drivers-lib.sh on laptops ONLY (rule 10)
+│   └── live/            # base.lst + uefi.lst: what install-live.sh puts in the TARGET root. A subdir so dots
+│                        #  doctor's depth-1 glob never checks them; pkglist.sh, void-pkgnames.sh and ci.yml glob it too
 ├── suckless/
 │   ├── dwm/, st/, dmenu/, dwmblocks/, slock/
 │   ├── nsxiv/           # the default image viewer — NOT in Fedora, so vendored (upstream v34, no patches;
