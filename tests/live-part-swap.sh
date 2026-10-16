@@ -62,6 +62,8 @@ in_live() {
         source "$DOTS_DIR/scripts/install-live-disk.sh"
         # shellcheck source=../scripts/install-live-part.sh
         source "$DOTS_DIR/scripts/install-live-part.sh"
+        # shellcheck source=../scripts/install-live-luks.sh
+        source "$DOTS_DIR/scripts/install-live-luks.sh"
         # shellcheck source=../scripts/install-live-config.sh
         source "$DOTS_DIR/scripts/install-live-config.sh"
         # shellcheck source=../scripts/install-live-swap.sh
@@ -81,8 +83,9 @@ if have sfdisk; then
     for fw in uefi bios; do
         img="$SB/$fw.img"
         truncate -s 13G "$img"
-        # mkfs is recorded, not run: an image file has no partition nodes.
-        out="$(in_live "LIVE_FIRMWARE=$fw LIVE_DISK=$img; live_part_mkfs() { echo \"MKFS \$1 \$2\"; }; live_part_create")"
+        # mkfs is recorded, not run: an image file has no partition nodes,
+        # and no dm-crypt mapping to look up.
+        out="$(in_live "LIVE_FIRMWARE=$fw LIVE_DISK=$img; live_part_mkfs() { echo \"MKFS \$1 \$2\"; }; live_luks_close_all() { :; }; live_part_create")"
         table="$(sfdisk -d "$img" | sed -n 's/^[^ ]*\([0-9]\) : start= *\([0-9]*\), size= *\([0-9]*\), type=\([^,]*\),.*name="\([^"]*\)".*/\1 \2 \3 \4 \5/p')"
         if [[ $fw == uefi ]]; then
             want1="1 2048 2097152 C12A7328-F81F-11D2-BA4B-00A0C93EC93B dots-esp"

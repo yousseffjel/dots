@@ -100,7 +100,7 @@ live_preflight() {
     local c need=(xbps-install xchroot xgenfstab lsblk findmnt mountpoint)
     [[ $LIVE_INTERACTIVE -eq 1 ]] && need+=(dialog)
     [[ ${LIVE_SKIP_DOTS:-0} -eq 0 ]] && need+=(git)
-    [[ ${LIVE_DISK_MODE:-0} -eq 1 ]] && need+=(sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid numfmt)
+    [[ ${LIVE_DISK_MODE:-0} -eq 1 ]] && need+=(sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid numfmt cryptsetup)
     if [[ $EUID -ne 0 && $DRY_RUN -eq 0 ]]; then
         red "Run as root (the live ISO logs in as root)."
         return 1

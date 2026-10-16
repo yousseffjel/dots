@@ -44,6 +44,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   the root partition. Re-running after a crash picks up the already
   formatted disk. `--target DIR` still installs onto a root you mounted
   yourself, with zram but no swapfile.
+- **The live-ISO install can encrypt the disk** (scope J, J-4). After you
+  pick the disk, `install-live.sh` asks whether to encrypt it (No unless
+  you choose it). Yes puts the root partition in LUKS2 (argon2id) and asks
+  for the passphrase twice. `/boot` stays unencrypted, and you type the
+  passphrase once at boot, in the keymap you chose, for both kernels. An
+  unattended run names a file holding only the passphrase:
+  `LUKS_PASSFILE=/root/pass`, owned by root and mode 600. The answers file
+  itself never holds it. A re-run after a crash picks up the encrypted disk
+  when the passphrase opens it.
 - **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
   bell in the bar, opens dunst's history as a list under the right end of the
   bar. Open a notification (shows it again and opens its link) or delete it,

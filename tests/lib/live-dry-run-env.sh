@@ -41,7 +41,7 @@ case "$1 $2" in
     *) echo "fake lsblk: unexpected $*" >&2; exit 2 ;;
 esac
 EOF
-for c in xbps-install xchroot xgenfstab dialog sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid; do
+for c in xbps-install xchroot xgenfstab dialog sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid cryptsetup loadkeys; do
     # The $* and $STATE belong to the fake, expanded when it runs.
     # shellcheck disable=SC2016
     printf '#!/usr/bin/env bash\necho "%s $*" >>"$STATE/called"\n' "$c" >"$BIN/$c"

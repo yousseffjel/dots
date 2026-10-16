@@ -123,17 +123,22 @@ live_dots_install() {
     live_ok "dots installed; the temporary sudo rule is removed"
 }
 
-# live_dots_finish — unmount the target, then reboot when --reboot was given
+# live_dots_finish — unmount the target (and close the root's mapping when
+# this run encrypted it), then reboot when --reboot was given
 # or the user says yes. Without either, say what is left to do.
 live_dots_finish() {
     if [[ $DRY_RUN -eq 1 ]]; then
         blue "  (dry-run) would run: umount -R $LIVE_TARGET"
+        [[ $LIVE_LUKS -eq 0 ]] || blue "  (dry-run) would run: cryptsetup close luks-<UUID>"
         [[ $LIVE_REBOOT -eq 1 ]] && blue "  (dry-run) would run: reboot"
         return 0
     fi
     sync
     if umount -R "$LIVE_TARGET"; then
         green "ok      $LIVE_TARGET unmounted"
+        if [[ $LIVE_LUKS -eq 1 ]]; then
+            live_luks_close_all
+        fi
     else
         yellow "note    $LIVE_TARGET is still busy; a reboot unmounts it"
     fi

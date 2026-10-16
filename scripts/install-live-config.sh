@@ -149,7 +149,8 @@ live_drop_empty_resolv() {
 
 # live_configure_boot — dhcpcd, so the first boot has a network before
 # install-void.sh switches it to NetworkManager; GRUB; then the dracut
-# images and grub.cfg. reconfigure -fa runs every kernel hook, so both
+# images and grub.cfg. On an encrypted root, install-live-luks.sh adds
+# dracut's crypt module and rd.luks.uuid= first. reconfigure -fa runs every kernel hook, so both
 # `linux` and `linux-lts` get an initramfs. grub-mkconfig puts the newest
 # kernel (linux) first and the LTS one under "Advanced options"
 # (scope J, decision 9).
@@ -164,6 +165,7 @@ live_configure_boot() {
     else
         live_in_target grub-install --target=i386-pc "$LIVE_DISK"
     fi
+    live_luks_configure
     live_in_target xbps-reconfigure -fa
     live_in_target grub-mkconfig -o /boot/grub/grub.cfg
     live_ok "GRUB installed, both kernels in its menu"

@@ -81,7 +81,7 @@ dots/
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-void.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-live.sh         # scope J (in progress): run as root ON THE LIVE ISO — picks and ERASES a disk
-│   │                           # (typed name, or DISK= + WIPE=), GPT + mkfs + mount at /mnt, zram + swapfile,
+│   │                           # (typed name, or DISK= + WIPE=), GPT + optional LUKS2 root + mkfs + mount at /mnt, zram + swapfile,
 │   │                           # base-system + linux + linux-lts, config, user in wheel, GRUB (UEFI or BIOS),
 │   │                           # then dots, unmount, reboot. Refuses without root=live: on the cmdline.
 │   │                           # --target DIR (a root you mounted; no disk erased), --answers FILE (unattended),
@@ -90,6 +90,11 @@ dots/
 │   │                           # sfdisk layout read back by PARTN + PARTLABEL (never vda1-style names), the
 │   │                           # swapfile size and zramen's conf. A re-run resumes a target already mounted
 │   │                           # from this disk's dots-root rather than erasing it again.
+│   ├── install-live-luks.sh    # sourced by install-live-answers.sh (J-4): optional LUKS2 (argon2id) on dots-root,
+│   │                           # opened as luks-<UUID> (dracut's own name), passphrase on stdin only (dialog, or
+│   │                           # LUKS_PASSFILE: root's, 0600). dracut's crypt module + rd.luks.uuid= and
+│   │                           # rd.vconsole.keymap= in GRUB_CMDLINE_LINUX. NO crypttab: runit's crypt.awk
+│   │                           # would luksOpen root a second time. Mappings on the disk closed before a re-layout.
 │   ├── install-live-{answers,validate,base,config,dots}.sh # sourced by it: dialog menus / answers parser +
 │   │                           # validators, preflight + xbps-install -r bootstrap, xchroot config + grub-install,
 │   │                           # ~/dots clone + install-void.sh as the user under a TEMPORARY NOPASSWD rule

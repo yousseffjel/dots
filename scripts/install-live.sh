@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install Void Linux onto a disk from the Void live ISO (scope J). Run as
-# root on the live ISO. Encryption comes in J-4.
+# root on the live ISO.
 #
 #   xbps-install -Sy git && git clone <this repo> && cd dots
 #   scripts/install-live.sh
@@ -8,7 +8,8 @@
 # It asks its questions with dialog (hostname, user, passwords, timezone,
 # keymap, locale), or reads them from --answers. Then it asks which disk
 # to erase and has you type that disk's name (install-live-disk.sh). It
-# lays the disk out as GPT, formats it and mounts it at /mnt
+# lays the disk out as GPT, optionally encrypts the root partition with
+# LUKS2 (install-live-luks.sh), formats it and mounts it at /mnt
 # (install-live-part.sh), and sets up zram plus a swapfile
 # (install-live-swap.sh). With --target it skips all of that and installs
 # onto a root you partitioned and mounted yourself. Then it bootstraps
@@ -36,6 +37,8 @@
 #                   install-live-answers.sh. Passwords are crypt hashes
 #                   (openssl passwd -6), never plain text. The disk to
 #                   erase is named twice: DISK=/dev/vda and WIPE=/dev/vda.
+#                   LUKS_PASSFILE=/root/pass encrypts / with the passphrase
+#                   in that file (root's, mode 600).
 #   --skip-dots     stop at a bootable tty system (J-1): no dots, no
 #                   unmount. Log in and run install-void.sh yourself.
 #   --reboot        reboot when done without asking (for unattended runs).
@@ -121,6 +124,7 @@ plan_text() {
         [[ $LIVE_FIRMWARE == uefi ]] || first="bios_grub 1 MiB"
         printf '%-10s %s\n' disk "$LIVE_DISK is ERASED: GPT, $first, /boot 1 GiB, / the rest" \
             target "$LIVE_TARGET" swap "zram (half of RAM, zstd), then a $(live_swap_mib "$LIVE_DISK_BYTES") MiB swapfile"
+        live_luks_plan
     else
         printf '%-10s %s\n' target "$LIVE_TARGET on $LIVE_DISK, as mounted" swap "zram (half of RAM, zstd)"
     fi
@@ -153,6 +157,7 @@ if [[ $LIVE_DISK_MODE -eq 1 ]]; then
 else
     live_disk_answers_unused || exit 1
 fi
+live_luks_choose || exit 1
 
 blue "==> plan"
 plan_text

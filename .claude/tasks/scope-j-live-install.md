@@ -122,7 +122,7 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
 | J-4 | `live-luks` | Optional LUKS2 (argon2id) on partition 3, `/etc/crypttab`, dracut crypt module, `rd.luks.uuid=` in `GRUB_CMDLINE_LINUX_DEFAULT`, `xbps-reconfigure -f` of the kernel so dracut rebuilds. | VM: UEFI+LUKS and BIOS+LUKS; one password prompt at boot |
 | J-5 | `live-docs` | README/INSTALL section, `docs/` page, CLAUDE.md map + entry points, CHANGELOG. A full matrix VM run. | 4 combinations: {UEFI, BIOS} × {plain, LUKS} |
 
-**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. J-2 ✅ done 2026-10-16 (slot `live-dots`): one UEFI VM run from the ISO booted straight into ly with `dots doctor` passing (one warning, spice-vdagent with no SPICE channel); a second run, aborted by a lingering gpg-agent, was re-run over its half-done target and converged. J-3 ✅ done 2026-10-16 (slot `live-disk`): verified from the ISO on two blank 20 GiB disks. UEFI used an answers file (DISK + WIPE). That run was interrupted with Ctrl-C mid-bootstrap, then re-run: it resumed the mounted target without erasing it, booted to ly, and had zram (zstd, half of RAM, pri 32767) and the 1843 MiB swapfile (pri 10) active. BIOS used the dialog menus: the read-only repo disk was not offered, a mistyped name was re-asked, the layout was `dots-bios`/`dots-boot`/`dots-root`, and the 1945 MiB swapfile and zram were both active at first boot. Next is J-4.
+**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. J-2 ✅ done 2026-10-16 (slot `live-dots`): one UEFI VM run from the ISO booted straight into ly with `dots doctor` passing (one warning, spice-vdagent with no SPICE channel); a second run, aborted by a lingering gpg-agent, was re-run over its half-done target and converged. J-3 ✅ done 2026-10-16 (slot `live-disk`): verified from the ISO on two blank 20 GiB disks. UEFI used an answers file (DISK + WIPE). That run was interrupted with Ctrl-C mid-bootstrap, then re-run: it resumed the mounted target without erasing it, booted to ly, and had zram (zstd, half of RAM, pri 32767) and the 1843 MiB swapfile (pri 10) active. BIOS used the dialog menus: the read-only repo disk was not offered, a mistyped name was re-asked, the layout was `dots-bios`/`dots-boot`/`dots-root`, and the 1945 MiB swapfile and zram were both active at first boot. Next is J-4. J-4 ✅ done 2026-10-16 (slot `live-luks`): verified from the ISO on the two J-3 VMs, each re-laid from its plain install. UEFI used an answers file with `LUKS_PASSFILE`. A first run was stopped by `timeout -s INT` inside install-void.sh; the re-run resumed the open `luks-<UUID>` mapping (the passphrase opened it) and finished. BIOS used the dialog menus (Yes to encryption, the passphrase twice). Both booted with one dracut prompt to ly, on `linux` (UEFI) and `linux-lts` (BIOS), with zram and the swapfile active. The kernel arguments moved to `GRUB_CMDLINE_LINUX` after the UEFI run showed the recovery entries without them. Next is J-5.
 
 ## Open questions — research before the sub-task that needs them
 
@@ -162,6 +162,20 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
   re-run resumes it (the root is this disk's `dots-root`). Anything else
   under the target is unmounted before the disk is laid out again. The
   open LUKS mapping is J-4's.
+
+### Encryption decisions (user, 2026-10-16, J-4)
+
+Asked during J-4's explore. The answers file holds password hashes only (J-1),
+and a LUKS passphrase cannot be a hash.
+
+13. **Unattended passphrase: a separate key file.** A new answers key,
+    `LUKS_PASSFILE=/path`, names a file holding only the passphrase, which
+    cryptsetup reads with `--key-file`. The installer refuses the file unless
+    it is root-owned with mode 600. The answers file stays free of secrets.
+    Turned down: a plaintext `LUKS_PASSWORD=` in the answers file, and
+    dialog-only encryption (no unattended LUKS run).
+14. **Dialog default: encryption off.** Plain ext4 unless the user chooses
+    encryption. Turned down: on by default.
 
 ## Out of scope
 

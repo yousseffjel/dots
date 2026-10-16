@@ -18,17 +18,23 @@
 #   DISK WIPE           (the disk to erase, e.g. /dev/vda, named in both;
 #                        required unless --target is given, refused with it.
 #                        install-live-disk.sh checks the pair and the disk)
+#   LUKS_PASSFILE       (optional; an absolute path to a file holding only
+#                        the disk passphrase, root's and mode 600. Encrypts
+#                        / with LUKS2. Refused with --target. J-4)
 # Passwords are crypt hashes only (`openssl passwd -6`), so the file never
-# holds a usable password. The dialog path asks for the password itself and
+# holds a usable password, and the LUKS passphrase stays in a file of its
+# own. The dialog path asks for the password itself and
 # keeps it in memory only, handed to chpasswd on stdin
 # (install-live-config.sh).
 
 LIVE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/install-live-validate.sh
 source "$LIVE_SCRIPT_DIR/install-live-validate.sh"
+# shellcheck source=scripts/install-live-luks.sh
+source "$LIVE_SCRIPT_DIR/install-live-luks.sh"
 
 LIVE_DEFAULT_REPO="https://repo-default.voidlinux.org/current"
-LIVE_ANSWER_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE ROOT_PASSWORD_HASH REPO DISK WIPE)
+LIVE_ANSWER_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE ROOT_PASSWORD_HASH REPO DISK WIPE LUKS_PASSFILE)
 LIVE_REQUIRED_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE)
 
 LIVE_HOSTNAME="" LIVE_USERNAME="" LIVE_TIMEZONE="" LIVE_KEYMAP="" LIVE_LOCALE=""
@@ -51,6 +57,7 @@ live_answer_valid() {
         ROOT_PASSWORD_HASH) [[ -z $2 ]] || live_valid_hash "$2" ;;
         REPO) live_valid_repo "$2" ;;
         DISK | WIPE) live_valid_disk_path "$2" ;;
+        LUKS_PASSFILE) live_valid_passfile "$2" ;;
         *) return 1 ;;
     esac
 }
@@ -70,6 +77,7 @@ live_answer_set() {
         REPO) LIVE_REPO="$2" ;;
         DISK) LIVE_DISK_ANSWER="$2" ;;
         WIPE) LIVE_WIPE_ANSWER="$2" ;;
+        LUKS_PASSFILE) live_luks_load_passfile "$2" ;;
     esac
 }
 

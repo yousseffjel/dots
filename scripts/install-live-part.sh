@@ -6,6 +6,8 @@
 #   1  ESP, 1 GiB   bios_grub, 1 MiB  vfat / none  /boot/efi / -
 #   2  1 GiB        1 GiB             ext4         /boot
 #   3  the rest     the rest          ext4         /
+#                                     (inside LUKS2 when chosen, J-4:
+#                                      install-live-luks.sh)
 #
 # Each partition carries a GPT name (dots-esp or dots-bios, dots-boot,
 # dots-root). The partition nodes are read back from lsblk by number and
@@ -20,8 +22,10 @@
 # A re-run converges. A target already mounted from this disk's dots-root
 # is an earlier run that got past formatting (all three filesystems are
 # made before the first mount), so it is resumed: only what is not mounted
-# yet gets mounted. Otherwise whatever is mounted under the target is
-# unmounted and the disk is laid out again.
+# yet gets mounted. Encrypted, the root must be a mapping on dots-root that
+# this run's passphrase opens. Otherwise whatever is mounted under the
+# target is unmounted, any mapping on the disk closed, and the disk is laid
+# out again.
 
 LIVE_GUID_ESP="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 LIVE_GUID_LINUX="0fc63daf-8483-4772-8e79-3d69d8477de4"
@@ -88,6 +92,9 @@ live_part_create() {
     if [[ $DRY_RUN -eq 0 ]] && mountpoint -q "$LIVE_TARGET"; then
         live_run umount -R "$LIVE_TARGET"
     fi
+    if [[ $DRY_RUN -eq 0 ]]; then
+        live_luks_close_all
+    fi
     blue "  new table on $LIVE_DISK ($LIVE_FIRMWARE):"
     live_part_script | sed 's/^/          /'
     if [[ $DRY_RUN -eq 1 ]]; then
@@ -106,7 +113,10 @@ live_part_create() {
         live_part_mkfs esp "$LIVE_PART1"
     fi
     live_part_mkfs boot "$LIVE_PART2"
-    live_part_mkfs root "$LIVE_PART3"
+    if [[ $LIVE_LUKS -eq 1 ]]; then
+        live_luks_format
+    fi
+    live_part_mkfs root "$(live_luks_root_dev)"
 }
 
 # live_mount_once <device> <dir> — mount unless something already is.
@@ -125,12 +135,12 @@ live_part_prepare() {
     local src
     blue "==> disk $LIVE_DISK"
     src="$(findmnt -nvo SOURCE --mountpoint "$LIVE_TARGET" 2>/dev/null || true)"
-    if [[ $DRY_RUN -eq 0 && -n $src ]] && live_part_nodes && [[ $src == "$LIVE_PART3" ]]; then
-        yellow "note    $LIVE_TARGET is $LIVE_PART3 from an earlier run: resuming it, not erasing"
+    if [[ $DRY_RUN -eq 0 && -n $src ]] && live_part_nodes && live_luks_resumable "$src"; then
+        yellow "note    $LIVE_TARGET is $src from an earlier run: resuming it, not erasing"
     else
         live_part_create
     fi
-    live_mount_once "$LIVE_PART3" "$LIVE_TARGET"
+    live_mount_once "$(live_luks_root_dev)" "$LIVE_TARGET"
     live_mount_once "$LIVE_PART2" "$LIVE_TARGET/boot"
     if [[ $LIVE_FIRMWARE == uefi ]]; then
         live_mount_once "$LIVE_PART1" "$LIVE_TARGET/boot/efi"

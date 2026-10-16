@@ -74,6 +74,21 @@ live_valid_repo() {
     [[ $1 =~ ^https?://[A-Za-z0-9._~:/?#@!\&+,\;=%-]+$ ]]
 }
 
+# A LUKS passphrase file (scope J, decision 13): an absolute path to a
+# regular file, not a symlink, owned by root (LIVE_PASSFILE_UID, read at
+# call time, lets a test stand in for root) and readable by nobody else,
+# holding one non-empty line.
+live_valid_passfile() {
+    local owner mode content
+    [[ $1 == /* && -f $1 && ! -L $1 && -r $1 ]] || return 1
+    owner="$(stat -c %u -- "$1")" || return 1
+    mode="$(stat -c %a -- "$1")" || return 1
+    [[ $owner == "${LIVE_PASSFILE_UID:-0}" && ($mode == 600 || $mode == 400) ]] || return 1
+    content="$(cat -- "$1")" || return 1
+    content="${content%$'\r'}"
+    [[ -n $content && $content != *$'\n'* ]]
+}
+
 # A device path under /dev, by kernel name or a /dev/disk/by-* link. The
 # character class keeps it out of option parsing, and `..` is refused, so
 # it cannot point outside /dev. Whether it is a disk that may be erased is

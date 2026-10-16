@@ -26,7 +26,7 @@ echo gpt >"$STATE/pttype"
 echo c12a7328-f81f-11d2-ba4b-00a0c93ec93b >"$STATE/parttypes"
 run uefi --answers "$SB/answers"
 check "both kernels, grub and the EFI modules into the target" 0 \
-    "xbps-install -Sy -r $T -R https://repo-default.voidlinux.org/current base-system linux-lts grub zramen grub-x86_64-efi" \
+    "xbps-install -Sy -r $T -R https://repo-default.voidlinux.org/current base-system linux-lts grub cryptsetup zramen grub-x86_64-efi" \
     "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Void" \
     "--efi-directory=/boot/efi --removable" "xchroot $T xbps-reconfigure -fa" \
     "would set the ysf password (hash, chpasswd on stdin)" "xchroot $T passwd -l root" \

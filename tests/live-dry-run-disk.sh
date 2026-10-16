@@ -37,6 +37,33 @@ TARGET="" run bios --answers "$SB/disk"
 check "BIOS: a bios_grub partition, no ESP, GRUB to the chosen disk" 0 \
     "size=1MiB, type=21686148-6449-6e6f-744e-656564454649, name=dots-bios" \
     "xchroot /mnt grub-install --target=i386-pc /dev/vda" -- "mkfs.vfat" "/boot/efi"
+TARGET="" run uefi --answers "$SB/disk"
+check "a plain disk: no encryption, and nothing of it left in the target" 0 \
+    "encrypt    no" "would run: rm -f /mnt/etc/dracut.conf.d/10-dots-crypt.conf" -- "luksFormat" "luks-<UUID>" "rd.luks.uuid=<"
+
+blue "==> LUKS_PASSFILE: the root partition encrypted"
+# The passphrase file is the test user's here; live_valid_passfile reads
+# the uid it wants from LIVE_PASSFILE_UID (root's, 0, by default).
+export LIVE_PASSFILE_UID
+LIVE_PASSFILE_UID="$(id -u)"
+printf '%s\n' 'n0t in any output' >"$SB/pass" && chmod 600 "$SB/pass"
+{
+    cat "$SB/disk"
+    echo "LUKS_PASSFILE=$SB/pass"
+} >"$SB/luks" && chmod 600 "$SB/luks"
+TARGET="" run uefi --answers "$SB/luks"
+check "LUKS2 on dots-root, ext4 on the mapping, dracut and GRUB told" 0 \
+    "encrypt    / is LUKS2 (argon2id): one passphrase at every boot" \
+    "would run: cryptsetup luksFormat --batch-mode --type luks2 --pbkdf argon2id --key-file - /dev/vda3 (passphrase on stdin)" \
+    "would run: cryptsetup open --key-file - /dev/vda3 luks-<UUID> (passphrase on stdin)" \
+    "would run: mkfs.ext4 -F -q -L void /dev/mapper/luks-<UUID>" "would run: mount /dev/mapper/luks-<UUID> /mnt" \
+    'add_dracutmodules+=" crypt "' "replaced by 'rd.luks.uuid=<LUKS UUID of /dev/vda3> rd.vconsole.keymap=us'" \
+    "would run: cryptsetup close luks-<UUID>" -- "n0t in any output" "mkfs.ext4 -F -q -L void /dev/vda3" "crypttab"
+chmod 644 "$SB/pass"
+TARGET="" run uefi --answers "$SB/luks"
+check "a passphrase file others can read is refused" 1 "invalid LUKS_PASSFILE" -- "would run" "n0t in any output"
+chmod 600 "$SB/pass"
+
 TARGET="" run uefi --answers "$SB/answers"
 check "an answers file without DISK and no --target is refused" 1 "missing DISK" -- "would run"
 sed 's|^WIPE=.*|WIPE=/dev/vdb|' "$SB/disk" >"$SB/wipe" && chmod 600 "$SB/wipe"
@@ -46,13 +73,19 @@ printf '%s\n' "$T /dev/vda2 ext4" "$T/boot/efi /dev/vda1 vfat" >"$STATE/mounts"
 echo c12a7328-f81f-11d2-ba4b-00a0c93ec93b >"$STATE/parttypes"
 run uefi --answers "$SB/disk"
 check "--target with DISK/WIPE in the answers is refused" 1 "Drop one" -- "would run"
+{
+    cat "$SB/answers"
+    echo "LUKS_PASSFILE=$SB/pass"
+} >"$SB/tluks" && chmod 600 "$SB/tluks"
+run uefi --answers "$SB/tluks"
+check "--target with LUKS_PASSFILE in the answers is refused" 1 "LUKS_PASSFILE encrypts the disk to erase" -- "would run"
 
 blue "==> the disk stage's tools must be on the ISO"
 # A sealed PATH: grep (live_is_live) and fakes for every tool but one. A
 # prepended PATH would fall through to the host's real tool and pass.
 # shellcheck source=lib/sealed-path.sh
 source "$SCRIPT_DIR/lib/sealed-path.sh"
-DISK_TOOLS=(sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid numfmt)
+DISK_TOOLS=(sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid numfmt cryptsetup)
 for gone in "${DISK_TOOLS[@]}"; do
     seal="$SB/seal-$gone"
     seal_path "$seal" grep

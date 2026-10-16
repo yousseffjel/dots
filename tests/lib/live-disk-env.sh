@@ -33,11 +33,13 @@ awk -v d="${!#}" '$1 == d { print $2; f = 1 } END { exit !f }' "$STATE/mounts"
 EOF
 cat >"$BIN/dialog" <<'EOF'
 #!/usr/bin/env bash
-# Replies, one per call, from $STATE/replies; "CANCEL" exits 1.
+# Replies, one per call, from $STATE/replies; "CANCEL" exits 1 (also a
+# --yesno No), "ESC" exits 255.
 n="$(cat "$STATE/n" 2>/dev/null || echo 0)"; n=$((n + 1)); echo "$n" >"$STATE/n"
 r="$(sed -n "${n}p" "$STATE/replies")"
 echo "$*" >>"$STATE/dialog-calls"
 [[ $r == CANCEL ]] && exit 1
+[[ $r == ESC ]] && exit 255
 printf '%s' "$r"
 EOF
 cat >"$BIN/mountpoint" <<'EOF'
@@ -46,7 +48,7 @@ awk -v d="${!#}" '$1 == d { f = 1 } END { exit !f }' "$STATE/mounts"
 EOF
 # Mutating tools only record. sfdisk also swaps in the table it "wrote",
 # so the read-back after it sees the new layout.
-for c in sfdisk udevadm mkfs.ext4 mkfs.vfat; do
+for c in sfdisk udevadm mkfs.ext4 mkfs.vfat loadkeys; do
     # The $* and $STATE belong to the fake, expanded when it runs.
     # shellcheck disable=SC2016
     printf '#!/usr/bin/env bash\necho "%s $*" >>"$STATE/called"\n' "$c" >"$BIN/$c"
@@ -66,8 +68,25 @@ echo "umount $*" >>"$STATE/called"
 awk -v d="${!#}" '$1 != d && index($1, d "/") != 1' "$STATE/mounts" >"$STATE/m"
 mv "$STATE/m" "$STATE/mounts"
 EOF
+# cryptsetup records too. What it reads from stdin (`--key-file -`) goes
+# to $STATE/key-in, one line per call, so a test can tell the passphrase
+# went there and nowhere else. luksUUID gives $LUKS_UUID, and
+# --test-passphrase exits with the status in $STATE/test-pass (default 0).
+cat >"$BIN/cryptsetup" <<'FAKE'
+#!/usr/bin/env bash
+echo "cryptsetup $*" >>"$STATE/called"
+if [[ " $* " == *" --key-file - "* ]]; then
+    cat >>"$STATE/key-in"
+    echo >>"$STATE/key-in"
+fi
+case "$1" in
+    luksUUID) echo 0b1f1a52-7c1e-4f3a-9d0e-1c2b3a4d5e6f ;;
+    open) [[ $2 != --test-passphrase ]] || exit "$(cat "$STATE/test-pass" 2>/dev/null || echo 0)" ;;
+esac
+FAKE
 chmod +x "$BIN"/*
 : >"$STATE/mounts"
+LUKS_UUID=0b1f1a52-7c1e-4f3a-9d0e-1c2b3a4d5e6f
 
 # says <lsblk args> — stdin becomes lsblk's answer to exactly those args.
 says() { cat >"$STATE/lsblk/$(printf '%s' "$*" | tr '/ ' '_+')"; }
@@ -86,6 +105,7 @@ printf '\n[SWAP]\n' | says -nrpo MOUNTPOINT /dev/vdd
 printf '\n\n' | says -nrpo MOUNTPOINT /dev/nvme0n1
 for d in vda vdc nvme0n1; do echo 'QEMU HARDDISK   ' | says -dno MODEL "/dev/$d"; done
 printf '/dev/vdc3 part\n/dev/vdc disk\n' | says -nrspo NAME,TYPE /dev/vdc3
+printf '%s\n' '/dev/vdc disk' '/dev/vdc1 part' '/dev/vdc2 part' '/dev/vdc3 part' | says -nrpo NAME,TYPE /dev/vdc
 printf '/dev/sdb1 part\n/dev/sdb disk\n' | says -nrspo NAME,TYPE /dev/sdb1
 echo 'BOOT_IMAGE=/boot/vmlinuz root=live:CDLABEL=VOID_LIVE ro' >"$SB/cmdline"
 
@@ -110,6 +130,8 @@ in_live() {
         source "$DOTS_DIR/scripts/install-live-disk.sh"
         # shellcheck source=../../scripts/install-live-part.sh
         source "$DOTS_DIR/scripts/install-live-part.sh"
+        # shellcheck source=../../scripts/install-live-luks.sh
+        source "$DOTS_DIR/scripts/install-live-luks.sh"
         # base.sh resets the firmware when sourced; the code may override it.
         LIVE_FIRMWARE=uefi
         eval "$1"

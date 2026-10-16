@@ -23,6 +23,13 @@ linux-lts
 # no grub-i386-pc. UEFI also needs uefi.lst (scope J, decision 5).
 grub
 
+# LUKS2 tools (scope J, J-4). base-system does not bring them. dracut's
+# crypt module only goes into the initramfs when cryptsetup is installed,
+# so an encrypted root cannot boot without it. Installed on every disk, so
+# there is one package list and a root opened by hand under --target works
+# too.
+cryptsetup
+
 # compressed swap in RAM, ahead of the swapfile (scope J, decision 7).
 # Not needed to boot, but install-live-swap.sh writes its /etc/sv/zramen/conf
 # and links the service, so the install stops here rather than later.
