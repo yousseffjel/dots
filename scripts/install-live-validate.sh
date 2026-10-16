@@ -73,3 +73,11 @@ live_valid_hash() {
 live_valid_repo() {
     [[ $1 =~ ^https?://[A-Za-z0-9._~:/?#@!\&+,\;=%-]+$ ]]
 }
+
+# A device path under /dev, by kernel name or a /dev/disk/by-* link. The
+# character class keeps it out of option parsing, and `..` is refused, so
+# it cannot point outside /dev. Whether it is a disk that may be erased is
+# install-live-disk.sh's check, made on the live system.
+live_valid_disk_path() {
+    [[ $1 =~ ^/dev/[A-Za-z0-9._:/-]+$ && $1 != *..* ]]
+}

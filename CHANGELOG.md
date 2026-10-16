@@ -33,6 +33,17 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   then unmounts the target and offers the reboot (`--reboot` reboots
   without asking). The first boot opens the ly login screen. `--skip-dots`
   stops at the bare tty system as before.
+- **The live-ISO install now partitions the disk too** (scope J, J-3).
+  `install-live.sh` lists the disks it may erase, never the live medium,
+  one in use elsewhere, or one under 12 GiB. You pick one and type its name
+  to confirm. An answers file names it twice instead: `DISK=` and `WIPE=`.
+  The disk gets GPT: on UEFI a 1 GiB EFI partition, on BIOS a 1 MiB
+  bios_grub partition, then a 1 GiB `/boot` and ext4 root on the rest. It
+  is mounted at `/mnt`. Swap is zram first (half of RAM, zstd) and a
+  swapfile behind it: the size of RAM, at most 8 GiB and at most a tenth of
+  the root partition. Re-running after a crash picks up the already
+  formatted disk. `--target DIR` still installs onto a root you mounted
+  yourself, with zram but no swapfile.
 - **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
   bell in the bar, opens dunst's history as a list under the right end of the
   bar. Open a notification (shows it again and opens its link) or delete it,

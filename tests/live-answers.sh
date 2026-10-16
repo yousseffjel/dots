@@ -123,6 +123,29 @@ printf 'HOSTNAME voidbox\n' >"$SB/syntax"
 load syntax
 expect_refused "a line that is not KEY=VALUE" 'line 1: not KEY=VALUE'
 
+blue "==> the disk to erase (J-3)"
+{
+    good
+    printf '%s\n' 'DISK=/dev/nvme0n1' 'WIPE=/dev/disk/by-id/nvme-Samsung_SSD:1'
+} >"$SB/disk"
+chmod 600 "$SB/disk"
+out="$( (live_answers_load "$SB/disk" && declare -p LIVE_DISK_ANSWER LIVE_WIPE_ANSWER) 2>&1)" || true
+if grep -qF 'LIVE_DISK_ANSWER="/dev/nvme0n1"' <<<"$out" && grep -qF 'by-id/nvme-Samsung_SSD:1' <<<"$out"; then
+    green "  ok: DISK and WIPE load, a kernel name and a by-id link"
+else
+    red "  FAIL: DISK/WIPE"
+    printf '%s\n' "$out" | sed 's/^/      /'
+    rc=1
+fi
+for bad in 'DISK=vda' 'DISK=/dev/../etc/passwd' 'WIPE=/dev/vda -f'; do
+    {
+        good
+        echo "$bad"
+    } >"$SB/baddisk"
+    load baddisk
+    expect_refused "the path in '$bad'" "invalid ${bad%%=*}"
+done
+
 blue "==> the summary never prints a secret"
 summary="$( (live_answers_load "$SB/root" >/dev/null && live_answers_summary) 2>&1)"
 if grep -q 'password set' <<<"$summary" && ! grep -qF -e "$H5" -e "$H6" <<<"$summary"; then

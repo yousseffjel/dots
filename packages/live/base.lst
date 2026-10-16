@@ -6,7 +6,8 @@
 # packages/live/*.lst as well, so every name is still checked against
 # Void's index.
 #
-# Hard-fail: without any one of these the disk does not boot.
+# Hard-fail: without any one of these the disk does not boot (zramen
+# aside, see its comment).
 #
 # base-system already brings linux (→ linux-base → dracut + firmware),
 # sudo, glibc-locales, dhcpcd, e2fsprogs and dosfstools (base-system-0.114_2,
@@ -21,3 +22,8 @@ linux-lts
 # the bootloader. The BIOS (i386-pc) modules are in this package: there is
 # no grub-i386-pc. UEFI also needs uefi.lst (scope J, decision 5).
 grub
+
+# compressed swap in RAM, ahead of the swapfile (scope J, decision 7).
+# Not needed to boot, but install-live-swap.sh writes its /etc/sv/zramen/conf
+# and links the service, so the install stops here rather than later.
+zramen

@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # The live-ISO installer's first half (scope J, J-1): refuse anywhere but
-# the Void live ISO with a mounted target root, work out the firmware and
-# the disk, then bootstrap the base system into the target with
-# `xbps-install -r`.
+# the Void live ISO (with --target, also without a mounted target root),
+# work out the firmware and, with --target, the disk, then bootstrap the
+# base system into the target with `xbps-install -r`.
 #
 # Sourced by install-live.sh, never standalone. It assumes `set -euo
 # pipefail`, the red/green/yellow/blue helpers, DRY_RUN, LIVE_TARGET,
-# LIVE_INTERACTIVE, LIVE_REPO and PACKAGES_DIR.
+# LIVE_INTERACTIVE, LIVE_DISK_MODE, LIVE_REPO and PACKAGES_DIR.
 #
 # usage: source "$SCRIPT_DIR/install-live-base.sh"
 #
-# Sets LIVE_FIRMWARE (uefi | bios) and LIVE_DISK (the whole disk under the
-# target root, e.g. /dev/vda) for install-live-config.sh's GRUB step.
+# Sets LIVE_FIRMWARE (uefi | bios), and with --target LIVE_DISK (the whole
+# disk under the target root, e.g. /dev/vda) for install-live-config.sh's
+# GRUB step. Without --target, install-live-disk.sh sets LIVE_DISK.
 #
 # Overridable at call time, for tests: LIVE_CMDLINE (/proc/cmdline) and
 # LIVE_EFI_DIR (/sys/firmware/efi). Evidence for each probe below is in
@@ -91,13 +92,15 @@ live_check_boot_layout() {
     fi
 }
 
-# live_preflight — every refusal happens here, before anything is written.
+# live_preflight — every refusal that needs no answer happens here, before
+# anything is written; the disk is checked once chosen (install-live-disk.sh).
 # Each check returns explicitly: set -e is off inside a function called from
 # an || list.
 live_preflight() {
     local c need=(xbps-install xchroot xgenfstab lsblk findmnt mountpoint)
     [[ $LIVE_INTERACTIVE -eq 1 ]] && need+=(dialog)
     [[ ${LIVE_SKIP_DOTS:-0} -eq 0 ]] && need+=(git)
+    [[ ${LIVE_DISK_MODE:-0} -eq 1 ]] && need+=(sfdisk udevadm mkfs.ext4 mkfs.vfat fallocate mkswap blkid numfmt)
     if [[ $EUID -ne 0 && $DRY_RUN -eq 0 ]]; then
         red "Run as root (the live ISO logs in as root)."
         return 1
@@ -114,11 +117,25 @@ live_preflight() {
             return 1
         }
     done
-    if [[ $LIVE_TARGET == / ]] || ! mountpoint -q "$LIVE_TARGET"; then
-        red "Mount the new root filesystem at $LIVE_TARGET first (and the ESP at $LIVE_TARGET/boot/efi on UEFI)."
+    if [[ $LIVE_TARGET == / ]]; then
+        red "The target cannot be / (the live system itself)."
         return 1
     fi
     LIVE_FIRMWARE="$(live_firmware)"
+    if [[ ${LIVE_DISK_MODE:-0} -eq 1 ]]; then
+        green "ok      $LIVE_FIRMWARE firmware; the disk to erase is chosen next"
+        return 0
+    fi
+    live_preflight_target
+}
+
+# live_preflight_target — --target: the root the user mounted, the disk
+# under it, and the boot partitions GRUB needs there.
+live_preflight_target() {
+    if ! mountpoint -q "$LIVE_TARGET"; then
+        red "Mount the new root filesystem at $LIVE_TARGET first (and the ESP at $LIVE_TARGET/boot/efi on UEFI)."
+        return 1
+    fi
     LIVE_DISK="$(live_disk_of "$LIVE_TARGET" || true)"
     if [[ -z $LIVE_DISK ]]; then
         red "Could not find the disk under $LIVE_TARGET."

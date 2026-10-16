@@ -15,6 +15,9 @@
 #   HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE   (required)
 #   ROOT_PASSWORD_HASH  (optional; empty or absent locks root)
 #   REPO                (optional; default LIVE_DEFAULT_REPO)
+#   DISK WIPE           (the disk to erase, e.g. /dev/vda, named in both;
+#                        required unless --target is given, refused with it.
+#                        install-live-disk.sh checks the pair and the disk)
 # Passwords are crypt hashes only (`openssl passwd -6`), so the file never
 # holds a usable password. The dialog path asks for the password itself and
 # keeps it in memory only, handed to chpasswd on stdin
@@ -25,11 +28,12 @@ LIVE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$LIVE_SCRIPT_DIR/install-live-validate.sh"
 
 LIVE_DEFAULT_REPO="https://repo-default.voidlinux.org/current"
-LIVE_ANSWER_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE ROOT_PASSWORD_HASH REPO)
+LIVE_ANSWER_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE ROOT_PASSWORD_HASH REPO DISK WIPE)
 LIVE_REQUIRED_KEYS=(HOSTNAME USERNAME USER_PASSWORD_HASH TIMEZONE KEYMAP LOCALE)
 
 LIVE_HOSTNAME="" LIVE_USERNAME="" LIVE_TIMEZONE="" LIVE_KEYMAP="" LIVE_LOCALE=""
 LIVE_REPO="$LIVE_DEFAULT_REPO"
+LIVE_DISK_ANSWER="" LIVE_WIPE_ANSWER=""
 # <who>_SECRET holds the hash or the password, and <who>_KIND says which:
 # hash | plain | none. A root KIND of none means the root account is locked.
 LIVE_USER_SECRET="" LIVE_USER_KIND="none"
@@ -46,11 +50,14 @@ live_answer_valid() {
         USER_PASSWORD_HASH) live_valid_hash "$2" ;;
         ROOT_PASSWORD_HASH) [[ -z $2 ]] || live_valid_hash "$2" ;;
         REPO) live_valid_repo "$2" ;;
+        DISK | WIPE) live_valid_disk_path "$2" ;;
         *) return 1 ;;
     esac
 }
 
 # live_answer_set <KEY> <value> — store one already-validated answer.
+# DISK and WIPE are read by install-live-disk.sh, sourced after this file.
+# shellcheck disable=SC2034
 live_answer_set() {
     case "$1" in
         HOSTNAME) LIVE_HOSTNAME="$2" ;;
@@ -61,6 +68,8 @@ live_answer_set() {
         USER_PASSWORD_HASH) LIVE_USER_SECRET="$2" LIVE_USER_KIND="hash" ;;
         ROOT_PASSWORD_HASH) if [[ -n $2 ]]; then LIVE_ROOT_SECRET="$2" LIVE_ROOT_KIND="hash"; fi ;;
         REPO) LIVE_REPO="$2" ;;
+        DISK) LIVE_DISK_ANSWER="$2" ;;
+        WIPE) LIVE_WIPE_ANSWER="$2" ;;
     esac
 }
 

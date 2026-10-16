@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # Install Void Linux onto a disk from the Void live ISO (scope J). Run as
-# root on the live ISO, against a target root you have already partitioned
-# and mounted. The disk picker and partitioning come in J-3, encryption in
-# J-4.
+# root on the live ISO. Encryption comes in J-4.
 #
 #   xbps-install -Sy git && git clone <this repo> && cd dots
-#   mount /dev/<root> /mnt   (UEFI also: mount the ESP at /mnt/boot/efi)
 #   scripts/install-live.sh
 #
 # It asks its questions with dialog (hostname, user, passwords, timezone,
-# keymap, locale), or reads them from --answers. Then it bootstraps
+# keymap, locale), or reads them from --answers. Then it asks which disk
+# to erase and has you type that disk's name (install-live-disk.sh). It
+# lays the disk out as GPT, formats it and mounts it at /mnt
+# (install-live-part.sh), and sets up zram plus a swapfile
+# (install-live-swap.sh). With --target it skips all of that and installs
+# onto a root you partitioned and mounted yourself. Then it bootstraps
 # base-system with `linux` and `linux-lts`, configures the system, and
 # installs GRUB for whichever firmware the ISO booted with. Last, it copies
 # this repo into the new user's ~/dots and runs install-void.sh there as
@@ -25,11 +27,15 @@
 # usage: install-live.sh [--target DIR] [--answers FILE] [--skip-dots]
 #                        [--reboot] [--dry-run]
 #
-#   --target DIR    the mounted new root (default /mnt).
+#   --target DIR    install onto the root already mounted at DIR (UEFI:
+#                   the ESP at DIR/boot/efi too). No disk is erased, and
+#                   no swapfile is made. Without it the chosen disk is
+#                   erased and mounted at /mnt.
 #   --answers FILE  KEY=VALUE answers instead of dialog menus, for
 #                   unattended runs. The keys are listed in
 #                   install-live-answers.sh. Passwords are crypt hashes
-#                   (openssl passwd -6), never plain text.
+#                   (openssl passwd -6), never plain text. The disk to
+#                   erase is named twice: DISK=/dev/vda and WIPE=/dev/vda.
 #   --skip-dots     stop at a bootable tty system (J-1): no dots, no
 #                   unmount. Log in and run install-void.sh yourself.
 #   --reboot        reboot when done without asking (for unattended runs).
@@ -52,6 +58,8 @@ DRY_RUN=0
 LIVE_SKIP_DOTS=0
 LIVE_REBOOT=0
 LIVE_TARGET=/mnt
+# 1: choose, erase and mount a disk; 0: --target, a root already mounted.
+LIVE_DISK_MODE=1
 ANSWERS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -64,6 +72,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             }
             LIVE_TARGET="$2"
+            LIVE_DISK_MODE=0
             shift
             ;;
         --answers)
@@ -93,16 +102,29 @@ LIVE_INTERACTIVE=1
 source "$SCRIPT_DIR/install-live-answers.sh"
 # shellcheck source=scripts/install-live-base.sh
 source "$SCRIPT_DIR/install-live-base.sh"
+# shellcheck source=scripts/install-live-disk.sh
+source "$SCRIPT_DIR/install-live-disk.sh"
+# shellcheck source=scripts/install-live-part.sh
+source "$SCRIPT_DIR/install-live-part.sh"
 # shellcheck source=scripts/install-live-config.sh
 source "$SCRIPT_DIR/install-live-config.sh"
+# shellcheck source=scripts/install-live-swap.sh
+source "$SCRIPT_DIR/install-live-swap.sh"
 # shellcheck source=scripts/install-live-dots.sh
 source "$SCRIPT_DIR/install-live-dots.sh"
 
 # The plan, without a secret: what the answers say, plus where GRUB goes.
 plan_text() {
     live_answers_summary
-    printf '%-10s %s\n' target "$LIVE_TARGET on $LIVE_DISK" firmware "$LIVE_FIRMWARE" \
-        kernels "linux (default), linux-lts (Advanced options)"
+    if [[ $LIVE_DISK_MODE -eq 1 ]]; then
+        local first="ESP 1 GiB"
+        [[ $LIVE_FIRMWARE == uefi ]] || first="bios_grub 1 MiB"
+        printf '%-10s %s\n' disk "$LIVE_DISK is ERASED: GPT, $first, /boot 1 GiB, / the rest" \
+            target "$LIVE_TARGET" swap "zram (half of RAM, zstd), then a $(live_swap_mib "$LIVE_DISK_BYTES") MiB swapfile"
+    else
+        printf '%-10s %s\n' target "$LIVE_TARGET on $LIVE_DISK, as mounted" swap "zram (half of RAM, zstd)"
+    fi
+    printf '%-10s %s\n' firmware "$LIVE_FIRMWARE" kernels "linux (default), linux-lts (Advanced options)"
     if [[ $LIVE_SKIP_DOTS -eq 0 ]]; then
         printf '%-10s %s\n' dots "~$LIVE_USERNAME/dots, install-void.sh as $LIVE_USERNAME"
     fi
@@ -126,6 +148,12 @@ elif ! live_answers_dialog; then
     exit 1
 fi
 
+if [[ $LIVE_DISK_MODE -eq 1 ]]; then
+    live_disk_choose || exit 1
+else
+    live_disk_answers_unused || exit 1
+fi
+
 blue "==> plan"
 plan_text
 if [[ $LIVE_INTERACTIVE -eq 1 ]] && ! dialog --title "Install Void here?" --yesno "$(plan_text)" 18 72; then
@@ -134,8 +162,16 @@ if [[ $LIVE_INTERACTIVE -eq 1 ]] && ! dialog --title "Install Void here?" --yesn
     exit 1
 fi
 
+if [[ $LIVE_DISK_MODE -eq 1 ]]; then
+    live_part_prepare
+    live_swapfile_create
+    if [[ $DRY_RUN -eq 0 ]]; then
+        live_check_boot_layout || exit 1
+    fi
+fi
 live_bootstrap
 live_configure_system
+live_swap_configure
 live_configure_accounts
 live_configure_boot
 

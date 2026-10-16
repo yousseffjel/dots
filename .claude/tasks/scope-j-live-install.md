@@ -67,6 +67,25 @@ name was checked against `tests/fixtures/void-x86_64-pkgs.tsv`.
     `read` prompts, `newt`/whiptail. Whether `dialog` is already on the live
     ISO or must be installed alongside `git` is a J-1 check.
 
+### Swap and wipe decisions (user, 2026-10-16, J-3)
+
+Asked during J-3's plan, after reading zramen 1.0.1's package
+(`/etc/sv/zramen/{run,conf}`; defaults 25% of RAM, lz4, priority 32767, no
+cap).
+
+11. **zram: half of RAM, zstd.** `/etc/sv/zramen/conf` sets `ZRAM_SIZE=50`
+    and `ZRAM_COMP_ALGORITHM=zstd`. Turned down: zramen's defaults, 25% with
+    zstd.
+12. **Swapfile: the size of RAM, capped at 8 GiB and at a tenth of the root
+    partition.** In fstab at `pri=10`. Decision 7's Type B assumption
+    (zram *and* a swapfile) is confirmed. Turned down: a fixed 2 or 4 GiB,
+    zram only. Made only when the installer laid the disk out: with
+    `--target` the layout, and its swap, are the user's.
+13. **An unattended wipe names the disk twice**: `DISK=/dev/vda` and
+    `WIPE=/dev/vda` in the answers file. The dialog path makes you type the
+    name. Turned down: `DISK=` alone, and always prompting (which would
+    make the J-5 matrix need a console for every run).
+
 ### Disk layout (follows from 5 and 6)
 
 The same shape with or without encryption, so there is one code path. The
@@ -103,7 +122,7 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
 | J-4 | `live-luks` | Optional LUKS2 (argon2id) on partition 3, `/etc/crypttab`, dracut crypt module, `rd.luks.uuid=` in `GRUB_CMDLINE_LINUX_DEFAULT`, `xbps-reconfigure -f` of the kernel so dracut rebuilds. | VM: UEFI+LUKS and BIOS+LUKS; one password prompt at boot |
 | J-5 | `live-docs` | README/INSTALL section, `docs/` page, CLAUDE.md map + entry points, CHANGELOG. A full matrix VM run. | 4 combinations: {UEFI, BIOS} × {plain, LUKS} |
 
-**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. J-2 ✅ done 2026-10-16 (slot `live-dots`): one UEFI VM run from the ISO booted straight into ly with `dots doctor` passing (one warning, spice-vdagent with no SPICE channel); a second run, aborted by a lingering gpg-agent, was re-run over its half-done target and converged. Next is J-3.
+**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. J-2 ✅ done 2026-10-16 (slot `live-dots`): one UEFI VM run from the ISO booted straight into ly with `dots doctor` passing (one warning, spice-vdagent with no SPICE channel); a second run, aborted by a lingering gpg-agent, was re-run over its half-done target and converged. J-3 ✅ done 2026-10-16 (slot `live-disk`): verified from the ISO on two blank 20 GiB disks. UEFI used an answers file (DISK + WIPE). That run was interrupted with Ctrl-C mid-bootstrap, then re-run: it resumed the mounted target without erasing it, booted to ly, and had zram (zstd, half of RAM, pri 32767) and the 1843 MiB swapfile (pri 10) active. BIOS used the dialog menus: the read-only repo disk was not offered, a mistyped name was re-asked, the layout was `dots-bios`/`dots-boot`/`dots-root`, and the 1945 MiB swapfile and zram were both active at first boot. Next is J-4.
 
 ## Open questions — research before the sub-task that needs them
 
@@ -131,11 +150,18 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
   `.claude/tasks/archive/live-dots/progress.md`.
 - **J-3:** zram size (`zramen`'s default is a fraction of RAM) and swapfile
   size. Check zramen's runit service and how it is configured.
+- *Answered 2026-10-16 (J-3):* zramen's size is a percentage of RAM
+  (`ZRAM_SIZE`, default 25), its algorithm `ZRAM_COMP_ALGORITHM` (lz4), read
+  by the runit `run` script from `./conf`. Sizes: decisions 11 and 12.
 - **Safety:** what a crash halfway through leaves behind (mounts, open LUKS
   mapping, the NOPASSWD file). Re-running must converge to the same result
   (rule 1) or refuse with a clear message. *J-2:* the NOPASSWD file is
   removed by an EXIT trap (seen working on the VM), and a re-run over an
   aborted target converged. Mounts are still open questions for J-3/J-4.
+  *J-3:* a crash after formatting leaves the target mounted, and a
+  re-run resumes it (the root is this disk's `dots-root`). Anything else
+  under the target is unmounted before the disk is laid out again. The
+  open LUKS mapping is J-4's.
 
 ## Out of scope
 
