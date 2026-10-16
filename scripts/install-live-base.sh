@@ -97,6 +97,7 @@ live_check_boot_layout() {
 live_preflight() {
     local c need=(xbps-install xchroot xgenfstab lsblk findmnt mountpoint)
     [[ $LIVE_INTERACTIVE -eq 1 ]] && need+=(dialog)
+    [[ ${LIVE_SKIP_DOTS:-0} -eq 0 ]] && need+=(git)
     if [[ $EUID -ne 0 && $DRY_RUN -eq 0 ]]; then
         red "Run as root (the live ISO logs in as root)."
         return 1

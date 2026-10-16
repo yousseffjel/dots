@@ -131,6 +131,22 @@ live_configure_accounts() {
     live_ok "$LIVE_USERNAME in wheel, sudo enabled"
 }
 
+# live_drop_empty_resolv — every xchroot call touches the target's
+# /etc/resolv.conf to bind the ISO's copy over it, and the empty file stays
+# behind. On the J-2 VM run (2026-10-16) the first boot kept it empty:
+# NetworkManager handed openresolv the nameserver, nothing was written, and
+# no name resolved. With the file absent, openresolv writes it at boot. Run
+# after the last xchroot call; a file with content is someone's and stays.
+live_drop_empty_resolv() {
+    local f="$LIVE_TARGET/etc/resolv.conf"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        blue "  (dry-run) would remove $f if xchroot left it empty"
+    elif [[ -f $f && ! -L $f && ! -s $f ]]; then
+        rm -f "$f"
+        green "ok      removed the empty /etc/resolv.conf xchroot left (written at boot)"
+    fi
+}
+
 # live_configure_boot — dhcpcd, so the first boot has a network before
 # install-void.sh switches it to NetworkManager; GRUB; then the dracut
 # images and grub.cfg. reconfigure -fa runs every kernel hook, so both

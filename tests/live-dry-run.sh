@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# install-live.sh --dry-run (scope J, J-1), against fake block devices: the
-# right packages and GRUB commands for UEFI and for BIOS, every refusal
-# made before a command is printed, and nothing ever run or written.
+# install-live.sh --dry-run (scope J, J-1 and J-2), against fake block devices: the
+# right packages and GRUB commands for UEFI and for BIOS, the dots stage and its
+# flags, every refusal made before a command is printed, and nothing ever run or written.
 #
 # lsblk, findmnt and mountpoint are fakes on PATH that print the formats
 # captured from the real tools (.claude/tasks/live-core/context.md, step 1).
@@ -117,6 +117,17 @@ check "both kernels, grub and the EFI modules into the target" 0 \
     "--efi-directory=/boot/efi --removable" "xchroot $T xbps-reconfigure -fa" \
     "would set the ysf password (hash, chpasswd on stdin)" "xchroot $T passwd -l root" \
     '%wheel ALL=(ALL:ALL) ALL' "(dry-run) would be: GRUB installed" "dry run complete" -- "$H6" "i386-pc" "ok      base system installed"
+check "dots: cloned, installed as the user under a temporary rule, then unmounted" 0 \
+    "would run: git clone --quiet --local --no-hardlinks $DOTS_DIR $T/home/ysf/dots" \
+    "would write $T/etc/sudoers.d/99-dots-live-install (mode 440)" "ysf ALL=(ALL:ALL) NOPASSWD: ALL" \
+    "xchroot $T sh -c su - ysf -c 'cd ~/dots && ./scripts/install-void.sh'" "would run: umount -R $T" \
+    "would remove $T/etc/resolv.conf if xchroot left it empty" \
+    -- "would run: reboot"
+run uefi --answers "$SB/answers" --reboot
+check "--reboot reboots after the unmount" 0 "would run: umount -R $T" "would run: reboot"
+run uefi --answers "$SB/answers" --skip-dots
+check "--skip-dots stops at the bootable system" 0 "dry run complete" -- \
+    "NOPASSWD" "install-void.sh" "umount" "git clone"
 
 printf '%s\n' "$T /dev/vda2 ext4" >"$STATE/mounts"
 run uefi --answers "$SB/answers"

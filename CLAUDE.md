@@ -81,10 +81,14 @@ dots/
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-void.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
 │   ├── install-live.sh         # scope J (in progress): run as root ON THE LIVE ISO against a mounted /mnt —
-│   │                           # base-system + linux + linux-lts, config, user in wheel, GRUB (UEFI or BIOS).
-│   │                           # Refuses without root=live: on the cmdline. --answers FILE (unattended), --dry-run.
-│   ├── install-live-{answers,validate,base,config}.sh # sourced by it: dialog menus / answers parser + validators,
-│   │                           # preflight + xbps-install -r bootstrap, xchroot config + grub-install
+│   │                           # base-system + linux + linux-lts, config, user in wheel, GRUB (UEFI or BIOS),
+│   │                           # then dots, unmount, reboot. Refuses without root=live: on the cmdline.
+│   │                           # --answers FILE (unattended), --skip-dots, --reboot, --dry-run.
+│   ├── install-live-{answers,validate,base,config,dots}.sh # sourced by it: dialog menus / answers parser +
+│   │                           # validators, preflight + xbps-install -r bootstrap, xchroot config + grub-install,
+│   │                           # ~/dots clone + install-void.sh as the user under a TEMPORARY NOPASSWD rule
+│   │                           # (EXIT trap). xchroot's exit status is not trusted for that run: a marker file
+│   │                           # is, and processes left rooted in the target are stopped by /proc/<pid>/root.
 │   ├── install-pre.sh          # stage: sanity checks (xbps present, sudo available, in wheel; musl noted)
 │   ├── install-pkg.sh          # stage: full upgrade, then xbps packages (packages/*.lst), then repos + drivers
 │   ├── install-pkg-tiers.sh    # sourced by install-pkg.sh: install_tier — ONE xbps transaction per tier;

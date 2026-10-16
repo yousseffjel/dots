@@ -103,7 +103,7 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
 | J-4 | `live-luks` | Optional LUKS2 (argon2id) on partition 3, `/etc/crypttab`, dracut crypt module, `rd.luks.uuid=` in `GRUB_CMDLINE_LINUX_DEFAULT`, `xbps-reconfigure -f` of the kernel so dracut rebuilds. | VM: UEFI+LUKS and BIOS+LUKS; one password prompt at boot |
 | J-5 | `live-docs` | README/INSTALL section, `docs/` page, CLAUDE.md map + entry points, CHANGELOG. A full matrix VM run. | 4 combinations: {UEFI, BIOS} × {plain, LUKS} |
 
-**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. Next is J-2.
+**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. J-2 ✅ done 2026-10-16 (slot `live-dots`): one UEFI VM run from the ISO booted straight into ly with `dots doctor` passing (one warning, spice-vdagent with no SPICE channel); a second run, aborted by a lingering gpg-agent, was re-run over its half-done target and converged. Next is J-3.
 
 ## Open questions — research before the sub-task that needs them
 
@@ -122,11 +122,20 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
   than a chroot: `sv` calls, the flatpak remote, `fc-cache`, the
   `xdg-user-dirs` run. Each one either gets a chroot path or waits until
   first boot.
+- *Answered 2026-10-16 (J-2):* none needed a chroot path. No `sv` calls
+  run, the Flathub remote and the dconf key land without a session bus,
+  and `fc-cache` / `xdg-user-dirs-update` are not install-time steps. What
+  the chroot did break: the empty `/etc/resolv.conf` xchroot leaves (no DNS
+  at first boot), and a gpg-agent from flatpak's key import outliving
+  install-void.sh, which failed xchroot's own umount. Details:
+  `.claude/tasks/archive/live-dots/progress.md`.
 - **J-3:** zram size (`zramen`'s default is a fraction of RAM) and swapfile
   size. Check zramen's runit service and how it is configured.
 - **Safety:** what a crash halfway through leaves behind (mounts, open LUKS
   mapping, the NOPASSWD file). Re-running must converge to the same result
-  (rule 1) or refuse with a clear message.
+  (rule 1) or refuse with a clear message. *J-2:* the NOPASSWD file is
+  removed by an EXIT trap (seen working on the VM), and a re-run over an
+  aborted target converged. Mounts are still open questions for J-3/J-4.
 
 ## Out of scope
 

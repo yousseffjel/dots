@@ -11,21 +11,28 @@
 # It asks its questions with dialog (hostname, user, passwords, timezone,
 # keymap, locale), or reads them from --answers. Then it bootstraps
 # base-system with `linux` and `linux-lts`, configures the system, and
-# installs GRUB for whichever firmware the ISO booted with. The result
-# boots to a tty login. Running install-void.sh in the new system before
-# the reboot is J-2; until then, log in and run it there.
+# installs GRUB for whichever firmware the ISO booted with. Last, it copies
+# this repo into the new user's ~/dots and runs install-void.sh there as
+# that user (install-live-dots.sh), unmounts the target and offers the
+# reboot. The first boot lands on the ly login screen.
 #
 # It writes no dots manifest rows. It creates the operating system itself,
 # which `dots uninstall` never removes. That manifest belongs to the
-# install-void.sh run on top of it.
+# install-void.sh run inside it.
 #
-# usage: install-live.sh [--target DIR] [--answers FILE] [--dry-run]
+# A failed run is re-run as it was: every step converges (rule 1).
+#
+# usage: install-live.sh [--target DIR] [--answers FILE] [--skip-dots]
+#                        [--reboot] [--dry-run]
 #
 #   --target DIR    the mounted new root (default /mnt).
 #   --answers FILE  KEY=VALUE answers instead of dialog menus, for
 #                   unattended runs. The keys are listed in
 #                   install-live-answers.sh. Passwords are crypt hashes
 #                   (openssl passwd -6), never plain text.
+#   --skip-dots     stop at a bootable tty system (J-1): no dots, no
+#                   unmount. Log in and run install-void.sh yourself.
+#   --reboot        reboot when done without asking (for unattended runs).
 #   --dry-run       check everything and print every command, writing
 #                   nothing. It does not need root, but it does need the
 #                   live ISO.
@@ -42,11 +49,15 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 DRY_RUN=0
+LIVE_SKIP_DOTS=0
+LIVE_REBOOT=0
 LIVE_TARGET=/mnt
 ANSWERS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run) DRY_RUN=1 ;;
+        --skip-dots) LIVE_SKIP_DOTS=1 ;;
+        --reboot) LIVE_REBOOT=1 ;;
         --target)
             [[ $# -ge 2 ]] || {
                 red "--target needs a directory"
@@ -64,7 +75,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h | --help)
-            echo "usage: install-live.sh [--target DIR] [--answers FILE] [--dry-run]"
+            echo "usage: install-live.sh [--target DIR] [--answers FILE] [--skip-dots] [--reboot] [--dry-run]"
             exit 0
             ;;
         *)
@@ -84,12 +95,17 @@ source "$SCRIPT_DIR/install-live-answers.sh"
 source "$SCRIPT_DIR/install-live-base.sh"
 # shellcheck source=scripts/install-live-config.sh
 source "$SCRIPT_DIR/install-live-config.sh"
+# shellcheck source=scripts/install-live-dots.sh
+source "$SCRIPT_DIR/install-live-dots.sh"
 
 # The plan, without a secret: what the answers say, plus where GRUB goes.
 plan_text() {
     live_answers_summary
     printf '%-10s %s\n' target "$LIVE_TARGET on $LIVE_DISK" firmware "$LIVE_FIRMWARE" \
         kernels "linux (default), linux-lts (Advanced options)"
+    if [[ $LIVE_SKIP_DOTS -eq 0 ]]; then
+        printf '%-10s %s\n' dots "~$LIVE_USERNAME/dots, install-void.sh as $LIVE_USERNAME"
+    fi
     if [[ $LIVE_FIRMWARE == bios ]]; then
         printf '%-10s %s\n' grub "boot code written to $LIVE_DISK"
     else
@@ -123,8 +139,22 @@ live_configure_system
 live_configure_accounts
 live_configure_boot
 
+if [[ $LIVE_SKIP_DOTS -eq 0 ]]; then
+    # Armed before the grant, so no exit path leaves the rule behind. INT
+    # and TERM become exits, which run the EXIT trap.
+    trap live_dots_revoke EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    live_dots_install
+fi
+live_drop_empty_resolv
+
 if [[ $DRY_RUN -eq 1 ]]; then
+    [[ $LIVE_SKIP_DOTS -eq 0 ]] && live_dots_finish
     green "dry run complete: every check passed"
+elif [[ $LIVE_SKIP_DOTS -eq 0 ]]; then
+    green "Void and dots are installed on $LIVE_DISK."
+    live_dots_finish
 else
     green "Void is installed on $LIVE_DISK."
     # base-system has no git: the clone in the new system needs it first.

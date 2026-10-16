@@ -25,8 +25,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   timezone, keymap and locale, creates your user in wheel with sudo, and
   installs GRUB for UEFI or BIOS. It asks with `dialog` menus, or reads
   `--answers FILE` for an unattended run; `--dry-run` writes nothing.
-  Partitioning, encryption and running the dotfiles installer before the
-  reboot come in later parts.
+  Partitioning and encryption come in later parts.
+- **The live-ISO install now ends in the finished desktop** (scope J, J-2).
+  After the base system, `install-live.sh` copies the repo into your
+  `~/dots` and runs `install-void.sh` as you inside the new system, using a
+  temporary password-free sudo rule that is removed on every exit path. It
+  then unmounts the target and offers the reboot (`--reboot` reboots
+  without asking). The first boot opens the ly login screen. `--skip-dots`
+  stops at the bare tty system as before.
 - **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
   bell in the bar, opens dunst's history as a list under the right end of the
   bar. Open a notification (shows it again and opens its link) or delete it,
@@ -39,6 +45,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **No DNS on the first boot after a live-ISO install.** `xchroot` leaves an
+  empty `/etc/resolv.conf` in the new system, and openresolv never replaced
+  it, so nothing resolved until `resolvconf -u` was run by hand. The
+  installer now removes that file while it is still empty.
 - **A wallpaper or theme change no longer ends focus mode or empties the
   notification centre.** The theming engine used to restart dunst; it now
   reloads dunst's settings in place and keeps focus mode on.
