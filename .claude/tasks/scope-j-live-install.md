@@ -103,6 +103,8 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
 | J-4 | `live-luks` | Optional LUKS2 (argon2id) on partition 3, `/etc/crypttab`, dracut crypt module, `rd.luks.uuid=` in `GRUB_CMDLINE_LINUX_DEFAULT`, `xbps-reconfigure -f` of the kernel so dracut rebuilds. | VM: UEFI+LUKS and BIOS+LUKS; one password prompt at boot |
 | J-5 | `live-docs` | README/INSTALL section, `docs/` page, CLAUDE.md map + entry points, CHANGELOG. A full matrix VM run. | 4 combinations: {UEFI, BIOS} × {plain, LUKS} |
 
+**Status:** J-1 ✅ done 2026-10-16 (`0bec1f5`, log `2026-10-16-live-core.md`). It was verified on two VMs from the live ISO: UEFI with an answers file, BIOS with the dialog menus, plus the `linux-lts` boot. Next is J-2.
+
 ## Open questions — research before the sub-task that needs them
 
 - **J-1:** is `xgenfstab` (xtools) on the live ISO, or must fstab be written
@@ -112,6 +114,10 @@ matrix. If wrong, J-3 adds an unencrypted single-root branch.*
 - **J-1:** an answers file / environment variables for every prompt, so a
   VM re-test can run unattended. This is probably needed: J-5 alone means
   four runs.
+- *Answered 2026-10-16 (J-1):* both J-1 questions above. `xgenfstab` and
+  `xchroot` ship on the ISO (`xtools-minimal`), and so does `dialog`; git
+  does not. `--answers FILE` exists (KEY=VALUE, password hashes only).
+  Details: `.claude/tasks/archive/live-core/context.md`.
 - **J-2:** which steps of `install-void.sh` need a running system rather
   than a chroot: `sv` calls, the flatpak remote, `fc-cache`, the
   `xdg-user-dirs` run. Each one either gets a chroot path or waits until

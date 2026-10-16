@@ -2374,3 +2374,18 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - Suite 82 OK + 1 SKIP; `lint --strict` ✓; GitHub CI green through
   `5d1b8b1`. Reviewer READY on every sub-task.
 - **Not verified:** bare metal, suspend/resume, a laptop.
+
+## 2026-10-16 — Scope J opened; J-1 live-core (1 records commit + 1 slot, fast-forward)
+
+- **Scope J** (`9cff8ea`): install Void + dots from the live ISO, then
+  reboot. Ten locked decisions: staged option C, UEFI+BIOS, GRUB, plain
+  `/boot` + optional LUKS2 root, ext4, zram + swapfile, dracut, `linux` +
+  `linux-lts`, dialog menus, git clone on the ISO.
+- **J-1 `live-core`** (`0bec1f5`, log `2026-10-16-live-core.md`):
+  `scripts/install-live.sh` + four sourced modules; package names in
+  `packages/live/*.lst` (user's choice); two new tests (suite 84 OK).
+- **Real VM run:** UEFI with an answers file and BIOS with the dialog
+  menus, both booted from disk to a tty login; `sudo` works; the
+  `linux-lts` entry boots. It found plain `chpasswd` silently setting no
+  password in the target, now `-c SHA512` plus a shadow read-back.
+- **Not verified:** bare metal, Secure Boot, a real-BIOS MBR disk.

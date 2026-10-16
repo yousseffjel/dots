@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-15
+Last Updated: 2026-10-16
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -22,6 +22,7 @@ when slots run concurrently.
   base system, user, then `install-void.sh` in a chroot, then reboot into
   ly. Five sub-tasks, J-1 `live-core` first. Locked decisions and open
   questions: `.claude/tasks/scope-j-live-install.md`.
+  **J-1 ✅ 2026-10-16** (`0bec1f5`); next is J-2 `live-dots`.
 
 - ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
   ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,
