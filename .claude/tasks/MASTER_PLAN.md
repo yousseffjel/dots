@@ -22,7 +22,8 @@ when slots run concurrently.
   base system, user, then `install-void.sh` in a chroot, then reboot into
   ly. Five sub-tasks, J-1 `live-core` first. Locked decisions and open
   questions: `.claude/tasks/scope-j-live-install.md`.
-  **J-1 ✅ 2026-10-16** (`0bec1f5`); next is J-2 `live-dots`.
+  **J-1 ✅ 2026-10-16** (`0bec1f5`), **J-2 ✅ 2026-10-16** (`86c6df9`),
+  **J-3 ✅ 2026-10-16** (`6a9cb4f`); next is J-4 `live-luks`.
 
 - ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
   ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,

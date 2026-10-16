@@ -2389,3 +2389,26 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   `linux-lts` entry boots. It found plain `chpasswd` silently setting no
   password in the target, now `-c SHA512` plus a shadow read-back.
 - **Not verified:** bare metal, Secure Boot, a real-BIOS MBR disk.
+
+## 2026-10-16 — J-2 live-dots and J-3 live-disk (two slots, fast-forward)
+
+- **J-2 `live-dots`** (`86c6df9`, log `2026-10-16-live-dots.md`). Folded here
+  late: the J-2 merge skipped this step.
+  - `install-live.sh` clones the repo into the new user's `~/dots` and runs
+    `install-void.sh` as that user under a temporary NOPASSWD rule (EXIT
+    trap); a marker file, not xchroot's status, decides success.
+  - Processes rooted in the target are stopped before the unmount; an empty
+    `/etc/resolv.conf` left by xchroot is removed.
+  - VM (UEFI): first boot to ly, `dots doctor` passed (1 warning:
+    spice-vdagent without SPICE). Suite 85 OK.
+- **J-3 `live-disk`** (`6a9cb4f`, log `2026-10-16-live-disk.md`).
+  - Without `--target`, `install-live.sh` picks a disk (typed name, or
+    `DISK=` + `WIPE=`), lays out GPT (ESP or bios_grub, 1 GiB `/boot`, ext4
+    root), formats and mounts it at `/mnt`, then sets up zram (50%, zstd)
+    and a swapfile (RAM, ≤ 8 GiB, ≤ a tenth of root, `pri=10`).
+  - A re-run resumes a target already mounted from this disk's `dots-root`.
+  - Scope decisions 11-13 (user): zram sizing, swapfile sizing, DISK + WIPE.
+  - Suite 89 OK, `lint --strict` ✓, 28/28 mutants caught.
+  - VMs from the ISO: UEFI (answers; interrupted and resumed) and BIOS
+    (dialog) both booted to ly with zram and the swapfile active.
+- **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only).
