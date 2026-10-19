@@ -16,6 +16,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-19
+
 ### Added
 
 - **Install Void itself from the live ISO** (first part of scope J).
@@ -111,12 +113,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   built from `suckless/nsxiv`. It is the same upstream version with the
   same default config, so images open exactly as before. Two build-only
   dependencies, `imlib2-devel` and `libexif-devel`, are no longer
-  installed. An existing install keeps its old build in `/usr/local` until
-  the next release's migration removes it. Until then that copy is the one
-  that runs, and `dots uninstall` leaves it in place.
+  installed. Upgrading runs a migration that removes the old build from
+  `/usr/local`, where it would shadow the package, and the build leftovers
+  in `suckless/nsxiv/`. A `config.h` you edited there is kept, and named.
 - **The target is now Void Linux (glibc), not Fedora Server.** The installer
-  is renamed `scripts/install-void.sh`. The port is in progress: until it
-  lands, the installer works on neither distro.
+  is renamed `scripts/install-void.sh`.
 - **Package lists use Void names**, checked against a snapshot of Void's repo
   index by a new test (`tests/void-pkgnames.sh`). clipmenu and starship now
   come from the distro's own repo, and the full ffmpeg build replaces
