@@ -2507,3 +2507,15 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
 - `tests/migration-0.5.0.sh` (sandboxed, fake sudo); 7/7 mutants; suite
   94 OK; lint ✓; audit READY; reviewer READY.
 - Local tag `v0.5.0` on main. Nothing pushed.
+
+## 2026-10-19 — testing-void + ly-rebuild (fast-forward)
+
+- **`testing-void`** (`863380a`, log `2026-10-19-testing-void.md`). User
+  items 1 + 2. The GTK3 shim and gtk2 template stay by decision (facts read
+  from the gnome-themes-extra 3.28_4 .xbps files); TESTING.md's Fedora-era
+  statements reconciled (base-files 0.146 `usr/sbin -> bin`). Suite 94 OK,
+  reviewer READY.
+- **`ly-rebuild`** (`bb86190`, log `2026-10-19-ly-rebuild.md`). User item 3.
+  `scripts/install-services-ly-place.sh`; a raised pin rebuilds, keeps
+  config.ini, prunes stale paths, never restarts ly. 12 new checks in
+  tests/ly-build.sh, 10/10 mutants, suite 94 OK, reviewer READY.

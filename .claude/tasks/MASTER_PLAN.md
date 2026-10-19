@@ -23,26 +23,11 @@ when slots run concurrently.
 
 - ~~**Release 0.5.0**~~ ✅ **Done 2026-10-19** — see Recently Closed.
 
-- **Void packages `gnome-themes-extra` (+ `-gtk`).** Their
-  `Adwaita-dark` covers GTK3 (`gtk-3.0/gtk.css`) and GTK2 (`gtk-2.0/`); the
-  file lists were read from the 3.28_4 .xbps on 2026-10-19. The vendored
-  GTK3 shim (`assets/themes/`) and the `gtk2` template exist because
-  Fedora 44 lacked them. Decide: install the packages and retire one or
-  both, or keep them (both work today). Log: `2026-10-19-claude-md-void.md`.
+- ~~**Void packages `gnome-themes-extra` (+ `-gtk`).**~~ ✅ **Done 2026-10-19** — see Recently Closed.
 
-- **TESTING.md still has Fedora-era sections** ("a disposable Fedora
-  environment", the Fedora services row, line 189's Fedora 42+ layout).
-  The same cleanup as CLAUDE.md's. Log: `2026-10-19-claude-md-void.md`.
+- ~~**TESTING.md still has Fedora-era sections**~~ ✅ **Done 2026-10-19** — see Recently Closed.
 
-- **A ly pin bump never reaches an existing install.** `ly_install`
-  (`scripts/install-services-ly.sh:160`) returns "already built" whenever a
-  `LYBUILD … /usr/bin/ly` row exists and the binary runs, without comparing
-  versions, and its message prints the *pinned* version. Raising
-  `LY_VERSION`/`LY_COMMIT` therefore rebuilds only fresh installs. A fix
-  needs a version record, a rebuild that keeps the themed or user-edited
-  `/etc/ly/config.ini` (`ly_place` would copy the stock one over it), and a
-  test in `tests/ly-build.sh`. Not urgent: 1.4.1 is pinned on purpose. Log:
-  `2026-10-19-live-docs.md`.
+- ~~**A ly pin bump never reaches an existing install.**~~ ✅ **Done 2026-10-19** — see Recently Closed.
 
 - ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
   ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,
@@ -104,6 +89,17 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-19 — **ly-rebuild** (`bb86190`, ff; log `2026-10-19-ly-rebuild.md`).
+  A raised ly pin rebuilds existing installs: `META ly_build` record (none =
+  1.4.1), rename-into-place (a running ly blocks cp), config.ini kept, stale
+  paths pruned with their rows, ly never restarted. 10/10 mutants, suite 94
+  OK, reviewer READY. **Not verified:** on the VM (no newer ly to bump to).
+
+- 2026-10-19 — **testing-void** (`863380a`, ff; log
+  `2026-10-19-testing-void.md`). User decision: keep the GTK3 shim and the
+  gtk2 template (Void's gnome-themes-extra GTK3 file is byte-identical; its
+  GTK2 theme has fixed colours). TESTING.md reconciled with Void. Docs only.
 
 - 2026-10-19 — **release-0.5.0** (`868a481`, ff; log
   `2026-10-19-release-0.5.0.md`; local tag `v0.5.0`, not pushed). 0.5.0 cut;
