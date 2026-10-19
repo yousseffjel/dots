@@ -15,6 +15,12 @@
 #     row each, with /usr/bin/ly last; the build ran with both zig caches
 #     inside its workdir and -Dinit_system=runit;
 #   * a re-run is a no-op, and a /usr/bin/ly with no row is left alone;
+#   * the build is recorded; a build that predates the record is taken for
+#     the first pin and recorded without a rebuild;
+#   * raised pins rebuild: files renamed into place (a new inode, so a running
+#     ly cannot make it fail), config.ini kept, a path the new version lacks
+#     removed with its row, a new one added; a failed rebuild or --dry-run
+#     changes nothing;
 #   * a zig or vendor checksum mismatch, a moved tag (wrong commit), the
 #     wrong zig version, pins out of order, a missing build dep, a non-x86_64
 #     arch and --dry-run all install nothing;
@@ -51,7 +57,9 @@ echo "zig $*" >>"$LOG"
 [[ -d zig-pkg ]] || { echo "no zig-pkg: offline build impossible" >&2; exit 1; }
 for a in "$@"; do case "$a" in -Ddest_directory=*) d="${a#*=}" ;; esac; done
 mkdir -p "$d/etc/ly/lang" "$d/etc/pam.d" "$d/etc/sv/ly" "$d/usr/bin"
-for f in etc/ly/config.ini etc/ly/lang/en.ini etc/pam.d/ly etc/sv/ly/run usr/bin/ly; do echo "$f" >"$d/$f"; done
+# FAKE_LY_NEW: a later version, which ships de.ini instead of en.ini.
+lang=en; [[ -n "${FAKE_LY_NEW:-}" ]] && lang=de
+for f in etc/ly/config.ini etc/ly/lang/$lang.ini etc/pam.d/ly etc/sv/ly/run usr/bin/ly; do echo "$f${FAKE_LY_NEW:+ new}" >"$d/$f"; done
 chmod 755 "$d/usr/bin/ly" "$d/etc/sv/ly/run"
 ln -s /run/runit/supervise.ly "$d/etc/sv/ly/supervise"
 ZIG
@@ -61,7 +69,7 @@ mkdir -p "$FIX/v/zig-pkg/clap" && echo x >"$FIX/v/zig-pkg/clap/build.zig"
 tar -cf - -C "$FIX/v" zig-pkg | zstd -q >"$FIX/vendor.tar.zst"
 
 seal_path "$SB/bin" bash grep sed tr mkdir touch cut sort cat mv rm tail wc awk tee mktemp \
-    readlink dirname basename find cp chmod ln tar xz zstd sha256sum head rmdir
+    readlink dirname basename find cp chmod ln tar xz zstd sha256sum head rmdir stat
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
     fake "$SB/bin" xbps-fetch 'echo "xbps-fetch $*" >>"$LOG"
@@ -159,6 +167,44 @@ check "not x86_64 glibc: skipped" eval 'nothing_placed && [[ ! -s $LOG ]]'
 fresh
 DRY_RUN=1 run
 check "--dry-run: nothing fetched, nothing placed" eval 'nothing_placed && [[ ! -s $LOG ]]'
+
+printf '\033[34m%s\033[0m\n' "==> the record"
+fresh
+run
+check "a fresh build is recorded" test "$(manifest_get_meta ly_build)" = "v1.4.1 afb1dc62a0568743c9a7952623ec179128c73340"
+awk -F'\t' '!($1 == "META" && $2 == "ly_build")' "$MANIFEST_FILE" >"$SB/m" && mv "$SB/m" "$MANIFEST_FILE"
+: >"$LOG"
+run
+check "a build that predates the record: the first pin, recorded, not rebuilt" \
+    eval '[[ ! -s $LOG && $(manifest_get_meta ly_build) == "v1.4.1 "* ]]'
+
+printf '\033[34m%s\033[0m\n' "==> raised pins"
+bump() { LY_VERSION=9.9.9 LY_COMMIT=c0ffee FAKE_HEAD="${FAKE_HEAD:-c0ffee}" FAKE_LY_NEW=1 run; }
+fresh
+run
+echo themed >"$SB/root/etc/ly/config.ini"
+inode="$(stat -c %i "$SB/root/usr/bin/ly")"
+bump
+check "rebuilt: the new binary" grep -qx 'usr/bin/ly new' "$SB/root/usr/bin/ly"
+check "...renamed into place, not written over" test "$(stat -c %i "$SB/root/usr/bin/ly")" != "$inode"
+check "...config.ini kept, and said so" eval '[[ $(cat "$SB/root/etc/ly/config.ini") == themed ]] && said "kept    /etc/ly/config.ini"'
+check "...a path it no longer ships removed with its row" \
+    eval '[[ ! -e $SB/root/etc/ly/lang/en.ini ]] && ! manifest_has_path LYBUILD /etc/ly/lang/en.ini'
+check "...a new path placed with a row" eval '[[ -f $SB/root/etc/ly/lang/de.ini ]] && manifest_has_path LYBUILD /etc/ly/lang/de.ini'
+check "...no temporary file left" test -z "$(find "$SB/root" -name '*.dots-new')"
+check "...recorded, and the running ly left to the next boot" \
+    eval '[[ $(manifest_get_meta ly_build) == "v9.9.9 c0ffee" ]] && said "starts at the next boot"'
+: >"$LOG"
+bump
+check "...a re-run at those pins is a no-op" test ! -s "$LOG"
+fresh
+run
+FAKE_HEAD=deadbeef bump || true
+check "a failed rebuild changes nothing" eval '[[ $(cat "$SB/root/usr/bin/ly") == usr/bin/ly && -f $SB/root/etc/ly/lang/en.ini \
+    && $(manifest_get_meta ly_build) == "v1.4.1 "* ]] && said "ly not rebuilt — v1.4.1 stays"'
+: >"$LOG"
+DRY_RUN=1 bump
+check "--dry-run: nothing fetched, the record unchanged" eval '[[ ! -s $LOG && $(manifest_get_meta ly_build) == "v1.4.1 "* ]]'
 
 printf '\033[34m%s\033[0m\n' "==> uninstall"
 fresh

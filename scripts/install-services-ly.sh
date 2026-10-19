@@ -30,6 +30,10 @@
 # manifest_has_path looks, like `THEME theme <path>`), so uninstall-runit.sh removes exactly those.
 # A /usr/bin/ly that has no row is someone else's ly: left alone, and only its
 # service is enabled.
+#
+# A PIN BUMP reaches existing installs: the build in place is recorded, and
+# one older than the pins is rebuilt. Placing, the record and the rebuild
+# rules (config.ini kept, nothing restarted) are in install-services-ly-place.sh.
 
 LY_VERSION=1.4.1
 LY_COMMIT=afb1dc62a0568743c9a7952623ec179128c73340
@@ -44,6 +48,10 @@ ZIG_SHA256=70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
 # Headers the build links against; in packages/build.lst, which the install
 # stage installs before this stage runs.
 LY_BUILD_DEPS=(pam-devel libxcb-devel zstd)
+
+# Its own directory, not the caller's SCRIPT_DIR: tests source this file too.
+# shellcheck source=install-services-ly-place.sh
+source "$(dirname "${BASH_SOURCE[0]}")/install-services-ly-place.sh"
 
 # Test overrides, resolved at call time: the install root and the binary path.
 ly_root() { printf '%s\n' "${DOTS_LY_ROOT:-}"; }
@@ -101,24 +109,6 @@ ly_build() {
     }
 }
 
-# ly_place <stage> — copy each staged file or link into place, one row each.
-# Sorted, so ./usr/bin/ly comes after every ./etc path: a binary in place
-# means the rest is too, which is what ly_install's "already ours" check
-# relies on after an interrupted run.
-ly_place() {
-    local stage="$1" rel dst
-    while IFS= read -r rel; do
-        dst="$(ly_root)/${rel#./}"
-        # -d keeps the supervise -> /run/runit/supervise.ly link a link.
-        if ! "${SUDO[@]}" mkdir -p "$(dirname "$dst")" \
-            || ! "${SUDO[@]}" cp -dp --no-preserve=ownership "$stage/$rel" "$dst"; then
-            red "  could not install /${rel#./}"
-            return 1
-        fi
-        manifest_append_row LYBUILD ly "/${rel#./}"
-    done < <(cd "$stage" && find . \( -type f -o -type l \) | sort)
-}
-
 # ly_take_tty2 — hand tty2 from its getty to ly, never leaving it with
 # neither. Nothing happens unless ly's service dir exists (a foreign ly may
 # have none). The getty goes first, so the two never run on tty2 together; if
@@ -155,13 +145,18 @@ ly_take_tty2() {
 }
 
 ly_install() {
-    local p w
+    local p w ours=""
     blue "==> ly login screen (built from source: v$LY_VERSION, zig $ZIG_VERSION)"
-    if manifest_has_path LYBUILD /usr/bin/ly && [[ -x "$(ly_bin)" ]]; then
-        green "ok      ly v$LY_VERSION already built and installed by dots"
-        return 0
-    fi
-    if [[ -e "$(ly_bin)" ]]; then
+    if manifest_has_path LYBUILD /usr/bin/ly; then
+        ours=1
+        if [[ -x "$(ly_bin)" && "$(ly_built)" == "$(ly_pinned)" ]]; then
+            # Writes the record for a build that predates it; same value after.
+            [[ $DRY_RUN -eq 1 ]] || manifest_set_meta ly_build "$(ly_pinned)"
+            green "ok      ly v$LY_VERSION already built and installed by dots"
+            return 0
+        fi
+        blue "  dots built ly $(ly_built | cut -d' ' -f1); the pins say v$LY_VERSION — rebuilding"
+    elif [[ -e "$(ly_bin)" ]]; then
         green "ok      $(ly_bin) exists and is not ours — left as it is"
         return 0
     fi
@@ -184,12 +179,18 @@ ly_install() {
         return 0
     fi
     w="$(mktemp -d)"
-    if ly_build "$w" && ly_place "$w/stage"; then
+    if ly_build "$w" && ly_place "$w/stage" "$ours" && ly_prune "$w/stage"; then
+        manifest_set_meta ly_build "$(ly_pinned)"
         green "installed ly v$LY_VERSION"
+        [[ -z "$ours" ]] || yellow "        a running ly is still the old one; v$LY_VERSION starts at the next boot"
         rm -rf "$w"
         return 0
     fi
     rm -rf "$w"
-    yellow "ly not installed — log in on a TTY and run startx; re-run: scripts/install-void.sh --only-services"
+    if [[ -n "$ours" ]]; then
+        yellow "ly not rebuilt — $(ly_built | cut -d' ' -f1) stays; re-run: scripts/install-void.sh --only-services"
+    else
+        yellow "ly not installed — log in on a TTY and run startx; re-run: scripts/install-void.sh --only-services"
+    fi
     return 1
 }

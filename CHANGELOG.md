@@ -16,6 +16,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A newer ly reaches existing installs.** When dots pins a newer ly, the
+  next install run rebuilds it instead of keeping the old build forever.
+  Your `/etc/ly/config.ini` is kept as it is, files the new version no
+  longer ships are removed, and the login screen you are using is not
+  restarted: the new ly starts at the next boot.
+
 ## [0.5.0] - 2026-10-19
 
 ### Added

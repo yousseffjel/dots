@@ -140,6 +140,9 @@ dots/
 │   ├── install-services-groups.sh # sourced: usermod -aG network,bluetooth,kvm (D4; never reverted)
 │   ├── install-services-ly.sh  # sourced: ly v1.4.1 built from source — pinned commit, vendored deps, zig 0.16.0
 │   │                           # tarball by sha256 (tests/ly-pins.sh); LYBUILD ly <path> rows; uninstall-runit.sh reverts
+│   ├── install-services-ly-place.sh # sourced by it: placing (copy + rename, so a running ly never blocks it),
+│   │                           # `META ly_build v<ver> <commit>`, and the rebuild when the pins move: config.ini
+│   │                           # kept, paths the new ly lacks pruned with their rows, ly never restarted
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)

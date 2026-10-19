@@ -612,8 +612,10 @@ A key added to the script later has its original line appended on the next
 run. The file is replaced with `cp` onto itself, so its owner and mode are
 kept. ly is not a package on Void: the services stage builds it from source
 and installs its files, `config.ini` among them, as `LYBUILD` rows. A re-run
-finds that build and leaves it alone, so nothing overwrites the edited file,
-and `dots uninstall` removes it with the rest of ly. A key a future ly no
+finds that build and leaves it alone. When a newer dots pins a newer ly, the
+re-run rebuilds it but keeps the existing `config.ini`, so nothing overwrites
+the edited file either way, and `dots uninstall` removes it with the rest of
+ly. A key a future ly no
 longer has is reported and skipped, never appended.
 
 **On a Linux console a theme colour becomes one of 16.** ly runs in 24-bit
