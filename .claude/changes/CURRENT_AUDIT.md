@@ -2466,3 +2466,20 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
     VM: a real Ctrl-C from the live ISO gave exit 130 with 0 processes left in
     /mnt and the rule gone; the re-run converged.
 - **Not verified:** a Ctrl-C during the live-side bootstrap.
+
+## 2026-10-19 — nsxiv-package: nsxiv from Void's package (fast-forward)
+
+- **`nsxiv-package`** (`30e9120`, log `2026-10-19-nsxiv-package.md`). User
+  decisions: nsxiv comes from Void's package, and xcolor stays a script.
+  - `suckless/nsxiv` deleted. nsxiv is out of `PROGRAMS`/`PROGRAM_BINS`, and
+    `PROGRAM_INSTALL_TARGETS` is removed. `nsxiv` is in `extra.lst`;
+    `imlib2-devel`/`libexif-devel` left `build.lst`.
+  - `tests/default-apps.sh` maps `nsxiv.desktop` to the package.
+  - The root `.gitignore` covers the old tree's build leftovers in existing
+    clones. `install-suckless.sh --help` no longer truncates.
+  - The package was verified from its .xbps and its void-packages template:
+    the same v34, the same desktop file, Xft and libexif.
+  - Suite 93 OK, lint ✓, 2/2 mutants, audit READY, reviewer WARN (a dead
+    pointer, fixed).
+- **Queued:** the 0.5.0 migration removes the `/usr/local` nsxiv build and
+  its manifest rows.
