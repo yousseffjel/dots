@@ -2447,3 +2447,22 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   SIGINT/sudo bug and the ly version-bump rebuild gap.
 - **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only), a
   keymap other than `us`.
+
+## 2026-10-19 — live-interrupt: Ctrl-C stops an install (fast-forward)
+
+- **`live-interrupt`** (`d4bc7cf`, log `2026-10-19-live-interrupt.md`). This
+  closes the J-4 queue item.
+  - Direct run: a Ctrl-C during xbps signature verification was swallowed
+    (xbps exits 0, and bash's wait-and-cooperative-exit carries on). The fix is
+    `stop_on_interrupt` in `global_fn.sh`, called by install-void.sh and every
+    script it runs. `tests/install-interrupt.sh` sends a real SIGINT and also
+    reads the script list from install-void.sh.
+  - Live ISO: `su -c` orphaned the stage, which ran on after the rule was
+    revoked. `live_dots_cleanup` on EXIT now does TERM, then rescanning KILL
+    rounds by `/proc/<pid>/root`, then the revoke. Tests: the new J-4 case in
+    `tests/live-dots.sh` and the new `tests/live-release.sh`, split off at
+    the cap.
+  - Suite 93 OK, `lint` ✓, 5/5 mutants caught, audit READY, reviewer READY.
+    VM: a real Ctrl-C from the live ISO gave exit 130 with 0 processes left in
+    /mnt and the rule gone; the re-run converged.
+- **Not verified:** a Ctrl-C during the live-side bootstrap.

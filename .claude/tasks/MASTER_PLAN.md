@@ -18,12 +18,8 @@ when slots run concurrently.
 - ~~**Scope J — live-ISO install (Epic, opened 2026-10-15).**~~ ✅ **Done
   2026-10-19** — see Recently Closed.
 
-- **Live install: an interrupt does not stop the inner `install-void.sh`.**
-  Seen in J-4's UEFI run: after `timeout -s INT` during the dots stage,
-  `install-void.sh` carried on inside xchroot with the temporary NOPASSWD
-  rule already revoked (sudo failures in the log) until it ended. The re-run
-  converged, but Ctrl-C should stop the inner install. Logs:
-  `2026-10-16-live-luks.md`, `2026-10-19-live-docs.md`.
+- ~~**Live install: an interrupt does not stop the inner `install-void.sh`.**~~
+  ✅ **Done 2026-10-19** — see Recently Closed.
 
 - **A ly pin bump never reaches an existing install.** `ly_install`
   (`scripts/install-services-ly.sh:160`) returns "already built" whenever a
@@ -95,6 +91,15 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-19 — **live-interrupt** (`d4bc7cf`, ff; log
+  `2026-10-19-live-interrupt.md`). Ctrl-C stops an install. Direct run:
+  `stop_on_interrupt` (global_fn.sh) in install-void.sh and every stage, since
+  xbps exits 0 on a SIGINT mid-verification and bash carried on. Live ISO:
+  `live_dots_cleanup` on EXIT stops everything rooted in the target, then
+  removes the NOPASSWD rule (`su -c` had orphaned the stage). Proved with a
+  real Ctrl-C from the live ISO on a VM (exit 130, nothing left in /mnt, the
+  rule gone, and the re-run converged). 5/5 mutants caught.
 
 - 2026-10-19 — **Scope J — live-ISO install** (Epic, 5 slots, all ff:
   `0bec1f5` J-1 live-core, `86c6df9` J-2 live-dots, `6a9cb4f` J-3 live-disk,
