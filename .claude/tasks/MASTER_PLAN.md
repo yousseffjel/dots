@@ -24,12 +24,27 @@ when slots run concurrently.
 - **Release 0.5.0** (user 2026-10-19, last of "4 + 5 + 6"). VERSION, the
   CHANGELOG heading, a local `v0.5.0` tag (not pushed), and
   `scripts/migrations/0.4.0-to-0.5.0.sh`, which must:
-  - refresh an unedited dwm `config.h` and dwmblocks `blocks.h` (both
-    `*.def.h` changed since 0.4.0; model: `0.1.0-to-0.2.0.sh`);
+  - NOT refresh headers: `refresh_generated_headers`
+    (install-suckless-headers.sh, since `d604000`, 2026-10-12) already
+    refreshes every unedited `config.h`/`blocks.h` before each build, which
+    is tested in `tests/suckless-headers.sh`. The notify-center follow-up
+    (2026-10-15) that asked for it overlooked that
+    mechanism. Checked 2026-10-19;
   - remove the old vendored nsxiv build under `/usr/local` (bin, man1,
     applications/nsxiv.desktop, hicolor icons 16-128, doc/nsxiv/examples;
     list in `archive/nsxiv-package/context.md`), its SUCKLESS rows, and the
     `$DOTS_DIR/suckless/nsxiv/` leftovers. Log: `2026-10-19-nsxiv-package.md`.
+
+- **Void packages `gnome-themes-extra` (+ `-gtk`).** Their
+  `Adwaita-dark` covers GTK3 (`gtk-3.0/gtk.css`) and GTK2 (`gtk-2.0/`); the
+  file lists were read from the 3.28_4 .xbps on 2026-10-19. The vendored
+  GTK3 shim (`assets/themes/`) and the `gtk2` template exist because
+  Fedora 44 lacked them. Decide: install the packages and retire one or
+  both, or keep them (both work today). Log: `2026-10-19-claude-md-void.md`.
+
+- **TESTING.md still has Fedora-era sections** ("a disposable Fedora
+  environment", the Fedora services row, line 189's Fedora 42+ layout).
+  The same cleanup as CLAUDE.md's. Log: `2026-10-19-claude-md-void.md`.
 
 - **A ly pin bump never reaches an existing install.** `ly_install`
   (`scripts/install-services-ly.sh:160`) returns "already built" whenever a
@@ -101,6 +116,12 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-19 — **claude-md-void** (`45e575d`, ff; log
+  `2026-10-19-claude-md-void.md`). CLAUDE.md no longer states Fedora facts
+  as current: verification, the installer, xcolor, laptop power, the
+  pending list, the theming reasons (plus Void's gnome-themes-extra facts),
+  dwm-titus and rule 10. History kept and marked. Two follow-ups queued.
 
 - 2026-10-19 — **nsxiv-package** (`30e9120`, ff; log
   `2026-10-19-nsxiv-package.md`). nsxiv is Void's package (`extra.lst`), and

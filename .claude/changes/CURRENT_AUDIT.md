@@ -2483,3 +2483,15 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
     pointer, fixed).
 - **Queued:** the 0.5.0 migration removes the `/usr/local` nsxiv build and
   its manifest rows.
+
+## 2026-10-19 — claude-md-void: CLAUDE.md Fedora cleanup (fast-forward)
+
+- **`claude-md-void`** (`45e575d`, log `2026-10-19-claude-md-void.md`).
+  User item 6. Statements of current behaviour reconciled with the Void
+  scripts; Fedora kept as marked history. Every new fact was checked
+  against the repo or the .xbps. lint ✓, suite 93 OK, audit READY,
+  reviewer READY.
+- **Queued:** Void's `gnome-themes-extra(-gtk)` vs the vendored shim and
+  the gtk2 template (a decision), and TESTING.md's Fedora sections. The
+  0.5.0 release item is corrected: headers are already refreshed on every
+  build, so the migration only removes the old nsxiv build.
