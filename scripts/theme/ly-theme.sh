@@ -10,18 +10,25 @@
 # never written here: they change with every wallpaper, and each change would
 # be another root write.
 #
-# WHAT is written — four keys, edited in place, nothing appended:
+# WHAT is written — five keys, edited in place, nothing appended:
 #   fg                   = the theme's txt1   (dwm.normfgcolor)     } as console
 #   border_fg            = the theme's 1xa7   (dwm.selbordercolor)  } colours
 #   bigclock             = en
 #   hide_version_string  = true
+#   default_input        = password
+# default_input is not a colour, but this is the one script that writes ly's
+# config. ly's own default, login, puts the cursor on the user line until a
+# login has been saved, so on a fresh install's first boot a typed password
+# went nowhere and Enter sent an empty one (scope J, J-5).
 # The first time a key is changed its original line is saved to
 # $XDG_STATE_HOME/dots/ly-config.orig, and --restore writes those lines back.
+# A key added here later gets its original appended on the next run, so the
+# saved lines never miss one.
 # A key ly does not have (a future ly renaming it) is reported and skipped:
 # appending an unknown key could stop ly parsing its config at all.
 #
-# The file is rewritten with `cp` onto the existing one, which keeps its owner,
-# mode and SELinux label — `install` or `mv` would replace the label.
+# The file is rewritten with `cp` onto the existing one, which keeps its owner
+# and mode — `install` or `mv` would put a new file in its place.
 #
 # Never prompts without a terminal: from a keybinding there is nobody to type
 # a password, so it uses `sudo -n` and, when that is refused, says what to run
@@ -124,6 +131,18 @@ pick_sudo() {
     fi
 }
 
+# save_originals — add to ORIG each ORIGINALS line whose key it lacks. A key
+# already there keeps its first line: by now LY_CONFIG holds our own value.
+save_originals() {
+    local line
+    [[ ${#ORIGINALS[@]} -gt 0 ]] || return 0
+    mkdir -p "$MANIFEST_DIR"
+    for line in "${ORIGINALS[@]}"; do
+        grep -q "^${line%%[[:space:]=]*}[[:space:]]*=" "$ORIG" 2>/dev/null \
+            || printf '%s\n' "$line" >>"$ORIG"
+    done
+}
+
 # write_config <rendered> <what> — replace LY_CONFIG with the rendered copy.
 write_config() {
     if [[ "$(<"$1")" == "$(<"$LY_CONFIG")" ]]; then
@@ -141,10 +160,7 @@ write_config() {
     fi
     # Only now, with the write certain: a refused write must not leave an
     # originals file that no manifest row claims.
-    if [[ ${#ORIGINALS[@]} -gt 0 && ! -f "$ORIG" ]]; then
-        mkdir -p "$MANIFEST_DIR"
-        printf '%s\n' "${ORIGINALS[@]}" >"$ORIG"
-    fi
+    save_originals
     "${SUDO[@]}" cp "$1" "$LY_CONFIG"
     green "wrote   $2 -> $LY_CONFIG"
 }
@@ -190,9 +206,10 @@ fi
 fg="$(console_colour "$fg")"
 border="$(console_colour "$border")"
 
-# write_config saves these before the FIRST change only, so a later switch
-# never records our own values as "the original". Only keys ly has are kept.
-WANT=("fg = 0x00$fg" "border_fg = 0x00$border" "bigclock = en" "hide_version_string = true")
+# write_config saves each key's line before its FIRST change only, so a later
+# switch never records our own values as "the original". Only keys ly has are kept.
+WANT=("fg = 0x00$fg" "border_fg = 0x00$border" "bigclock = en" "hide_version_string = true"
+    "default_input = password")
 for line in "${WANT[@]}"; do
     key="${line%% *}"
     found="$(grep -m1 "^${key}[[:space:]]*=" "$LY_CONFIG" || true)"

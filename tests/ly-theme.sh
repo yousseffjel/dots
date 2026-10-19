@@ -5,10 +5,12 @@
 # first on PATH, so nothing here can reach the host's config or manifest.
 #
 # What is asserted:
-#   * a theme writes exactly four lines — fg and border_fg from the theme's own
+#   * a theme writes exactly five lines — fg and border_fg from the theme's own
 #     palette (read from its colors.dcol, never restated here), bigclock = en,
-#     hide_version_string = true — and leaves every other line alone;
-#   * the original lines are saved once, and a later switch keeps them;
+#     hide_version_string = true, default_input = password — and leaves every
+#     other line alone;
+#   * the original lines are saved once, and a later switch keeps them; an
+#     originals file saved before a key was added gains that key's line;
 #   * the active theme (theme.set) is the default when none is named;
 #   * a re-run writes nothing; --dry-run writes nothing;
 #   * --restore puts the file back byte-identical and forgets the originals;
@@ -93,7 +95,7 @@ drawn_in_family() {
 # Lines that differ from the fixture, position by position.
 changed() { awk 'NR==FNR { a[FNR] = $0; next } a[FNR] != $0' "$FIXTURE" "$CONF"; }
 only_managed_changed() {
-    [[ -n "$(changed)" ]] && ! changed | grep -qvE '^(fg|border_fg|bigclock|hide_version_string) = '
+    [[ -n "$(changed)" ]] && ! changed | grep -qvE '^(fg|border_fg|bigclock|hide_version_string|default_input) = '
 }
 
 # A fake sudo that logs, answers `sudo -n true` with $SUDO_N_OK, and can
@@ -118,11 +120,11 @@ fresh() {
     cp "$FIXTURE" "$CONF"
 }
 
-for key in fg border_fg bigclock hide_version_string; do
+for key in fg border_fg bigclock hide_version_string default_input; do
     check "the fixture has '$key' (every case below needs it)" grep -q "^$key = " "$FIXTURE"
 done
 
-blue "==> a theme: four lines, from its own palette"
+blue "==> a theme: five lines, from its own palette"
 fresh
 run dark
 check "exit 0" test "$RC" -eq 0
@@ -130,9 +132,10 @@ check "fg: dark's txt1 is drawn white, bright" test "$(vt_colour "$(value fg)")"
 check "border_fg: dark's accent drawn bright, in its family, not white ($(value border_fg))" drawn_in_family dark
 check "bigclock = en" has_line "$CONF" "bigclock = en"
 check "hide_version_string = true" has_line "$CONF" "hide_version_string = true"
-check "nothing else changed (fixture line count kept, only the 4 keys differ)" only_managed_changed
+check "default_input = password (the first boot's cursor on the password)" has_line "$CONF" "default_input = password"
+check "nothing else changed (fixture line count kept, only the 5 keys differ)" only_managed_changed
 check "the originals were saved" has_line "$ORIG" "border_fg = 0x00FFFFFF"
-check "...all four, even fg, which dark leaves as it was" test "$(wc -l <"$ORIG")" -eq 4
+check "...all five, even fg, which dark leaves as it was" test "$(wc -l <"$ORIG")" -eq 5
 check "a LY manifest row claims the file" grep -qP "^LY\t\Q$CONF\E\t" "$H/.local/state/dots/manifest"
 check "no sudo for a writable file" test ! -e "$LOG"
 
@@ -174,6 +177,20 @@ check "the originals are forgotten" test ! -e "$ORIG"
 run --restore
 check "a second restore has nothing to do" grep -q "nothing to restore" <<<"$OUT"
 
+blue "==> an originals file from before default_input was written"
+# An install themed by the four-key version: its config and originals file.
+fresh
+run dark
+sed -i 's/^default_input = .*/default_input = login/' "$CONF"
+sed -i '/^default_input /d' "$ORIG"
+run dark
+check "the new key is written" has_line "$CONF" "default_input = password"
+check "its original is appended" has_line "$ORIG" "default_input = login"
+check "...and the four kept, not re-read from our own values" test "$(wc -l <"$ORIG")" -eq 5
+check "...border_fg's is still ly's own" has_line "$ORIG" "border_fg = 0x00FFFFFF"
+run --restore
+check "--restore: byte-identical to ly's file" same "$CONF" "$FIXTURE"
+
 blue "==> no terminal, read-only file"
 fresh
 chmod a-w "$CONF"
@@ -197,7 +214,7 @@ sed -i '/^bigclock = /d' "$CONF"
 run dark
 check "reported" grep -q "skip    'bigclock'" <<<"$OUT"
 check "never appended" test "$(grep -c '^bigclock = ' "$CONF")" -eq 0
-check "the other three still written" has_line "$CONF" "hide_version_string = true"
+check "the other four still written" has_line "$CONF" "hide_version_string = true"
 
 blue "==> ly not installed"
 rm -rf "${TMP:?}/etc"
@@ -220,4 +237,4 @@ if [[ $FAILS -gt 0 ]]; then
     red "✗ ly-theme: $FAILS check(s) failed"
     exit 1
 fi
-green "✓ ly-theme: four keys from the palette, originals restored, no prompt without a terminal"
+green "✓ ly-theme: five keys, two from the palette, originals restored, no prompt without a terminal"

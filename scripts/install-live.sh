@@ -33,9 +33,10 @@
 #                   no swapfile is made. Without it the chosen disk is
 #                   erased and mounted at /mnt.
 #   --answers FILE  KEY=VALUE answers instead of dialog menus, for
-#                   unattended runs. The keys are listed in
-#                   install-live-answers.sh. Passwords are crypt hashes
-#                   (openssl passwd -6), never plain text. The disk to
+#                   unattended runs. docs/LIVE-INSTALL.md lists the
+#                   keys; docs/live-answers.example is one. Passwords
+#                   are crypt hashes (openssl passwd -6), never plain
+#                   text. The disk to
 #                   erase is named twice: DISK=/dev/vda and WIPE=/dev/vda.
 #                   LUKS_PASSFILE=/root/pass encrypts / with the passphrase
 #                   in that file (root's, mode 600).
@@ -87,7 +88,8 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h | --help)
-            echo "usage: install-live.sh [--target DIR] [--answers FILE] [--skip-dots] [--reboot] [--dry-run]"
+            # The header's usage block, from "# usage:" to the comment's end.
+            sed -n '/^# usage:/,/^[^#]/{/^#/s/^# \{0,1\}//p}' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)

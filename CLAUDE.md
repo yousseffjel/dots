@@ -9,18 +9,18 @@ assumes no GUI is pre-installed. No package manager, framework, or build
 system beyond `make` for the suckless C programs and plain bash for
 orchestration.
 
-**PORT IN PROGRESS (branch `void`, opened 2026-10-15).** The target moved
-from Fedora Server to Void Linux by user decision. This is a DECISION REVERSAL
-of "Fedora only" and of the 2026-10-14 "Server is the one supported target".
-`.claude/tasks/scope-i-void-port.md` is the plan and holds the locked
-decisions: ly built from source with a sha256-pinned zig, elogind, and
-vendored Cascadia Code NF. **Everything below this paragraph still describes
-the Fedora implementation** (dnf, COPR, RPM Fusion, systemd units,
-(rule 8 was rewritten for Void in I-2). Each sub-task rewrites the part it
-ports. Until then, treat a Fedora-specific statement as describing code that
-is about to change, not as a rule to follow. Package names are now checked
-against Void's official repodata (`repo-default.voidlinux.org/current`),
-not packages.fedoraproject.org.
+**Void port merged 2026-10-15** (branch `void` fast-forwarded into `main`;
+the last Fedora commit is `e89cd01`). The target moved from Fedora Server to
+Void Linux by user decision, a DECISION REVERSAL of "Fedora only" and of the
+2026-10-14 "Server is the one supported target".
+`.claude/tasks/scope-i-void-port.md` holds the locked decisions: ly built from
+source with a sha256-pinned zig, elogind, and vendored Cascadia Code NF. Parts
+of this file below still describe the Fedora implementation (dnf, COPR, RPM
+Fusion, systemd units). Treat such a statement as history: the scripts are
+the authority. Package names are checked against Void's official repodata
+(`repo-default.voidlinux.org/current`, rule 8). **Scope J (2026-10-16)** added
+a second, earlier entry point: `scripts/install-live.sh` installs Void itself
+from the live ISO, then this desktop (`docs/LIVE-INSTALL.md`).
 
 `ROADMAP.md` is a comparison/aspiration doc (this repo vs. HyDE-Project's
 Arch+Hyprland+Wayland setup) — see **Roadmap status** below for what it gets
@@ -80,7 +80,7 @@ dots/
 │   │                           # Thin dispatcher; its SUBCOMMANDS table is the ONLY declaration of the
 │   │                           # subcommand list — --help, the zsh completion and tests all read it back.
 │   ├── install-void.sh       # THE installer: thin orchestrator dispatching to the 4 stages below (+ --skip-suckless, --dry-run, --only-<stage>)
-│   ├── install-live.sh         # scope J (in progress): run as root ON THE LIVE ISO — picks and ERASES a disk
+│   ├── install-live.sh         # scope J (docs/LIVE-INSTALL.md): run as root ON THE LIVE ISO — picks and ERASES a disk
 │   │                           # (typed name, or DISK= + WIPE=), GPT + optional LUKS2 root + mkfs + mount at /mnt, zram + swapfile,
 │   │                           # base-system + linux + linux-lts, config, user in wheel, GRUB (UEFI or BIOS),
 │   │                           # then dots, unmount, reboot. Refuses without root=live: on the cmdline.
@@ -160,7 +160,7 @@ dots/
 │   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on) / doctor-drivers.sh,
 │   │                           # every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
-│                               # ly-theme.sh (`dots login-theme`: four keys of root's /etc/ly/config.ini; sudo, never prompted without a TTY)
+│                               # ly-theme.sh (`dots login-theme`: five keys of root's /etc/ly/config.ini, default_input included; sudo, never prompted without a TTY)
 ├── packages/            # four tiers + laptop.lst; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
 │   ├── build.lst        # suckless build deps — read by install-suckless.sh ONLY, not install-pkg.sh
@@ -193,8 +193,11 @@ dots/
     └── state/
 ```
 
-**Entry points**: `scripts/install-void.sh` is the single supported
-installer — run it on a fresh Fedora Server box to get
+**Entry points**: two installers, one for each starting point.
+`scripts/install-live.sh` runs on the Void live ISO, erases a disk, installs
+Void, then runs `install-void.sh` inside it (scope J; `docs/LIVE-INSTALL.md`).
+`scripts/install-void.sh` is the desktop installer itself — run it on a fresh
+Void base install to get
 the full desktop (zsh/tmux + X11 + dwm/st/dmenu/dwmblocks/slock + ly). It's a
 thin orchestrator over four idempotent, independently-runnable stages (pre ->
 install -> restore -> services — `scripts/install-{pre,pkg,restore,services}.sh`);
@@ -221,7 +224,7 @@ is **partly stale** — treat it as a backlog of ideas, not a source of truth
 for current state.
 
 **Already done, ahead of what ROADMAP.md assumes:**
-- A single Fedora installer (`scripts/install-void.sh`) covers the Fedora Server target (Workstation was dropped as a target on 2026-10-14 — never run, and its GDM was never reconciled with ly) — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-void-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision.
+- A single Fedora installer (`scripts/install-void.sh`) covers the Fedora Server target (Workstation was dropped as a target on 2026-10-14 — never run, and its GDM was never reconciled with ly) — ROADMAP.md's §9 priority list treats "package lists + dnf installer" as not-yet-started; it already exists. **Scope note:** this repo previously also shipped `install-arch.sh`, `install.sh` (Debian/Ubuntu), `install-macos.sh`, and a separate `install-void-server.sh` — all four were dropped in favor of one Fedora-only installer (see `.claude/changes/` for the dated log). ROADMAP.md's Arch-comparison framing and any lingering references to those scripts elsewhere in this file predate that decision. **Since 2026-10-15 that one installer is Void-only** (the port), and scope J added `install-live.sh` in front of it.
 - dwm, st, dmenu, dwmblocks, and slock are all vendored *and* patched — ROADMAP §2.5 lists this as a "to do" with only a subset of patches recommended. The roster is 18 diffs for dwm (actualfullscreen, autostart, **bidi**, dragmfact, **dropterm**, **dynamicscratchpads**, hide_vacant_tags, pertag, **preservepertag**, **preserveonrestart**, restartsig, status2d, status2d-systray, statuscmd, statuscmd-status2d, systray, **wakeonsignal**, xresources), 10 for dmenu (**bidi**, border, caseinsensitive, center, fuzzymatch, lineheight, mousesupport, numbers, **pathcache**, xresources), and one each for st (xresources-signal-reload), dwmblocks (statuscmd) and slock (xresources). Each program's `patches/PATCHES.md` is the authoritative per-patch record; `ls suckless/*/patches/*.diff` is the source of truth for the list itself. The `*-local.diff` ones were captured against this tree rather than fetched from suckless.org, because they could not apply cleanly on top of the others.
   - **A dwm restart no longer scatters the desktop (2026-10-07).** `reload.sh` SIGHUPs dwm on every wallpaper change; `preserveonrestart` hands tags, view, stash, floating geometry and focus to the re-exec'd instance. `dropterm` (`Super+grave`) is a drop-down terminal built on dynamicscratchpads, so it survives restarts too. `tests/dwm-runtime.sh` covers both, and checks every floating class in `rules[]` actually floats. **`wakeonsignal` (2026-10-12)** makes dwm act on SIGHUP/SIGTERM at once: it used to wait for the next X event, so the VM's power-menu logout took 20-25 s. The runtime test no longer fakes an event to wake dwm. **`preservepertag` (2026-10-12)** adds each tag's layout, mfact, nmaster and bar, and Mod+Tab's history, to what a restart keeps.
   - **`scratchpads` was replaced by `dynamicscratchpads` on 2026-08-07** and the two are mutually exclusive (both claim bit `LENGTH(tags)` of the tag bitmask). Scratchpads are now assigned dynamically from the focused window rather than pre-declared as commands.

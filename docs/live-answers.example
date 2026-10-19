@@ -1,0 +1,57 @@
+# An answers file for scripts/install-live.sh --answers (docs/LIVE-INSTALL.md).
+#
+# Copy it, fill it in, and keep the copy private:
+#
+#   cp docs/live-answers.example /root/answers && chmod 600 /root/answers
+#
+# One KEY=VALUE per line; `#` starts a comment; quotes around a value are
+# optional. The file is parsed, never sourced, so a value is never run.
+# Every value is checked before anything is written, and each bad line is
+# reported by number, never by value.
+#
+# As shipped it is refused on purpose: USER_PASSWORD_HASH is empty, so a
+# copy can never install a password somebody else knows. Make the hash with
+#
+#   openssl passwd -6
+#
+# and paste the whole $6$... line in. A plain password is refused.
+
+# --- required -----------------------------------------------------------
+
+# Lower-case letters, digits and inner hyphens.
+HOSTNAME=voidbox
+# Lower case; root and the system accounts are refused. It joins wheel,
+# which the installer makes mean sudo.
+USERNAME=user
+USER_PASSWORD_HASH=
+# A file under /usr/share/zoneinfo, e.g. Europe/Berlin.
+TIMEZONE=UTC
+# A console keymap from /usr/share/kbd/keymaps, e.g. de-latin1, fr.
+KEYMAP=us
+# A locale named in /etc/default/libc-locales, e.g. de_DE.UTF-8.
+LOCALE=en_US.UTF-8
+
+# --- optional -----------------------------------------------------------
+
+# Empty or absent locks the root account; log in as USERNAME and use sudo.
+ROOT_PASSWORD_HASH=
+
+# The xbps mirror for the bootstrap. Default: the line below.
+#REPO=https://repo-default.voidlinux.org/current
+
+# --- the disk -----------------------------------------------------------
+#
+# The disk to ERASE, named twice so a typo in one cannot pick another
+# disk. Required unless you run with --target (a root you mounted
+# yourself), and refused with it. Check the name with `lsblk` first.
+#DISK=/dev/vda
+#WIPE=/dev/vda
+
+# Encrypt / with LUKS2. The file holds only the passphrase, on one line,
+# and must be root's with mode 600:
+#
+#   (umask 077; printf '%s\n' 'your passphrase' >/root/luks-pass)
+#
+# Refused with --target. GRUB stays unencrypted on its own /boot; the
+# passphrase is asked once, at boot.
+#LUKS_PASSFILE=/root/luks-pass

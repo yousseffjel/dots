@@ -9,9 +9,24 @@ desktop on it. Desktops, laptops and virtual machines are all handled
 (`docs/HARDWARE.md`). See `CLAUDE.md` for the full project map and installer
 usage.
 
-> **Port in progress.** This branch is moving the project from Fedora Server
-> to Void Linux. The installer does not work on either distro until the port
-> lands; `.claude/tasks/scope-i-void-port.md` tracks it.
+## Install
+
+**From the Void live ISO, onto a blank disk:** `scripts/install-live.sh`
+partitions the disk (UEFI or BIOS, optionally encrypted), installs Void
+and then this desktop, and reboots into the ly login screen. Read
+`docs/LIVE-INSTALL.md` first: it erases the disk you pick.
+
+**Onto a Void base install you already have:** log in as your user (in
+`wheel`), then
+
+```sh
+sudo xbps-install -S git
+git clone https://github.com/yousseffjel/dots ~/dots
+~/dots/scripts/install-void.sh
+```
+
+`--dry-run` on either installer prints what it would do and changes
+nothing.
 
 ## The `dots` command
 

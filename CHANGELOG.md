@@ -53,6 +53,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `LUKS_PASSFILE=/root/pass`, owned by root and mode 600. The answers file
   itself never holds it. A re-run after a crash picks up the encrypted disk
   when the passphrase opens it.
+- **A guide to the live-ISO install** (scope J, J-5). `docs/LIVE-INSTALL.md`
+  walks through it from booting the ISO to the first login: what it needs,
+  every flag and answers-file key, the disk layout, encryption, re-runs and
+  known caveats. `docs/live-answers.example` is a commented answers file to
+  copy. It is refused until you paste in your own password hash, so a copy
+  can never install a password somebody else knows. `install-live.sh
+  --help` now prints the full flag descriptions, not just the one usage
+  line.
 - **Notification centre.** `Super` + `Ctrl` + `n`, or a left-click on the
   bell in the bar, opens dunst's history as a list under the right end of the
   bar. Open a notification (shows it again and opens its link) or delete it,
@@ -65,6 +73,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **The first login after a fresh install no longer fails.** ly put the
+  cursor on the user line until someone had logged in once, so a typed
+  password went nowhere and Enter sent an empty one ("authentication
+  error"). The login screen now starts on the password field
+  (`default_input = password`, written with ly's colours and put back by
+  `dots uninstall`). An existing install picks it up on the next
+  `dots update` or switch to a static theme (`dots theme <name>`).
 - **No DNS on the first boot after a live-ISO install.** `xchroot` leaves an
   empty `/etc/resolv.conf` in the new system, and openresolv never replaced
   it, so nothing resolved until `resolvconf -u` was run by hand. The

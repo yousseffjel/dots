@@ -573,7 +573,7 @@ identity as it was.
 
 ### The login screen (ly)
 
-`scripts/theme/ly-theme.sh` (`dots login-theme [<theme>]`) writes four keys of
+`scripts/theme/ly-theme.sh` (`dots login-theme [<theme>]`) writes five keys of
 `/etc/ly/config.ini`, in place, and nothing else:
 
 | Key | Value | Same as |
@@ -582,6 +582,12 @@ identity as it was.
 | `border_fg` | the theme's `1xa7`, as a console colour | `dwm.selbordercolor` |
 | `bigclock` | `en` | — |
 | `hide_version_string` | `true` | — |
+| `default_input` | `password` | — |
+
+`default_input` is not a colour, but this is the one script that writes ly's
+config. ly's default, `login`, starts the cursor on the user line until a
+login has been saved, so the first login after a fresh install sent an empty
+password (scope J, J-5).
 
 No animation, by decision: it costs CPU on the TTY for as long as the login
 screen is up. The background stays ly's `0x00000000`, which means "the
@@ -596,11 +602,14 @@ notification naming the command to run. Wallbash palettes are never written:
 each wallpaper change would be another root write.
 
 The first change saves ly's original lines to
-`~/.local/state/dots/ly-config.orig`, and `dots uninstall` writes them back. The
-file is replaced with `cp` onto itself, so its owner, mode and SELinux label are
-kept, and because it is the package's `%config(noreplace)` an ly upgrade keeps
-our edit and drops its new defaults beside it as `config.ini.rpmnew`. A key a
-future ly no longer has is reported and skipped, never appended.
+`~/.local/state/dots/ly-config.orig`, and `dots uninstall` writes them back.
+A key added to the script later has its original line appended on the next
+run. The file is replaced with `cp` onto itself, so its owner and mode are
+kept. ly is not a package on Void: the services stage builds it from source
+and installs its files, `config.ini` among them, as `LYBUILD` rows. A re-run
+finds that build and leaves it alone, so nothing overwrites the edited file,
+and `dots uninstall` removes it with the rest of ly. A key a future ly no
+longer has is reported and skipped, never appended.
 
 **On a Linux console a theme colour becomes one of 16.** ly runs in 24-bit
 mode, but the kernel's VT draws only its 16-colour palette, and its rule
