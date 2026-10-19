@@ -21,19 +21,7 @@ when slots run concurrently.
 - ~~**Live install: an interrupt does not stop the inner `install-void.sh`.**~~
   ✅ **Done 2026-10-19** — see Recently Closed.
 
-- **Release 0.5.0** (user 2026-10-19, last of "4 + 5 + 6"). VERSION, the
-  CHANGELOG heading, a local `v0.5.0` tag (not pushed), and
-  `scripts/migrations/0.4.0-to-0.5.0.sh`, which must:
-  - NOT refresh headers: `refresh_generated_headers`
-    (install-suckless-headers.sh, since `d604000`, 2026-10-12) already
-    refreshes every unedited `config.h`/`blocks.h` before each build, which
-    is tested in `tests/suckless-headers.sh`. The notify-center follow-up
-    (2026-10-15) that asked for it overlooked that
-    mechanism. Checked 2026-10-19;
-  - remove the old vendored nsxiv build under `/usr/local` (bin, man1,
-    applications/nsxiv.desktop, hicolor icons 16-128, doc/nsxiv/examples;
-    list in `archive/nsxiv-package/context.md`), its SUCKLESS rows, and the
-    `$DOTS_DIR/suckless/nsxiv/` leftovers. Log: `2026-10-19-nsxiv-package.md`.
+- ~~**Release 0.5.0**~~ ✅ **Done 2026-10-19** — see Recently Closed.
 
 - **Void packages `gnome-themes-extra` (+ `-gtk`).** Their
   `Adwaita-dark` covers GTK3 (`gtk-3.0/gtk.css`) and GTK2 (`gtk-2.0/`); the
@@ -117,6 +105,13 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-19 — **release-0.5.0** (`868a481`, ff; log
+  `2026-10-19-release-0.5.0.md`; local tag `v0.5.0`, not pushed). 0.5.0 cut;
+  `scripts/migrations/0.4.0-to-0.5.0.sh` removes the vendored nsxiv build
+  its manifest row records, the rows, and unedited `suckless/nsxiv/`
+  leftovers. `tests/migration-0.5.0.sh`, 7/7 mutants, suite 94 OK, reviewer
+  READY. **Not verified:** a real 0.4.0 → 0.5.0 upgrade on the VM.
+
 - 2026-10-19 — **claude-md-void** (`45e575d`, ff; log
   `2026-10-19-claude-md-void.md`). CLAUDE.md no longer states Fedora facts
   as current: verification, the installer, xcolor, laptop power, the
@@ -167,7 +162,8 @@ the same time and **not** queued — raise them separately if wanted.
   (`6460356`). Notification centre (dmenu, top-right via a local xyw patch:
   open / delete / clear all) and an always-visible bell/FOCUS button.
   **Open item:** the 0.4.0 → 0.5.0 migration must refresh an unedited
-  `suckless/dwmblocks/blocks.h`. **Not verified:** VM / live desktop.
+  `suckless/dwmblocks/blocks.h`. **Not verified:** VM / live desktop. (Open item closed
+  2026-10-19: not needed, `refresh_generated_headers` already does it.)
 
 - 2026-10-15 — **ad-hoc: `ci-timeout`** (`3594d4f`, merge `a31e68a`).
   install-container `timeout-minutes` 90 → 20: batched legs take 2:38 / 3:25

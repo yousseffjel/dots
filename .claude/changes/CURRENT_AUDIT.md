@@ -2495,3 +2495,15 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   the gtk2 template (a decision), and TESTING.md's Fedora sections. The
   0.5.0 release item is corrected: headers are already refreshed on every
   build, so the migration only removes the old nsxiv build.
+
+## 2026-10-19 — release-0.5.0: cut 0.5.0 (fast-forward)
+
+- **`release-0.5.0`** (`868a481`, log `2026-10-19-release-0.5.0.md`). User
+  item 3, last part. VERSION 0.5.0, CHANGELOG `[0.5.0] - 2026-10-19` (two
+  entries corrected for release), and the 0.4.0 → 0.5.0 migration: it
+  removes the `/usr/local` nsxiv build only when a manifest row records it,
+  drops the rows, and deletes unedited `suckless/nsxiv/` leftovers (an
+  edited config.h is kept and named). sudo only for an unwritable prefix.
+- `tests/migration-0.5.0.sh` (sandboxed, fake sudo); 7/7 mutants; suite
+  94 OK; lint ✓; audit READY; reviewer READY.
+- Local tag `v0.5.0` on main. Nothing pushed.
