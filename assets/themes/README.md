@@ -33,5 +33,9 @@ its dark default. That is why the name was kept rather than changed to
 - The copy is claimed as a THEME manifest row, so `dots uninstall` removes it.
 - Flatpak apps see it through the `xdg-data/themes:ro` override in
   `scripts/install-restore-flatpak.sh`.
+- **On Void it stays by decision (2026-10-19).** Void's `gnome-themes-extra`
+  3.28_4 ships a byte-identical `Adwaita-dark/gtk-3.0/gtk.css`, so installing
+  it would add a package and change nothing. If you install it anyway, both
+  resolve to the same stylesheet.
 - `tests/gtk3-adwaita-dark-shim.sh` checks, where `gresource` and libgtk-3
   are available, that the imported resource still exists.

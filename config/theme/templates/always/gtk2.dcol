@@ -5,9 +5,10 @@ ${cacheDir}/gtkrc-2.0|s="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/gtkrc-2.0"; 
 # Colours for GTK2 applications, from the wallpaper palette. The one that
 # matters here is lxpolkit, the password prompt for privileged actions.
 #
-# This is a whole theme, not overrides on top of one: Fedora 44 ships no
-# dark GTK2 theme (gnome-themes-extra, which carried Adwaita-dark for GTK2,
-# was retired). xsettingsd names Adwaita-dark to GTK2 as well, GTK2 does not
+# This is a whole theme, not overrides on top of one: no dark GTK2 theme is
+# installed (Fedora 44 retired gnome-themes-extra; Void's -gtk package has
+# one, with fixed colours, and is left out by decision, 2026-10-19, so these
+# follow the wallpaper). xsettingsd names Adwaita-dark to GTK2 as well, GTK2 does not
 # find it and falls back to its built-in default, and these styles paint
 # that default. Plain rc styles only — no engine, so nothing else needs
 # installing. Icons, font and cursor still come from xsettingsd.

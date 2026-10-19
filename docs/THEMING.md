@@ -267,11 +267,16 @@ template themes vim if you have it and does nothing if you do not.
 
 The GTK2 app that matters is `lxpolkit`, the password prompt for privileged
 actions. `gtk2.dcol` is a **whole theme**, not overrides like `gtk.css`:
-Fedora 44 retired `gnome-themes-extra`, the package that carried Adwaita-dark
-for GTK2, so the `Adwaita-dark` name xsettingsd sends to GTK2 resolves to
-nothing and GTK2 draws its built-in default. The rc paints that default with
-plain styles — no engine, so nothing extra is installed. Icons, font and
-cursor still come from xsettingsd.
+no GTK2 Adwaita-dark is installed, so the `Adwaita-dark` name xsettingsd
+sends to GTK2 resolves to nothing and GTK2 draws its built-in default. The
+rc paints that default with plain styles — no engine, so nothing extra is
+installed. Icons, font and cursor still come from xsettingsd.
+
+It was written because Fedora 44 retired `gnome-themes-extra`. Void packages
+it (`gnome-themes-extra-gtk` carries the GTK2 Adwaita-dark, drawn by its own
+`libadwaita.so` engine), and the template stays **by decision** (2026-10-19):
+that theme's colours are fixed, while this one follows the wallpaper like the
+rest of the desktop.
 
 The target is `~/.gtkrc-2.0`, outside `~/.config`, which the engine's tokens
 cannot name. So it renders to the cache, and the post-command copies it to a
@@ -639,8 +644,10 @@ leaves it alone (you may have edited it since), a theme switch replaces it
 Every shipped `theme.conf` names `Adwaita-dark` + `Papirus-Dark`, because this
 repo declares exactly one dark GTK theme and `packages/extra.lst` adds no other.
 Adwaita-dark is built into GTK4 but **not** into GTK 3.24: GTK3 gets it from
-`assets/themes/Adwaita-dark`, the one-line shim `gnome-themes-extra` used to
-ship before Fedora 44 retired it. Without that shim GTK3 falls back to *light*
+`assets/themes/Adwaita-dark`, the one-line shim `gnome-themes-extra` ships,
+vendored when Fedora 44 retired the package. Void's `gnome-themes-extra`
+3.28_4 ships a byte-identical file; the shim stays **by decision**
+(2026-10-19), since installing the package would add nothing. Without it GTK3 falls back to *light*
 Adwaita and discards `gtk-application-prefer-dark-theme` too (see
 `assets/themes/README.md`). `dots doctor` warns when the name resolves to
 nothing. The values are repeated per theme rather

@@ -153,8 +153,10 @@ for adding CI; new docs you add are linted normally.
 - **`tests/picom-backend-probe.sh`** — runs `config/dwm/bin/dwm-picom` with a
   PATH of fakes only, against fake `glxinfo -B` outputs (llvmpipe, softpipe,
   a real GPU, virgl, indirect rendering, `glxinfo` missing or failing,
-  `timeout` missing) and fake hypervisors (`systemd-detect-virt --vm`: none,
-  kvm, vmware), and asserts which `--backend` picom gets. A VM is always
+  `timeout` missing) and fake machines (a cpuinfo with or without the
+  kernel's `hypervisor` flag, plus a DMI vendor: bare metal, kvm, vmware;
+  `systemd-detect-virt` until the Void port), and asserts which `--backend`
+  picom gets. A VM is always
   xrender. It also runs the generated `autostart.sh` block, with and without
   `dwm-picom` on PATH, and checks the report tells an existing
   `autostart.sh` with no backend choice, or with the old inline probe, to
@@ -186,7 +188,8 @@ for adding CI; new docs you add are linted normally.
   exact path reaching a fake `feh`, and carries no generated-wallpaper marker,
   since a picked wallpaper is the user's.
 - **`tests/login-shell-path.sh`** — runs `install-services.sh` with zsh
-  reachable only through a symlinked `sbin` dir (Fedora 42+ layout) placed
+  reachable only through a symlinked `sbin` dir (Void's layout, read from
+  base-files 0.146: `usr/sbin -> bin`; Fedora's since 42) placed
   first on a sealed `PATH`, with fake `sudo`, `usermod`, `getent` and `tee`.
   It asserts that the resolved `/usr/bin` spelling reaches `usermod` and
   `/etc/shells`, that an install already recorded as `/usr/sbin/zsh` is
@@ -414,7 +417,7 @@ default never tests it.**
   Mutation-checked (guard, claimed path, size line, report branch, call sites).
   Needs only bash + coreutils.
 
-## Testing a full install in a disposable Fedora environment
+## Testing a full install in a disposable Void environment
 
 CI does this on every push that touches the installer or what it deploys
 (`.github/workflows/install-container.yml` carries a `paths:` allowlist, and
@@ -448,7 +451,8 @@ skipping quietly. Each row below was checked against a real run, not assumed:
 Neither uncovered row is a gap in the harness; both are genuinely
 VM-or-hardware questions.
 
-The services row is not a hypothetical. On Fedora, the job's **first real
+The services row is not a hypothetical. On Fedora (before the 2026-10-15
+port), the job's **first real
 run found that `install-services.sh` had always enabled `ly.service`, which
 did not exist** (Fedora's `ly` shipped a templated `ly@.service`). No display
 manager had ever been enabled, on any machine. On Void the job asserts that
