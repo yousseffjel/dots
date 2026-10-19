@@ -7,9 +7,6 @@
 # What is asserted:
 #   * each .desktop id is provided by one of
 #       - a file this repo ships in config/applications/,
-#       - a vendored program that installs it (suckless/<prog>/etc/<id>), and
-#         that program is in install-suckless.sh's PROGRAMS with a target that
-#         installs the desktop file,
 #       - a package declared in packages/*.lst, or installed by
 #         install-pkg-repos.sh;
 #   * an id this test cannot map is a FAILURE, not a skip, so a new handler
@@ -28,18 +25,19 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 MIMEAPPS="$DOTS_DIR/config/mimeapps.list"
 REPOS="$DOTS_DIR/scripts/install-pkg-repos.sh"
-SUCKLESS="$DOTS_DIR/scripts/install-suckless.sh"
 
 # desktop id -> the package that ships it. This is the one fact the repo
 # cannot derive without xbps on the target. Each was read from the package
 # itself: sublime_text.desktop from Void's sublime-text4-4215_1 .xbps
-# (2026-10-15), mpv.desktop from mpv's upstream etc/.
+# (2026-10-15), mpv.desktop from mpv's upstream etc/, nsxiv.desktop from
+# Void's nsxiv-34_1 .xbps (2026-10-19; suckless/nsxiv vendored it before).
 declare -A PACKAGE_OF=(
     ["firefox.desktop"]=firefox
     ["thunar.desktop"]=Thunar
     ["org.gnome.FileRoller.desktop"]=file-roller
     ["mpv.desktop"]=mpv
     ["sublime_text.desktop"]=sublime-text4
+    ["nsxiv.desktop"]=nsxiv
 )
 
 FAILS=0
@@ -66,22 +64,9 @@ installed_by_repos() {
     grep -qE "pkg_ensure $1( |\$)" "$REPOS"
 }
 
-vendored_provider() {
-    local id="$1" etc prog
-    for etc in "$DOTS_DIR"/suckless/*/etc/"$id"; do
-        [[ -f "$etc" ]] || continue
-        prog="$(basename "$(dirname "$(dirname "$etc")")")"
-        grep -m1 '^PROGRAMS=(' "$SUCKLESS" | grep -qw "$prog" || return 1
-        grep -qE "^\s*\[$prog\]=\"[^\"]*install-desktop" "$SUCKLESS" || return 1
-        return 0
-    done
-    return 1
-}
-
 has_provider() {
     local id="$1" pkg="${PACKAGE_OF[$1]:-}"
     [[ -f "$DOTS_DIR/config/applications/$id" ]] && return 0
-    vendored_provider "$id" && return 0
     [[ -n "$pkg" ]] || return 1
     declared_in_lst "$pkg" || installed_by_repos "$pkg"
 }
@@ -108,8 +93,6 @@ done
 blue "==> the lookup can fail"
 has_provider nope.desktop && rc=1 || rc=0
 result "an id nothing provides is reported, not passed" "$rc"
-check "nsxiv.desktop comes from suckless/nsxiv, not a package" \
-    test -f "$DOTS_DIR/suckless/nsxiv/etc/nsxiv.desktop"
 
 blue "==> [Default Applications] is well-formed"
 defaults="$(sed -n '/^\[Default Applications\]/,/^\[/p' "$MIMEAPPS" | grep -E '^[a-z]+/[^=]+=')"

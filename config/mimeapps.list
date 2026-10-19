@@ -6,9 +6,9 @@
 # this file in place, and a symlink would send those writes into this repo.
 #
 # Where each .desktop comes from (tests/default-apps.sh checks every one):
-#   firefox, thunar, file-roller, mpv  packages/desktop.lst or extra.lst
+#   firefox, thunar, file-roller, mpv,
+#   nsxiv                              packages/desktop.lst or extra.lst
 #   sublime_text                       sublime-text4, Void nonfree (install-pkg-repos.sh)
-#   nsxiv                              built from suckless/nsxiv
 #   dots-nvim                          shipped in config/applications/
 # A name pointing at an app that is not installed is ignored, not an error:
 # GIO moves on to the next app associated with the type.
@@ -36,7 +36,7 @@ x-scheme-handler/https=firefox.desktop
 x-scheme-handler/about=firefox.desktop
 x-scheme-handler/unknown=firefox.desktop
 
-# Images -> nsxiv (suckless/nsxiv). feh stays installed for the wallpaper.
+# Images -> nsxiv. feh stays installed for the wallpaper.
 # nsxiv.desktop runs `nsxiv %F`: it opens the files you picked, and `nsxiv
 # -t <dir>` shows a whole directory as thumbnails.
 image/bmp=nsxiv.desktop

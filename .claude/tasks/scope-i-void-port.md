@@ -92,9 +92,12 @@ Handed on to later sub-tasks:
 - **I-7:** drivers-laptop.sh still enables tuned/tuned-ppd services. Move it
   to power-profiles-daemon's runit service (the laptop test checks only the
   package for now).
-- **Open, low priority:** Void packages nsxiv 34 (same version as the
+- ~~**Open, low priority:** Void packages nsxiv 34 (same version as the
   vendored copy) and `xcolor`. Either could replace a vendored build or a
-  script, but both work as they are. Ask before changing either.
+  script, but both work as they are. Ask before changing either.~~
+  **Answered 2026-10-19 (user):** nsxiv comes from Void's package
+  (`extra.lst`; `suckless/nsxiv` deleted, slot `nsxiv-package`). xcolor:
+  **keep the script** — `dwm-colorpicker` works and needs nothing new.
 
 ## What the code assumes (125 files mention Fedora/dnf/rpm/systemd)
 

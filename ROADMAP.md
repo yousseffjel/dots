@@ -191,7 +191,7 @@ HyDE's "wallbash" extracts wallpaper colors and generates themes for every app.
 | Prompt | — | **starship** (wallpaper-themed via a spliced palette) | ✅ have |
 | Terminal | kitty | **alacritty** primary, **st** as the no-GPU fallback; both themed | ✅ have |
 | File manager | dolphin | **thunar** + volman/tumbler/file-roller, mime defaults wired | ✅ have |
-| Color picker | hyprpicker | **`config/dwm/bin/dwm-colorpicker`** (xdotool + maim + ImageMagick + xclip), `gpick` optional | ✅ have — `Super+c`. **`xcolor` does not exist in Fedora** (only `texlive-xcolor`, a LaTeX package — verified 2026-08-12); this row previously named it |
+| Color picker | hyprpicker | **`config/dwm/bin/dwm-colorpicker`** (xdotool + maim + ImageMagick + xclip), `gpick` optional | ✅ have — `Super+c`. **`xcolor` does not exist in Fedora** (only `texlive-xcolor`, a LaTeX package — verified 2026-08-12); this row previously named it. Void does package `xcolor`; the script stays by user decision (2026-10-19) |
 | Blue light filter | hyprsunset | **redshift** or gammastep | ❌ add — not packaged, and not yet decided |
 | Display manager | SDDM | **ly** (`install-services.sh` enables `ly@tty2.service`) | ✅ have |
 | Monitor management | nwg-displays | **autorandr** (profiles, hotplug) + **`config/dwm/bin/dwm-display`** (dmenu presets). arandr deliberately rejected | ✅ have — `Super+Shift+d`; autorandr autostarted and its udev rule covers hotplug |
@@ -236,7 +236,7 @@ dunst                     # notifications
 # launcher/powermenu: dmenu (vendored), already have. clipboard: clipmenu +
 # clipnotify, COPR-only (skidnik/clipmenu), enabled below — see §4.3
 # see suckless/dmenu/ and packages/*.lst (installed by scripts/install-pkg.sh)
-feh                       # wallpaper (images open in nsxiv, built from suckless/nsxiv — 2026-10-13)
+feh                       # wallpaper (images open in nsxiv, Void's package since 2026-10-19)
 maim                      # screenshots
 slop                      # region select
 redshift                  # blue light filter

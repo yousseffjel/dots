@@ -107,6 +107,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Changed
 
+- **nsxiv, the image viewer, is Void's package now** instead of a copy
+  built from `suckless/nsxiv`. It is the same upstream version with the
+  same default config, so images open exactly as before. Two build-only
+  dependencies, `imlib2-devel` and `libexif-devel`, are no longer
+  installed. An existing install keeps its old build in `/usr/local` until
+  the next release's migration removes it. Until then that copy is the one
+  that runs, and `dots uninstall` leaves it in place.
 - **The target is now Void Linux (glibc), not Fedora Server.** The installer
   is renamed `scripts/install-void.sh`. The port is in progress: until it
   lands, the installer works on neither distro.

@@ -48,15 +48,6 @@ libxcrypt-devel
 freetype-devel
 fontconfig-devel
 
-# nsxiv — imlib2 decodes every image format (its loaders bring GIF, WebP,
-# HEIC and AVIF; nothing else here is needed for them) and libexif rotates
-# photos by their EXIF orientation. Its status bar draws through Xft, already
-# listed above. nsxiv was vendored because Fedora did not package it. Void
-# does (nsxiv-34_1, the same version), so the vendored copy could be dropped
-# for the package. That is an open question in scope I, not changed here.
-imlib2-devel
-libexif-devel
-
 # bidi + Arabic shaping for dwm's window title and dmenu's lines (the
 # bidi-local patches in suckless/{dwm,dmenu}/patches/PATCHES.md)
 fribidi-devel

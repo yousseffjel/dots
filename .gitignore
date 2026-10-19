@@ -11,3 +11,10 @@ HyDE/
 # Local-only reference clone (ChrisTitusTech/dwm-titus) — see CLAUDE.md rule 9.
 # Never track, edit, or symlink into this.
 dwm-titus/
+
+# Build outputs left in an existing clone by the nsxiv build that was
+# vendored here until 2026-10-19 (nsxiv is Void's package now). Its own
+# .gitignore went with the sources, so without this line `git pull` leaves
+# config.h, the binary and the objects showing as untracked. The 0.4.0 ->
+# 0.5.0 migration deletes the directory.
+suckless/nsxiv/

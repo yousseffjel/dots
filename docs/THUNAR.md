@@ -125,7 +125,7 @@ Thunar re-themes the whole desktop exactly as picking one with `Super+Shift+w` d
 | ----- | ------- | ------------------- |
 | Directories | `thunar` | `packages/desktop.lst` |
 | Web, PDF, SVG | `firefox` | `packages/desktop.lst` |
-| Images | `nsxiv` | built from `suckless/nsxiv` (vendored when Fedora did not package it) |
+| Images | `nsxiv` | `packages/extra.lst` (built from a vendored copy until 2026-10-19) |
 | Video and audio | `mpv` | `packages/extra.lst`; config in `config/mpv/mpv.conf` |
 | Archives (zip, rar, 7z, tar.*) | `file-roller` | `packages/extra.lst` (RAR through `unar`) |
 | Text and code | Sublime Text, then `dots-nvim.desktop` | `sublime-text4` from Void's nonfree repo, enabled by `scripts/install-pkg-repos.sh` |

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build and install the vendored suckless programs (dwm, st, dmenu, dwmblocks,
-# slock, plus the suckless-style nsxiv), the dwmblocks block scripts, and the
-# dwm autostart hook that actually launches the status bar.
+# slock), the dwmblocks block scripts, and the dwm autostart hook that
+# actually launches the status bar. The image viewer, nsxiv, is Void's
+# package (extra.lst) since 2026-10-19; it used to be built here.
 #
 # Runs standalone, or as part of `install-void.sh` (which calls this
 # unless run with --skip-suckless).
@@ -13,7 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
-PROGRAMS=(dwm st dmenu dwmblocks slock nsxiv)
+PROGRAMS=(dwm st dmenu dwmblocks slock)
 source "$SCRIPT_DIR/global_fn.sh"
 stop_on_interrupt
 
@@ -25,15 +26,6 @@ declare -A PROGRAM_BINS=(
     [dmenu]="dmenu dmenu_path dmenu_run stest"
     [dwmblocks]="dwmblocks"
     [slock]="slock"
-    [nsxiv]="nsxiv"
-)
-
-# `make install` targets per program, when plain `install` is not enough.
-# nsxiv's desktop file and icons are separate targets, and the desktop file is
-# what makes it a handler config/mimeapps.list can name. Its `make uninstall`
-# removes all three, so uninstall_steps.sh needs nothing extra.
-declare -A PROGRAM_INSTALL_TARGETS=(
-    [nsxiv]="install install-desktop install-icon"
 )
 
 SKIP_DEPS=0
@@ -43,7 +35,7 @@ for arg in "$@"; do
         --skip-deps) SKIP_DEPS=1 ;;
         --dry-run) DRY_RUN=1 ;;
         -h | --help)
-            sed -n '2,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'
             echo
             echo "usage: install-suckless.sh [--skip-deps] [--dry-run]"
             exit 0
@@ -82,7 +74,7 @@ fi
 
 # --- build dependencies ------------------------------------------------------
 # X11 + Xft + Xinerama for dwm/st, Xext + Xrandr + libcrypt for slock,
-# imlib2 + libexif for nsxiv, and tic(1) from ncurses for st's terminfo.
+# fribidi for dwm/dmenu, and tic(1) from ncurses for st's terminfo.
 #
 # The xbps names live in packages/build.lst (CLAUDE.md rule 10) — this is the
 # Void path and the only one the repo supports. The pacman and apt-get
@@ -107,7 +99,7 @@ install_deps() {
         blue "==> installing build deps (pacman)"
         "${SUDO[@]}" pacman -S --needed --noconfirm \
             base-devel libx11 libxft libxinerama libxext libxrandr libxcrypt \
-            freetype2 fontconfig fribidi ncurses imlib2 libexif
+            freetype2 fontconfig fribidi ncurses
     elif command -v xbps-install >/dev/null 2>&1; then
         local build_lst="$DOTS_DIR/packages/build.lst"
         if [[ ! -f "$build_lst" ]]; then
@@ -143,11 +135,11 @@ install_deps() {
         "${SUDO[@]}" apt-get update -y
         "${SUDO[@]}" apt-get install -y build-essential libx11-dev libxft-dev \
             libxinerama-dev libxext-dev libxrandr-dev libcrypt-dev \
-            libfontconfig1-dev libfreetype6-dev libfribidi-dev ncurses-bin libimlib2-dev libexif-dev
+            libfontconfig1-dev libfreetype6-dev libfribidi-dev ncurses-bin
     else
         yellow "no xbps-install, pacman or apt-get — skipping dependency install."
         yellow "  needed: a C toolchain, Xlib, Xft, Xinerama, Xext, Xrandr,"
-        yellow "  libcrypt, fontconfig, fribidi, imlib2, libexif, tic(1)"
+        yellow "  libcrypt, fontconfig, fribidi, tic(1)"
     fi
 }
 
@@ -179,8 +171,7 @@ for prog in "${PROGRAMS[@]}"; do
     # toolchain, and suckless Makefiles do not track header deps.
     make -C "$dir" clean >/dev/null
     make -C "$dir"
-    read -ra targets <<<"${PROGRAM_INSTALL_TARGETS[$prog]:-install}"
-    "${SUDO[@]}" make -C "$dir" "${targets[@]}"
+    "${SUDO[@]}" make -C "$dir" install
     # `make install` re-checks the build rules as root. If anything looked out
     # of date it would leave root-owned objects behind and every later
     # non-sudo build in this tree would fail on permissions.

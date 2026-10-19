@@ -3,7 +3,7 @@
 # (install-pkg-xbps.sh — Void does not support partial upgrades), installs
 # three tiers of xbps packages — one transaction per tier — then the repos
 # and drivers step (install-pkg-repos.sh). The suckless build
-# (dwm/st/dmenu/dwmblocks/slock/nsxiv) is the other half of the "install" stage — see install-suckless.sh, which
+# (dwm/st/dmenu/dwmblocks/slock) is the other half of the "install" stage — see install-suckless.sh, which
 # owns packages/build.lst and installs those deps itself.
 #
 # The three tiers this script reads, in install order:

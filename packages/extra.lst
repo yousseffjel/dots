@@ -158,10 +158,14 @@ tar
 
 # default applications (config/mimeapps.list). mpv is the video and audio
 # player; its HEVC/HDR codecs come with Void's ffmpeg6 (desktop.lst), no
-# third-party repo needed. sublime-text4, the default editor, is in Void's
-# nonfree repo and is installed by the repos step once nonfree is enabled
-# (scope I, sub-task I-4), so it cannot be a line here. The image viewer, nsxiv, is built from suckless/nsxiv.
+# third-party repo needed. nsxiv is the image viewer: Void's package is
+# upstream v34 with the default config, the build suckless/nsxiv used to
+# vendor before 2026-10-19 (Fedora did not package it). sublime-text4, the
+# default editor, is in Void's nonfree repo and is installed by the repos
+# step once nonfree is enabled (scope I, sub-task I-4), so it cannot be a
+# line here.
 mpv
+nsxiv
 
 # development stack (Node.js is handled by nvm, not xbps — see install-void.sh header)
 neovim
