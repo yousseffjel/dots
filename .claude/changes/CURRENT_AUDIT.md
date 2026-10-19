@@ -2412,3 +2412,38 @@ including the corrected xsettingsd rationale and the `xcolor` non-existence.
   - VMs from the ISO: UEFI (answers; interrupted and resumed) and BIOS
     (dialog) both booted to ly with zram and the swapfile active.
 - **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only).
+
+## 2026-10-19 — J-4 live-luks and J-5 live-docs; scope J closed (two slots, fast-forward)
+
+- **J-4 `live-luks`** (`17898dd`, log `2026-10-16-live-luks.md`). Folded here
+  late: the J-4 merge skipped this step.
+  - Optional LUKS2 (argon2id) on `dots-root`, opened as `luks-<UUID>`;
+    dialog default No, or `LUKS_PASSFILE` (root-owned, 0600/0400) unattended.
+  - dracut's crypt module plus `rd.luks.uuid=` / `rd.vconsole.keymap=` in
+    `GRUB_CMDLINE_LINUX` (every entry, recovery included); no crypttab.
+  - A re-run resumes an open mapping; mappings are closed before a re-layout
+    and after the final unmount. Scope decisions 13-14 (user).
+  - Suite 90 OK, 25/26 mutants caught (the survivor is equivalent). VMs:
+    UEFI (answers, interrupted and resumed) and BIOS (dialog, linux-lts),
+    one passphrase prompt each.
+- **J-5 `live-docs`** (`f12da26`, log `2026-10-19-live-docs.md`).
+  - `docs/LIVE-INSTALL.md` (the user guide), `docs/live-answers.example`
+    (refused as shipped), a full `install-live.sh --help` read from its
+    header, README install section, CLAUDE.md corrections.
+  - `tests/live-docs.sh` holds the guide's key table, the example and the
+    flag list equal to the code (8/8 mutants caught).
+  - **Full VM matrix from the ISO, 4/4 PASS**: UEFI plain (answers), UEFI
+    LUKS (dialog), BIOS plain (dialog), BIOS LUKS (answers +
+    `LUKS_PASSFILE`); `dots doctor` no failures, 1 warning (spice-vdagent
+    on VNC) in each.
+  - The matrix found **ly's first login failing on a fresh install** (cursor
+    on the user line, so Enter sent an empty password). Fixed in the slot
+    by user decision: `ly-theme.sh` writes `default_input = password`, and
+    its originals file gains keys added later so `--restore` covers them.
+    Verified on screen in the BIOS LUKS run.
+  - THEMING.md's Fedora `%config(noreplace)`/`.rpmnew` text replaced with
+    the Void facts. Suite 91 OK, `lint` ✓, audit READY, reviewer READY.
+- **Scope J is complete.** Follow-ups queued in MASTER_PLAN: the J-4
+  SIGINT/sudo bug and the ly version-bump rebuild gap.
+- **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only), a
+  keymap other than `us`.

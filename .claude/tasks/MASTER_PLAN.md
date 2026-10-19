@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-16
+Last Updated: 2026-10-19
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -15,15 +15,25 @@ when slots run concurrently.
 
 ## Queue
 
-- **Scope J — live-ISO install (Epic, opened 2026-10-15).** One command
-  from the Void live ISO: partition (UEFI or BIOS, GRUB, plain `/boot` +
-  optional LUKS2 root, ext4, zram + swapfile, dracut, `linux` + `linux-lts`,
-  `dialog` menus),
-  base system, user, then `install-void.sh` in a chroot, then reboot into
-  ly. Five sub-tasks, J-1 `live-core` first. Locked decisions and open
-  questions: `.claude/tasks/scope-j-live-install.md`.
-  **J-1 ✅ 2026-10-16** (`0bec1f5`), **J-2 ✅ 2026-10-16** (`86c6df9`),
-  **J-3 ✅ 2026-10-16** (`6a9cb4f`); next is J-4 `live-luks`.
+- ~~**Scope J — live-ISO install (Epic, opened 2026-10-15).**~~ ✅ **Done
+  2026-10-19** — see Recently Closed.
+
+- **Live install: an interrupt does not stop the inner `install-void.sh`.**
+  Seen in J-4's UEFI run: after `timeout -s INT` during the dots stage,
+  `install-void.sh` carried on inside xchroot with the temporary NOPASSWD
+  rule already revoked (sudo failures in the log) until it ended. The re-run
+  converged, but Ctrl-C should stop the inner install. Logs:
+  `2026-10-16-live-luks.md`, `2026-10-19-live-docs.md`.
+
+- **A ly pin bump never reaches an existing install.** `ly_install`
+  (`scripts/install-services-ly.sh:160`) returns "already built" whenever a
+  `LYBUILD … /usr/bin/ly` row exists and the binary runs, without comparing
+  versions, and its message prints the *pinned* version. Raising
+  `LY_VERSION`/`LY_COMMIT` therefore rebuilds only fresh installs. A fix
+  needs a version record, a rebuild that keeps the themed or user-edited
+  `/etc/ly/config.ini` (`ly_place` would copy the stock one over it), and a
+  test in `tests/ly-build.sh`. Not urgent: 1.4.1 is pinned on purpose. Log:
+  `2026-10-19-live-docs.md`.
 
 - ~~**`polkit-gnome` is retired — a fresh install has no PolicyKit agent.**~~
   ✅ **Done 2026-08-13** — see Recently Closed. Two things this entry got wrong,
@@ -85,6 +95,16 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-19 — **Scope J — live-ISO install** (Epic, 5 slots, all ff:
+  `0bec1f5` J-1 live-core, `86c6df9` J-2 live-dots, `6a9cb4f` J-3 live-disk,
+  `17898dd` J-4 live-luks, `f12da26` J-5 live-docs). `scripts/install-live.sh`
+  takes a machine from the Void live ISO to the ly login: disk pick + erase,
+  GPT for UEFI or BIOS, optional LUKS2 root, zram + swapfile, base system
+  with `linux` + `linux-lts`, GRUB, then dots as the user. Guide:
+  `docs/LIVE-INSTALL.md`. Full {UEFI, BIOS} × {plain, LUKS} matrix passed
+  from the ISO; J-5 also fixed ly's first-boot login. Two follow-ups queued.
+  **Not verified:** bare metal, Secure Boot, NVMe (tests only).
 
 - 2026-10-15 — **Scope I — port to Void Linux glibc** (Epic, `783a28a`..`43e76ff`,
   13 commits, ff into main). DECISION REVERSAL of "Fedora only": main is now
