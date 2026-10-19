@@ -49,18 +49,17 @@ when slots run concurrently.
   shfmt on `$GITHUB_PATH` is visible to `lint.sh`'s `command -v`. Both fail
   loudly rather than silently (`--strict` is what guarantees that), but they
   have not been observed.
-- **Run `install-fedora.sh` end-to-end on real hardware.** Still never
-  done; package names are verified against upstream repos, not live. The
-  whole roster Epic was verified in sandboxed `$HOME` trees and against
-  local binaries on an **Arch** dev host — never on a Fedora box.
-  **2026-10-05: run on a Fedora 44 Server VM** (virtio GPU, no 3D accel, ly).
-  It found three bugs, fixed in `first-boot-fixes`, and passed on a re-test.
-  Still open: **bare metal**, a real GPU (the glx branch of `dwm-picom` is
-  tested only against fake glxinfo output), and a real laptop (scope-h).
-  ~~Workstation as a target~~ — **dropped 2026-10-14**: Fedora Server is the
-  one supported target (user decision; `server-target`).
-  ~~Cosmetic: the login shell is recorded as `/usr/sbin/zsh`.~~ Fixed
-  2026-10-05 (`login-shell-canonical-path`) — it was a real uninstall bug.
+- **Run `install-void.sh` end-to-end on real hardware.** Never done on bare
+  metal. Covered so far: the install-container CI job (a Void container),
+  the Void VM (2026-10-15, QXL, ly; `dots doctor` all passed) and the
+  live-ISO VM matrix {UEFI, BIOS} x {plain, LUKS} (2026-10-19). Still
+  open: **bare metal** (ly login on real hardware), a **real GPU** (the glx
+  branch of `dwm-picom` is tested only against fake glxinfo output), and a
+  **real laptop** (scope-h's backlight, BAT, touchpad and power profiles
+  are fixture-tested only). Needs the user's hardware.
+  (Fedora history: a Fedora 44 Server VM run on 2026-10-05 found three bugs,
+  fixed in `first-boot-fixes`; the entry named `install-fedora.sh` until the
+  port. Rewritten 2026-10-19.)
 
 ### Framework parity with HyDE (opened 2026-08-12 by a fresh HyDE diff)
 
