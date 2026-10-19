@@ -17,6 +17,7 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # whether that script created a fresh backup dir during this run.
 BACKUP_ROOT="$HOME/.dotfiles-backup"
 source "$SCRIPT_DIR/global_fn.sh"
+stop_on_interrupt
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }

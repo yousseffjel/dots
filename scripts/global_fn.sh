@@ -20,6 +20,15 @@ green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
+# stop_on_interrupt — Ctrl-C (INT) or TERM ends the calling script. Without a
+# trap, bash carries on when the command it was waiting on exits 0 after the
+# signal, as xbps-install does mid-verification: a whole install ran on past
+# Ctrl-C (2026-10-19). Every script install-void.sh runs calls it.
+stop_on_interrupt() {
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+}
+
 # ~/.local/state/dots/manifest — a single tab-separated file, one row per
 # line, first field is the row type — `grep -rn manifest_append_row scripts/`
 # lists every one; a copy here went stale twice (it lacked DCONF and FLATPAK).

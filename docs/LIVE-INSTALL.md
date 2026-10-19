@@ -144,6 +144,9 @@ mirror timing out) is fixed by running the same command again:
   out again.
 - The user is created once, files are rewritten, and the GRUB and initramfs
   steps are idempotent. An existing `~/dots` clone is left as it is.
+- A Ctrl-C while `install-void.sh` runs inside the target stops every
+  process still running there, then removes the temporary sudo rule.
+  Nothing carries on in the background.
 
 ## Known caveats
 

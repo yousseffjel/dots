@@ -9,6 +9,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# For stop_on_interrupt only: this stage's messages are its own.
+# shellcheck source=global_fn.sh
+source "$SCRIPT_DIR/global_fn.sh"
+stop_on_interrupt
+
 for arg in "$@"; do
     case "$arg" in
         --dry-run) ;; # nothing in this stage mutates state — accepted for interface consistency with the other stages

@@ -73,6 +73,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Ctrl-C stops an install.** A Ctrl-C that landed while xbps-install
+  verified signatures was swallowed: xbps exited 0, so the package stage,
+  the suckless build and the rest of `install-void.sh` ran on to the end.
+  Every script `install-void.sh` runs now stops on an interrupt (exit 130).
+  From the live ISO, the interrupt never reached the install running inside
+  the target at all, and the half of it that kept going lost its temporary
+  sudo rule. `install-live.sh` now stops everything still running in the
+  target first, then removes the rule.
 - **The first login after a fresh install no longer fails.** ly put the
   cursor on the user line until someone had logged in once, so a typed
   password went nowhere and Enter sent an empty one ("authentication

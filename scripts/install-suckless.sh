@@ -15,6 +15,7 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUCKLESS_DIR="$DOTS_DIR/suckless"
 PROGRAMS=(dwm st dmenu dwmblocks slock nsxiv)
 source "$SCRIPT_DIR/global_fn.sh"
+stop_on_interrupt
 
 # Every binary each program's `make install` copies to PREFIX/bin (all
 # suckless Makefiles here default PREFIX=/usr/local) — dmenu ships four.

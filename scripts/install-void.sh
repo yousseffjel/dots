@@ -64,6 +64,7 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # defines its own red/green/yellow/blue below, which take precedence.
 # shellcheck source=global_fn.sh
 source "$SCRIPT_DIR/global_fn.sh"
+stop_on_interrupt
 
 # Tee this run's full output (stdout+stderr, including every stage script
 # invoked below as a child process) into install.log at the repo root, so

@@ -100,6 +100,8 @@ dots/
 │   │                           # ~/dots clone + install-void.sh as the user under a TEMPORARY NOPASSWD rule
 │   │                           # (EXIT trap). xchroot's exit status is not trusted for that run: a marker file
 │   │                           # is, and processes left rooted in the target are stopped by /proc/<pid>/root.
+│   │                           # On every exit, Ctrl-C included, they are stopped BEFORE the rule goes; each
+│   │                           # script install-void.sh runs calls stop_on_interrupt (global_fn.sh).
 │   ├── install-pre.sh          # stage: sanity checks (xbps present, sudo available, in wheel; musl noted)
 │   ├── install-pkg.sh          # stage: full upgrade, then xbps packages (packages/*.lst), then repos + drivers
 │   ├── install-pkg-tiers.sh    # sourced by install-pkg.sh: install_tier — ONE xbps transaction per tier;

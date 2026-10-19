@@ -184,8 +184,9 @@ live_configure_boot
 
 if [[ $LIVE_SKIP_DOTS -eq 0 ]]; then
     # Armed before the grant, so no exit path leaves the rule behind. INT
-    # and TERM become exits, which run the EXIT trap.
-    trap live_dots_revoke EXIT
+    # and TERM become exits, which run the EXIT trap: it stops everything
+    # still running in the target first, then removes the rule.
+    trap live_dots_cleanup EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
     live_dots_install

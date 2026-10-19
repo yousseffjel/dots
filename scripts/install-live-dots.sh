@@ -12,9 +12,9 @@
 #
 # The temporary rule exists only because install-void.sh runs sudo with
 # stdin closed, so no password prompt can be answered. install-live.sh arms
-# live_dots_revoke on EXIT before granting it, so a failed or interrupted
-# install-void.sh never leaves it behind, and live_dots_install checks it is
-# gone before reporting success. Every step converges on a re-run (rule 1):
+# live_dots_cleanup on EXIT before granting it, so a failed or interrupted
+# install-void.sh never leaves it behind, nor goes on running without it,
+# and live_dots_install checks it is gone before reporting success. Every step converges on a re-run (rule 1):
 # an existing clone is left alone, and the rule is rewritten, then removed.
 
 LIVE_DOTS_SUDOERS=/etc/sudoers.d/99-dots-live-install
@@ -69,32 +69,60 @@ live_dots_revoke() {
     rm -f "$LIVE_TARGET$LIVE_DOTS_SUDOERS" || true
 }
 
-# live_dots_release — what xchroot could not clean up. A process
-# install-void.sh started can outlive it in the target: on the J-2 VM run
-# the gpg-agent that flatpak's Flathub key import starts (through ostree)
-# still held /mnt/dev, xchroot's own umount failed, and so did its exit
-# status. Stop every process whose root is the target, matched by
-# /proc/<pid>/root and never by user (uid 1000 can be the live ISO's own
-# desktop user), then unmount whatever xchroot left behind.
-live_dots_release() {
-    local p m pids=()
-    [[ $DRY_RUN -eq 1 ]] && return 0
+# live_dots_rooted — the live pids whose root is the target, one a line.
+# Matched by /proc/<pid>/root, never by user: uid 1000 can be the live ISO's
+# own desktop user. LIVE_PROC stands in for /proc in tests; `kill -0` drops a
+# pid that has already gone.
+live_dots_rooted() {
+    local p
     for p in "${LIVE_PROC:-/proc}"/[0-9]*; do
-        if [[ "$(readlink "$p/root" 2>/dev/null)" == "$LIVE_TARGET" ]]; then
-            pids+=("${p##*/}")
+        [[ "$(readlink "$p/root" 2>/dev/null)" == "$LIVE_TARGET" ]] || continue
+        kill -0 "${p##*/}" 2>/dev/null && printf '%s\n' "${p##*/}"
+    done
+    return 0
+}
+
+# live_dots_release — stop whatever still runs in the target, then unmount
+# what xchroot left behind. Two ways to get here with something running:
+#   - after a good install: the gpg-agent flatpak's Flathub key import starts
+#     (through ostree) held /mnt/dev on the J-2 VM run, so xchroot's umount
+#     and its exit status failed;
+#   - after Ctrl-C: `su -c` runs install-void.sh in its own session, so the
+#     terminal's SIGINT never reaches it. su TERMs install-void.sh alone,
+#     which orphans the stage it was waiting on (J-4: the package stage ran
+#     on with the sudo rule already gone).
+# TERM first, so each script's stop_on_interrupt trap ends it; then KILL,
+# scanning again each round, since a loop can start its next child between
+# a scan and the kill.
+live_dots_release() {
+    local m round pids=()
+    [[ $DRY_RUN -eq 1 ]] && return 0
+    for round in 1 2 3 4 5; do
+        mapfile -t pids < <(live_dots_rooted)
+        [[ ${#pids[@]} -gt 0 ]] || break
+        if [[ $round -eq 1 ]]; then
+            yellow "note    stopping ${#pids[@]} process(es) still running in $LIVE_TARGET"
+            kill "${pids[@]}" 2>/dev/null || true
+            sleep 2
+        else
+            kill -9 "${pids[@]}" 2>/dev/null || true
+            sleep 0.5
         fi
     done
-    if [[ ${#pids[@]} -gt 0 ]]; then
-        yellow "note    stopping ${#pids[@]} process(es) install-void.sh left running in $LIVE_TARGET"
-        kill "${pids[@]}" 2>/dev/null || true
-        sleep 2
-        kill -9 "${pids[@]}" 2>/dev/null || true
-    fi
+    mapfile -t pids < <(live_dots_rooted)
+    [[ ${#pids[@]} -eq 0 ]] || yellow "note    ${#pids[@]} process(es) in $LIVE_TARGET would not stop"
     for m in etc/resolv.conf sys proc dev; do
         if findmnt -rn --mountpoint "$LIVE_TARGET/$m" >/dev/null; then
             umount -R "$LIVE_TARGET/$m" || yellow "note    $LIVE_TARGET/$m is still mounted"
         fi
     done
+}
+
+# live_dots_cleanup — install-live.sh's EXIT trap for this stage: stop what
+# runs in the target BEFORE the rule goes, so nothing carries on without it.
+live_dots_cleanup() {
+    live_dots_release || true
+    live_dots_revoke
 }
 
 # live_dots_install — clone, grant, install as the user, revoke. `su -`

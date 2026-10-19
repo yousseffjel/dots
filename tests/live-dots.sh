@@ -4,6 +4,9 @@
 # origin, install-void.sh runs as that user through `su -` while the
 # temporary sudo rule exists, and the rule is gone afterwards on success,
 # on failure (the EXIT trap) and is caught when its removal did not land.
+# Interrupted (TERM, which install-live.sh treats as INT), everything still
+# running in the target is stopped BEFORE the rule goes. Which processes
+# live_dots_release stops is tests/live-release.sh.
 #
 # xchroot is a fake on PATH that records what would run inside the target
 # and answers for visudo and su. git is the real one, cloning a throwaway
@@ -35,6 +38,10 @@ export SB RULE
 # install, whether the temporary rule existed at that moment. A successful
 # install writes the marker as the real `sh -c` does. FAKE_XCHROOT_STATUS
 # is xchroot's own cleanup failing afterwards (the VM run's gpg-agent).
+# FAKE_XCHROOT_TERM is the J-4 interrupt: an orphaned stage keeps running in
+# the target (registered in the fake /proc), and the installer is TERMed
+# while it waits (FAKE_XCHROOT_KILL is its pid). The orphan records whether
+# the rule was still there when it was stopped, which proves the order.
 cat >"$BIN/xchroot" <<'EOF'
 #!/usr/bin/env bash
 t="$1"
@@ -44,6 +51,15 @@ case "$1" in
     visudo) exit 0 ;;
     sh)
         [[ -e $t/$RULE ]] && echo granted >>"$SB/called"
+        if [[ -n ${FAKE_XCHROOT_TERM:-} ]]; then
+            bash -c 'trap "[[ -e $1/$2 ]] && echo rule-present >$3 || echo rule-gone >$3; exit 0" TERM
+                while :; do sleep 0.1; done' _ "$t" "$RULE" "$SB/order" </dev/null >/dev/null 2>&1 &
+            mkdir -p "$SB/noproc/$!"
+            ln -s "$t" "$SB/noproc/$!/root"
+            echo "$!" >"$SB/orphan"
+            kill -TERM "$FAKE_XCHROOT_KILL"
+            exit 143
+        fi
         [[ ${FAKE_SU_STATUS:-0} -eq 0 ]] && : >"$t/var/tmp/dots-live-install.ok"
         exit "${FAKE_XCHROOT_STATUS:-${FAKE_SU_STATUS:-0}}"
         ;;
@@ -81,7 +97,11 @@ stage() {
         # shellcheck source=../scripts/install-live-dots.sh
         source "$LIVE_SCRIPTS/install-live-dots.sh"
         eval "${1:-}"
-        trap live_dots_revoke EXIT
+        # As install-live.sh arms them.
+        trap live_dots_cleanup EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+        [[ -z ${FAKE_XCHROOT_TERM:-} ]] || export FAKE_XCHROOT_KILL=$BASHPID
         live_dots_install
     )"
     status=$?
@@ -148,29 +168,24 @@ wait "$lingering" 2>/dev/null || true
 rm -rf "${SB:?}/noproc/$lingering"
 result "the marker, not xchroot's status, decides success; the leftover is stopped" "$ok"
 
-blue "==> a process left running in the target"
-# Real processes, so kill has something to hit; a fake /proc decides which
-# one counts as rooted in the target.
-sleep 300 >/dev/null 2>&1 &
-inside=$!
-sleep 300 >/dev/null 2>&1 &
-decoy=$!
-mkdir -p "$SB/proc/$inside" "$SB/proc/$decoy"
-ln -s "$SB/mnt" "$SB/proc/$inside/root"
-ln -s / "$SB/proc/$decoy/root"
-(
-    DRY_RUN=0 LIVE_TARGET="$SB/mnt" LIVE_PROC="$SB/proc"
-    # shellcheck source=../scripts/install-live-dots.sh
-    source "$LIVE_SCRIPTS/install-live-dots.sh"
-    live_dots_release
-) >/dev/null
+blue "==> interrupted while install-void.sh runs (the J-4 bug)"
+target
+rm -f "$SB/order" "$SB/orphan"
+export FAKE_XCHROOT_TERM=1
+stage
+unset FAKE_XCHROOT_TERM
+orphan="$(cat "$SB/orphan" 2>/dev/null || echo 0)"
+wait "$orphan" 2>/dev/null || true
 ok=0
-wait "$inside" 2>/dev/null || true
-! kill -0 "$inside" 2>/dev/null || ok=1
-kill -0 "$decoy" 2>/dev/null || ok=1
-kill "$decoy" 2>/dev/null || true
-status=0 out=""
-result "only the process rooted in the target is stopped" "$ok"
+[[ $status -eq 143 ]] || ok=1
+[[ "$(cat "$SB/order" 2>/dev/null)" == rule-present ]] || ok=1
+if kill -0 "$orphan" 2>/dev/null; then
+    ok=1
+    kill -KILL "$orphan" 2>/dev/null || true
+fi
+[[ ! -e $SB/mnt/$RULE ]] || ok=1
+rm -rf "${SB:?}/noproc/$orphan"
+result "exit 143; the orphan is stopped while the rule still exists, then the rule goes" "$ok"
 
 blue "==> the removal does not land"
 target

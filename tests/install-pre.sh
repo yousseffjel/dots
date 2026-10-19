@@ -24,7 +24,9 @@ source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
-seal_path "$SB/bin"
+# dirname and HOME: the stage sources global_fn.sh for stop_on_interrupt, and
+# rule 3's SCRIPT_DIR line and the manifest path there need them.
+seal_path "$SB/bin" dirname
 for t in xbps-install sudo; do fake "$SB/bin" "$t" 'exit 0'; done
 # shellcheck disable=SC2016 # the body expands when the fake runs
 fake "$SB/bin" id 'case "$1" in -un) echo ysf ;; -nG) echo "${FAKE_GROUPS:-ysf wheel audio video}" ;; -u) echo 1000 ;; esac'
@@ -46,7 +48,7 @@ check() {
 no_musl_note() { ! grep -q musl <<<"$OUT"; }
 run() {
     RC=0
-    OUT="$(env -i PATH="$SB/bin" "${@}" "$(type -P bash)" "$SUT" 2>&1)" || RC=$?
+    OUT="$(env -i HOME="$SB" PATH="$SB/bin" "${@}" "$(type -P bash)" "$SUT" 2>&1)" || RC=$?
 }
 
 run
