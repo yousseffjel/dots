@@ -89,6 +89,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **migrate-dryrun-current** (`a12240f`, ff; log
+  `2026-10-20-migrate-dryrun-current.md`). Void VM finding:
+  `install-void.sh --dry-run` stopped silently (rc=1) at the migrations step
+  on any up-to-date install. migrate.sh's trailing `[[ ]] && …` is now an
+  if/elif branch; the dry run reaches all four stages and writes nothing.
+
 - 2026-10-20 — **help-render-aligned** (`0626ec1`, ff; log
   `2026-10-20-help-render-aligned.md`). VM edge-case pass: `dots theme --help`
   had a wrapped line four columns off after the name swap, and theme and

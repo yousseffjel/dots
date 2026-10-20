@@ -158,3 +158,14 @@ above is history, kept verbatim from the pre-rotation snapshot.
   and non-image wallpapers refused before any state is written (feh runs
   first); a path with spaces and an apostrophe applies and round-trips
   through ~/.fehbg.
+
+## 2026-10-20 — migrate-dryrun-current (fast-forward)
+
+- **`migrate-dryrun-current`** (`a12240f`, log `2026-10-20-migrate-dryrun-current.md`).
+  `install-void.sh --dry-run` aborted silently at `=== migrations ===` on
+  every up-to-date install: migrate.sh ended on a false `[[ ]] && blue`.
+  Fixed; tests/migrate.sh now checks dry-run exit codes. VM: dry run rc=0
+  across all four stages, manifest and filesystem untouched. Suite 98 OK,
+  reviewer READY.
+- **Same VM pass, no finding:** `dots version --json` parses; `dots doctor
+  --tsv` rows all have 4 fields.
