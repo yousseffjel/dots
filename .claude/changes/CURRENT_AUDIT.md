@@ -83,3 +83,13 @@ above is history, kept verbatim from the pre-rotation snapshot.
 - Older entries are preserved there; this file now keeps only the
   trailing 5, oldest first as before.
 - Same commit: the thirteen 2026-10-05 logs moved to `archive/` (14-day sweep).
+
+## 2026-10-20 — update-upstream-gone (fast-forward)
+
+- **`update-upstream-gone`** (`746330a`, log `2026-10-20-update-upstream-gone.md`).
+  Found on the Void VM: its checkout tracked `void`, deleted on GitHub, and
+  `dots update` said "nothing to pull" (fetch kept the stale ref). Now
+  `fetch --prune` + `need_upstream` (preflight and after the fetch) refuses
+  with the branch named and `git switch main`. 5/5 mutants, suite 95 OK,
+  reviewer READY, verified on a copy of the VM checkout. VM's `~/dots` moved
+  to main. Nothing pushed.

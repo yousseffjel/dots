@@ -89,6 +89,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **update-upstream-gone** (`746330a`, ff; log
+  `2026-10-20-update-upstream-gone.md`). Void VM finding: `dots update` on a
+  branch deleted on the remote (`void`) said "nothing to pull" forever. Now
+  `fetch --prune` and a refusal naming the branch, hint `git switch main`.
+  5/5 mutants, suite 95 OK, reviewer READY, checked on the VM.
+
 - 2026-10-20 — **suite-host-hermetic** (`324b6d6`, ff; log
   `2026-10-20-suite-host-hermetic.md`). The suite passes on a dev host with
   autorandr or a system Adwaita-dark (sealed PATH in the dwm-display tests,
