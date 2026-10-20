@@ -9,8 +9,9 @@
 #   update.sh <args...>     pull, then pass <args> on to install-void.sh
 #
 # Refuses — before touching anything — a dirty tracked tree, a detached HEAD,
-# a branch with no upstream, and an upstream that is not a fast-forward:
-# each of those needs a decision this script must not make for you.
+# a branch with no upstream, an upstream deleted on the remote, and an
+# upstream that is not a fast-forward: each of those needs a decision this
+# script must not make for you.
 #
 # "Up to date" means the INSTALL is, not just the checkout: the manifest
 # records the commit the installer last ran from, and when that is not HEAD
@@ -48,17 +49,32 @@ fail() {
 
 gitd() { git -C "$DOTS_DIR" "$@"; }
 
+# Refuse unless the current branch's upstream resolves. A branch still
+# configured to track one the remote deleted (gone once a fetch pruned its
+# remote-tracking ref) is told apart from a branch that never had one.
+need_upstream() {
+    local branch merge
+    gitd rev-parse -q --verify '@{u}' >/dev/null 2>&1 && return 0
+    branch="$(gitd symbolic-ref --short HEAD)"
+    merge="$(gitd config "branch.$branch.merge" || true)"
+    [[ -n "$merge" ]] \
+        || fail "the current branch has no upstream to pull from" \
+            "set one: git -C $DOTS_DIR branch --set-upstream-to=origin/main"
+    fail "the branch '$branch' tracks '${merge#refs/heads/}', which no longer exists on the remote" \
+        "switch to the main branch: git -C $DOTS_DIR switch main"
+}
+
 # Every refusal happens here, before the fetch, so a refused update has
-# changed nothing at all.
+# changed nothing at all. The one exception is an upstream deleted on the
+# remote, which only the fetch's prune reveals (need_upstream runs again
+# after it); a fetch touches no file in the checkout.
 preflight() {
     gitd rev-parse --is-inside-work-tree >/dev/null 2>&1 \
         || fail "$DOTS_DIR is not a git checkout — dots update needs one" \
             "re-clone the repo, or update it by hand and run scripts/install-void.sh"
     gitd symbolic-ref -q HEAD >/dev/null \
         || fail "the repo is on a detached HEAD" "check out your branch first (git -C $DOTS_DIR switch main)"
-    gitd rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 \
-        || fail "the current branch has no upstream to pull from" \
-            "set one: git -C $DOTS_DIR branch --set-upstream-to=origin/main"
+    need_upstream
     [[ -z "$(gitd status --porcelain --untracked-files=no)" ]] \
         || fail "the repo has uncommitted changes to tracked files" \
             "commit or stash them first (git -C $DOTS_DIR status shows them)"
@@ -117,7 +133,11 @@ main() {
 
     preflight
     blue "==> fetching"
-    gitd fetch --quiet || fail "git fetch failed — check the network and the remote"
+    # --prune, or a branch deleted on the remote (`void`, once the port
+    # merged into main) keeps its stale remote-tracking ref and reads as
+    # "nothing to pull" forever.
+    gitd fetch --prune --quiet || fail "git fetch failed — check the network and the remote"
+    need_upstream
 
     if ((dry)); then
         if [[ -n "$(gitd rev-list HEAD..'@{u}')" ]]; then

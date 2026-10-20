@@ -31,6 +31,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `Adwaita-dark` theme.** Two tests reached the real tools and themes
   instead of their fakes; CI never has those installed, so only a local
   run failed.
+- **`dots update` no longer reports "nothing to pull" for a branch deleted
+  on GitHub.** An install that followed the `void` branch, deleted once the
+  Void port merged, stayed on 0.4.0 without a word. The update now stops,
+  names the deleted branch and tells you to `git switch main`.
 
 ## [0.5.0] - 2026-10-19
 

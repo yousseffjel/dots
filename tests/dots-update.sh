@@ -9,7 +9,7 @@
 #   * already up to date: the installer does NOT run;
 #   * --dry-run lists what would come in and changes nothing;
 #   * refused, with HEAD untouched: dirty tracked files, a detached HEAD, no
-#     upstream, a diverged branch;
+#     upstream, a diverged branch, an upstream deleted on the remote;
 #   * a branch that is only AHEAD has nothing to pull — exit 0, not "diverged";
 #   * a checkout pulled BY HAND (how a 0.1.0 install gets update.sh at all)
 #     has nothing to pull but an install from an older commit: the installer
@@ -158,7 +158,8 @@ check "detached HEAD: exit 1" bash -c '[[ $1 == 1 && $2 == *detached* ]]' _ "$RC
 g "$INST" checkout -q main
 g "$INST" branch -q --unset-upstream
 update
-check "no upstream: exit 1" bash -c '[[ $1 == 1 && $2 == *"no upstream"* ]]' _ "$RC" "$OUT"
+check "no upstream: exit 1, before any fetch" \
+    bash -c '[[ $1 == 1 && $2 == *"no upstream"* && $2 != *fetching* ]]' _ "$RC" "$OUT"
 g "$INST" branch -q --set-upstream-to=origin/main
 g "$INST" merge -q --ff-only origin/main
 echo ahead >"$INST/ahead.txt"
@@ -180,6 +181,31 @@ update
 check "diverged: exit 1" bash -c '[[ $1 == 1 && $2 == *diverged* ]]' _ "$RC" "$OUT"
 check "...HEAD untouched" head_is "$diverged"
 check "...installer never ran" test ! -e "$LOG"
+
+blue "==> an upstream deleted on the remote"
+# How the Void VM met it: its checkout tracked `void`, deleted on GitHub once
+# the port merged into main. A plain fetch keeps origin/void, so the update
+# said "nothing to pull" and the install stayed on 0.4.0.
+mkrepos
+g "$DEV" push -q origin HEAD:refs/heads/void
+g "$INST" fetch -q origin
+g "$INST" switch -q -c void --track origin/void
+upstream 0.2.0
+g "$DEV" push -q origin --delete void
+gone="$(git -C "$INST" rev-parse HEAD)"
+update --dry-run
+check "--dry-run: exit 1, naming the gone branch and the switch" \
+    bash -c '[[ $1 == 1 && $2 == *"tracks '\''void'\'', which no longer exists"* && $2 == *"switch main"* ]]' _ "$RC" "$OUT"
+# The dry run's prune already removed origin/void, so this run meets it in
+# preflight, not after its own fetch: both paths, one message.
+update --skip-suckless
+check "update: exit 1, naming the gone branch" \
+    bash -c '[[ $1 == 1 && $2 == *"no longer exists on the remote"* ]]' _ "$RC" "$OUT"
+check "...HEAD untouched" head_is "$gone"
+check "...installer never ran" test ! -e "$LOG"
+g "$INST" switch -q main
+update --skip-suckless
+check "after the switch to main it updates" grep -qx 0.2.0 "$INST/VERSION"
 
 if ((rc != 0)); then
     red "✗ dots update"
