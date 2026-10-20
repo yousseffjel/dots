@@ -87,8 +87,11 @@ while [[ "$current" != "$repo_version" ]]; do
     fi
 done
 
-if [[ $DRY_RUN -eq 1 ]]; then
-    [[ "$current" != "$installed_version" ]] && blue "  (dry-run) would end at version $current"
+# One if/elif chain, never a bare `[[ ]] && …` as the last command: with
+# nothing to migrate that test is false, this script exits 1, and
+# install-void.sh --dry-run (set -e) stopped there (Void VM, 2026-10-20).
+if [[ $DRY_RUN -eq 1 && "$current" != "$installed_version" ]]; then
+    blue "  (dry-run) would end at version $current"
 elif [[ "$current" != "$repo_version" ]]; then
     yellow "stopped at $current — not yet at $repo_version (no migration path found; see the warning above)"
 elif [[ $applied_any -eq 1 ]]; then

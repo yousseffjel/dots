@@ -18,6 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`install-void.sh --dry-run` runs to the end on an up-to-date install.**
+  It stopped silently at the migrations step whenever there was nothing to
+  migrate, which is the usual case.
+
 - **`dots theme --help` lines up.** Its `--wallbash` line wrapped, and the
   wrapped half sat four columns off once the name read `dots theme`. It and
   `dots wallpaper --help` also no longer start with a blank line.

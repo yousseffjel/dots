@@ -7,7 +7,8 @@
 #   * no manifest (a fresh install): a no-op that creates nothing;
 #   * one hop: the migration runs, then the manifest records the new version;
 #   * a chain of hops runs in order and ends at VERSION;
-#   * --dry-run names the hop and changes nothing;
+#   * --dry-run names the hop, changes nothing, and exits 0 — also with
+#     nothing to migrate, since install-void.sh --dry-run runs it under set -e;
 #   * a failing hop exits 1 and leaves the manifest at the version it was;
 #   * two migrations from one version is an error, not a guess;
 #   * no path onward: stops where it is, exit 0, says so.
@@ -101,9 +102,20 @@ blue "==> --dry-run"
 setup 0.2.0 0.1.0
 hop 0.1.0 0.2.0
 migrate --dry-run
+check "exit 0" test "$RC" -eq 0
 check "names the hop" grep -q 'would run migration 0.1.0 -> 0.2.0' <<<"$OUT"
 check "runs nothing" test ! -e "$LOG"
 check "the manifest still says 0.1.0" test "$(recorded)" = 0.1.0
+# install-void.sh --dry-run runs this under set -e, so a non-zero exit with
+# nothing to do aborted the whole dry run (Void VM, 2026-10-20).
+setup 0.2.0 0.2.0
+migrate --dry-run
+check "already at VERSION: exit 0" test "$RC" -eq 0
+check "...and says so" grep -q 'already at 0.2.0' <<<"$OUT"
+setup 0.2.0 0.0.9
+hop 0.1.0 0.2.0
+migrate --dry-run
+check "no path onward: exit 0" test "$RC" -eq 0
 
 blue "==> a failing hop"
 setup 0.3.0 0.1.0
