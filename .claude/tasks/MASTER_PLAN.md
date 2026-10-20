@@ -89,6 +89,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **complete-stamp-cleared** (`848acac`, ff; log
+  `2026-10-20-complete-stamp-cleared.md`). Void VM finding: an interrupted
+  re-run of an already-finished commit read as finished to `dots update`. A
+  full run now clears the stamp after the pre stage. Verified with a real
+  SIGINT on the VM.
+
 - 2026-10-20 — **running-build-stale** (`2e6446a`, ff; log
   `2026-10-20-running-build-stale.md`). Void VM finding: a rebuild under a
   live session left dwm/dwmblocks on the old binary, silently. Both

@@ -109,3 +109,14 @@ above is history, kept verbatim from the pre-rotation snapshot.
   all passed; a second update/migrate a no-op); dunst kept pid, history and
   pause level 100 across `dots theme nord` and a wallpaper change, queued
   notifications shown on unpause; xdg-open of a .jpg ran /usr/bin/nsxiv.
+
+## 2026-10-20 — complete-stamp-cleared (fast-forward)
+
+- **`complete-stamp-cleared`** (`848acac`, log `2026-10-20-complete-stamp-cleared.md`).
+  Void VM finding: a Ctrl-C'd re-run of a commit that had finished before
+  kept the old `complete` stamp = HEAD, so `dots update` said up to date. A
+  full non-dry run now clears it after the pre stage. 4/4 mutants, suite 96
+  OK, reviewer READY; on the VM a real SIGINT gave exit 130 + empty stamp,
+  `dots update` re-ran and converged.
+- **Also VM-checked:** the packaged nsxiv reads the theme's X resources
+  (window background = `Nsxiv.window.background`, #2C2363).
