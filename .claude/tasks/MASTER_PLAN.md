@@ -89,6 +89,14 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **running-build-stale** (`2e6446a`, ff; log
+  `2026-10-20-running-build-stale.md`). Void VM finding: a rebuild under a
+  live session left dwm/dwmblocks on the old binary, silently. Both
+  installers now end with the in-place restart hint; `dots doctor` warns.
+  Verified live on the VM. **Also VM-verified today:** the 0.4.0 → 0.5.0
+  upgrade (release-0.5.0), nsxiv as a package (nsxiv-package) and
+  dunst-keep-state — their "Not verified" notes below are closed.
+
 - 2026-10-20 — **update-upstream-gone** (`746330a`, ff; log
   `2026-10-20-update-upstream-gone.md`). Void VM finding: `dots update` on a
   branch deleted on the remote (`void`) said "nothing to pull" forever. Now

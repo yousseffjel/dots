@@ -93,3 +93,19 @@ above is history, kept verbatim from the pre-rotation snapshot.
   with the branch named and `git switch main`. 5/5 mutants, suite 95 OK,
   reviewer READY, verified on a copy of the VM checkout. VM's `~/dots` moved
   to main. Nothing pushed.
+
+## 2026-10-20 — running-build-stale (fast-forward)
+
+- **`running-build-stale`** (`2e6446a`, log `2026-10-20-running-build-stale.md`).
+  Void VM finding: `dots update` under a live session replaced dwm and
+  dwmblocks on disk; the running ones kept the old code silently. New
+  `scripts/running-build.sh` (replaced + different = stale; removed = not);
+  both installers end with the restart hint, `dots doctor` warns. 9/11
+  mutants (one equivalent, removed; owner check untestable), suite 96 OK,
+  reviewer READY, verified live on the VM (HUP kept pid and windows).
+- **VM verification of the queued items, same day:** 0.4.0 → 0.5.0 upgrade
+  via `dots update` (migration removed /usr/local nsxiv + row +
+  suckless/nsxiv/; `nsxiv` = package 34_1; mimeapps.list refreshed; doctor
+  all passed; a second update/migrate a no-op); dunst kept pid, history and
+  pause level 100 across `dots theme nord` and a wallpaper change, queued
+  notifications shown on unpause; xdg-open of a .jpg ran /usr/bin/nsxiv.
