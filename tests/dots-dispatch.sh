@@ -127,6 +127,16 @@ for sub in "${SUBS[@]}"; do
     # filename. Without this the dispatcher tells users to run "version.sh".
     sub_help="$("$DOTS" "$sub" --help 2>&1)"
     assert_contains "dots $sub --help says 'dots $sub'" "dots $sub" "$sub_help"
+    # The swap changes the name's length, so a wrapped usage line (indented,
+    # naming no command) no longer lines up under its text (Void VM,
+    # 2026-10-20: `dots theme --help`). Nor may help open on a blank line.
+    wrapped="$(grep -v "dots $sub" <<<"$sub_help" | grep '^ ' || true)"
+    if [[ -z "${sub_help%%$'\n'*}" || -n "$wrapped" ]]; then
+        red "  FAIL: dots $sub --help has a blank first line or a wrapped usage line"
+        rc=1
+    else
+        green "  ok: dots $sub --help: no blank first line, no wrapped usage line"
+    fi
 done
 
 blue "==> direct invocation is unchanged"

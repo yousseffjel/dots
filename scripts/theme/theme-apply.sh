@@ -2,8 +2,7 @@
 # Apply a colour theme to the desktop.
 #
 #   theme-apply.sh <name>       use the static palette in themes/<name>/
-#   theme-apply.sh --wallbash   re-derive the palette from the current
-#                               wallpaper instead of a static theme
+#   theme-apply.sh --wallbash   re-derive the palette from the current wallpaper
 #   theme-apply.sh --list       list available themes
 #
 # Unlike wallpaper.sh this processes BOTH template groups, and additionally
@@ -43,12 +42,12 @@ cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 # shellcheck source=theme-lock.sh # one wallpaper/theme change at a time
 source "$SCRIPT_DIR/theme-lock.sh" "${BASH_SOURCE[0]}" "$@"
 
-# The usage text lives in this file's header (lines 3-7) rather than in a
+# The usage text lives in this file's header (lines 4-6) rather than in a
 # string here, so there is one copy. The trailing swap renames it to however it
 # was invoked: scripts/dots exports DOTS_CMD, so `dots theme --help` says
 # "dots theme" while running this script directly still says "theme-apply.sh".
 usage() {
-    sed -n '3,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
+    sed -n '4,6p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
         | sed "s|theme-apply\.sh|${DOTS_CMD:-theme-apply.sh}|g"
 }
 

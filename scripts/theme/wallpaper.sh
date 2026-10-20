@@ -46,11 +46,11 @@ cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
 # shellcheck source=theme-lock.sh # one wallpaper/theme change at a time
 source "$SCRIPT_DIR/theme-lock.sh" "${BASH_SOURCE[0]}" "$@"
 
-# Usage text lives in this file's header (lines 3-9), not in a string here, so
+# Usage text lives in this file's header (lines 4-8), not in a string here, so
 # there is one copy. The trailing swap renames it to however it was invoked —
 # see the same comment in theme-apply.sh.
 usage() {
-    sed -n '3,9p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
+    sed -n '4,8p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' \
         | sed "s|wallpaper\.sh|${DOTS_CMD:-wallpaper.sh}|g"
 }
 

@@ -18,6 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`dots theme --help` lines up.** Its `--wallbash` line wrapped, and the
+  wrapped half sat four columns off once the name read `dots theme`. It and
+  `dots wallpaper --help` also no longer start with a blank line.
+
 - **A newer ly reaches existing installs.** When dots pins a newer ly, the
   next install run rebuilds it instead of keeping the old build forever.
   Your `/etc/ly/config.ini` is kept as it is, files the new version no
