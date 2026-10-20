@@ -40,6 +40,8 @@ CONF_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 source "$DOTS_DIR/scripts/install-restore-theme-identity.sh"
 
 cacheDir="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme"
+# shellcheck source=theme-lock.sh # one wallpaper/theme change at a time
+source "$SCRIPT_DIR/theme-lock.sh" "${BASH_SOURCE[0]}" "$@"
 
 # The usage text lives in this file's header (lines 3-7) rather than in a
 # string here, so there is one copy. The trailing swap renames it to however it

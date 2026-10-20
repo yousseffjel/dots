@@ -45,6 +45,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `dots update`.** When the same version had installed fully before, the
   interrupted run still counted as finished, and `dots update` said "already
   up to date". A full run now counts as finished only once it reaches its end.
+- **Two wallpaper or theme changes at once no longer mix.** Pressing the
+  random-wallpaper key twice could leave the second wallpaper on screen with
+  the first one's colours. Changes now run one after another, and the last
+  one you started is the one you see.
 
 ## [0.5.0] - 2026-10-19
 
