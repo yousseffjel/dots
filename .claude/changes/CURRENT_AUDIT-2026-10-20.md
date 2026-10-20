@@ -1,0 +1,2531 @@
+# dots — Current Audit State
+
+## Current Scope
+Personal Fedora-only dotfiles + dwm/X11 desktop bootstrap repo. The
+uninstall/versioning/migrations subsystem (below) and the CI/tooling setup
+both landed 2026-08-05, concurrently, in the same working tree — see each
+thread's dated log for the full collision account (mutually surfaced and
+handled without data loss on either side). See recent dated logs in this
+directory for the running history.
+
+## History Sources
+- `.claude/changes/YYYY-MM-DD-*.md` — authoritative dated logs
+
+## 2026-08-05 — uninstall + versioning + migrations subsystem
+- Added `VERSION` + `scripts/version.sh` (repo/installed version, commit,
+  Fedora version, dwm version, `--json`), `scripts/global_fn.sh` (shared
+  confirm()/refuse_root()/manifest_* helpers — a deliberate, disclosed
+  reversal of this repo's "no shared logging file" convention for this
+  one file), manifest tracking wired into every install-*.sh stage,
+  `scripts/uninstall.sh`, and a `scripts/migrations/` + `scripts/
+  migrate.sh` framework auto-run by `install-fedora.sh`. Plus
+  `docs/UNINSTALL.md` and a README Versioning policy section.
+- Landed as 5 commits (f46fcc2, 0068a70, 829a96e, 8baf8a0, 6c8717c).
+  Reviewer + hands-on sandboxed `$HOME` testing caught and fixed 3 real
+  bugs pre-commit (two `set -e` traps in uninstall.sh, one in migrate.sh's
+  version-chain summary) plus 2 reviewer WARNs (version.sh's JSON `null`,
+  migrate.sh's ambiguous-migration-match guard).
+- See `.claude/changes/2026-08-05-uninstall-versioning-migrations.md` for
+  full detail. Reviewer verdict: READY (all 5 diffs).
+
+## 2026-08-05 — install-fedora.sh run logging
+- Added append-mode `install.log` capture (stdout+stderr, ANSI-stripped)
+  for the whole orchestrator run plus every child stage script it
+  invokes, with timestamped start/finish header lines (finish line uses
+  `trap ... EXIT` so it fires on every exit path). `--dry-run` runs are
+  logged too, by design. `install.log` added to `.gitignore`.
+- See `.claude/changes/2026-08-05-install-fedora-run-logging.md` for
+  full detail. Reviewer verdict: READY.
+
+## 2026-08-05 — CI tooling: shellcheck/shfmt/markdownlint, pre-commit, GitHub Actions, tests
+- Added `.shellcheckrc`, `.pre-commit-config.yaml` (shellcheck-py, shfmt,
+  markdownlint, pre-commit-hooks hygiene), `.markdownlint.yaml` +
+  `.markdownlintignore` (grandfathers pre-existing `.claude/changes/**`,
+  `CLAUDE.md`, `ROADMAP.md`, vendored `suckless/**`), `.github/workflows/ci.yml`
+  (lint / build-suckless / install-dry-run jobs, fedora:latest +
+  fedora:41 matrix), `tests/{lint,build,pkglist}.sh`, `TESTING.md`, and a
+  README CI badge + pre-commit setup section.
+- Only real shellcheck fix needed: SC2086 `$SUDO` word-splitting in
+  `install-pkg.sh`/`install-services.sh`/`install-suckless.sh`, converted
+  to array form. **Applied but not yet committed** — a second Claude
+  session was concurrently building an install-manifest/versioning
+  feature across those same files in this working tree; committing was
+  deferred to avoid bundling their in-progress work. See the dated log's
+  Open Questions/Blockers for the full collision account, including a
+  caught-and-fixed bare `git commit` that briefly picked up their staged
+  files (undone via `git reset --soft`, not pushed).
+- See `.claude/changes/2026-08-05-ci-tooling-shellcheck-precommit.md` for
+  full detail.
+
+## 2026-08-05 — post-push verification audit
+- User asked to verify the day's two pushed sessions (above). Three
+  parallel read-only audits (collision damage, versioning/uninstall/
+  migrations correctness, CI tooling correctness) found: no collision
+  damage; a real bug in `scripts/version.sh` (crashes on every real
+  install — `dwm -v`'s intentional exit 1 under `set -euo pipefail`); a
+  latent same-class footgun in `install-restore.sh`; `.shellcheckrc` not
+  actually resolving sourced files (SC1091 on 7 scripts); `shfmt` diffs
+  in all 14 scripts; two untracked/un-reversible uninstall gaps
+  (dwmblocks block scripts, login-shell change).
+- All fixed and verified with real `shellcheck`/`shfmt` (installed fresh
+  for this audit — neither prior session had them available) plus
+  sandboxed functional tests. `tests/lint.sh` and `tests/pkglist.sh` both
+  pass end-to-end.
+- See `.claude/changes/2026-08-05-post-push-verification-audit.md` for
+  full detail, including a correction of a stale claim in the CI
+  session's own log (the SC2086 fix it thought was still uncommitted
+  actually landed in commit `0068a70`).
+
+## 2026-08-05 — theming engine epic, sub-task 1: xresources patches
+- Kicked off a 7-sub-task Epic (`.claude/tasks/scope-a-theming-engine.md`)
+  to build a HyDE-wallbash-inspired dark-mode-only theming engine for the
+  Fedora+dwm+X11+suckless stack. Sub-task 1 (this entry) adds xresources
+  runtime color support to dwm, st, dmenu, slock — the prerequisite every
+  later sub-task (color extraction, template engine, reload) targets.
+- dwm and dmenu were hand-merged against 10 and 7 already-applied patches
+  respectively (no `config.h` in this repo, only `config.def.h` with
+  prior patches baked directly into the vendored source); st and slock
+  were clean applies (zero prior patches on either). All 4 build clean
+  (`make clean && make`, zero new warnings).
+- Reviewer subagent (first pass) caught a real use-after-free in st's
+  `xrdb_load()` — an `XrmDestroyDatabase()` call freed memory that
+  `colorname[]` still pointed to, hit on every st launch and every
+  `SIGUSR1` reload. Fixed by removing the destroy call (matches
+  upstream's own behavior, which never destroys it either); rebuilt
+  clean; second reviewer pass returned READY.
+- Every tool's `patches/PATCHES.md` documents exact merge decisions and
+  deviations from upstream (resource naming, precedence handling,
+  trimmed scope).
+- See `.claude/changes/2026-08-05-theming-xresources-patches.md` for
+  full detail. Reviewer verdict: READY (after fix).
+
+## 2026-08-05 — theming engine epic, sub-task 2: colorgen.sh
+- Added `scripts/theme/colorgen.sh <wallpaper> [--force]` — ImageMagick-
+  only (kmeans + histogram, HSB hue-locked accent curve), dark-mode-only,
+  producing a HyDE-wallbash-compatible `colors.dcol` (dcol_pry1-4,
+  dcol_txt1-4, dcol_NxaJ accent shades, `_rgba` siblings) at
+  `~/.cache/dots/theme/colors.dcol`, cached by sha256(path+mtime).
+  Reimplements (not copies) HyDE-Project/HyDE's `wallbash.sh` algorithm,
+  read locally as a design reference per CLAUDE.md rule 9 — never
+  sourced/shelled-out-to at runtime.
+- Dark-mode floor verified live: a synthetic near-white test wallpaper
+  correctly darkens `dcol_pry1` in a bounded loop until under the
+  luminance threshold; a 4-distinct-color test wallpaper correctly sorts
+  primaries darkest-to-lightest and produces a well-formed, sourceable
+  90-line `colors.dcol`.
+- Reviewer subagent (first pass) BLOCKed on the file exceeding this
+  repo's 250-line cap (256 lines) — fixed by trimming the header comment
+  to a concise summary (design rationale moved to the dated log, no
+  logic change), landing at 235 lines; second pass returned READY.
+- See `.claude/changes/2026-08-05-theming-colorgen.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 3: apply-templates.sh
+- Added `scripts/theme/apply-templates.sh [--palette PATH] <always|theme|all>`
+  — the template engine. Reads a dcol palette, then for each `*.dcol`
+  under `config/theme/templates/{always,theme}/` parses line 1 as
+  `target_path|post_command`, expands `${confDir}`/`${cacheDir}`,
+  substitutes `<wallbash_NAME>` placeholders, writes atomically, runs the
+  post-command. Missing target dir or failing post-command are non-fatal
+  skips/warnings.
+- **Three deliberate hardening divergences from HyDE's `fn_wallbash`**,
+  all recorded under Key Technical Decisions in the dated log: parse the
+  palette rather than `source` it; enforce a positive character allowlist
+  on values; expand header paths by string substitution rather than
+  `eval`. The allowlist is the non-obvious one — refusing to *execute* a
+  palette isn't sufficient by itself, because sub-task 4's
+  `statusbar-colors.sh` target is designed to be sourced by dwmblocks, so
+  a literal `$(...)` written into it would execute one step downstream.
+- Reviewer subagent ran 3 passes and drove two real fixes: the `source`
+  injection surface (pass 1 WARN) and an `ARG_MAX` ceiling that made
+  large palettes die with "Argument list too long" (pass 2 WARN, fixed by
+  `sed -f scriptfile`). Pass 3 was interrupted before reporting; its
+  scoped check (temp-file cleanup on all exit paths) was completed
+  in-thread and surfaced a third fix — an un-trapped per-template temp
+  file, now cleaned up via `trap ... EXIT INT TERM HUP`.
+- Verified live end-to-end (`colorgen.sh` -> `colors.dcol` ->
+  `apply-templates.sh` -> rendered target), plus hostile-palette,
+  1.5 MB/60k-rule palette, placeholder-prefix-collision, graceful-skip,
+  and error-path cases. shellcheck + shfmt clean, 201 lines.
+- See `.claude/changes/2026-08-05-theming-apply-templates.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 4: templates + base configs
+- Added the 5 `.dcol` templates (xresources, dunst, picom, gtk,
+  statusbar), all in `always/` since every one is purely color-driven;
+  plus base `config/dunst/dunstrc` and `config/picom/picom.conf`
+  generated from the templates themselves so they cannot drift.
+- **Base configs are copied, never symlinked** — the templates write the
+  whole file into `~/.config`, so adding `config/dunst`/`config/picom` to
+  `symlinks.sh` (CLAUDE.md rule 7) would make every wallpaper change
+  write back into the repo. Noted in each file; sub-task 7 must honor it.
+- Resolved a spec/repo conflict on the statusbar contract: the spec asks
+  for `STATUS_*` status2d escape strings, but the existing dwmblocks
+  scripts source `COL_*` raw hex. Emitting only `STATUS_*` would have
+  left the file inert. The generated file now emits both, and the 3 block
+  scripts prefer it over their static `dwm-colors`, with fallback.
+- Validated against the real parsers rather than by eye, which caught
+  three bugs: `xrdb` pipes through `cpp` so a `/*` in a comment broke the
+  merge outright and apostrophes warned on every change; `mktemp`'s 0600
+  survived the `mv` leaving every generated config user-only-readable
+  (fixed in `apply-templates.sh`); and a deprecated picom `@:c` type
+  specifier. `xrdb -query` confirmed the emitted resource names match the
+  `resources[]` arrays in the sub-task 1 C patches exactly.
+- Reviewer verdict: READY (independently re-verified all of the above).
+- See `.claude/changes/2026-08-05-theming-templates.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 5: reload.sh
+- Added `scripts/theme/reload.sh [--quiet]`, the single reload entry
+  point: `xrdb -merge` alone and first (everything downstream re-reads
+  the X resource database, so merging after signalling would apply the
+  previous palette), then six concurrent guarded reloads (dwm SIGHUP via
+  restartsig, st SIGUSR1 in-place, dwmblocks restart, dunst kill for
+  D-Bus reactivation, picom SIGUSR1, `~/.fehbg` re-run).
+- Serialized on a `flock` because it is hotkey-bound; `xrdb` and
+  `~/.fehbg` bounded by a 10s `timeout`.
+- **Three review passes (WARN -> BLOCK -> WARN) found five real bugs**,
+  all fixed and re-verified live. The BLOCK is the one worth remembering:
+  the first `flock` fix used `exec flock ... "$0" "$@"`, which leaks the
+  lock fd into every descendant — including the detached long-lived
+  `setsid dwmblocks` daemon, which then held the lock for its whole
+  lifetime. First reload worked; every later one blocked 30s and silently
+  failed. That regression was strictly worse than the TOCTOU it replaced
+  and only manifests on the *second* invocation, so it would not have
+  been caught without an independent pass. Now held on an explicit fd
+  closed in that spawn via `{LOCKFD}>&-`, verified by `/proc/<pid>/fd`
+  and `lslocks`.
+- Also fixed: unbounded `wait` (a hung `~/.fehbg` blocked forever), the
+  dwmblocks TOCTOU, `mkdir -p` hard-aborting under `set -e` on an
+  uncreatable cache dir, and a bash redirection-order leak where
+  `: >>"$lock" 2>/dev/null` let the error escape to real stderr because
+  redirections apply left to right.
+- Reviewer also settled a race noted but unresolved in-thread: dwm
+  re-execs while dwmblocks restarts concurrently, and dwm finds dwmblocks
+  by `pidof -s dwmblocks` for statuscmd click routing — `getstatusbarpid()`
+  self-revalidates, so a stale pid is harmless.
+- See `.claude/changes/2026-08-05-theming-reload.md` for full detail.
+
+## 2026-08-05 — theming engine epic, sub-task 6: user commands + keybinds
+- Added `scripts/theme/wallpaper.sh [path|--random|--select]` (dmenu
+  picker, feh, then the full colorgen -> templates -> reload pipeline) and
+  `scripts/theme/theme-apply.sh <name|--wallbash|--list>` (static theme or
+  wallpaper-derived, processes both template groups). Plus
+  `config/dwm/bin/dwm-wallpaper` / `dwm-theme` wrappers and a new
+  `KEYBINDINGS.md` covering all bindings.
+- dwm keybinds ship **commented out** in `config.def.h` — enabling them
+  changes behavior and needs a rebuild, so it stays the user's choice.
+- **Removed the hardcoded `-nb/-nf/-sb/-sf` from `dmenucmd`,
+  `dwm-powermenu` and `dwm-clipmenu`.** dmenu CLI colour flags override X
+  resources (a deliberate precedence decision in sub-task 1), so those
+  three would have kept their compiled-in colours forever — the engine
+  would have looked broken exactly where a user looks first. They now
+  follow the theme and fall back to compiled defaults when unthemed.
+  A stale comment in `suckless/dmenu/config.def.h` asserting the old
+  behaviour was also corrected (reviewer catch).
+- Verified live with an isolated HOME and a stub dmenu: all three
+  wallpaper modes, `--wallbash`, static theme, `--list`/`--help`, and six
+  error paths with correct exit codes. dwm and dmenu both still build.
+- Reviewer verdict: WARN (the stale comment), fixed. Otherwise READY.
+- See `.claude/changes/2026-08-05-theming-user-commands.md` for detail.
+
+## 2026-08-06 — theming engine epic, sub-task 7/7: static theme + packaging + docs
+- Closes the Epic. Adds `themes/dark/` (Catppuccin-Mocha-seeded palette
+  produced by this repo's own `colorgen.sh`, plus `theme.conf` for what a
+  palette cannot express), `themes/CREDITS.md`, `ImageMagick` in
+  `extra.lst`, installer deployment of the dunst/picom/GTK base configs
+  with manifest tracking, an `uninstall_theme` teardown step, and
+  `docs/THEMING.md`.
+- **This work was already written but uncommitted and unreviewed** when
+  picked up — it had been left in `slot/theming-packaging` with a stub
+  plan file. Reconstructed the plan from the diff, then ran the full
+  audit + reviewer gate.
+- `install-restore.sh` had reached 263 lines (over the 250 cap), so the
+  theming block moved to a sourced `scripts/install-restore-theme.sh`,
+  mirroring the existing `uninstall.sh` -> `uninstall_steps.sh` precedent.
+- **Two real breakages found and fixed.** (1) A failed backup called
+  `exit 0`, ending the restore stage with a *success* code and silently
+  skipping the zinit/TPM bootstrap clones while `install-fedora.sh`
+  proceeded to the services stage. (2) Reviewer BLOCK: the only backup
+  step ran inside the `$DISPLAY` gate, so a headless install backed up
+  nothing — and when the user later ran `theme-apply.sh` by hand as
+  instructed, `apply-templates.sh` overwrote their pre-existing
+  `dunstrc`/`picom.conf` with no copy anywhere.
+- Also: `gtk-murrine-engine` dropped (GTK2-only engine; `theme.conf`
+  selects Adwaita-dark, a GTK3 built-in that never loads it), and
+  `CREDITS.md`'s claim that HyDE is MIT-licensed corrected — it is
+  GPL-3.0, which is precisely why the engine reimplements rather than
+  vendors it.
+- See `.claude/changes/2026-08-06-theming-packaging.md`. Reviewer: READY.
+
+## 2026-08-06 — theming engine: vim + cava app templates
+- Post-Epic follow-up. Extends the engine from desktop surfaces to two
+  applications: `config/theme/templates/always/{vim,cava}.dcol` plus an
+  `always/README.md` documenting the group's two target styles.
+- Selected from HyDE's six app templates after a survey of what remained
+  worth porting; the other four (chrome, discord, spotify, VS Code) theme
+  applications this desktop does not assume, and everything else in HyDE
+  is Wayland-specific. Reimplemented, not copied — verified mechanically
+  that the only lines shared with HyDE's equivalents are `endif`,
+  `let g:colors_name = 'wallbash'` and `[color]`, all syntax-mandated.
+- **Both render to `$cacheDir` and install via their post-command**,
+  rather than writing their real destination directly. The engine's
+  install-check is "does the target's parent directory exist", which is a
+  good signal for apps configured one level under `$confDir` and a bad
+  one here: vim creates neither `~/.config/vim` nor a `colors/` subdir
+  (reviewer BLOCK — the template would have skipped for every real user),
+  and cava's config is user-tuned, so it is spliced into below a marker
+  rather than overwritten.
+- **Path-driven quoting break fixed in both post-commands.**
+  `expand_path` substitutes `${confDir}`/`${cacheDir}` into the command
+  string before `bash -c` parses it, so a `$HOME` containing a single
+  quote broke out of the surrounding quoting — the same injection class
+  `apply-templates.sh` was hardened against for palette values in
+  sub-task 3. Both now derive their paths from XDG variables at run time.
+- Accepted reviewer WARN: that fix duplicates `apply-templates.sh`'s own
+  `cacheDir` definition. Failure mode is benign (post-command warns and
+  continues); recorded in `always/README.md`.
+- See `.claude/changes/2026-08-06-theming-app-templates.md`.
+  Reviewer: BLOCK -> fixed -> WARN (accepted).
+
+## 2026-08-06 — housekeeping
+- `~/.local/state/dots/manifest` held `THEME` rows pointing at the real
+  `~/.config/picom/picom.conf` and `gtk-3.0/gtk.css`, left by an earlier
+  session that ran the installer against the live `$HOME`. Since
+  `uninstall_theme` deletes every `THEME` row outright, `uninstall.sh`
+  would have removed configs the installer never created. Backed up to
+  `manifest.bak-20260806-114948` and pruned, with the user's approval.
+- **Testing note:** sandboxing installer runs requires overriding all four
+  XDG variables, not just `HOME` — `XDG_STATE_HOME` is set in the ambient
+  environment here, so the manifest write escapes an otherwise-isolated
+  test. Likewise always pass `DISPLAY=` when exercising
+  `apply-templates.sh`: `xresources.dcol`'s post-command is a bare,
+  unbounded `xrdb -merge` that will talk to the live X server.
+
+## 2026-08-06 — roster Epic, sub-task 1/10: zsh de-HyDE + X11 retarget
+- Opens Scope B (`.claude/tasks/scope-b-app-roster-finalization.md`), a
+  10-sub-task Epic reconciling this repo's app/tool/package roster against
+  HyDE's. Locked decisions live in that scope file.
+- Deleted 14 HyDE leftovers from `config/zsh/` and ported the genuine
+  keepers into their existing owner files (`60-aliases.zsh`,
+  `40-completion.zsh`, `70-functions.zsh`) rather than a catch-all.
+- **The headline was a live performance bug, not the de-branding.**
+  `config/zsh/.zshenv` was HyDE's and sourced all of `conf.d/*.zsh` itself,
+  while `.zshrc` ran the same loop behind an interactive guard `.zshenv`
+  lacked. Every file loaded twice interactively and once in *every*
+  non-interactive shell. Measured `zsh -c true` at **674 ms** against 1.8 ms
+  bare — ~570 ms burned per script invocation. `.zshenv` is now env-only
+  (XDG + PATH, absorbing the deleted `conf.d/20-path.zsh`), `.zshrc` owns the
+  conf.d loop alone. Result: **674 ms -> 4.6 ms** non-interactive,
+  **925 ms -> 392 ms** interactive, and the "No plugin system found" banner
+  that printed on every shell open is gone.
+- `config/zsh/functions/` and `completions/` turned out to be dead code —
+  reachable only from `terminal.zsh` branches this machine never hits. Proved
+  by running a shell (`eza alias: ABSENT`) rather than by reading; the
+  reviewer re-traced it independently.
+- zoxide now replaces `cd` outright (`--cmd cd`), so `z`/`zi` cease to exist;
+  the `..` aliases and a dead fzf-tab zstyle were updated to match.
+- Added `config/starship/starship.toml` (the repo shipped none — the prompt
+  ran on stock defaults) plus a `symlinks.sh` LINKS entry and a
+  `$STARSHIP_CONFIG` export, since starship reads
+  `$XDG_CONFIG_HOME/starship.toml` but `symlinks.sh` links directories.
+- **Post-merge discovery, not in the dated log:** the user already has a
+  405-line hand-tuned `~/.config/starship/starship.toml` and 135 Nerd Font
+  matches installed. The shipped ASCII config is worse than theirs, and
+  `symlinks.sh` would displace it. Resolved as its own follow-up before any
+  installer step runs.
+- See `.claude/changes/2026-08-06-zsh-dehyde-x11.md`. Audit: READY.
+  Reviewer: READY. Tests: `tests/lint.sh` + `tests/pkglist.sh` pass.
+
+## 2026-08-06 — roster Epic, sub-task 2/10: package roster + starship + Nerd Font
+- Closes the second of the two sub-tasks that unblock the rest of Scope B.
+  `packages/extra.lst` gains alacritty, firefox, cascadia-code-nf-fonts, maim,
+  slop, xss-lock, bluez, blueman, thunar-volman, ffmpegthumbnailer, unar,
+  catfish, zoxide, fastfetch; `kitty` dropped. A "NOT LISTED HERE" header
+  documents five deliberate exclusions with the command to get each anyway.
+- **16 names verified against packages.fedoraproject.org** (no `dnf` on the
+  Arch dev host, so rule 8 meant real lookups). Two failed:
+  - **`starship` is not in Fedora at all** — dropped around F37, now COPR-only
+    (`atim/starship`). Not cosmetic: sub-task 1 had already made it *the*
+    prompt, so a fresh Fedora box would fall back to `prompt adam1` with the
+    adopted config unused. The user chose the upstream install script over the
+    COPR; `install-pkg.sh` now runs it idempotently, dry-run-aware and
+    best-effort, with hardened curl flags.
+  - **No JetBrains Mono Nerd Font exists in Fedora.** Cascadia is the only
+    `-nf-fonts` family packaged, so it supplies the glyphs and
+    `jetbrains-mono-fonts-all` stays for plain UI surfaces.
+- **A bug the audit caught before it shipped:** the first draft recorded
+  starship as a `PACKAGE` manifest row. `uninstall_packages()` pipes every
+  PACKAGE value into a *single* `dnf remove`, so one un-removable name would
+  have failed that call and left every other package installed. Row dropped;
+  manual removal documented instead.
+- **Reviewer BLOCK, and it was right.** The user's adopted `starship.toml` was
+  420 lines against the 250-line hard cap, and the audit loop self-granted an
+  exception rather than surfacing it — the user had been asked about trimming
+  for *performance*, never about the rule. Escalating beat both instincts:
+  `split-oversized-file` could not apply (starship has no include directive, so
+  the choice was adopt-vs-don't), and the user chose to drop `[section]` blocks
+  for toolchains the repo neither declares nor installs. 44 of 59 removed,
+  420 -> 151 lines, **byte-identical right-prompt output** verified against the
+  original in a directory carrying markers for every kept language.
+- **A planning-stage worry retracted, not deferred:** trimming `right_format`
+  buys ~1.9 ms/prompt, while `git_status` alone costs ~4.7 ms — about 2.5x what
+  all sixty language modules cost together. Measured, not assumed.
+- **Open follow-up worth carrying into sub-tasks 3 and 7:** installing the Nerd
+  Font does not point the terminals at it. `dwm`/`dmenu` use `monospace`
+  (DejaVu Sans Mono here) and `st` uses `Liberation Mono`, so glyphs render via
+  fontconfig per-glyph fallback — functional, but with mismatched metrics.
+  Also: `uninstall.sh` cannot remove starship without a new `BIN` manifest
+  category.
+- See `.claude/changes/2026-08-06-packages-roster-fonts.md`. Audit: READY.
+  Reviewer: BLOCK -> fixed -> READY. Tests: lint + pkglist pass.
+
+## 2026-08-07 — roster Epic, sub-task 3/11: alacritty as main terminal
+- alacritty becomes dwm's `termcmd`; st stays vendored, patched and themed as
+  the no-GPU fallback (locked decision 1). Both terminals now agree slot-for-slot
+  on the 16 ANSI colours.
+- **The theming route is the reusable part.** `config/alacritty/` is symlinked,
+  so the engine must never write into it — the hazard that forced `config/dunst`
+  and `config/picom` to be *copied*. Alacritty's `general.import` sidesteps the
+  trade: colours render to `${cacheDir}/alacritty-colors.toml`, the config
+  imports that path, and the repo directory stays fully symlinkable. Recorded as
+  a third target style in `config/theme/templates/always/README.md`.
+- **Locked decision 15 — the font family is `Cascadia Code NF`, not
+  `CaskaydiaCove Nerd Font`.** Fedora's `cascadia-code-nf-fonts` ships
+  *Microsoft's* NF release, not the ryanoasis patch. The dev host carries the
+  ryanoasis build under `~/.local/share/fonts`, so the wrong spelling resolves
+  here and would have rendered tofu on a clean Fedora box. `fc-match` on a wrong
+  family returns DejaVu Sans — it degrades silently, never errors. This closed
+  the open follow-up from sub-task 2: dwm/dmenu asked for `monospace`, st for
+  `Liberation Mono`; all three now name the packaged font.
+- **One assumption ships unproven and is flagged as such at all three sites:**
+  that `live_config_reload` fires on a rewrite of the *imported* file. It is the
+  sole reason `reload.sh` gains no alacritty step. The reviewer returned WARN on
+  the first round precisely because the shipped comments asserted it as fact;
+  rewritten to separate verified from assumed, with the symptom and remedy named.
+- **New sub-task 11 — dynamic scratchpads.** Raised by the user mid-task: they
+  want to stash the *focused* window (any app) into a scratchpad, toggle it, and
+  drop it back out. That is the `dynamicscratchpads` dwm patch replacing the
+  vendored `scratchpads` one — recorded in the scope file as the Epic's
+  highest-risk item rather than folded into a terminal task.
+- See `.claude/changes/2026-08-07-alacritty-main-terminal.md`. Audit: READY.
+  Reviewer: WARN -> fixed -> READY. Tests: lint + pkglist + build pass.
+
+## 2026-08-07 — roster Epic, sub-task 4/11: sxhkd keybind split
+- `config/sxhkd/sxhkdrc` is new and is now the second keybinding authority.
+  sxhkd had been packaged since sub-task 2 but the repo shipped no config, so
+  the installer pulled in a daemon that never started. It takes media
+  (`playerctl`/MPRIS), volume + mic (`pamixer`), brightness, the theming
+  engine and two app launchers; screenshot and lock ship commented out.
+- **The split rule is structural, not stylistic.** dwm and sxhkd both
+  `XGrabKey()` on the root window; a keysym+modifier claimed by both goes to
+  whichever grabbed first and **the loser silently gets nothing** — no error,
+  no log line. Every sxhkd binding is therefore an `XF86*` key or in the
+  `Super` space, avoiding the only two Super chords dwm owns
+  (`Super+Shift+x`, `Super+v`). Check `keys[]` before adding to either file.
+- **The user chose the most conservative split — dwm keeps every binding it
+  already has.** Consequence worth recording: `config.def.h`'s diff came out
+  **comment-only** (verified mechanically), so existing installs get the whole
+  sxhkd layer with **no rebuild** and none of the `rm -f config.h` staleness
+  dance sub-task 3 needed. The theming binds are the one thing that moved
+  (`Mod+w` → `Super+w`); they had shipped commented out *because* enabling
+  them cost a recompile, and that objection is gone.
+- `config/dwm/bin/dwm-brightness` (new) implements locked decision 12 —
+  `xrandr --brightness` software gamma, clamped 10–100%, every connected
+  output. `get` is the read side for sub-task 7's interval-0 status block.
+  Two `set -e` bugs were caught in audit and are now a memory entry: under
+  `set -euo pipefail` a failing `var="$(cmd)"` exits the script **printing
+  nothing at all**, and inlining `apply "$(($(current) + STEP))"` continues
+  past a failed read with the empty string treated as 0.
+- **DEVIATION — `scripts/install-session.sh` extracted.** The sxhkd autostart
+  branch pushed `install-suckless.sh` to 253 lines, past the 250-line hard
+  stop. Escalated to the user rather than self-granted as an exception; the
+  split was chosen. Same arrangement `install-restore.sh` already has with
+  `install-restore-theme.sh`. Proven behaviour-preserving by diffing the
+  generated `autostart.sh` against HEAD's.
+- `docs/THEMING.md` and `CLAUDE.md` both told the reader to uncomment the
+  theming binds in `config.def.h` — not merely stale but actively harmful,
+  since following them now collides with `Super+w` and the loser fails
+  silently. Fixed in scope-extension after `/test`, with approval.
+- **Open:** `sxhkd` sits in `extra.lst` (best-effort), so a failed install
+  leaves every binding here dead — same shape as sub-task 3's `alacritty`
+  follow-up; consider promoting both to `core.lst`. `tests/lint.sh` globs
+  `-maxdepth 2 -name '*.sh'`, so all five `config/dwm/bin/*` scripts are
+  outside CI. Grab-disjointness is unverified on real hardware (`xev`).
+- See `.claude/changes/2026-08-07-sxhkd-keybind-split.md`. Commits `b8a17e0`,
+  `eaff715`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass.
+
+## 2026-08-07 — roster Epic, sub-task 5/11: screenshot (maim + slop)
+- `config/dwm/bin/dwm-screenshot` (new, 246 lines) wraps maim + slop + xclip
+  behind two sequential dmenu prompts — mode (`full`/`window`/`region`), then
+  destination (`clipboard`/`file`/`both`). Either prompt is skipped when the
+  matching flag is passed, so a keybind jumps straight to one combination.
+  `Print` opens the menu; `shift + Print` is region -> clipboard directly.
+- **The slop selector is themed off `dwm.selbordercolor`**, read live from
+  `xrdb -query` and converted to the float RGBA `slop --color` wants (hex is
+  rejected). The selection rectangle therefore matches the border dwm draws
+  around the focused window and re-themes with the wallpaper at no template
+  cost. Unthemed it falls back to slop's grey rather than failing.
+- **`xprop` chosen over `xdotool`** for the active-window id (user decision,
+  offered with the trade-off). `xprop -root _NET_ACTIVE_WINDOW` plus one `awk`
+  yields the `0x`-prefixed form and `maim -i` parses it verbatim — confirmed by
+  invocation, not assumed. xdotool would need no parsing but drags in libxdo
+  for a single lookup.
+- **`Print` is absent from dwm's `keys[]`**, so sxhkd may grab it and
+  `config.def.h` is untouched — no rebuild, same as sub-task 4.
+- **`window` mode overlaps `region` mode more than the scope file implies.**
+  slop's default `--tolerance` of 2 means a plain click inside a region
+  selection already snaps to the window under the pointer. Window mode's only
+  real advantage is being mouse-free. Kept, but documented as not an
+  independent capability.
+- **Three live bugs came out of the audit loop, none from the plan:** `xclip`
+  was required at startup though `--file` never touches it; slop's stderr was
+  discarded, making a failed pointer grab both silent and indistinguishable
+  from a cancel (slop exits 1 with empty stdout for *both*); and the
+  destination was validated only inside `deliver()` — after the capture, i.e.
+  in region mode after a whole selection drag performed for nothing.
+- **Testing memory updated, twice, from false passes.** Leaving `/usr/bin` on
+  the harness `PATH` made all three "binary not installed" cases exercise the
+  real binaries; and once `PATH` really was isolated, the fake `dmenu` broke
+  because it called `cat`. `PATH` must be the fake dir and nothing else, with
+  the handful of real tools symlinked in explicitly.
+- **Open:** `maim`, `slop` and `xprop` all sit in `extra.lst` (best-effort) —
+  third sub-task running to raise this; `dwm-screenshot` is at 246/250 lines,
+  so the next edit crosses the cap (seam: the two theming helpers, which
+  sub-task 6 may want anyway); `tests/lint.sh` still globs `-maxdepth 2`, so
+  all six `config/dwm/bin/*` scripts are outside CI.
+- See `.claude/changes/2026-08-07-screenshot-maim-slop.md`. Commits `b2dcb13`,
+  `68eed57`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
+  plus 70 assertions across 25 scenarios against faked binaries.
+
+## 2026-08-07 — roster Epic, sub-task 6/11: lock / idle (xss-lock)
+- `config/dwm/bin/dwm-lock` (new, 140 lines) owns every path to a locked
+  screen. `--daemon` arms `xset s 600 600` + `xset dpms 0 0 660` then execs
+  `xss-lock -- slock`; bare `dwm-lock` locks now. `super + l` goes live —
+  it was `sxhkdrc`'s last pending binding, so every entry in that file is
+  now active. `dwm-powermenu`'s Lock entry routes through the same script.
+- **`--transfer-sleep-lock` is deliberately omitted, and this is the
+  non-obvious part.** xss-lock(1): the fd "will only be set if the reason for
+  locking is that the system is preparing to go to sleep. The locker should
+  close this file descriptor to indicate it is ready." slock has never heard
+  of `$XSS_SLEEP_LOCK_FD` and never closes it, so the delay inhibitor would be
+  pinned for the whole locked session; logind then waits `InhibitDelayMaxSec`
+  (5s default) and suspends anyway. Up to five seconds added to every suspend
+  for nothing — slock grabs instantly, so there is no readiness to wait on.
+- **Manual lock prefers logind with a fallback** (user decision, offered with
+  all three shapes): `loginctl lock-session` while xss-lock runs, else `slock`
+  directly. Keeps logind's `Locked` state truthful and gives one place to swap
+  the locker, without the silent no-op a bare `loginctl` would produce.
+- **Timings: lock at 10 min, monitor off at 11** (user choice from four
+  options). The ordering carries the reasoning — lock must precede blank or
+  the display goes dark while unlocked and a mouse wiggle lands on a live
+  desktop. Both are named constants at the top of the script.
+- **The autostart line spells the path out in full** rather than trusting
+  PATH, unlike the three system daemons above it. `~/.config/dwm/bin` reaches
+  PATH via `.zshenv`, which only runs if the display manager starts the session
+  through a login zsh. A powermenu that fails to spawn is noticed instantly; a
+  lock daemon that fails to start is noticed the first time the screen doesn't
+  lock. `autostart.sh` is user-owned on creation (rule 6), so that line can
+  never be corrected later — verified by md5 that a pre-existing file comes
+  out byte-identical, with the missing line printed instead.
+- **No rebuild.** `MODKEY` is `Mod1Mask`, so dwm's `XK_l` is `Alt+l`
+  (setmfact); dwm's only Super chords remain `Super+Shift+x` and `Super+v`.
+- **`dwm-lock` contains no command substitutions at all**, so the
+  `var="$(cmd)"`-aborts-silently-under-`set -e` class that produced two bugs in
+  sub-task 4 is structurally absent rather than merely avoided. The one audit
+  finding was different: extra arguments were silently ignored, so
+  `dwm-lock --daemon --transfer-sleep-lock` would have started the daemon and
+  dropped the flag — realistic, given the header explains why that flag is
+  absent. Now rejected by an arity check.
+- **Testing memory extended: mutation-test the harness before believing it.**
+  "64/64 passed" is a claim about the assertions as much as the code, so two
+  mutants (a wrong `LOCK_SECS`, a disabled logind route) were injected and each
+  confirmed to break a different set of assertions before the green run was
+  reported.
+- **Open:** `procps-ng`/`pgrep` is undeclared in `packages/*.lst` while
+  `autostart.sh` and now `dwm-lock` both depend on it — folded into the
+  extra.lst promotion item now queued below.
+- See `.claude/changes/2026-08-07-lock-idle-xss-lock.md`. Commits `4ebf84b`,
+  `7dced3f`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + build pass, plus 64 assertions across 22 scenarios and four
+  sandboxed installer runs.
+
+## 2026-08-07 — roster Epic, sub-task 7/11: status bar blocks (Layout A)
+- **Seven new block scripts** under `suckless/dwmblocks/scripts/` — `dwm-updates`,
+  `dwm-disk`, `dwm-temp`, `dwm-brightness-block`, `dwm-mic`, `dwm-vol`,
+  `dwm-bluetooth` — completing the locked ten-row order
+  `UPD DISK TEMP CPU MEM GAMMA MIC VOL BT clock`, systray still furthest right.
+  The three pre-existing blocks were renumbered (cpu 1->4, ram 2->5, clock
+  3->10) in lockstep with `blocks.def.h`.
+- **Blocks 6-8 run at interval 0 — signal-driven only, never polled.** That is
+  locked decision 9 applied to the three values that change only on a keypress;
+  sub-task 4's `pkill -RTMIN+6/7/8 dwmblocks` senders are what refresh them.
+  Verified mechanically that those three signals map to exactly those blocks.
+  Accepted cost: changing volume/mic/gamma from a shell leaves the bar stale
+  until the next keypress.
+- **DEVIATION — `suckless/dwm/config.def.h` moved from Forbidden into Scope**
+  (surfaced before writing `dwm-vol`, resolved by the user). The locked table
+  gives block 8 "scroll -> +/-5%", but dwm bound `ClkStatusText` for Button1/2/3
+  only, so scroll was discarded before any block saw it. Two rows in `buttons[]`
+  fix it for every block. **Consequence: this needs a dwm rebuild, not just a
+  dwmblocks one** — existing installs need `rm -f suckless/dwm/config.h` before
+  `install-suckless.sh --skip-deps`. Documented inline in `KEYBINDINGS.md`.
+- **`updates` is `dnf -C check-update`, cache-only** (user choice of three).
+  `-C` is load-bearing, not an optimisation: dwmblocks runs blocks
+  synchronously, so one network-bound block stalls the entire bar. Fedora's own
+  `dnf-makecache.timer` keeps metadata fresh, so no unit of ours is needed.
+  **Unverified — no dnf on this Arch host.**
+- **The brightness block is `dwm-brightness-block`, not `dwm-brightness`.**
+  Blocks install to `~/.local/bin`, which `.zshenv` puts *ahead* of
+  `~/.config/dwm/bin`, so the natural name would have shadowed the control
+  script it calls and sxhkd's `dwm-brightness up` would have invoked the status
+  block instead — silently. Only collision in the roster; found by checking.
+  Its label is `GAMMA` per locked decision 12, since `xrandr` scales the output
+  signal and saves no power.
+- **`dwm-temp` matches sensors by name, never by hwmon number**, and prints
+  `n/a` rather than falling back. This host proves the risk: its `hwmon0` *is*
+  the NVMe drive, so "first sensor with `temp1_input`" would report drive
+  temperature as CPU temperature.
+- **Two harness bugs found mid-run, both of which had produced a false pass:** a
+  `\-C` pattern bash never matches literally, and a `${FAKE_BRIGHT:-70}` whose
+  `:-` substituted the default for the deliberately-empty value, so the "xrandr
+  returned nothing" case had never run. Both folded into the testing memory.
+- **Open:** `tests/lint.sh`'s `-maxdepth 2 -name '*.sh'` glob excludes all ten
+  block scripts — third sub-task to raise it and now the most acute, this one
+  adding 452 lines CI never sees; `SC1090` fires on all ten; `dwm-updates` is
+  unverified against real `dnf5`; nothing has rendered in a real dwm bar.
+- See `.claude/changes/2026-08-07-statusbar-blocks.md`. Commits `d2a2c57`,
+  `b8a9dce`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + build pass,
+  plus 53 assertions across 29 scenarios and five mutants, all caught.
+
+## 2026-08-07 — roster Epic, sub-task 8/11: thunar finalization
+- **Five new config files**, none of which existed before — `config/thunar/
+  {thunarrc,uca.xml}`, `config/xfce4/helpers.rc`, `config/mimeapps.list`,
+  `config/applications/dots-nvim.desktop` — deployed by a new
+  `scripts/install-restore-apps.sh` (sourced by `install-restore.sh`) and
+  removed by a new `scripts/uninstall-apps.sh` (its own file because
+  `uninstall_steps.sh` sits at 230 of the 250-line cap).
+- **All COPIED, never symlinked.** Thunar rewrites `uca.xml`,
+  xfce4-mime-settings rewrites `helpers.rc`, GIO rewrites `mimeapps.list` —
+  a symlink would send every one of those writes into this repo. Same rule
+  that keeps `config/dunst` and `config/picom` out of `symlinks.sh`, which
+  was accordingly in the plan's Forbidden list.
+- **`thunarrc` is a one-time migration file, not the live config.** Thunar
+  4.20 keeps preferences in the xfconf `thunar` channel; upstream
+  `thunar_preferences_init()` reads `thunarrc` only when xfconf has no
+  `/last-view` and skips any property xfconf already holds. This host proves
+  it — `thunar.xml` has `/last-view` and no `thunarrc` exists at all. So the
+  mechanism that actually applies preferences is a guarded `xfconf-query`
+  pass; `thunarrc` survives only for a fresh box that has never launched
+  Thunar *and* had no session D-Bus at install time. The pass **only sets a
+  property with no value yet**, so an installer re-run never reverts a choice
+  made in Thunar's own dialog.
+- **`exo-open --launch TerminalEmulator` no longer works unaided** (user
+  decision, re-asked). exo 4.15.1 moved the helper framework out
+  ("Removed binaries: exo-compose-mail, exo-helper-2") into xfce4-settings,
+  which ships `xfce4-mime-helper` and the `/usr/share/xfce4/helpers/*.desktop`
+  definitions. Proved by intercepting the call with a fake `xfce4-mime-helper`
+  on `PATH`. The user's first answer ("helpers.rc only, no package") rested on
+  the opposite premise, so it was surfaced with the evidence and re-asked
+  rather than shipped inert; `xfce4-settings` is now in `extra.lst` for that
+  one binary. `alacritty.desktop` ships upstream there, so no custom helper
+  file was needed.
+- **GIO silently drops any `.desktop` whose `Exec` binary is missing** — found
+  while verifying `mimeapps.list` against real GIO, where the archive entries
+  looked broken until the stub pointed at a binary that exists. Hence
+  `TryExec=alacritty` on `dots-nvim.desktop`, which degrades cleanly instead
+  of leaving `text/plain` on a launcher that cannot run.
+- **Audit caught a real shipped-code bug class:** `producer | grep -q` under
+  `set -o pipefail` returns 141 even when grep matched, because grep's early
+  exit SIGPIPEs the producer. Demonstrated 5/5 on a 200k-row manifest. Fixed
+  in the new `app_is_ours`; `install-restore.sh:72` already carried a `|| true`
+  for the same trap, and **`install-restore-theme.sh` still has it** in two
+  functions — left alone as it was outside this plan's Allowed list.
+- `docs/THUNAR.md` is new; `docs/UNINSTALL.md`'s category list gained both the
+  new **app configs** entry and the **theme files** entry it had been missing
+  since the theming Epic.
+- **Open:** `xfconf`/`desktop-file-utils` undeclared (transitive thunar deps,
+  both `command -v` guarded) — fifth sub-task feeding the core.lst pass; the
+  44-assertion harness is scratchpad-only, as sub-tasks 5-7's were; nothing has
+  been run against a real Fedora box or a launched Thunar.
+- See `.claude/changes/2026-08-07-thunar-finalization.md`. Commits `b11fd73`,
+  `fef865a`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + build pass, plus 44 assertions across 9 scenarios, six mutants all
+  caught, and 12 mime types resolved through real GIO.
+
+## 2026-08-07 — roster Epic, sub-task 10/11: picom performance tuning
+- **`config/picom/picom.conf` and `config/theme/templates/always/picom.dcol`
+  retuned identically**: `shadow = false` (retiring `shadow-radius`,
+  `-opacity`, `-offset-x`, `-offset-y`, `-color` and the whole
+  `shadow-exclude` list), `unredir-if-possible = true`, and the removal of
+  `detect-rounded-corners` and `detect-transient`. `wintypes` shrank to one
+  `tooltip` entry — every other block existed only to switch shadows off per
+  window type.
+- **Both this host and Fedora 43/44 ship picom v13**, and the user confirmed
+  this machine *is* the target, so every option was checked against the
+  installed v13 man page rather than inferred. All 23 options in the previous
+  config were still valid — nothing had bit-rotted.
+- **`unredir-if-possible` with no delay** (user choice of three). Upstream is
+  blunt that it is "known to cause flickering when redirecting/unredirecting
+  windows"; accepted deliberately — one frame entering or leaving fullscreen
+  against a saving on every frame in between. v13's WINDOW RULES `unredir` key
+  is the per-window escape hatch; `unredir-if-possible-exclude` is discouraged
+  upstream.
+- **`detect-transient` came out during the audit, not the plan.** It groups
+  windows via `WM_TRANSIENT_FOR` so a group counts as focused together, which
+  only changes rendering if focus does — and here it cannot: `inactive-opacity`
+  equals `active-opacity`, with no `inactive-dim` or `focus-exclude`. It read a
+  property per window to feed a decision with no output. Same reasoning that
+  had already removed `detect-rounded-corners`.
+- **`picom.dcol` now has zero `<wallbash_*>` placeholders** — `shadow-color`
+  was the only one. The user was offered deleting the template outright (which
+  would have removed the lockstep hazard the scope file calls this sub-task's
+  highest risk) and chose to keep it, so the two files must still be edited
+  together by hand.
+- **`tests/picom-lockstep.sh` (new)** runs the real template engine against the
+  static palette and diffs the output against `picom.conf`, so drift is a red
+  build rather than a silent revert. Six mutants, all caught.
+- **Testing the engine is itself hazardous, and that shaped the test.** Running
+  the whole `always` group fires every post-command, three of which act on the
+  live session: `pkill -x dunst`, `pkill -x dwmblocks`, `xrdb -merge`. `pkill`
+  matches by process name system-wide, so XDG/HOME sandboxing cannot contain
+  it. The test points the engine at a throwaway tree holding only `picom.dcol`,
+  with a fake `pkill` on `PATH`; dunst kept the same PID throughout.
+- **DEVIATION — `.github/workflows/ci.yml` moved into Allowed** (user-approved
+  mid-task). CI lints `tests/*.sh` but has never executed them, so the new test
+  would have been linted and never run. A `tests` job now runs them by glob.
+  `build.sh` and `lint.sh` are skipped by name with the reason printed — they
+  need the X11 toolchain and the three linters respectively — which also means
+  **those two have never run in CI and still do not**; the workflow's inline
+  reimplementations are what execute.
+- **Open:** picom has never parsed this config (not running here; launching it
+  would composite over the live session, and a dead `DISPLAY` makes it bail
+  before reading the file, with no Xvfb available); making the `lint` and
+  `build-suckless` jobs invoke the scripts instead of duplicating them is now
+  queued below.
+- See `.claude/changes/2026-08-07-picom-perf-tuning.md`. Commits `f4a44aa`,
+  `291dfb3`. Audit: READY. Reviewer: READY (clean first round). Tests: lint +
+  pkglist + lockstep + build pass, six mutants caught, and the new CI job
+  verified to exit 1 on drift.
+
+## 2026-08-07 — roster Epic, sub-task 11/11: dynamic scratchpads (dwm patch swap)
+- **The static `scratchpads` patch was un-baked from `dwm.c` and
+  `config.def.h`, and `dynamicscratchpads` hand-merged in.** The two cannot
+  coexist: old `SPTAG(i) ((1 << LENGTH(tags)) << (i))` vs new
+  `SCRATCHPAD_MASK (1u << LENGTH(tags))` both claim bit `LENGTH(tags)`.
+  `TAGMASK` is back to vanilla. `dwm-scratchpads-20200414-728d397b.diff`
+  deleted; `dwm-dynamicscratchpads-20260807-local.diff` (292 lines) vendored
+  in its place, captured against a pre-edit baseline the same way
+  `dwm-xresources-20260805-local.diff` was.
+- **Dynamic, not pre-declared** — the user asked for *"keybind to put the
+  selected window on scratchpads and key for show it and hide it and one to
+  drop window from scratchpads"*. `Mod`+`Shift`+`-` stashes the focused
+  window, `Mod`+`-` shows/hides and cycles, `Mod`+`=` drops it out.
+- **Two of the scope file's three risk warnings did not hold**, and reading
+  the source rather than trusting them is what showed it: `pertag` sizes its
+  arrays `LENGTH(tags) + 1`, never `NUMTAGS`; `drawbar()` loops
+  `i < LENGTH(tags)`, so `hide_vacant_tags` never draws the scratchpad bit.
+  The third (that `patch -p1` would not apply against an 11-patch-deep tree)
+  was correct.
+- **Only one of the three retired scratchpads ever worked** — neither
+  `ranger` nor `keepassxc` is in `packages/*.lst`, so `Mod`+`y`'s `st`
+  terminal is the single real capability lost. `Mod`+`y`/`u`/`x` are now free.
+- **A green `make` would have proved nothing here.** `config.h` is generated
+  once from `config.def.h` and gitignored, so the build was re-run after
+  `rm -f suckless/dwm/config.h`, and `nm` on the linked binary confirmed the
+  five new symbols present and `togglescratch` absent — the swap reached the
+  artifact, not just the source.
+- **Audit caught two errors, both descriptions of correct code**: an inline
+  comment claiming a branch re-shows a window when it stashes one, and a
+  `KEYBINDINGS.md` line saying press-again cycles when it hides. Both fixed
+  and the vendored diff regenerated and round-trip re-verified.
+- **Open:** nothing has run in a live dwm — stash/show/hide/cycle/drop are
+  verified by construction, symbol presence and tag arithmetic only.
+  **Existing installs need a dwm rebuild** (`rm -f suckless/dwm/config.h` then
+  `scripts/install-suckless.sh --skip-deps`). Two upstream behaviours kept and
+  documented rather than fixed: a stashed tiled window returns floating, and
+  the cycle scans only the current monitor.
+- See `.claude/changes/2026-08-07-dynamic-scratchpads.md`. Commits `9202bfb`,
+  `2f4006a`. Audit: READY. Reviewer: READY. Tests: lint + pkglist + lockstep +
+  build pass, plus a byte-for-byte diff round-trip and numeric tag-mask
+  verification.
+
+## 2026-08-07 — roster Epic, sub-task 9/11: fastfetch + starship theming, cava removal, docs
+- **The Epic closes here.** All 11 sub-tasks merged.
+- **starship is themed by splicing, not regeneration.** Neither starship nor
+  fastfetch has an include directive — verified, not assumed (Context7 plus the
+  starship.rs docs for one; `fastfetch --config a --config b` returning
+  `Error: only one config file can be loaded` for the other). So
+  `starship.dcol` renders only a `[palettes.dots]` table and its post-command
+  builds a themed copy in the cache from everything above a marker line in the
+  repo config; `99-prompt.zsh` prefers that copy while it is newer. Only ~8
+  lines are duplicated — a full-file render would have recreated the
+  `picom.conf`/`picom.dcol` lockstep hazard the scope file called sub-task 10's
+  highest risk.
+- **fastfetch is template-only**: no `config/fastfetch/` exists in the repo at
+  all, exactly as `gtk.css` already worked. The cost is two obligations on
+  `install-restore-theme.sh`, both in the new `theme_claim_fastfetch` — create
+  `~/.config/fastfetch` or the engine's install-check skips the template
+  forever, and claim the path in the manifest or uninstall cannot remove it.
+- **`cava.dcol` deleted** (locked decision 5 — it themed a program the
+  installer never installs).
+- **Three of my own written claims were wrong and were corrected by testing,
+  not review**, each having reached a shipped config comment first: starship
+  warns *twice on the first prompt of each shell session* (deduped via
+  `$STARSHIP_CACHE/session_<key>.log`), not on every render; **zsh's `-nt` is
+  false when the right operand is missing where bash's is true**, which would
+  have dropped the themed config on a box where `symlinks.sh` never ran; and
+  the first fastfetch skip assertion checked only that no file appeared, which
+  is equally true when the engine *errors*, so it passed with the engine's
+  install-check mutated to `if false`.
+- **A second false pass, found by shimming**: the starship assertion counted
+  warning lines but ignored exit status, so a `starship` replaced by
+  `exit 127` passed. Both now check status and output.
+- **The oversized test was split, not excepted.** `tests/theme-templates.sh`
+  hit 294 lines against the 250 cap and was the only shell script in the repo
+  over it, so there was no precedent for an exception — split into
+  `starship-template.sh` (202) and `fastfetch-template.sh` (203).
+- **Doc reconciliation was the bulk of the diff, and two `CLAUDE.md` claims
+  were flatly false rather than stale**: "No CI, no linter config, no test
+  suite" (all three since 2026-08-05) and "README.md is still a 7-byte stub"
+  (54 lines, CI badge). Also fixed: the dwm patch roster still named
+  `scratchpads`; the project map predated nine `config/` and six `scripts/`
+  entries; ROADMAP §3 listed eight landed components as `❌ add`. Every path
+  and function name written into the docs was checked to resolve first.
+- **Open / found here: picom is never launched.** It is packaged, configured,
+  themed and performance-tuned by sub-task 10, but appears in no autostart
+  path — not `autostart.sh`, not `.xinitrc`, not sxhkd — and `reload.sh` only
+  signals it *if already running*. So that tuning has never taken effect.
+  Outside this plan's Allowed list, so the ROADMAP row was corrected to
+  `⚠️ partial` and the fix queued below.
+- **Open:** nothing ran on real Fedora; the prompt and fetch output were
+  rendered on Arch, so fastfetch's `packages`/`wm` lines and the Fedora logo
+  path are inferred for the target.
+- See `.claude/changes/2026-08-07-fastfetch-starship-docs.md`. Commits
+  `d3fa7f1`, `eeb3b82`. Audit: READY. Reviewer: READY (clean first round).
+  Tests: all six `tests/*.sh` pass, 16 assertions across the two new tests,
+  eight mutants all caught, and the starship refactor proved byte-identical
+  across five prompt surfaces.
+
+## 2026-08-08 — picom autostart (queue item, opened by sub-task 9's audit)
+
+- **picom is now launched.** It was packaged, configured, themed and
+  performance-tuned across two roster sub-tasks and appeared in no autostart
+  path at all — so on a fresh install there was no compositor, no vsync, and
+  `~/.config/picom/picom.conf` was dead weight the theming engine kept
+  regenerating. Added to the `autostart.sh` template **first**, before
+  dwmblocks/clipmenud/sxhkd/dwm-lock, so windows are composited from the moment
+  they appear. Backgrounded with `&` rather than picom's own `-b`, matching the
+  three daemons already there.
+- **The real fix is the drift test.** `scripts/install-session.sh` describes the
+  daemon set **twice** — the heredoc fresh machines get, and
+  `session_autostart_report()` that existing installs are told about (rule 6
+  forbids editing a user's `autostart.sh`, so the installer can only print the
+  missing line). Nothing checked the two against each other, and nothing else in
+  `tests/` executes that file — it writes to `$HOME` and is sourced, not run.
+  That is exactly how picom went missing. `tests/autostart-daemons.sh` pairs the
+  two sets in both directions, same spirit as `tests/picom-lockstep.sh`.
+- **A pre-existing cap violation was fixed in passing.**
+  `install_session_autostart()` was **already** 65 lines against the 60-line cap
+  before this task; the picom block took it to 76. Extracted
+  `session_autostart_template()` — now 23 + 56, with the generated
+  `autostart.sh` proved byte-identical across the refactor (same sha256).
+- **My own test was worthless and passed anyway.** The first version grepped the
+  bare daemon name anywhere in each section — but both sections *discuss* their
+  daemons in prose, so deleting `picom &` outright still matched my own
+  explanatory comment. Only mutation testing exposed it; both sides now match on
+  canonical markers. Sibling bug in the same run: the mutant runner piped the
+  test's output through `sed`, making `$?` sed's status, so every mutant
+  reported NOT CAUGHT.
+- **The new test caught the refactor mid-task** — its "could not extract" guard
+  fired on a stranded `chmod`/`green` tail left inside the new function, which
+  validated the guard as well as finding the bug.
+- **Open:** existing installs — including the user's own — still need the line
+  pasted by hand; rule 6 means the installer will only report it. And `picom` is
+  in best-effort `extra.lst`, so the `command -v picom` guard falls through
+  silently on a failed install — that is the `core.lst`/`extra.lst` review still
+  queued below.
+- See `.claude/changes/2026-08-08-picom-autostart.md`. Commit `592abb3`.
+  Audit: READY (Medium+, 6 files, +210/-5). Reviewer: READY (clean first round).
+  Tests: all seven `tests/*.sh` pass; five mutants all caught; sandboxed `$HOME`
+  runs confirmed mode 755, POSIX-`sh` valid, shellcheck-clean, and byte-identical
+  on re-run. picom itself was never launched — this dev host is Wayland.
+
+## 2026-08-08 — package tiers (queue item: the core.lst/extra.lst review, five sub-tasks deep)
+
+- **The answer was not a promotion list.** Five roster sub-tasks in a row —
+  alacritty (3), sxhkd (4), maim/slop/xprop (5), procps-ng (6), picom
+  (2026-08-08) — each deferred "should this be in `core.lst`?" into a log the
+  next sub-task never read. The real defect was that a two-tier model cannot
+  say *this failing is serious but must not abort the install*, so everything
+  load-bearing sat in best-effort `extra.lst` where a failure printed one
+  yellow line among ~110 green ones. That is exactly how picom shipped
+  packaged, configured, themed and tuned while nothing launched it.
+- **Four tiers now, each with a distinct failure mode:** `core.lst` (2 —
+  aborts the run), `build.lst` (13, new — `install-suckless.sh` only, aborts
+  the build stage), `desktop.lst` (26, new — never aborts, but every failure
+  is repeated in a red closing summary), `extra.lst` (61 — one yellow line).
+- **`core.lst` SHRANK, to `git` + `zsh`.** The obvious reading of the queue
+  item was "promote things into core"; rejected because `core.lst` hard-fails
+  and rule 8 means every name is hand-checked and never checked against a live
+  `dnf`. Each promotion would convert "one feature is dead" into "no desktop
+  at all". Promotions went to `desktop.lst`, which shouts without aborting.
+- **The consequence text lives in the `.lst` itself** — the trailing `#` on
+  each `desktop.lst` line is what breaks without that package, and
+  `load_consequences()` reads it back to build the summary. `read_pkg_list()`
+  already strips trailing comments, so the install path is untouched and the
+  fact sits on one line rather than drifting across two files.
+- **Six packages were declared nowhere.** Four (`libXext-devel`,
+  `libXrandr-devel`, `libxcrypt-devel`, `ncurses`) existed only in the inline
+  dnf array at `install-suckless.sh:84` — a CLAUDE.md rule 10 violation, and
+  invisible to CI. Plus `procps-ng` (`pgrep`/`pkill` are called **unguarded**
+  by `sxhkdrc`, `dwm-powermenu`, `dwm-lock` and two `.dcol` post-commands) and
+  `desktop-file-utils`. Also: `patch` was in `core.lst` but missing from
+  `install_deps()`, so a standalone `install-suckless.sh` failed at the first
+  vendored `.diff`.
+- **`dnf_install()` no longer discards stderr.** Every failure used to report
+  `skipped (not found in enabled repos)` whether the cause was a rename, a
+  network drop, a GPG error or a transaction conflict.
+- **Three false dependencies were caught by reading files instead of trusting
+  grep.** `lm_sensors` and `free` (twice) all matched comments explaining why
+  those tools are *not* used — `dwm-temp` reads sysfs precisely to avoid
+  lm_sensors. A well-commented file names the tool it avoids as often as the
+  one it calls.
+- **`install-pkg.sh` split at the 250-line cap** into `install-pkg-tiers.sh`
+  (117) + `install-pkg.sh` (181), following the `install-restore-theme.sh`
+  pattern. `tests/pkglist.sh` and `ci.yml` both GLOB `packages/*.lst` now, so
+  a fifth tier is covered for free — proved by a mutant that adds one.
+- **Open, and the third instance of the same bug shape: `polkit-gnome` is
+  packaged but nothing autostarts it.** Found while reconciling ROADMAP §5,
+  flagged in that table; `install-session.sh` was outside this plan's scope.
+- **Open:** whether keybound *applications* (`thunar`, `firefox`) belong in
+  `desktop.lst` rather than `extra.lst`. Asked twice, unanswered at commit;
+  shipped in `extra.lst` with the reasoning in its header. Both are still
+  named in the failure summary, just not flagged as a broken desktop.
+- See `.claude/changes/2026-08-08-package-tiers.md`. Commits `5a4e681`,
+  `13b6902`. Audit: READY (Medium+, 16 files). Reviewer: READY (clean first
+  round, probed all four named risks). Tests: 8/8; nine mutants all caught,
+  each confirmed applied; the CI step body extracted from the YAML and run
+  locally over 102 packages. Nothing ran against a real `dnf` — there is none
+  on this Arch host.
+
+## 2026-08-08 — polkit autostart + keybound apps re-tiered (queue items 1 and 2)
+
+- **The third packaged-but-never-launched instance is closed.** `polkit-gnome`
+  was packaged but started by nothing, so no PolicyKit agent ran and every GUI
+  action needing privileges — mounting a system disk from Thunar, partition or
+  package tools — was denied with no password prompt and usually no error. A
+  desktop environment starts the agent from `/etc/xdg/autostart`; dwm has no
+  session manager and nothing here reads that directory, so the `.desktop` file
+  the package ships was inert. Verified, not assumed: no `dex`, no
+  `fbautostart`, and `grep -rn polkit scripts/ config/` returned nothing.
+- **The obvious fix would have reintroduced the bug it fixes.** The agent
+  binary is **not on `PATH`** — it lives under `libexec`, and distributions
+  disagree about where. Copying the `command -v picom` guard from its five
+  neighbours would have produced a line that silently never fires. Two absolute
+  paths are tried instead (`/usr/libexec/...`, `/usr/lib/polkit-gnome/...`).
+  Fedora's real path could not be verified: three fetches against
+  packages.fedoraproject.org returned package metadata but never a file list.
+- **A near-miss worth recording.** That package's own page listed only *Fedora
+  EPEL 9*, which reads as retired; the search page shows it current in F43, F44
+  and Rawhide. Stopping at the first page would have meant reporting a queued
+  task unfixable.
+- **DECISION REVERSAL — `thunar` and `firefox` moved to `desktop.lst`,**
+  reversing the Type B assumption recorded in `2026-08-08-package-tiers.md` one
+  commit earlier. That decision rested on an infrastructure-vs-application line
+  I had never written down, and it contradicted the criterion written at the top
+  of `desktop.lst`: *does its absence stay quiet?* `super + e` and `super + b`
+  both die silently, so the written rule won. `desktop.lst` 26 -> 29,
+  `extra.lst` 61 -> 58, total unchanged at 102. Asked twice during
+  `package-tiers` and unanswered; the user then selected the queue item, which
+  settled it.
+- **Adding a sixth daemon broke the 60-line cap twice, forcing two refactors.**
+  `session_autostart_report()` became a `session_report_daemon()` helper plus
+  six data-shaped calls (37 + 14), deleting a six-way duplication that predates
+  this task; `session_autostart_template()` split into
+  `session_autostart_daemons()` + `session_autostart_services()` (4 + 44 + 39)
+  along the seam its own comments already drew — daemons on `PATH` versus
+  services named by absolute path. Both proved output-identical: the generated
+  `autostart.sh` and the report output each differ from the previous commit only
+  by the new polkit content.
+- **`tests/autostart-daemons.sh` now RUNS both functions instead of parsing
+  them** — it executes the template and scans the real generated file, and
+  executes the report against a throwaway `autostart.sh` mentioning nothing. The
+  old version sed-extracted function bodies and would have broken outright on
+  the refactor above. Six mutants, all caught, each confirmed applied first; one
+  needed two attempts to land and the applied-check caught that rather than
+  letting it read as "not caught".
+- **Open: `scripts/install-session.sh` is now at exactly 250 lines, the cap.**
+  A seventh daemon forces a *file* split, not just a function split. Not
+  pre-empted here.
+- **Open:** `ROADMAP.md` §7 still lists `nm-applet`, `udiskie` and `redshift` as
+  intended-but-unwired. None are packaged, so they are absent rather than
+  silently broken — the state picom was in one step before the bug.
+- See `.claude/changes/2026-08-08-polkit-autostart-tiers.md`. Commits `51a728d`,
+  `24f77fc`. Audit: READY (Medium+, 9 files, +281/-154, zero findings — both
+  structural problems were caught by the caps during implementation). Reviewer:
+  READY (clean first round). Tests: 8/8; `autostart-daemons` now pairs 6 daemons
+  and `desktop-consequences` annotates 29. Nothing ran against a real `dnf`, a
+  real Fedora box or a live X session; the agent was never actually started.
+
+## 2026-08-10 — queue sweep: items 1–5 closed in one pass
+
+- **`scripts/install-session.sh` was at exactly 250 lines** and could not grow.
+  `session_report_daemon()` + `session_autostart_report()` moved to a new
+  `scripts/install-session-report.sh` (92 lines); the parent is now **192**, so
+  the seventh daemon this blocked is unblocked. The sibling is resolved from
+  `BASH_SOURCE`, **not** the caller's `$SCRIPT_DIR` as `install-restore.sh`
+  does — `tests/autostart-daemons.sh` sources the parent with no `SCRIPT_DIR`
+  set at all. That test needed no change across the split, which is exactly the
+  property it was rebuilt for one task earlier.
+- **CI now invokes `tests/lint.sh --strict` and `tests/build.sh`** instead of
+  reimplementing both inline, so those two scripts are finally executed by
+  something. `--strict` is new and is the point: `lint.sh` skips a missing
+  linter by default (right locally, wrong in CI, where "not installed" can only
+  mean the install step silently failed and the job is about to go green having
+  checked nothing). markdownlint is now `npm install -g`'d rather than `npx`'d
+  so the **pinned** version is what `command -v` finds; shfmt goes on
+  `$GITHUB_PATH` for the same reason.
+- **Third and last known `pipefail`/SIGPIPE site closed.** `theme_is_ours` and
+  `theme_backed_up` in `install-restore-theme.sh` piped into `grep -qxF`, which
+  returns **141 even on a match**. Both are read loops now. Reproduced before
+  and after: 200k rows with the target first, old shape **0/5** found, new
+  **5/5**.
+- **`xresources.dcol`'s `xrdb -merge` post-command is bounded** at `timeout 10`,
+  matching `run_bounded` in `reload.sh` and degrading to a bare `xrdb` when
+  `timeout` is absent. Post-commands run in sequence, so an unbounded one on a
+  hung X server wedged every remaining template.
+- **TPM now honours `$XDG_DATA_HOME` — and this was not the one-line fix the
+  queue described.** `config/tmux/conf.d/30-plugins.conf` hardcoded the path in
+  four places, so fixing only `install-restore.sh` would have pre-cloned TPM
+  where tmux never looks and let TPM's own bootstrap fetch a second copy. Both
+  sides changed together. **`tmux.conf` is not a shell**: it has no
+  `${VAR:-default}`, so every path now lives in a *single-quoted* `run-shell`
+  body that `/bin/sh` expands; double quotes would let tmux expand first and
+  restore the bug. Verified against a real tmux 3.7b server, not by reading.
+- **New `tests/tmux-tpm-lockstep.sh`** guards that coupling — 4 mutants, all
+  caught, including one that keeps the correct *spelling* but points at a
+  different directory, which the grep checks alone would have missed. Suite is
+  now 9. `tests/lint.sh` also gained an empty-file-list guard.
+- **Open: `scripts/install-restore-theme.sh` is now 248 of 250 lines** — it
+  inherits precisely the position `install-session.sh` was in, and both the
+  audit sweep and the reviewer flagged it independently. The next edit to that
+  file should split it; the seam is the manifest predicates versus the
+  deploy/claim/backup functions.
+- **Open:** `theme_is_ours`, `theme_backed_up` and `app_is_ours` are now three
+  textually near-identical read loops. One `manifest_has_path` in
+  `scripts/global_fn.sh` replaces all three, but that file is shared with
+  `uninstall.sh`/`version.sh` and was out of scope here.
+- **Open:** `@resurrect-dir` in `30-plugins.conf` still ignores
+  `$XDG_STATE_HOME` — same class as the bug just fixed, different variable.
+- See `.claude/changes/2026-08-10-queue-sweep-1-5.md`. Commits `6a0c123`,
+  `a47174d`. Audit: READY (Medium+, 14 files, +230/-158; 4 findings, 2 fixed —
+  file modes and two scoped SC2016 disables — 2 recorded as follow-ups).
+  Reviewer: READY (clean first round; it ran its own isolated tmux session,
+  shellcheck and `bash -n` rather than reading only). Tests: 9/9, dunst held
+  PID 6788 throughout. **Nothing ran against a real `dnf`, a Fedora box, a live
+  X session, or GitHub Actions — the CI rewiring is unproven until a push.**
+
+## 2026-08-12 — manifest_has_path extracted (queue items 1 and 2)
+
+- **One shared `manifest_has_path <TAG> <path>` in `scripts/global_fn.sh`
+  replaces three byte-identical read loops** — `theme_is_ours` (4 call sites),
+  `theme_backed_up` (1) and `app_is_ours` (1). The duplication was the shape the
+  2026-08-10 pipefail fix converged all three on, deliberately left open then
+  because `global_fn.sh` is sourced by 12 scripts including `uninstall.sh`,
+  which deletes files based on manifest rows.
+- **The point was never tidiness.** The knowledge that makes the read loop
+  mandatory — `grep -q` exits on first match, SIGPIPEs `cut`, and under
+  `pipefail` turns a successful lookup into 141 — existed in three phrasings in
+  three places. Three copies of a subtle invariant is three chances for one to
+  be "simplified" back to the pipeline. It now lives once, beside the function,
+  and `tests/manifest-has-path.sh` fails if anyone reverts it.
+- **Queue item 1 closed without being performed.** `install-restore-theme.sh`
+  248 → **223**, so the split it was queued for is unnecessary. MASTER_PLAN
+  predicted this subsumption when the item was written.
+  `install-restore-apps.sh` 170 → 156; `global_fn.sh` 120 → 148.
+- **Direct calls, not wrappers** — decided by measurement at audit time, as the
+  plan said it would be: `manifest_has_path THEME "$dst"` also names the
+  manifest category at the call site, which `theme_is_ours` only implied.
+- **New `tests/manifest-has-path.sh`, suite 9 → 10.** Sources the shipped
+  function rather than reimplementing it. 11 assertions incl. category scoping
+  (a THEME row must not answer for APP), prefix/superstring rejection, and a
+  missing manifest as a clean miss. The regression proper: on a 200k-row
+  manifest with the target first, shipped **5/5**, the replaced pipeline
+  (reproduced verbatim) **0/5** — the same numbers the 2026-08-10 sweep got.
+- **Two shellcheck findings were real, not noise.** SC2329 caught that the
+  test's own `red`/`green`/`blue` were dead code, silently overwritten by the
+  `global_fn.sh` it sources — CLAUDE.md rule 2 does not apply to a script that
+  sources that file. SC2015 caught that `cmd && pass || fail` runs `fail` too if
+  `pass` fails, so a green suite could have hidden a broken reporter. Both fixed
+  at source; **zero suppressions added**.
+- **This log was renamed from `2026-08-10-` to `2026-08-12-` after being
+  committed** — the date had been taken from the previous log's filename rather
+  than `date -u`. Rule collision with session-protocol.md's immutability clause
+  was escalated to the user, not self-excepted; they approved the rename. The
+  commits `a48de6b`/`59d54d5` remain stamped 2026-08-10 17:40/17:42, matching
+  neither `date` nor file mtimes, with no `GIT_*_DATE` override set — an
+  unexplained environmental oddity; do not trust those two timestamps.
+- **Found by the post-merge check, pre-existing:** `tests/build.sh` was failing
+  on main because the gitignored `suckless/slock/config.h` dated 2026-08-05,
+  before the xresources patch, and so lacked `ResourcePref`. Invisible to CI
+  (fresh checkout regenerates it) and to the slot worktree for the same reason.
+  All five `config.h` cleared; build.sh green again. The dwm/st/dmenu ones were
+  the worse case — they would have compiled *green* against a stale config.
+- See `.claude/changes/2026-08-12-manifest-has-path.md`. Commits `a48de6b`,
+  `59d54d5`. Audit: READY (Medium+, 10 files, +348/-72; 3 findings, all 3 fixed).
+  Reviewer: READY (clean first round). Tests: 10/10 via TESTING.md's documented
+  runner, plus `lint.sh --strict` separately; `uninstall.sh --dry-run` verified
+  in a four-variable XDG sandbox with the real manifest untouched. **Nothing ran
+  against a real `dnf`, a Fedora box, a live X session, or GitHub Actions.**
+
+## 2026-08-12 — xsettingsd integration (Epic scope-c, sub-task 2)
+
+- **An XSETTINGS daemon now serves GTK apps** the theme identity from
+  `themes/dark/theme.conf` plus `Xft/Antialias`, `Xft/Hinting`, `Xft/HintStyle`
+  and `Xft/RGBA` — keys that lived nowhere else in this repo, since
+  `xresources.dcol` carries colours only. Written by
+  `theme_write_xsettingsd_conf`, autostarted, and reloadable via `pkill -HUP`.
+- **The rationale first given for this was WRONG and is recorded as such**, in
+  both `scope-c-roster-gap-fill.md` locked decision 2 and `docs/THEMING.md`.
+  xsettingsd was pitched as making wallpaper re-theming live for running GTK
+  apps. It does not: the wallpaper-driven GTK surface is `gtk.css`, and
+  `gtk.dcol`'s own header already recorded that GTK 3 re-reads it via
+  `GtkCssProvider` — which is why that template has no post-command. XSETTINGS
+  has no CSS channel either. The user kept the tool knowing this; the accepted
+  case is Xft centralisation and future-theme proofing. **Do not re-derive the
+  original claim** — `docs/THEMING.md` carries an explicit "xsettingsd is not
+  the lever" note for exactly that reason.
+- **Deliberately NOT a `.dcol` template.** Content is `theme.conf`-derived, not
+  palette-derived, so a template would re-render an identical file on every
+  wallpaper change. `theme_write_gtk_ini` is the precedent.
+- **`Xft/DPI` deliberately omitted** — XSETTINGS wants 1024ths of an inch, and
+  hardcoding `96*1024` would override X's autodetection and break HiDPI.
+- **`install-restore-theme.sh` hit 286/250 and was split**: the `theme.conf`
+  renderers moved to `install-restore-theme-identity.sh` (193 + 121). The seam
+  is *rendering* vs *placement* — the parent still deploys, claims and backs up.
+- **The audit's best catch:** hoisting `theme_conf_get` out of
+  `theme_write_gtk_ini` would have promoted `sed … | head -1` into shared use —
+  a **fourth** instance of the SIGPIPE/pipefail trap already fixed three times
+  here. Rewritten pipe-free as `grep -m1`. A hoisted helper's pipelines get
+  re-examined, not just relocated.
+- **`tests/autostart-daemons.sh` caught the unpaired daemon by itself** before
+  its roster was updated, and a mutant reproduces that failure. Daemons 6 -> 7,
+  annotated packages 29 -> 30.
+- **Open for sub-task 3:** `session_autostart_daemons()` is at **57 of 60**
+  lines; udiskie + autorandr add two more daemons to that same function and
+  will breach the cap. Plan the split into that slot.
+- **Open, unverified but now load-bearing in two places:** `gtk.dcol`'s claim
+  that GTK 3 hot-reloads `gtk.css` is stated as fact and was never tested; it is
+  now repeated in `docs/THEMING.md`. Confirm on real hardware.
+- See `.claude/changes/2026-08-12-xsettingsd-theming.md`. Commits `92eb216`,
+  `ad3c872`. Audit: READY (Medium+, 14 files, +336/-46; 3 findings, all fixed).
+  Reviewer: READY (clean first round; re-ran the split's sandbox proof itself).
+  Tests: 10/10 + `--strict`. Config parsing proven against the real xsettingsd
+  1.0.2, including that a malformed value is rejected loudly. **Nothing ran
+  against a real `dnf`, a Fedora box, a live X session, or GitHub Actions —
+  xsettingsd has never actually served settings to a running GTK app here.**
+
+## 2026-08-12 — udiskie + autorandr (Epic scope-c, sub-task 3)
+
+- **Two unmanned ROADMAP §3 rows are now manned.** udiskie auto-mounts
+  removable media (`--automount --notify --smart-tray`) without needing Thunar
+  resident — `thunar-volman` only works while Thunar runs and nothing
+  daemonises it, so that row did nothing before. autorandr re-applies a saved
+  display profile at session start.
+- **autorandr is a ONE-SHOT, not a daemon**, and deliberately carries no
+  `pgrep` guard — there is never a process to find. It is still backgrounded,
+  for two reasons: autostart never blocks on an xrandr round-trip, and it stays
+  inside the launch/report pairing `tests/autostart-daemons.sh` enforces rather
+  than falling outside both that check and the unknown-daemon check.
+- **The package's XDG autostart file is useless here** — dwm runs no session
+  manager, nothing reads `/etc/xdg/autostart`. Same reason polkit-gnome is
+  spelled out. The udev rule it ships still covers hotplug; the autostart line
+  covers session start only.
+- **No systemd unit, by design.** A `--user` unit would not round-trip:
+  `uninstall_steps.sh` disables SERVICE rows with `sudo systemctl disable`,
+  which is system-level. The plan's `## Forbidden` block listed
+  `install-services.sh` so that stayed structural rather than remembered.
+- **Two splits, both forced by caps.** `session_autostart_daemons()` hit 57/60
+  so the body became `_display()` (what paints the screen) + `_daemons()`
+  (interaction and devices), moving xsettingsd into the display half.
+  `install-session.sh` then hit **254/250**, so the whole body moved to
+  **`scripts/install-session-template.sh`** — the same seam the reporting half
+  took at this cap. 97 + 179 + 107 across three files.
+- **The function split was proven output-equivalent by BYTE DIFF**, not by the
+  suite staying green — and that caught two things the passing test did not: a
+  doubled blank line, and xsettingsd still sitting in the interaction half while
+  its new comment claimed the display half. Worth repeating on any future split.
+- **A stale enumeration removed rather than extended.**
+  `install_session_autostart()`'s two user-facing strings listed the daemons and
+  had already gone stale (xsettingsd was added without them). Replaced with
+  wording that cannot drift; **CLAUDE.md rule 6 now forbids re-adding one** and
+  documents the three-place obligation: launch line + report branch + test
+  roster. Daemons 7 -> 9, annotated packages 30 -> 32.
+- **The reviewer caught CLAUDE.md contradicting its own diff** — rule 6's new
+  paragraph named `install-session.sh` as the home of `session_autostart_*`
+  after the split had moved them, and the project map omitted the new file.
+  Fixed before commit. Docs written mid-task need re-reading after any late
+  structural change; the audit missed this and the fresh-eyes gate did not.
+- **Verification asymmetry, on the record:** udiskie's flags were checked
+  against a real binary but the local build is **2.7.0** while Fedora ships
+  **2.6.2**; udiskie was never *run* because `--automount` would have mounted
+  real devices. **autorandr is not installed here at all** and Fedora's package
+  pages list no files, so its udev rule and XDG autostart file are **assumed**.
+- **Open:** `--smart-tray` has never been exercised against dwm's systray (if
+  the icon never appears, automounting still works); and
+  `session_autostart_display()` is at 53 of 60, so the next display-related
+  daemon will need another split.
+- See `.claude/changes/2026-08-12-udiskie-autorandr.md`. Commits `6b8649e`,
+  `a011220`. Audit: READY (Medium+, 11 files, +352/-125; 2 findings, both
+  fixed). Reviewer: WARN, resolved before commit. Tests: 10/10 + `--strict`;
+  three mutants all caught. **Nothing ran against a real `dnf`, a Fedora box, a
+  live X session, or GitHub Actions.**
+
+## 2026-08-12 — colour picker + display menu (Epic scope-c, sub-task 4 — EPIC CLOSED)
+
+- **`config/dwm/bin/dwm-colorpicker` (`Super+c`)** samples the pixel under the
+  pointer and puts its hex on the clipboard with a dunst swatch. A script rather
+  than a package because **ROADMAP §3 named a package that does not exist** —
+  there is no `xcolor` in Fedora, only `texlive-xcolor`, a LaTeX package. Every
+  other dependency was already installed for screenshots and theming; only
+  `xdotool` was added, purely for `getmouselocation`.
+- **`config/dwm/bin/dwm-display` (`Super+d`)** lists autorandr's saved profiles
+  first, then presets **derived from `xrandr` at run time** — output names differ
+  per machine and driver, so a hardcoded list would be wrong on the first laptop
+  it met. Each "only <output>" entry disables the others in the SAME xrandr call,
+  so the server never passes through a state with no output enabled.
+- **ROADMAP §3's status column re-verified end to end**, not spot-edited: the
+  compositor row still claimed nothing autostarts picom, four days after that
+  was fixed. §9's priority list is entirely done and is now labelled a record
+  rather than a backlog, pointing at MASTER_PLAN.md as the real queue. Two §3
+  rows stay open **by decision**: a blue-light filter (undecided) and
+  `xdg-desktop-portal-gtk` (deferred — only pays off with Flatpak).
+- **The reviewer BLOCKED round 1 on a happy-path bug worth remembering.**
+  ImageMagick's `%[hex:p{0,0}]` returns EIGHT hex digits (RRGGBBAA) for maim's
+  actual RGBA output, so the strict 6-digit validation rejected it and the picker
+  would have failed *every single time*. The test passed only because the fake
+  `maim` wrote an RGB PNG — **the shim reproduced the tool's interface but not
+  its output format**, so it tested against a world that does not exist. Fixed
+  with `-alpha off -depth 8` (the second flag covering the 16-bit case raised in
+  the same review, independently reproduced as twelve digits). The strict check
+  was deliberately KEPT so a future format change fails loudly instead of
+  copying a truncated colour. Round 2 confirmed `-alpha off` *discards* rather
+  than composites — a semi-transparent pixel yields its true source RGB, where
+  `-alpha remove` would have blended it.
+- **`config/dwm/bin/*` is the least test-covered surface in the repo** — nine
+  scripts, zero tests — and this sub-task is the demonstration of what that
+  costs. The picker's hex normalisation across PNG formats would fit the
+  existing shim-based `tests/*-template.sh` idiom directly.
+- **Another stale doc reference fixed:** CLAUDE.md credited `$PATH` setup to
+  `20-path.zsh`, which does not exist — it is `.zshenv`, deliberately, since
+  `conf.d` is interactive-only and dwm's autostart is not.
+- **`sxhkd` has no parse-check mode.** `sxhkd -c <file> -n` is not a dry run; it
+  launches the daemon and grabs keys. Attempted once, killed by timeout, nothing
+  disturbed — do not retry it.
+- See `.claude/changes/2026-08-12-colorpicker-display.md`. Commits `f88d684`,
+  `b03573a`. Audit: READY (Medium+, 13 files, +451/-14; 1 finding fixed).
+  Reviewer: **BLOCK then READY**. Tests: 10/10 + `--strict`, but note nothing in
+  `tests/` exercises the new scripts — the shimmed runs are what verified them.
+  **Neither script has met a real pointer or a second monitor.**
+
+### Epic scope-c closed
+
+All four sub-tasks merged: xsettingsd (`92eb216`), udiskie + autorandr
+(`6b8649e`), colour picker + display menu (`f88d684`), with packages folded into
+whichever sub-task needed them. Scope file:
+`.claude/tasks/scope-c-roster-gap-fill.md` — locked decisions live there,
+including the corrected xsettingsd rationale and the `xcolor` non-existence.
+
+## 2026-08-12 — first tests for config/dwm/bin/ (queue item 1)
+
+- **`config/dwm/bin/` went from nine scripts and ZERO tests to two covered.**
+  `tests/dwm-colorpicker.sh` (12 assertions) and `tests/dwm-display.sh` (20).
+  Suite 10 -> 12; both are picked up by CI's `tests/*.sh` glob with no workflow
+  change. Neither script under test was modified — `## Forbidden` listed
+  `config/dwm/bin/` and both stayed byte-identical.
+- **This existed because of what sub-task 4 proved**: `dwm-colorpicker` would
+  have failed on *every* invocation while the full suite stayed green, since
+  nothing in `tests/` ran it. Only the reviewer caught it.
+- **The mutation results are the real deliverable — 12 of 13 breakages fail the
+  suite.** A test that cannot fail is worse than none, so both files were
+  measured rather than assumed effective. Colorpicker 4/5: dropping
+  `-alpha off -depth 8`, either flag alone, and swapping to the compositing
+  `-alpha remove`. Display 8/8, including **labels correct but command wrong**
+  (`--off` -> `--auto`), which a label-only test sails past.
+- **The one survivor is documented, not papered over**: loosening
+  `^[0-9A-Fa-f]{6}$` to `{6,8}`. With normalisation intact no input tried
+  (RGBA, 16-bit, palette, grayscale, CMYK) yields anything but six digits, so
+  the strict regex is a second layer that never fires. Killing it would mean
+  asserting on the script's source text.
+- **The reviewer found a `--primary` gap my own mutants missed, and the reason
+  generalises: mutation testing only covers the mutations you IMAGINE.** Every
+  mutant I wrote attacked logic I had just authored; `--primary` was a flag I
+  had treated as incidental scenery, and dropping it survived all 17 assertions.
+  Three assertions added; both that mutation and the extend/mirror variant are
+  now caught. Ask the independent gate explicitly for a mutation you did not try.
+- **ImageMagick is deliberately NOT faked** — it is the thing under test, and
+  faking it would leave the file asserting against its own fixture generator.
+  So the colorpicker test **skips loudly** when neither `magick` nor `convert`
+  is present, which is what CI's ubuntu-latest `tests` job will do. Verified
+  directly on a bash+coreutils-only PATH: `dwm-display.sh` passes in full,
+  `dwm-colorpicker.sh` skips with exit 0 and a visible yellow block.
+- **Live side effects avoided:** `xclip`/`notify-send` faked (they would
+  overwrite the real clipboard and post real notifications) and `xrandr` faked
+  (it would reconfigure the tester's displays).
+- **Open:** ImageMagick 6's `convert` branch is *reachable* (verified with a
+  forwarding shim) but IM6 itself is untested — only IM7 exists here, and
+  Ubuntu runners have historically shipped IM6. Seven `dwm-*` scripts remain
+  untested; `dwm-brightness` is the highest-value next one, since it parses
+  `xrandr --verbose` output and does arithmetic on it — the same
+  parse-a-real-tool's-output shape that produced this whole thread of bugs.
+- See `.claude/changes/2026-08-12-dwm-bin-tests.md`. Commits `67d417f`,
+  `9849c6d`. Audit: READY (Medium+, 9 files, +582/-5; 2 findings, both fixed —
+  one was a bug in my own test that made an assertion assert nothing).
+  Reviewer: WARN, resolved before commit. Tests: 12/12 + `--strict`.
+
+## 2026-08-12 — CI matrix off the EOL Fedora pin (queue item)
+
+- **`ci.yml`'s `build-suckless` and `install-dry-run` matrices went
+  `fedora:41` -> `fedora:43`.** Fedora 41 and 42 are both EOL; the active
+  branches are 43, 44 and Rawhide(45). 43 rather than 44 because the pin exists
+  to be the OLDEST SUPPORTED release — with `latest` resolving to 44, the matrix
+  now spans two releases instead of testing one twice.
+- **The queue entry's stated rationale was wrong, and the audit caught me
+  repeating it in the new comment.** The entry said the EOL image "will
+  eventually stop resolving" — but `fedora:41` is still on Docker Hub (last
+  updated 2025-12-04). The real failure is that an EOL release's repos move to
+  archive mirrors, so **`dnf` starts erroring while the image still pulls
+  fine**. The reviewer confirmed that mechanism actually applies by checking
+  what the jobs run: `dnf install` in build-suckless, `dnf list --available` in
+  install-dry-run. The comment now states the true failure mode, which is what
+  someone debugging a red job will need.
+- **`fedora:43` was verified to exist** by querying Docker Hub's tag list
+  (43/44/45 present, updated 2026-05-28) rather than assumed — a task that
+  exists because a pin went stale should not ship another unverified pin.
+- The comment in both matrices says what the pin is FOR and that it must be
+  **bumped, not deleted**. There is no way to derive it in a GitHub Actions
+  matrix, so the comment is the only defence against someone removing it as
+  "redundant with latest".
+- Three restatements corrected: `CLAUDE.md`, `TESTING.md`'s toolbox example,
+  and a now-false "still pins `fedora:41`" line in the scope-c file.
+- **Still unobserved:** CI has never run. main is 20 commits ahead of origin, so
+  neither this change nor the 2026-08-10 job rewiring has executed once.
+- See `.claude/changes/2026-08-12-ci-fedora-eol.md`. Commits `6156aa6`,
+  `6e840d7`. Small task (no task folder). Audit: READY (Medium+ by file count,
+  6 files; 1 finding, fixed). Reviewer: READY. Tests: 12/12 + `--strict`.
+
+## 2026-08-12 — theme roster 1 -> 4, and `theme.conf` stopped being decorative
+
+- **Three new static themes** — `themes/{gruvbox,nord,tokyo-night}/`. Every
+  `colors.dcol` is **generated** by this repo's own `colorgen.sh` from a
+  four-block seed image, never hand-written; each header records its seed hex
+  and all three were confirmed to **regenerate byte-identical**. All carry the
+  same 89 `dcol_*` keys as `themes/dark`, which is the whole point of
+  generating them — hand-written hex is how a palette ends up missing a key
+  some template references. They are "flavoured by" their upstreams, not
+  faithful ports: only the four `dcol_pry` values are upstream's, every ramp is
+  this engine's dark curve. Dark-mode-only (scope-a) stays locked.
+- **`theme.conf` was report-only until this task.** `theme-apply.sh` *printed*
+  it and did nothing else; the identity writers that render it into
+  `settings.ini` + `xsettingsd.conf` were reachable only from the installer and
+  read a hardcoded `themes/dark/theme.conf`. A switch now sources those same
+  writers and calls them before `apply-templates`/`reload`, so `reload.sh`'s
+  existing `pkill -HUP xsettingsd` serves the new values. This also fixed a
+  latent bug nobody had hit: editing `themes/dark/theme.conf` and re-running
+  `theme-apply.sh` previously changed nothing at all.
+- **The write rule is three-way, and the asymmetry is deliberate.**
+  `THEME_IDENTITY_CLOBBER` (default `0`) expresses which caller is running:
+  absent -> write; ours per the manifest -> write only when clobbering (a
+  switch, not an installer re-run); **present but not ours -> never write, in
+  either mode**, with a yellow line saying identity was not applied there. A
+  hand-written `settings.ini` therefore keeps winning, by design.
+- **Rejected: a `.dcol` template for identity.** Nothing in it is
+  palette-derived, so it would re-render an identical file on every wallpaper
+  change (the reasoning already recorded for `xsettingsd.conf`), and a template
+  cannot ask the manifest whether a file is ours — which the no-clobber rule
+  requires. `config/theme/templates/theme/README.md` recommended the template
+  route and now records why it was rejected.
+- **`tests/theme-identity.sh`** (suite 12 -> 13, free CI pickup via the glob).
+  **9 of 9 deliberate mutations fail the suite.** It ships a **sandbox-only
+  fixture theme** because all four shipped `theme.conf` files carry identical
+  values — against shipped data alone, a regression that re-hardcoded
+  `themes/dark` would stay green forever. It also stubs `apply-templates.sh`
+  and `reload.sh`, whose real post-commands `pkill` dunst and dwmblocks
+  system-wide regardless of env sandboxing.
+- **A test that supplies a default never tests it.** The first mutation run had
+  exactly one survivor: flipping `THEME_IDENTITY_CLOBBER`'s default `0 -> 1`
+  left the suite green, because the test set both new globals itself while
+  `install-restore-theme.sh` sets **neither** and relies entirely on the
+  shipped `${VAR:-default}` values. Removing the test's own assignments killed
+  that mutant plus a second one not yet written. Mirror the real caller's
+  calling convention, including what it does not set.
+- **The stale doc was the file I did not create.** The reviewer's single
+  finding was `themes/dark/theme.conf`, still describing the old report-only
+  behaviour while the three *new* theme.conf files described the new one
+  correctly. Writing the siblings correctly is what made the original look
+  reviewed; a four-sweep audit with an explicit doc pass missed it.
+- **Known limit, not an omission:** all four `theme.conf` files carry identical
+  values (`Adwaita-dark` + `Papirus-Dark` + `JetBrains Mono`) because the repo
+  declares exactly one dark GTK theme. Distinct identities are a *packaging*
+  decision — a themed GTK theme plus matching icon set — and no packages were
+  added to manufacture variety.
+- See `.claude/changes/2026-08-12-theme-roster-identity.md`. Commits `60134a0`,
+  `fb9f075`. Medium+ task (task folder archived). Audit: READY. Reviewer: one
+  finding, fixed before commit. Tests: 11 OK / 0 failed + `--strict`;
+  `tests/build.sh` not run (needs `dnf` in a Fedora container — this host is
+  Arch, and nothing here touches `suckless/`). Nothing run against a live X
+  session.
+
+## 2026-08-13 — the installer runs in CI for the first time, and two bugs fall out
+
+- **`.github/workflows/install-container.yml`** runs `install-fedora.sh` to
+  completion in `fedora:latest` + the pinned oldest-supported image, then makes
+  **23 assertions**. Until now **nothing had ever executed the installer**:
+  `grep -c install-fedora ci.yml` was **0** — `install-dry-run` validates its
+  *inputs* and never invokes it, `build-suckless` compiles the C programs with
+  nothing installed around them. Closes the parity queue item opened 2026-08-12.
+- **Every expectation is derived, not restated.** Stage banners are extracted
+  from `install-fedora.sh` itself, the link set from `symlinks.sh
+  --list-links`, binaries and the enabled unit from the manifest's own
+  `SUCKLESS`/`SERVICE` rows, package failures from the red closing summary
+  `install-pkg.sh` already prints. A new stage, symlink pair or suckless program
+  is covered with no edit to the workflow.
+- **Bug 1 — `$USER` was unbound under `set -u`** (`install-services.sh`). Unset
+  in any container, cron job or `su -c`, so the services stage aborted after
+  every earlier stage had succeeded. Now `id -un`, with `|| true` on the getent
+  pipeline: under `pipefail` a passwd miss aborts on the *assignment*, silently.
+- **Bug 2 — `systemctl enable ly.service` has never worked.** Fedora's `ly`
+  ships a **templated** `ly@.service` (`Conflicts=getty@%i.service`) with no
+  `Alias=`, so the call failed with "Unit ly.service does not exist". **No
+  display manager had ever been enabled by this installer, on any machine**, and
+  no lint, review or package-name check could have found it because none of them
+  ever ran the line. Now `ly@tty2.service` — the unit's own `Conflicts=` frees
+  tty2 from its getty, and tty1's getty stays as a rescue login. Five stale
+  `ly.service` references corrected across four files.
+- **Three of my own claims were corrected by evidence, all in the same
+  direction: a container does MORE than assumed.** `chsh` works there;
+  `systemctl enable` works there (offline symlink creation needs the unit
+  *file*, not a running systemd) — and that is precisely *why* the job catches a
+  wrong unit name. The NOT-COVERED block was rewritten twice.
+- **The reviewer's BLOCK was on a claim, not on code.** A comment said "getent
+  confirms the shell afterwards" while no such assertion existed — so a
+  regression in the very `chsh` path just patched would have shipped green. Four
+  audit sweeps read the assertions and the prose separately and never noticed
+  they disagreed. **Assertions and the prose describing them are two places
+  stating one fact.**
+- **Measured, not guessed:** cold install **32 minutes** (one dnf transaction
+  per package, so wall-clock tracks package count) → `timeout-minutes: 90`, and
+  the job lives in its own workflow with a `paths:` filter so a docs-only push
+  skips it.
+- **Accepted debt, recorded in the workflow header:** the ~110-line assert body
+  is inline YAML and `tests/lint.sh` does **not** lint bash inside YAML. It is
+  shellcheck-clean only because it was extracted and checked by hand.
+- **Found and NOT fixed: `polkit-gnome` is retired on Fedora 44.** It is in
+  `desktop.lst`, so a fresh install ships with no PolicyKit agent, and
+  `install-dry-run` will go red on it independently. Queued below.
+- See `.claude/changes/2026-08-13-install-container-harness.md`. Commits
+  `c4afeb3`, `3e3e6a5`. Medium task (task folder archived). Audit: READY after
+  1 architecture + 2 size + 1 safety finding, all fixed. Reviewer: BLOCK then
+  READY. Tests: **13/13 executed, 0 failures** — `build.sh` run inside the
+  Fedora container rather than skipped. **8/8 mutations caught.**
+- **Still unproven:** `install-fedora.sh` has never run on real hardware. ly has
+  been *enabled*, never *started*; nothing graphical has run.
+
+## 2026-08-13 — one command on $PATH, and a cursor theme Fedora does not package
+- **Two HyDE-parity queue items closed in one slot** (`5ed65b3`, `9c0438d`).
+  **Both entries were wrong about their own scope**, and only reading the code
+  and the reference implementation showed it.
+- **`scripts/dots`** — the single user-facing command, symlinked to
+  `~/.local/bin/dots` by the restore stage and recorded as a `SCRIPT` manifest
+  row. Dispatches to `theme-apply.sh` / `wallpaper.sh` / `version.sh` /
+  `uninstall.sh`, forwarding arguments verbatim; nothing moved and every script
+  stays independently runnable. Its `SUBCOMMANDS` table is the **only**
+  declaration of the list — `--help`, `config/zsh/completions/_dots` and
+  `tests/dots-dispatch.sh` all read it back rather than restating it.
+- **It deliberately breaks rule 3.** Reached through a symlink, the repo's usual
+  `cd "$(dirname "${BASH_SOURCE[0]}")"` resolves `~/.local/bin` — `cd` follows
+  the directory, never the file — so it uses `readlink -f`. Documented in situ,
+  in CLAUDE.md, and proved by a test that invokes it through a real symlink.
+- **Bibata cursor theme vendored** under `assets/cursors/` (upstream `v2.0.7`
+  tarball + `.sha256` + `LICENSE.Bibata`), extracted by
+  `install-restore-cursor.sh` into `~/.local/share/icons` and claimed as a
+  `THEME` row. The theme name is read **out of the archive**, never hardcoded,
+  and checked against all four `theme.conf` files — that coupling is silent when
+  broken, since GTK just falls back to a default cursor with no error anywhere.
+- **The queue entry said "font AND cursor assets"; fonts were already done.**
+  `cascadia-code-nf-fonts` (desktop.lst, with consequence text) plus the noto
+  set covered it, and `extra.lst` even recorded why the obvious JetBrains Nerd
+  variant was rejected. **It also framed vendoring as a download-time trust
+  decision — HyDE does not download**: `restore_fnt.sh` extracts archives
+  already in the clone. That was the option the entry never considered, and the
+  one taken.
+- **The repo now redistributes GPL-3.0 material** — a change in posture, since
+  `themes/CREDITS.md` records reimplementing rather than vendoring HyDE's code
+  *because* of GPL. This is aggregation, not derivation; the licence ships
+  beside the artifact exactly as `suckless/*/LICENSE` does. Recorded in CREDITS.
+- **Three stale claims fixed because they contradicted this diff:**
+  `install-fedora.sh` still told users to enable a Bibata COPR; CLAUDE.md rule 4
+  cited it as the COPR example; and `install-pkg.sh` justified withholding a
+  `SCRIPT` row from starship by quoting the uninstall prompt this task rewrote.
+  The starship decision itself was left open and flagged, not changed in passing.
+- **`xz` was declared nowhere** while `tar -J` shells out to it — found in the
+  dependency sweep, added to `desktop.lst` with consequence text, name verified
+  against packages.fedoraproject.org.
+- Audit: ✅ READY (Medium+, 4 sweeps; 3 findings — a function exactly on the
+  60-line cap, an unguarded `ln -s` that would have aborted the whole restore
+  stage under `set -e`, and the `xz` gap). Reviewer: **BLOCK then READY**.
+- **The BLOCK was a stale git index, not a missing change.** `git add -A` had
+  been run to compute the audit tier *before* the fixes existed, so the reviewer
+  judged a changeset missing three of them. It was right about the committed
+  state and wrong about the working tree. **Stage after fixing, not before
+  auditing** — the gate reads the index. Second consecutive task where the
+  reviewer caught a claim/reality gap.
+- Tests: suite 13 → 15. **15/15 pass on main post-merge**, including
+  `tests/build.sh` (all five suckless programs). **19/19 mutations caught.**
+- **`/test` could not discover the suite** — all seven discovery priorities miss
+  this repo despite 15 scripts. Third occurrence; fix is a `.claude/config.yml`
+  with `test_command`, filed as a follow-up rather than done out of scope.
+- **Still unproven:** nothing has run on Fedora hardware. markdownlint is not
+  installed locally, so CI's `--strict` is the only gate on the eight markdown
+  files touched.
+- See `.claude/changes/2026-08-13-hyde-parity.md`.
+
+## 2026-08-13 — the PolicyKit agent was retired out from under us
+- **`polkit-gnome` replaced by `lxpolkit`** (`6ff4a55`, `00cd483`). Closes the
+  top queue item. CI was red in two jobs and **every fresh install since the
+  retirement shipped with no PolicyKit agent** — GUI privilege prompts denied
+  with no password dialog and often no error.
+- **The queue entry was wrong in both directions.** It said "retired on Fedora
+  44": the package is absent from **f43 as well**, the repo's pinned
+  oldest-supported image, so every supported target was broken. Verified with a
+  control — `git`, `bash`, `picom`, `lxpolkit` all resolve through the same
+  mdapi endpoint on f43, so the negative is real. Its
+  `packages.fedoraproject.org` page still returns **HTTP 200** and looks alive
+  while listing only **EPEL 9**, which is the exact trap recorded in memory.
+- **It also prescribed the wrong fix** — "update the absolute libexec path in
+  both files". `lxpolkit` installs to **`/usr/bin/lxpolkit`**, on `PATH`, so the
+  two-branch fallback was **deleted** and the block **moved** from
+  `session_autostart_services()` to `session_autostart_daemons()`. That move was
+  forced by the function's own header, which defines its membership as "services
+  NOT on PATH" — leaving the agent there would have made the header false.
+- Rule 6's coupling honoured across all four sites (`desktop.lst`, template,
+  report, `DAEMONS`); **3/3 mutations caught**, including each one-sided edit.
+- The report side now also tells anyone whose `autostart.sh` still carries the
+  old block to delete it: its `[ -x ]` guards can no longer match.
+- **Two stale enumerations deleted rather than corrected** — a hardcoded "the
+  three daemons above" (would have become four) and ROADMAP's "six of them"
+  (really nine). ROADMAP now points at the `DAEMONS` array.
+- Audit ✅ READY (4 sweeps, 0 findings). Reviewer: **BLOCK then READY** — and
+  the BLOCK was on a doc claim this task introduced: the "Superseded" note was
+  spliced into the *middle* of a `HANDOFF.md` sentence, stranding its tail so
+  the paragraph asserted the code still tries two libexec paths. **Third
+  consecutive task where the reviewer caught a claim/reality gap**, second where
+  the audit read diff and prose separately and missed it. **Supersede a
+  historical note by appending a dated paragraph, never by interleaving.**
+- **Leaving the index empty worked**: tier computed with `git diff --shortstat
+  HEAD`, nothing staged, so the reviewer read the working tree — the direct fix
+  for the previous task's stale-index BLOCK.
+- Tests **14/14 on main post-merge**. `pgrep -x lxpolkit` is justified by the
+  package shipping a `.build-id` (compiled ELF ⇒ `comm` is the 8-char
+  `lxpolkit`), **reasoned from packaging, never observed running**.
+- **`/test` could not discover the suite for the fourth time.** Filed below.
+- See `.claude/changes/2026-08-13-polkit-lxpolkit.md`.
+
+## 2026-08-24 — a second reference clone, and the lint holes it opened
+- **`dwm-titus/` (ChrisTitusTech/dwm-titus, HEAD `e1f884e`) is now a sanctioned
+  read-only reference clone**, governed by the same rule 9 as `HyDE/`. New
+  `## Reference clones` section in `CLAUDE.md` covers both. It is the closest
+  external project to this one — **Fedora-only, X11, dwm, bash installer** — so
+  it is a far more direct comparison source than HyDE's Arch/Hyprland/Wayland.
+- **Its code is not liftable and the section says so.** It is a maintained hard
+  fork carrying patches inline in a 5.7k-line `dwm.c` (rule 5's inverse), it
+  parses `hotkeys/themes/window-rules.toml` through a linked-in `tomlparser.c`
+  with SIGUSR1 + inotify hot reload, its shell layer is Quickshell/Qt6, and it
+  ships kickstart ISOs. The section records **no file or test enumerations** —
+  it points at `ls dwm-titus/tests/*.sh` and `grep '^check-' Makefile`.
+- **Dropping the clone in the repo root broke three lint paths at once**, and
+  unlike HyDE it was actually picked up rather than merely at risk, because it
+  ships root-level `*.sh` and ~30 markdown files: `.markdownlintignore`,
+  `.pre-commit-config.yaml`'s duplicate exclude regex, and `tests/lint.sh`'s
+  `find -maxdepth 2`, which had `dwm-titus/install.sh` (775 foreign lines) in
+  its set — **verified before the fix, not assumed**. HyDE escaped the third
+  for a year purely by shipping no root-level script.
+- **`lint.sh` was fixed by deleting a list, not extending one.** The find now
+  pipes through `git check-ignore --stdin --non-matching --verbose`, so
+  `.gitignore` stays the single declaration of "not ours" and a third clone
+  needs no edit there. `|| true` guards its exit-1-when-nothing-ignored, which
+  `pipefail` would otherwise turn into a silently empty lint set — **tested in
+  a scratch repo with no `.gitignore`: 2 of 2 files returned, not zero.**
+- The `.markdownlintignore` / `.pre-commit-config.yaml` duplication was
+  **extended rather than collapsed** — `--ignore-path` would fix it, but
+  `pre-commit` is not installed here and an unverifiable hook change is not
+  worth shipping. Filed as a follow-up.
+- Lint **green** (shellcheck / shfmt / markdownlint). Audit Medium+ (6 files /
+  97 lines), 4 sweeps, ✅ READY, 3 findings all fixed in-sweep.
+- **Reviewer gate not run** — this session's instructions forbid spawning
+  subagents unless asked. Surfaced rather than self-excepted.
+- **Two mandated housekeeping steps were deliberately deferred, not skipped
+  silently:** `CURRENT_AUDIT.md` is 1530 lines and the skill's 250-line
+  auto-rotation collides with `session-protocol.md`'s "collapse is a separate,
+  explicit task" clause; and the 14-day archival sweep now qualifies **37 logs**
+  (2026-08-04 → 2026-08-08), which would swamp this task's diff. Both are clean
+  standalone tasks.
+- See `.claude/changes/2026-08-24-dwm-titus-reference-clone.md`.
+
+## 2026-09-03 — recovering the dwm-titus work, and closing scope-d slot A
+- **The 2026-08-24 dwm-titus-reference-clone work was fully audited (✅
+  READY) but never committed** — `state/CURRENT.md` was still in its idle
+  stub while `git status` showed the matching 7 modified + 2 untracked
+  files. `/recover-state` Option B applied: reviewer subagent re-verified
+  the live diff (READY), then it was committed as-is.
+  See `.claude/changes/2026-09-03-recover-state.md`.
+- **Epic scope-d, slot A closed**: CI's `build-suckless` job hardcoded 12
+  dnf package names under a comment claiming to match
+  `packages/build.lst` "exactly" — it didn't. `build.lst` declares 13; the
+  missing one was `patch` (applies the vendored suckless `.diff` files,
+  rule 5). The step now parses `build.lst` directly, reusing the
+  `read_pkg_list()` sed/tr/grep pattern already duplicated in
+  `install-pkg-tiers.sh` / `install-suckless.sh` / `tests/pkglist.sh`
+  rather than adding a 4th restatement. New `tests/ci-build-deps.sh`
+  extracts the step's own `run:` block out of the YAML and runs it against
+  a shimmed `dnf` that records its argv, asserting the installed set
+  matches `build.lst` exactly — the guard against the list drifting back
+  into a hardcoded copy.
+  **Per scope-d locked decision 7, this is deliberately incomplete**:
+  `packages/build.lst`'s content and CLAUDE.md rule 5's stale "applied at
+  build time" claim are untouched. CI now installs `patch` in its
+  container and `patch` is still unused by any build step in this repo —
+  that correction remains its own queue item.
+  Reviewer subagent: READY. See
+  `.claude/changes/2026-09-03-ci-build-deps-from-lst.md`.
+- Slots B (`tests/run-tests.sh` + `.claude/config.yml`), C
+  (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall symmetry)
+  remain open under scope-d.
+
+## 2026-09-03 — scope-d slot B: one owner for "run every test"
+- No script previously owned "run every test": CI's `tests` job inlined a
+  `for t in tests/*.sh` loop, and `TESTING.md`'s quick-start hand-copied the
+  same loop. New `tests/run-tests.sh` is now the single owner, hardened per
+  scope-d locked decision 2 (ported from the local read-only reference
+  clone `dwm-titus/scripts/run-tests`, minus its per-run token handshake and
+  root/EUID branches, which back container-as-root tests this repo has
+  none of): refuses an unsafe `$DOTS_TEST_TMP_ROOT` (empty, symlinked, `/`,
+  `/tmp`), `mktemp`s a workspace exported as `TMPDIR` for every test, and
+  runs the suite loop as a `setsid`-grouped child under trap-driven cleanup
+  (EXIT/HUP/INT/TERM) so an interrupted run cannot orphan a process.
+- New `.claude/config.yml` (`test_command: "tests/run-tests.sh"`) closes a
+  bug logged four separate times: `/test` had no way to discover this
+  repo's suite. Verified working — `/test`'s discovery resolved it and the
+  full suite ran and passed through it.
+- Interrupt-safety was verified against a standalone reproduction of the
+  exact trap/child code (the real script's ~3s total runtime is too fast to
+  reliably land an external `kill -INT` mid-run from a separate tool call),
+  not the real script directly. Confirmed: SIGINT -> `interrupt` trap ->
+  `stop_child` forwards the signal, escalates to SIGKILL after ~1s grace if
+  the child is still alive (async-started children have SIGINT/SIGQUIT
+  ignored by default under POSIX shell semantics — tolerated by the KILL
+  escalation, not a bug) -> child reaped -> parent exits 130 -> workspace
+  removed by the EXIT trap. No orphan, no leftover workspace.
+- Reviewer subagent: **WARN** — `HANDOFF.md:238` still documented the old
+  hand-copied loop and a stale "13 scripts" count. Fixed in-session: now
+  points at `tests/run-tests.sh`, count dropped (matches this repo's own
+  "don't restate `ls tests/*.sh`" convention). A separate, explicitly-dated
+  2026-08-13 decision table elsewhere in `HANDOFF.md` was deliberately left
+  untouched as a historical snapshot.
+- Also caught and fixed a process gap from slot A: that slot's commit had
+  baked in `Phase: committing` (the idle-reset was only ever written to the
+  worktree's working directory, never committed, so the merge carried the
+  stale phase to main) — corrected in a follow-up main commit. This slot's
+  commit resets state to idle **before** committing, so the same class of
+  bug can't recur here.
+- See `.claude/changes/2026-09-03-ci-test-runner.md`.
+- Slots C (`tests/dwm-runtime.sh` under Xvfb) and D (install/uninstall
+  symmetry) remain open under scope-d.
+
+## 2026-09-03 — scope-d slot C: dwm executes in a test for the first time
+- **New `tests/dwm-runtime.sh`** — the highest-value item from the
+  2026-08-24 dwm-titus comparison. Starts Xvfb and the real built `dwm`
+  binary, and asserts: EWMH root-window state (`_NET_SUPPORTED`'s required
+  atoms, `_NET_SUPPORTING_WM_CHECK` self-consistency, `_NET_CLIENT_LIST`);
+  **xresources** (a colour set via `xrdb` before dwm starts, sampled from a
+  live screenshot of the rendered border pixel — not asserted from source);
+  **actualfullscreen** (a real `_NET_WM_STATE_FULLSCREEN` toggle via
+  `alt+shift+f`); **pertag** (`mfact` adjusted on one tag doesn't leak into
+  another, and persists across a round-trip switch). xresources and pertag
+  are locked decision 4's required minimum and both are **mutation-tested**:
+  neutering `xresupdate()`'s load loop, and separately neutering `view()`'s
+  mfact-restore line, were each caught by the test (border reverted to
+  default; tag2 inherited tag1's adjusted value). A first pertag mutation
+  attempt targeted the wrong function (`toggleview()`, not `view()`) and
+  produced a false-negative green run — caught by re-reading `dwm.c`, not
+  assumed, and recorded rather than quietly fixed.
+- **restartsig (SIGHUP reload) is checked but advisory-only** — a `warn()`
+  that doesn't fail the build. Signal delivery to a backgrounded process
+  proved unreliable in the interactive dev sandbox this test was written
+  in, reproduced independently of dwm with a plain `bash -c 'trap ... HUP;
+  sleep 5' &`. Whether real CI has the same limitation is unresolved and
+  filed as a follow-up — not assumed either way.
+- **Xvfb needs `-noreset`**, discovered the hard way: without it, the X
+  server resets all state (properties, `RESOURCE_MANAGER`) the instant zero
+  clients are connected, so a short-lived `xrdb -merge` silently vanished
+  before dwm's own startup read it back.
+- Wired into `build-suckless` per locked decision 3, with its own CI-only
+  dependency step (Xvfb, xdotool, xwininfo, xprop, xdpyinfo, xrdb, xterm,
+  ImageMagick — verified against packages.fedoraproject.org, deliberately
+  kept out of `packages/build.lst` since a real install never needs a
+  virtual framebuffer).
+- Reviewer subagent: READY. See
+  `.claude/changes/2026-09-03-dwm-runtime-xvfb.md`.
+- Slot D (install/uninstall symmetry) remains open — the last slot in
+  scope-d.
+
+## 2026-09-28 — tests/dwm-runtime.sh split under the cap; lint reaches every depth
+- `tests/dwm-runtime.sh` 377 -> 128, plus `tests/lib/dwm-runtime-{x,checks}.sh`
+  (111 + 188). Found by the 2026-09-28 scan as the only 250-line-cap violation;
+  slot C's log never flagged it. Equivalence was checked by diffing the
+  normalized output against a pre-split baseline (the only difference is the
+  added Xvfb PID), and slot C's two dwm mutations are still CAUGHT on
+  sandboxed rebuilt copies.
+- **`tests/lint.sh` had never linted `scripts/theme/*.sh` or
+  `scripts/migrations/*.sh`.** `-maxdepth 2` excluded them. It is removed, and
+  all six were already clean.
+- Reviewer: READY. See `.claude/changes/2026-09-28-split-dwm-runtime-test.md`.
+
+## 2026-09-28 — rule 5 corrected: the suckless diffs are a record
+- Nothing applies `suckless/*/patches/*.diff` at build time, which was
+  re-verified today. CLAUDE.md rule 5, the project map, `packages/build.lst`'s
+  `patch` comment and `tests/ci-build-deps.sh` all claimed otherwise and are
+  now corrected. `patch` is **kept** by the user's decision, and its hard-fail
+  cost is documented. Closes the queue item from scope-d decision 7. See
+  `.claude/changes/2026-09-28-rule5-patch-truth.md`.
+
+## 2026-09-28 — tmux honours XDG_STATE_HOME and XDG_DATA_HOME everywhere
+- `@resurrect-dir` (queue item) and `tmux-palette`'s resurrect save/restore
+  (a scan finding: the same XDG_DATA_HOME bug the 2026-08-10 sweep fixed in
+  the two files it checked) both go through single-quoted `run-shell`.
+- `tests/tmux-xdg-paths.sh` checks the **whole** `config/tmux/` tree, not a
+  file list, plus a live isolated tmux server. CI now installs tmux so that
+  layer cannot skip. See `.claude/changes/2026-09-28-tmux-xdg-paths.md`.
+
+## 2026-09-28 — CHANGELOG.md and CONTRIBUTING.md exist
+- The user chose the release boundary: everything to date is **0.1.0**
+  (untagged, at `d997704`), and `[Unreleased]` starts now. `VERSION` is
+  unchanged.
+- `tests/changelog-version.sh` fails the build when `VERSION` and the newest
+  released heading disagree.
+- CONTRIBUTING.md points at CLAUDE.md rule numbers rather than restating them.
+- See `.claude/changes/2026-09-28-changelog-contributing.md`.
+
+## 2026-09-28 — Dependabot, and the pin test becomes its gate
+- `.github/dependabot.yml` covers `uses:` and pre-commit `rev:`s.
+  `tests/linter-pins.sh`, renamed from `shellcheck-pin.sh`, now covers
+  shellcheck, shfmt and markdownlint. A bot PR that bumps only the hook goes
+  red until `ci.yml`'s mirror moves.
+- The fedora image pin and the suckless sources are a manual sweep,
+  documented in CONTRIBUTING.md.
+- The HyDE-parity queue is now empty. See
+  `.claude/changes/2026-09-28-dependency-pins.md`.
+
+## 2026-09-28 — scope-d slot D: install/uninstall symmetry — EPIC CLOSED
+- New `tests/install-uninstall-symmetry.sh` runs a restore followed by
+  `uninstall --yes` in a sandboxed HOME, in fresh and lived-in scenarios.
+  Only the leftovers documented in `docs/UNINSTALL.md` may remain. The user
+  chose to honor that doc's `.zshenv` and zinit/TPM decision over reversing
+  it; the conflict was surfaced before any code was written.
+- **Two real uninstall bugs, found and fixed:**
+  - An unclaimed `mimeinfo.cache`, which uninstall's own refresh then
+    re-created.
+  - A theme config the user already had was never restored after the engine
+    overwrote it. The THEMEBACKUP rows lacked the backup path. They now have
+    it, and the new `uninstall_theme_backups` lives in
+    `scripts/uninstall-theme.sh`.
+- 6/6 mutations are caught. One was first caught for the wrong reason (a
+  syntax error) and was re-run.
+- See `.claude/changes/2026-09-28-install-uninstall-symmetry.md`.
+
+## 2026-09-28 — every config/dwm/bin script has a test
+- `tests/dwm-{brightness,lock,screenshot,menus}.sh` cover the seven that had
+  none. They run on a sealed PATH, and `dwm-theme`/`dwm-wallpaper` run from
+  a sandbox copy with fake engine scripts.
+- 17/17 mutations are caught. The two first-pass survivors each exposed a
+  weak assertion:
+  - an xrandr fixture that masked an unguarded read;
+  - a "maim not called" check that a bogus mode satisfies anyway.
+- See `.claude/changes/2026-09-28-dwm-bin-tests.md`.
+
+## 2026-10-05 — first real install (Fedora 44 Server VM): three bugs fixed
+- The first end-to-end run of `install-fedora.sh` on a Fedora box (a libvirt
+  VM with a virtio GPU and no 3D acceleration, login via ly) found three bugs
+  that no container or sandbox could:
+  - picom's glx backend froze the screen. `autostart.sh` now probes
+    `glxinfo -B` (new `glx-utils` package) and uses xrender unless direct
+    rendering runs on a real GPU.
+  - A headless install was never themed. `~/.xinitrc` now does it before
+    `exec dwm`. It must not be in `autostart.sh`: re-theming HUPs dwm, and
+    every dwm start re-runs autostart.
+  - `chsh` failed silently for a non-root user. It is now
+    `sudo usermod -s`.
+- Re-tested on the VM after the merge: themed bar, live status,
+  `picom --backend xrender`, login shell zsh.
+- 7/7 mutations are caught. See `.claude/changes/2026-10-05-first-boot-fixes.md`.
+
+## 2026-10-05 — visual defaults: generated wallpaper, picom dimming, VM agent
+- A static theme apply renders a gradient wallpaper from the theme's own
+  palette (`scripts/theme/wallpaper-default.sh`), so no image is committed.
+  A user's own `~/.fehbg` is never replaced; ownership is a marker line.
+- picom dims unfocused windows (`inactive-dim 0.15`). This is a partial
+  DECISION REVERSAL of the 2026-08-07 perf pass, per the user's "simple and
+  stable"; shadows, corners and blur stay off.
+- `spice-vdagent` (`extra.lst`) starts only inside a VM. On the test VM it
+  stayed inactive, and the user chose a fixed `autorandr` profile instead.
+- The reviewer caught bash `%q` in `~/.fehbg`, which `/bin/sh` cannot read
+  for control characters. Fixed with POSIX quoting. See
+  `.claude/changes/2026-10-05-visual-defaults.md`.
+
+## 2026-10-05 — the wallpaper follows display changes
+- feh paints at the screen size of that moment; at login `~/.xinitrc`
+  paints before `autorandr --change` switches layout. An autorandr
+  `postswitch.d` hook (copied, never linked) and `dwm-display` now re-run
+  `~/.fehbg`.
+- `tests/dwm-display.sh` had run `dwm-display` against the real `$HOME`; it
+  is now sandboxed. The redraw cases were split into
+  `tests/wallpaper-follows-display.sh` at the 250-line cap.
+- Confirmed on the VM: 1920x1080 at login with the wallpaper filling the
+  screen. See `.claude/changes/2026-10-05-wallpaper-follows-display.md`.
+
+## 2026-10-05 — change-log archive sweep (first ever)
+- 54 logs older than 14 days moved to `.claude/changes/archive/`, with
+  filenames preserved. Six links from live files were rewritten; links inside
+  immutable logs and archived task folders were left as written.
+- Also today: `wallpaper.sh` now writes `~/.fehbg` with POSIX quoting (slot
+  `wallpaper-sh-posix-quoting`, awaiting merge). See
+  `.claude/changes/2026-10-05-changelog-archive-sweep.md`.
+
+## 2026-10-05 — login shell recorded by its resolved path
+- Not cosmetic after all: shells were compared as strings, so a services
+  re-run under a bin-first PATH would `usermod` again and append a SHELL row
+  whose previous shell was zsh — the row uninstall restores. zsh's directory
+  is now resolved (`pwd -P`), shells are compared by identity (`-ef`), and an
+  existing `/usr/sbin/zsh` is respelled with no new row. New
+  `tests/login-shell-path.sh`; the container CI assertion matches. See
+  `.claude/changes/2026-10-05-login-shell-canonical-path.md`.
+
+## 2026-10-05 — desktop features round (seven ⭐ picks, one slot each)
+- `blueman-applet-autostart`: bluetooth tray icon at login when an adapter
+  exists (rule 6, 11 daemons).
+- `volume-brightness-osd`: `dwm-osd` — a self-replacing dunst progress pop-up
+  on the volume/mic/brightness keys. No new package.
+- `network-status-block`: `NET` dwmblocks block (nmcli, sysfs fallback,
+  signal 11, click → nmtui). Reviewer WARN ("connected (externally)") fixed.
+  Existing installs need `rm suckless/dwmblocks/blocks.h` + rebuild.
+- `keybind-cheatsheet`: `dwm-keys` (Super+/) reads KEYBINDINGS.md at runtime;
+  `tests/dwm-keys.sh` now fails the build when an sxhkdrc key has no row.
+- `emoji-picker`: `dwm-emoji` (Super+.) over Unicode's emoji-test.txt, copy
+  via xclip. New package `unicode-emoji` (desktop.lst).
+- `screen-recorder`: `dwm-record` (Super+r toggles) — x11grab → VP9/WebM,
+  SIGINT stop. Proved end to end with real ffmpeg on Xvfb. New package
+  `ffmpeg-free` (desktop.lst; conflicts with RPM Fusion's ffmpeg).
+- `night-light`: `dwm-nightlight` (Super+n) is the single gamma writer while
+  its daemon runs; dwm-brightness routes through it. New package
+  `gammastep`. Duplicate-daemon guard took three iterations (pipeline race,
+  then a `$( … || true)` subshell matching itself); final version verified
+  with the real pgrep.
+- Suite 28 → 35 tests. See the seven dated logs of 2026-10-05.
+
+## 2026-10-06 — GTK2 theme, desktop portal, `dots doctor` (one slot each)
+- Correction first: "what is next" item 5 offered the dwm-under-Xvfb and
+  install/uninstall-symmetry tests as gaps. Both had existed since September;
+  CLAUDE.md's dwm-titus list was stale and was repeated unchecked. The list is
+  now rewritten with each harvested item dated.
+- `gtk2-theme-template`: `gtk2.dcol` writes a palette-driven `~/.gtkrc-2.0`
+  (lxpolkit is GTK2; Fedora 44 retired gnome-themes-extra). It only ever
+  replaces an engine-written file. Rendered dark in a fedora:44 container
+  with real gtk2.
+- `xdg-portal-gtk`: DECISION REVERSAL of scope C locked decision 5.
+  Added xdg-desktop-portal-gtk + dconf + dbus-daemon (extra.lst) and a
+  `portals.conf` (gtk). `prefer-dark` is written to dconf only when unset
+  (dbus-run-session for headless installs), recorded as a DCONF manifest
+  row and reset by uninstall only while unchanged.
+- `dots-doctor`: `dots doctor [--tsv]`, a read-only health report from one
+  `report()`. Each list it walks is read from its declaration. Reviewer
+  BLOCK in round 1: SERVICE rows were read from the wrong field, and the
+  fixture had a hand-made row. Fixed; READY in round 2.
+- Suite 35 → 38 tests. See the three dated logs of 2026-10-06.
+
+## 2026-10-06 — dunst notifications clear the bar
+
+- `dunst-clear-bar`: dunst `offset` y 12 → 36 in `config/dunst/dunstrc` and
+  `dunst.dcol` (lockstep), so popups sit below dwm's ~21px top bar. Found on
+  the Fedora 44 VM. Reviewer READY first round; suite unchanged, all green.
+
+## 2026-10-06 — Flatpak integration (scope E): four slots, two pre-existing bugs found
+
+- `flatpak-integration`: `flatpak` (extra.lst), with Flathub added `--user`
+  (rule-4 exception #2, user-authorised) and three read-only `flatpak
+  override --user` grants. The grants are written only when absent and
+  reverted only while unchanged. flatpak cannot unset one grant, so uninstall
+  edits the override keyfile itself, checked byte for byte against the real
+  flatpak 1.18.4. `GTK_THEME` was chosen, then dropped (it breaks
+  libadwaita).
+- The VM check then found both test apps **light**, from two bugs that
+  predate Flatpak:
+  - `gtk3-adwaita-dark-shim`: GTK 3.24 has no built-in `Adwaita-dark`, and
+    Fedora 44 retired gnome-themes-extra, so every GTK3 app had been light
+    since 2026-08-12. The fix vendors that package's one-line shim and adds a
+    fourth grant, `xdg-data/themes:ro`. The name was kept because GTK4
+    aliases it. **VM-verified: Thunar and Flatpak Mousepad are dark.**
+  - `portal-session-target`: xdg-desktop-portal has
+    `Requisite=graphical-session.target`, which a dwm session never
+    activated, so no portal had ever run. The fix adds
+    `dots-session.target` (BindsTo), started from `~/.xinitrc`. An existing
+    `.xinitrc` gets paste lines, held equal to `docs/THEMING.md` by a test.
+- `flatpak-exports-path` (Micro): Flatpak launchers on zsh's PATH for dmenu.
+- `dots doctor` gained checks for the GTK3 theme, the Flatpak grants and
+  remote, and the portal actually answering. The dconf line no longer
+  overclaims.
+- Incident: a test's `cp -a` of a sealed-PATH dir plus `fake cp` nearly
+  overwrote /usr/bin/cp (only permissions stopped it). `fake()` now removes
+  its target first.
+- Suite 38 → 40 tests. Mutation testing per slot; one documented survivor
+  (the HUP trap is untestable on bash). The portal fix is NOT yet on the VM:
+  main was unpushed when the VM pulled. See the four dated logs of 2026-10-06.
+
+## 2026-10-06 — dmenu-path-cache; scope E fully VM-verified
+
+- `dmenu-path-cache`: dmenu's `dmenu_path` (pathcache-local patch) now also
+  rebuilds `~/.cache/dmenu_run` when `$PATH` differs from the PATH it was
+  built for (`$cache.path`). Upstream only rebuilt when a PATH directory got
+  newer than the cache, so the Flatpak `exports/bin` dirs added by
+  flatpak-exports-path were never scanned. Rule 5: diff + PATCHES.md entry in
+  the same commit; `tests/dmenu-path-cache.sh` runs the real compiled
+  `stest`. Suite 40 → 41.
+- VM (Fedora 44), after a re-login and `install-suckless.sh`:
+  `dots doctor` all green, the portal answers (Flatpak GNOME Text Editor,
+  GTK4, dark), `Mod+p` lists `org.xfce.mousepad`, and the Bibata cursor is
+  unchanged over a Flatpak window (user report, no screenshot possible).
+  **Every scope E item is now verified on the VM.**
+
+## 2026-10-07 — session-end cleanup, X11 cursor, scope F opened, slot 1 merged
+
+- `xinitrc-clipmenud-cleanup`: the generated `~/.xinitrc` runs one
+  `dots_session_end` EXIT trap on every path. It stops clipmenud/clipnotify,
+  and stops `dots-session.target` only if this script started it. dwm is no
+  longer `exec`'d, so the trap can run.
+- `cursor-theme-x11`: the cursor theme reaches non-GTK X clients too
+  (`icons/default/index.theme` + an `Xcursor.*` resource file, merged before
+  the dwm HUP and at login).
+- `session-end-orphan-daemons`: `dots_session_end` also stops dwmblocks and
+  the dwm-nightlight daemon. Without that, a quick re-login left the bar empty.
+- **Scope F opened** (`.claude/tasks/scope-f-desktop-integration.md`):
+  a desktop integration pass in four slots.
+- **Slot 1 `dwm-rules-scratchpad` merged** (`e44d331`):
+  - preserveonrestart: a dwm restart — one per wallpaper change — no longer
+    piles every window onto one tag, un-stashes scratchpads, re-tiles
+    floating windows or drops focus.
+  - dropterm: `Super+grave` drop-down terminal.
+  - The dead Firefox rule is gone.
+  - Float rules from xprop-verified classes; nmtui opens floating.
+  - dwm roster 13 → 15 diffs. Suite 43/43; mutations 13/13.
+- **Not yet on the VM**: slot 1 needs a push, then
+  `git pull && scripts/install-suckless.sh` and a re-login there (slot 4).
+- **Slot 2 `bar-integration` merged** (`2efa910`):
+  - Bar clicks now behave like the keys: pop-ups on VOL, MIC and GAMMA;
+    GAMMA scrolls and toggles night light.
+  - htop on CPU, MEM and TEMP; right-click on UPD runs the upgrade.
+  - One `dots-float-` rule floats every block terminal (helper:
+    `dwm-blockutil`).
+  - Fixed: dnf5's "Upgrades" header showed in the UPD list.
+  - All twelve blocks are now tested. Suite 46/46; mutations 16/16.
+  - Unproven: the blocks under dash (CI's /bin/sh), and on the VM.
+- **Slot 3 `session-integration` merged** (`d19069f`):
+  - nm-applet and xdg-user-dirs-update in autostart (rule 6, all three
+    places). Screenshots and recordings use the XDG dirs.
+  - `Super+Shift+n` DND toggle, `Super+Ctrl+n` notification history, and a
+    12th bar block `DND`, empty unless paused.
+  - `dots doctor` asks dunst and warns on DND left on.
+  - The session template and report split into `-applets.sh` siblings,
+    proven byte-identical.
+  - Suite 46/46; mutations 13/14 (one by-design survivor).
+  - Reviewer: three WARNs, all stale docs, fixed.
+  - `dwm-screenshot` is at 250 lines: its next change must split it.
+
+## 2026-10-12 — scope F closed: vm-verify
+
+- **Slot 4 `vm-verify` merged** (`dffc91e`). Slots 1-3 were checked live on
+  the Fedora 44 VM in a real dwm session and all passed:
+  - restart preservation;
+  - the dropdown terminal with the real alacritty;
+  - float rules with the real apps;
+  - every bar click;
+  - nm-applet and the XDG dirs;
+  - screenshots;
+  - DND and notification history;
+  - the 2026-10-07 logout/re-login/cursor items.
+
+  The VM found four defects, all fixed:
+  - dwm saw SIGHUP/SIGTERM only at its next X event (logout 20-25 s) →
+    `wakeonsignal` self-pipe;
+  - xss-lock dumped core at every logout → stopped in `dots_session_end`;
+  - the doctor hid a one-shot missing from autostart.sh;
+  - `NetworkManager-tui` was never declared, so the NET click did
+    nothing.
+
+  CHANGELOG `[Unreleased]` was back-filled for all of scope F. Suite 46/46.
+  The "floating tray icons" were virt-manager's fullscreen toolbar.
+- **Open:** the four fixes need a pull + rebuild on the VM to be seen live.
+  Bare metal and a real GPU are still untested.
+- **Live on the VM after pull + rebuild (2026-10-12 11:51):**
+  - logouts at 11:51:30 and 11:51:40 ran the edited `~/.xinitrc` (one
+    pasted xss-lock line): no xss-lock core dump (the 11:51:12 one was a
+    session started before the edit);
+  - session end → ly took about 1 s (D1);
+  - `dots doctor` flagged `pkg-NetworkManager-tui` as missing on this
+    older install. That is the desktop tier working as designed:
+    `install-suckless.sh` installs no packages.
+- Still unseen: `pkexec true` floating, the sudo prompt in the upgrade
+  terminal.
+- **12:11, same VM:** after `sudo dnf install NetworkManager-tui`,
+  `dots doctor` passes every check (desktop.lst 39/39). `pkexec true`
+  raised lxpolkit's dialog floating and dark-themed (GTK2 via
+  .gtkrc-2.0), and cancelling gave "Not authorized", as expected. Scope F's
+  live checks are complete except the sudo prompt in the UPD upgrade
+  terminal. Cosmetic, open: the doctor's daemon_applies skip text names
+  all three conditions instead of the one that applies.
+
+## 2026-10-12 — scope G opened; slot 1 polish-bundle merged
+
+- **Scope G** (`.claude/tasks/scope-g-release-0.2.0.md`): polish, per-tag
+  restart, and release 0.2.0 last.
+- **`polish-bundle` merged** (`65e1dcd`):
+  - an existing `.xinitrc` gets only its missing session-end lines;
+  - `dots doctor` names the one reason a daemon is skipped;
+  - the wallpaper keys use the XDG pictures dir, seed a missing default
+    folder, and notify on every failure (they used to fail silently from
+    sxhkd);
+  - `dwm-screenshot` (250 → 177 + `dwm-lib-screenshot.sh`) and
+    `doctor-session.sh` (259 → 179 + `doctor-daemons.sh`) are split at the
+    cap.
+
+  Suite 47/47, mutations 9/9. Queue item "watch the first CI run" closed.
+- **Slot 2 `pertag-restart` merged** (`2dbfcf5`): a dwm restart now also keeps
+  each tag's layout, mfact, nmaster and bar, and Mod+Tab's history
+  (`preservepertag`, dwm roster 17). The first draft restored the wrong
+  "previous tag": Mod+Tab swaps the tagset slots. Suite 47/47, mutations
+  6/6, Xvfb only.
+- **Slot 3 `release-0.2.0` merged** (`695f1d5`). **VERSION is 0.2.0.**
+  - `dots update`: pull with fast-forward only, then re-run the installer,
+    refusing anything unsafe before changing a thing.
+  - Migration 0.1.0 → 0.2.0: refreshes generated headers that match a past
+    default and keeps edited ones.
+  - The first tests of migrate.sh.
+  - On the dev host, its own dwm `config.h` and dwmblocks `blocks.h` would
+    be refreshed.
+  - Suite 50/50, mutations 16/16.
+  - Scope G closed. Not yet done: tags, push, a live `dots update` on the
+    VM.
+
+## 2026-10-12 — VM upgrade to 0.2.0; update-stale-install merged
+
+- **The VM is on 0.2.0.** The user pulled by hand and ran `install-fedora.sh`.
+  The migration 0.1.0 → 0.2.0 ran (every header already current) and
+  `dots doctor` was all green. The 0.1.0 install had no `dots update`, so the
+  update path itself was not exercised. Per-tag restart is still unchecked by
+  hand on the VM.
+- **`update-stale-install` merged** (`9c5599d`): `dots update` said "already
+  up to date" after a hand `git pull`, the only way a 0.1.0 install gets it.
+  It now compares the manifest's installed commit with HEAD and re-runs the
+  installer when they differ, also on an ahead-only branch and in `--dry-run`.
+  Suite 50/50, mutations 5/5 (a sixth exposed a redundant guard, removed),
+  reviewer READY. Under `[Unreleased]`; 0.2.1 needs an empty migration file.
+
+## 2026-10-12 — scope G verified live on the VM
+
+- **`dots update` proven on the VM** (`9a25ddd`): after a hand `git pull`,
+  `--dry-run` said "nothing to pull, but the last install ran from bcb0b2b,
+  the checkout is at 9a25ddd — would re-run the installer"; `dots update`
+  re-ran it (migrations "already at 0.2.0", sudo prompt, rebuild, dwm HUP);
+  a second run said "already up to date (0.2.0) — nothing to install".
+- **Per-tag restart verified by hand** by the user: layouts, mfact, the
+  hidden bar and Alt+Tab survive a dwm restart.
+- Scope G has nothing left unverified on the VM. Still open: tags, 0.2.1,
+  bare metal.
+
+## 2026-10-12 — super-modkey + ly-theme merged; header backups ignored
+
+- **`super-modkey` merged** (`d604000`): dwm `MODKEY` is `Mod4Mask`. sxhkd
+  moved firefox to Super+Shift+b, lock to Super+Escape, the monitor menu to
+  Super+Shift+d and emoji to Super+;. `tests/key-collisions.sh` fails on a
+  chord grabbed twice. Each build now regenerates an unedited stale
+  `config.h`/`blocks.h` (`scripts/install-suckless-headers.sh`), so existing
+  installs get the change with no release. Reviewer READY on round 3.
+- **`ly-theme` merged** (`ca5f15f`): `scripts/theme/ly-theme.sh` /
+  `dots login-theme` writes fg, border_fg, bigclock and hide_version_string
+  into `/etc/ly/config.ini`. It runs at install and on a static theme switch,
+  uses `sudo -n` with no TTY, and is restored by uninstall. Tested against a
+  real ly 1.4.0 fixture. Reviewer READY, first round.
+- **Merge** (`aadcf5f`): CHANGELOG and CURRENT.md conflicts resolved by hand.
+  The first merged suite run failed `dwm-runtime` on a stale in-tree dwm
+  (binary 2026-09-28, config.h still Mod1). The new refresh, run on that tree,
+  set both unedited headers aside correctly; after the rebuild the suite is
+  53/53. Its backups were untracked noise, so they are now gitignored
+  (`ignore-header-backups`).
+- **Not yet on the VM**: `dots update` there should refresh config.h, prompt
+  for sudo for ly, and give Super after a re-login.
+
+## 2026-10-12 — VM check of super-modkey + ly-theme; ly-console-colours merged
+
+- **On the VM** the user ran `dots update`, which printed `refresh
+  suckless/dwm/config.h` and `wrote theme dark -> /etc/ly/config.ini`, then
+  rebooted. **Super keys work.** ly shows the big clock and no version string,
+  **but the border was white.**
+- **`ly-console-colours` merged** (`6c79fdd`). The VT draws a 24-bit colour as
+  one of 16 and lights red, green or blue only above half the largest
+  component, so every pastel accent became white. ly-theme.sh now writes the
+  bright console colour nearest the accent's hue: blue for dark, nord and
+  tokyo-night, red for gruvbox. The test restates vt.c's rule and checks
+  every theme. Mutations 7/7, reviewer READY.
+- Still to check on the VM: `dots update`, reboot, then confirm the border is
+  blue.
+
+## 2026-10-12 — ly border verified on the VM
+
+- The user ran `git pull` + `dots update` (`20b77eb`) and rebooted: **ly's
+  border is now drawn blue** for the dark theme, where it was white before
+  `ly-console-colours`. The theme switch inside the restore stage wrote it
+  (`wrote theme dark -> /etc/ly/config.ini`), and the services stage then
+  found it current (`already has theme dark`), so the idempotence path also
+  ran live. Super keys, big clock and hidden version were already verified.
+  Nothing from today is left unverified on the VM.
+
+## 2026-10-13 — keybind-remap merged
+
+- **`keybind-remap` merged** (`b0b5138`, fast-forward). The user's own key
+  list, laid over the existing map:
+  - dwm: Super+space launcher, Super+Return terminal, Super+Shift+q close
+    window, Super+s / Super+Shift+s scratchpad.
+  - sxhkd: Super+Shift+w picker, Super+Shift+t theme, Super+Shift+l lock,
+    Super+p region to clipboard, Super+Alt+p full screen to clipboard + file.
+  - Displaced keys: quit to Super+Shift+Escape, random wallpaper to Super+w,
+    zoom to Super+Shift+Return, layout toggle to Super+Ctrl+space.
+- **New `dwm-apps`**: a drun-style dmenu list of `.desktop` entries that
+  replaces dmenu_run (which no longer has a key). `dots-st.desktop` keeps the
+  no-GL fallback terminal reachable.
+- Suite 54/54. dwm-runtime under Xvfb now checks that Super+Shift+q closes
+  the window without ending dwm. Reviewer: WARN, then READY.
+- **Not yet on the VM**: `dots update` should refresh config.h; then log out
+  and back in and press each new chord.
+
+## 2026-10-13 — wallpaper-collection merged
+
+- **`wallpaper-collection` merged** (`ee86306`, fast-forward). The restore
+  stage shallow-clones github.com/yousseffjel/wallpaper (189 images, cleaned
+  and renamed this session) into `<pictures>/wallpapers/dots/`: one WALLPAPERS
+  row, fast-forwarded on every re-run (so `dots update`), a foreign directory
+  left alone, `DOTS_WALLPAPER_REPO=` skips it. ~400 MB download, 773 MB on
+  disk (measured). Uninstall removes it only while git proves it unchanged.
+- A new install opens on a random collection image (`dots wallpaper
+  --initial`, only on the run that made the clone). `dots wallpaper
+  --login-random on` picks a new one at every login, from `~/.xinitrc`;
+  off by default.
+- colorgen.sh analyses a ≤1920x1080 copy (user-approved): 61.7 s → 3.7 s on
+  the 16K image, palettes within a few points.
+- Suite 55/55, lint clean, mutations 10/10, one real GitHub clone in a sandbox.
+  Reviewer READY first round.
+- **Not yet on the VM**: `git pull` + `dots update` (clones, and switches to a
+  random wallpaper once), then `--login-random on` + paste the three printed
+  `.xinitrc` lines, and log in twice.
+
+## 2026-10-13 — update-resilience merged
+
+- **`update-resilience` merged** (`0e55b67`, fast-forward). Three fixes from
+  the first VM run of wallpaper-collection:
+  - the ~400 MB clone shows git's progress on `/dev/tty` (install.log never
+    sees it; quiet without a terminal);
+  - **DECISION REVERSAL**: `dots update` reads a new `complete` stamp, written
+    only when a full install-fedora.sh run reaches its end, so a Ctrl-C'd or
+    lone `--only-<stage>` install reads as stale. Every existing install
+    re-runs the full installer once on its next update;
+  - a restore re-run re-applies the active theme (`theme_active`: the newer
+    of wall.set / theme.set), not `dark`.
+- Suite 57/57, lint clean, mutations 10/10, reviewer READY first round.
+- **Not yet on the VM**: push, `git pull` + `dots update` (full re-run once,
+  let it finish), then confirm the wallpaper colours survived.
+
+## 2026-10-13 — update-stale-wording merged
+
+- **`update-stale-wording` merged** (`438323e`, fast-forward). With no
+  `complete` stamp, `dots update` now says "no finished install is recorded
+  yet (the checkout is at <sha>)" instead of "the last finished install ran
+  from no finished install recorded". Seen on the VM on the first update
+  after update-resilience. Suite 57/57, reviewer READY.
+- **Verified on the VM the same day**: the full re-run finished, kept the
+  wallbash palette (`applying the active theme (--wallbash)`), and the next
+  `dots update` said "already up to date".
+
+## 2026-10-13 — default-apps merged
+
+- **`default-apps` merged** (`891e8a7`, fast-forward). Defaults are now:
+  images → nsxiv (vendored v34 under `suckless/nsxiv`, Fedora has no package),
+  video/audio → mpv (`config/mpv/mpv.conf`, gpu-next HDR tone-mapping), and
+  text/code → Sublime Text from Sublime HQ's repo, with nvim as the fallback.
+  Firefox and file-roller are unchanged.
+- **Two new third-party repos, both user-authorised (rule 4)**: Sublime HQ, and
+  RPM Fusion free + nonfree. RPM Fusion provides the `ffmpeg-free` → `ffmpeg`
+  swap (Fedora's build has no HEVC decoder) and `intel-media-driver`. REPO
+  rows are reverted by `uninstall-repos.sh`, which fails closed. nsxiv is a
+  recorded exception to rule 4's no-built-vendoring line.
+- Existing installs get the new `mimeapps.list` only while it is an unedited
+  copy (`deploy_app_file` + `file_matches_history`, now in `global_fn.sh`).
+- Suite 60/60, lint clean, 13 mutations caught, reviewer READY first round.
+- **Not yet on the VM** (SSH key refused this session): `dots update`, `gio
+  mime` checks, HEVC playback with vaapi, `dots uninstall --dry-run`.
+
+## 2026-10-13 — fonts-arabic merged
+
+- **`fonts-arabic` merged** (`7e36239`, merge commit `ee4bcf9`, after
+  `default-apps`). Five conflicts, every one a both-sides keep: `build.lst`
+  (fribidi-devel beside nsxiv's imlib2/libexif), `install-suckless.sh`'s
+  pacman/apt fallbacks, `symlinks.sh` (mpv and fontconfig links + comments),
+  CHANGELOG [Unreleased], `CURRENT.md`.
+- **What it ships:** Noto Sans/Naskh Arabic, a linked `config/fontconfig/
+  fonts.conf` (Latin face first, Arabic behind it, a `lang=ar` rule using
+  prepend_first), UI font Noto Sans 10 (**DECISION REVERSAL** of scope-b
+  decision 14), and hardened fribidi `bidi()` in the dwm title and dmenu. The
+  upstream patches overflow; ASan proves it. Terminals left unshaped by user
+  decision; `docs/FONTS.md`.
+- Merged tree: suite 61/61 with a fresh build (main's own `suckless/dwm/dwm`
+  was a stale 2026-10-12 build and failed `dwm-runtime.sh` on today's keybind
+  remap, which has nothing to do with this merge). Lint clean, `bidi.sh --strict` and
+  `fontconfig-stack.sh` pass, reviewer READY.
+- **Not yet on the VM**: rebuild suckless, `dots theme dark`, check Arabic in
+  Firefox and in a window title, and that `fc-match 'sans-serif:lang=ar'` →
+  Noto Sans Arabic.
+
+## 2026-10-13 — hardware-drivers + doctor-swap-virtual-gpu merged
+
+- **`hardware-drivers` merged** (`b96785b`, merge commit `8d7f4e4`). New
+  `dots drivers`, also run by the installer after RPM Fusion: GPU VA-API driver
+  per device (Intel iHD / legacy i965, AMD freeworld mesa — swap on f43, plain
+  install on f44), firmware the kernel log says failed to load (resolved via
+  `dnf repoquery --whatprovides`), microcode + fwupd on bare metal. **NVIDIA
+  is report-only** (user decision): branch from the pci.ids codename, akmod
+  commands, MOK steps under Secure Boot. `intel-media-driver` is no longer
+  installed on every machine. `dots doctor` gains a drivers section.
+  `docs/HARDWARE.md`.
+- **`doctor-swap-virtual-gpu` merged** (`856d732`, merge commit `10bbad3`).
+  Doctor no longer FAILs `ffmpeg-free` after the RPM Fusion swap (it now uses
+  `SATISFIED_BY`), and reports a virtual GPU as ok and an unknown vendor as
+  skip. `tests/doctor.sh` had read the host's real `/sys` and cpuinfo since
+  `8d7f4e4`; now sealed. Desktop cases split into
+  `tests/lib/doctor-cases-desktop.sh` at the 250-line cap.
+- Verified on the f44 VM: `dots update` re-ran the installer from a bundled,
+  unpushed `main`. It enabled RPM Fusion, swapped ffmpeg, and the drivers
+  step reported the virtio GPU. f44 freeworld resolves beside
+  `mesa-dri-drivers` with nothing removed, and the dnf5 firmware glob works.
+  Doctor's FAIL and the virtual-GPU silence were found there.
+- Suite 63/63 for both, lint clean, mutations 14/15 and 5/5. Reviewer READY
+  and WARN (comment placement, fixed).
+- **Not verified:** real Intel, AMD or NVIDIA hardware, and the f43 mesa swap
+  against real dnf.
+
+## 2026-10-13 — scope-h laptop support merged (4 slots, 5 sub-tasks)
+
+- **Opened** from the user's request for a PC/laptop checker and support for
+  both. **DECISION REVERSAL** of scope-b locked decisions 9 (desktop-only)
+  and 12 (gamma-only brightness), via option B of a CONFLICT block. Desktops
+  are unchanged on every path.
+- **`laptop-detect`** (`befcde1` / merge `916bf0e`, slots 1+2): a machine is
+  a laptop when its SMBIOS chassis type is 8/9/10/14/31/32, or when it has a
+  battery whose scope is not Device. QEMU's 1 reads as unknown and is
+  treated as a desktop. New `packages/laptop.lst` with a `# chassis: laptop`
+  header that `pkg_list_chassis` reads (rule 10: no consumer names it).
+  `dwm-brightness` uses brightnessctl when a backlight exists.
+- **`laptop-battery`** (`6b6ee3f` / `f2b9d7b`): the `dwm-battery` block (signal
+  13, 60 s) is empty without a battery, with WARN/URGENT colours and one
+  notify per threshold. Also fixed `tests/lib/blocks.sh`, whose `block()`
+  silently aborted every block test when a block died.
+- **`laptop-touchpad`** (`d29659c` / `d2d29bc`): `config/xorg/40-dots-touchpad.conf`
+  (tap, natural scroll, dwt, clickfinger). New **SYSFILE** manifest category:
+  root-owned copies are replaced or removed only while unedited. Real Xorg
+  on the VM parsed the snippet.
+- **`laptop-power`** (`a7f7a6c` / `e1ecabc`): tuned-ppd with tuned enabled,
+  and `dwm-power` over gdbus (Fedora ships powerprofilesctl only inside the
+  conflicting power-profiles-daemon). Super+Shift+p, plus a power-menu entry.
+  `uninstall_services` no longer red-fails on units removed with their
+  package. First tests for that step.
+- Suite 67/67, lint clean, about 50 mutations caught across the four slots,
+  reviewer READY on all four. VM: `dots update` and doctor all passed.
+- **Not verified:** any real laptop. The user has only the VM.
+
+## 2026-10-14 — release 0.3.0 and follow-ups (5 slots)
+
+- **`installer-honest-status`** (`f923f78`): `install_tier` skips dnf for
+  packages `rpm -q --whatprovides` finds and prints only real installs plus
+  "N already installed". This fixed a false `PACKAGE thunar` row (thunar is a
+  Provides of Thunar) that `dots uninstall` would have acted on.
+- **`release-0.3.0`** (`20255ad`): VERSION 0.3.0, CHANGELOG dated,
+  `0.2.0-to-0.3.0.sh` no-op. **CONTRIBUTING and README wrongly called the
+  migration optional**: migrate.sh stops at a missing step. Fixed. Tagged
+  `v0.3.0` by the user.
+- **`installer-honest-status-2`** (`7f9b37e`): the clipmenu COPR moved to
+  install-pkg-repos.sh, with no re-enable or reinstall; `repos_install_pkg`
+  folded into `drivers_pkg`.
+- **`vm-picom`** (`6caa7d2`): `drivers_chassis` answers `vm` first.
+  `config/dwm/bin/dwm-picom` owns picom's backend: VM → xrender, glx only on
+  bare-metal hardware 3D. autostart.sh runs `dwm-picom &`; existing ones are
+  told to switch (rule 6). Doctor warns on a mismatch.
+- **`server-target`** (`4dfaff2`): **DECISION** — Fedora Server is the one
+  supported target. Workstation was dropped (never run; GDM vs ly never
+  reconciled). The pre-flight prints a note when GDM is enabled.
+- VM (f44 kvm): a real 0.2.0 → 0.3.0 upgrade; the re-run took 11 s (was
+  89 s); doctor all passed, including `vm (kvm)` and
+  `picom uses xrender: virtual machine (kvm)`. Suite 70/70.
+- **Not verified:** bare metal, a real GPU's glx path, a real laptop.
+
+## 2026-10-14 — dnf-speed (1 slot, 2 commits)
+
+- **`dnf-speed`** (`906e5e0`, `81bcf7e`; merge `fe037e8`): fresh-install
+  speed. `config/dnf/30-dots-speed.conf` → `/etc/dnf/libdnf5.conf.d/`
+  (fastestmirror, max_parallel_downloads=10, minrate=20k, timeout=30) as a
+  SYSFILE row via the new shared `scripts/sysfile-lib.sh`; `dnf_refresh`
+  forces `makecache --refresh` so the mirror probe (50 s cold) is up front;
+  `install_tier` runs one `dnf install --skip-unavailable` per tier, rpm
+  decides the outcome, a failed transaction retries per package; the
+  always-failing "C Development Tools" group step removed.
+- Trigger: the F44 Server VM (192.168.122.182) install stalled an hour on
+  `rust-std-static` from a 3 KiB/s mirror, above dnf's 1000 B/s floor.
+- VM run of 906e5e0: drop-in written and reported by `dnf5
+  --dump-main-config`; 2-package batch OK; doctor all passed. It exposed the
+  staircased progress (sudo use_pty raw tty) and the hidden probe, fixed in
+  81bcf7e.
+- Suite 72/72, lint ✓, ~19 mutations caught, reviewer READY (one WARN on rc
+  capture disproved by mutation and hardened anyway).
+- **Not verified:** the `</dev/null` staircase fix on the VM; mirror failover
+  after a minrate abort; CI install-container wall-clock (timeout-minutes
+  left at 90 until timed).
+
+## 2026-10-15 — dnf-speed verification (records only)
+
+- Fresh F44 Server VM (192.168.122.172) full install of `a1f8054`: 4 min
+  20 s, three tier transactions (1, 39, 44 packages), no minrate aborts.
+  CI installer step: fedora:43 8:14 → 2:19, fedora:latest 4:21 → 2:49.
+- **Verified:** the `</dev/null` staircase fix (`81bcf7e`). The user removed
+  gpick + catfish and re-ran `install-pkg.sh` in the VM terminal; every
+  streamed dnf line sat at the 4-space indent.
+- **Still not verified:** mirror failover after a minrate abort (no slow
+  mirror was hit); bare metal, a real GPU's glx path, a real laptop.
+
+## 2026-10-15 — ci-timeout (1 slot)
+
+- **`ci-timeout`** (`3594d4f`; merge `a31e68a`): install-container
+  `timeout-minutes` 90 → 20, from measured legs (2:38 fedora:43, 3:25
+  fedora:latest on a1f8054; ~8 min per-package). Comments name which figure is
+  CI and which local; CLAUDE.md "~30 min/leg" → "~3 min".
+- Lint ✓, YAML parses; reviewer WARN (two unreconciled per-package figures)
+  fixed before commit.
+- **Not verified:** a GitHub run under the new limit (needs a push).
+
+## 2026-10-15 — notify-center + xdg-utils-desktop (1 slot + 1 main commit)
+
+- **`notify-center`** (`34facae`, fast-forward): `config/dwm/bin/dwm-notify`
+  — dmenu list of dunst's history under the bar's right end (open / delete /
+  clear all / focus toggle); dmenu `dmenu-xyw-20261015-local.diff` (`-x -y -z`,
+  negative `-x` from the right); `dwm-dnd` is now an always-visible bell (`󰂚 N`
+  / `󰂛 FOCUS`; left = centre, right = focus), polled 5 s; `Super+Ctrl+n` →
+  centre; jq → desktop.lst. Open = re-show + first link: dunst never sends
+  ActionInvoked for history items (probed on a private bus).
+- **`xdg-utils-desktop`** (`6460356`): xdg-utils in desktop.lst (links).
+- Suite 73/73, lint ✓, build ✓, 13 mutations caught, end-to-end with real dunst
+  + rebuilt dmenu under Xvfb; reviewer WARN (stray pid file, removed), READY.
+- **Not verified:** live desktop, the F44 VM, a real app's link. Next release
+  migration must refresh an unedited `blocks.h` (bell interval 0 → 5).
+
+## 2026-10-15 — dunst-keep-state (1 slot)
+
+- **`dunst-keep-state`** (`c51a26e`, fast-forward): the theming engine killed
+  dunst on every theme apply, so each wallpaper change emptied the
+  notification centre and ended focus mode. `reload_dunst` (now
+  `scripts/theme/reload-dunst.sh`, sourced) runs `dunstctl reload` and puts
+  the pause level back (reload resets it); dunst.dcol post-command → `true`.
+  `[dots_osd]` rule (`history_ignore`) in dunst.dcol + static dunstrc keeps
+  dwm-osd pop-ups out of history.
+- `tests/dunst-reload.sh` incl. a real-dunst private-bus run; 8 mutations
+  caught; suite 74 OK + 1 SKIP; lint ✓; reviewer READY.
+- **Not verified:** on the VM (root cause inferred from the update log and
+  probes; ssh agent was down).
+
+## 2026-10-15 — Scope I: Void Linux port (13 commits, merged by fast-forward)
+
+- **Logs:** `void-i1` .. `void-i9-ci`, `void-audiowatch`, `void-i10-real-run`
+  (plus a MICRO line for `ci-void-branch`). Commits `783a28a`..`43e76ff`.
+- **The target is now Void glibc x86_64:**
+  - `install-void.sh`; xbps tiers with a full upgrade every run;
+  - nonfree for sublime-text4; vendored Cascadia Code NF;
+  - runit services; elogind; groups network/bluetooth/kvm, with wheel
+    required;
+  - ly v1.4.1 built from source with zig 0.16.0, pinned by sha256;
+  - `.xinitrc` re-runs itself under dbus-run-session and starts PipeWire;
+  - VM detection from the hypervisor flag or the DMI vendor;
+  - CI runs in `ghcr.io/void-linux/void-glibc-full`.
+- **Real VM run (I-10):**
+  - install, ly login, session, audio, portal and power actions (CanPowerOff
+    "yes"): `dots doctor` all passed;
+  - the one bug found, the VOL block drawn before WirePlumber restored the
+    volume, is fixed by `dwm-audiowatch` and verified across a re-login;
+  - the VM's screen and console size are documented in `docs/HARDWARE.md`.
+- Suite 82 OK + 1 SKIP; `lint --strict` ✓; GitHub CI green through
+  `5d1b8b1`. Reviewer READY on every sub-task.
+- **Not verified:** bare metal, suspend/resume, a laptop.
+
+## 2026-10-16 — Scope J opened; J-1 live-core (1 records commit + 1 slot, fast-forward)
+
+- **Scope J** (`9cff8ea`): install Void + dots from the live ISO, then
+  reboot. Ten locked decisions: staged option C, UEFI+BIOS, GRUB, plain
+  `/boot` + optional LUKS2 root, ext4, zram + swapfile, dracut, `linux` +
+  `linux-lts`, dialog menus, git clone on the ISO.
+- **J-1 `live-core`** (`0bec1f5`, log `2026-10-16-live-core.md`):
+  `scripts/install-live.sh` + four sourced modules; package names in
+  `packages/live/*.lst` (user's choice); two new tests (suite 84 OK).
+- **Real VM run:** UEFI with an answers file and BIOS with the dialog
+  menus, both booted from disk to a tty login; `sudo` works; the
+  `linux-lts` entry boots. It found plain `chpasswd` silently setting no
+  password in the target, now `-c SHA512` plus a shadow read-back.
+- **Not verified:** bare metal, Secure Boot, a real-BIOS MBR disk.
+
+## 2026-10-16 — J-2 live-dots and J-3 live-disk (two slots, fast-forward)
+
+- **J-2 `live-dots`** (`86c6df9`, log `2026-10-16-live-dots.md`). Folded here
+  late: the J-2 merge skipped this step.
+  - `install-live.sh` clones the repo into the new user's `~/dots` and runs
+    `install-void.sh` as that user under a temporary NOPASSWD rule (EXIT
+    trap); a marker file, not xchroot's status, decides success.
+  - Processes rooted in the target are stopped before the unmount; an empty
+    `/etc/resolv.conf` left by xchroot is removed.
+  - VM (UEFI): first boot to ly, `dots doctor` passed (1 warning:
+    spice-vdagent without SPICE). Suite 85 OK.
+- **J-3 `live-disk`** (`6a9cb4f`, log `2026-10-16-live-disk.md`).
+  - Without `--target`, `install-live.sh` picks a disk (typed name, or
+    `DISK=` + `WIPE=`), lays out GPT (ESP or bios_grub, 1 GiB `/boot`, ext4
+    root), formats and mounts it at `/mnt`, then sets up zram (50%, zstd)
+    and a swapfile (RAM, ≤ 8 GiB, ≤ a tenth of root, `pri=10`).
+  - A re-run resumes a target already mounted from this disk's `dots-root`.
+  - Scope decisions 11-13 (user): zram sizing, swapfile sizing, DISK + WIPE.
+  - Suite 89 OK, `lint --strict` ✓, 28/28 mutants caught.
+  - VMs from the ISO: UEFI (answers; interrupted and resumed) and BIOS
+    (dialog) both booted to ly with zram and the swapfile active.
+- **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only).
+
+## 2026-10-19 — J-4 live-luks and J-5 live-docs; scope J closed (two slots, fast-forward)
+
+- **J-4 `live-luks`** (`17898dd`, log `2026-10-16-live-luks.md`). Folded here
+  late: the J-4 merge skipped this step.
+  - Optional LUKS2 (argon2id) on `dots-root`, opened as `luks-<UUID>`;
+    dialog default No, or `LUKS_PASSFILE` (root-owned, 0600/0400) unattended.
+  - dracut's crypt module plus `rd.luks.uuid=` / `rd.vconsole.keymap=` in
+    `GRUB_CMDLINE_LINUX` (every entry, recovery included); no crypttab.
+  - A re-run resumes an open mapping; mappings are closed before a re-layout
+    and after the final unmount. Scope decisions 13-14 (user).
+  - Suite 90 OK, 25/26 mutants caught (the survivor is equivalent). VMs:
+    UEFI (answers, interrupted and resumed) and BIOS (dialog, linux-lts),
+    one passphrase prompt each.
+- **J-5 `live-docs`** (`f12da26`, log `2026-10-19-live-docs.md`).
+  - `docs/LIVE-INSTALL.md` (the user guide), `docs/live-answers.example`
+    (refused as shipped), a full `install-live.sh --help` read from its
+    header, README install section, CLAUDE.md corrections.
+  - `tests/live-docs.sh` holds the guide's key table, the example and the
+    flag list equal to the code (8/8 mutants caught).
+  - **Full VM matrix from the ISO, 4/4 PASS**: UEFI plain (answers), UEFI
+    LUKS (dialog), BIOS plain (dialog), BIOS LUKS (answers +
+    `LUKS_PASSFILE`); `dots doctor` no failures, 1 warning (spice-vdagent
+    on VNC) in each.
+  - The matrix found **ly's first login failing on a fresh install** (cursor
+    on the user line, so Enter sent an empty password). Fixed in the slot
+    by user decision: `ly-theme.sh` writes `default_input = password`, and
+    its originals file gains keys added later so `--restore` covers them.
+    Verified on screen in the BIOS LUKS run.
+  - THEMING.md's Fedora `%config(noreplace)`/`.rpmnew` text replaced with
+    the Void facts. Suite 91 OK, `lint` ✓, audit READY, reviewer READY.
+- **Scope J is complete.** Follow-ups queued in MASTER_PLAN: the J-4
+  SIGINT/sudo bug and the ly version-bump rebuild gap.
+- **Not verified:** bare metal, Secure Boot, an NVMe disk (tests only), a
+  keymap other than `us`.
+
+## 2026-10-19 — live-interrupt: Ctrl-C stops an install (fast-forward)
+
+- **`live-interrupt`** (`d4bc7cf`, log `2026-10-19-live-interrupt.md`). This
+  closes the J-4 queue item.
+  - Direct run: a Ctrl-C during xbps signature verification was swallowed
+    (xbps exits 0, and bash's wait-and-cooperative-exit carries on). The fix is
+    `stop_on_interrupt` in `global_fn.sh`, called by install-void.sh and every
+    script it runs. `tests/install-interrupt.sh` sends a real SIGINT and also
+    reads the script list from install-void.sh.
+  - Live ISO: `su -c` orphaned the stage, which ran on after the rule was
+    revoked. `live_dots_cleanup` on EXIT now does TERM, then rescanning KILL
+    rounds by `/proc/<pid>/root`, then the revoke. Tests: the new J-4 case in
+    `tests/live-dots.sh` and the new `tests/live-release.sh`, split off at
+    the cap.
+  - Suite 93 OK, `lint` ✓, 5/5 mutants caught, audit READY, reviewer READY.
+    VM: a real Ctrl-C from the live ISO gave exit 130 with 0 processes left in
+    /mnt and the rule gone; the re-run converged.
+- **Not verified:** a Ctrl-C during the live-side bootstrap.
+
+## 2026-10-19 — nsxiv-package: nsxiv from Void's package (fast-forward)
+
+- **`nsxiv-package`** (`30e9120`, log `2026-10-19-nsxiv-package.md`). User
+  decisions: nsxiv comes from Void's package, and xcolor stays a script.
+  - `suckless/nsxiv` deleted. nsxiv is out of `PROGRAMS`/`PROGRAM_BINS`, and
+    `PROGRAM_INSTALL_TARGETS` is removed. `nsxiv` is in `extra.lst`;
+    `imlib2-devel`/`libexif-devel` left `build.lst`.
+  - `tests/default-apps.sh` maps `nsxiv.desktop` to the package.
+  - The root `.gitignore` covers the old tree's build leftovers in existing
+    clones. `install-suckless.sh --help` no longer truncates.
+  - The package was verified from its .xbps and its void-packages template:
+    the same v34, the same desktop file, Xft and libexif.
+  - Suite 93 OK, lint ✓, 2/2 mutants, audit READY, reviewer WARN (a dead
+    pointer, fixed).
+- **Queued:** the 0.5.0 migration removes the `/usr/local` nsxiv build and
+  its manifest rows.
+
+## 2026-10-19 — claude-md-void: CLAUDE.md Fedora cleanup (fast-forward)
+
+- **`claude-md-void`** (`45e575d`, log `2026-10-19-claude-md-void.md`).
+  User item 6. Statements of current behaviour reconciled with the Void
+  scripts; Fedora kept as marked history. Every new fact was checked
+  against the repo or the .xbps. lint ✓, suite 93 OK, audit READY,
+  reviewer READY.
+- **Queued:** Void's `gnome-themes-extra(-gtk)` vs the vendored shim and
+  the gtk2 template (a decision), and TESTING.md's Fedora sections. The
+  0.5.0 release item is corrected: headers are already refreshed on every
+  build, so the migration only removes the old nsxiv build.
+
+## 2026-10-19 — release-0.5.0: cut 0.5.0 (fast-forward)
+
+- **`release-0.5.0`** (`868a481`, log `2026-10-19-release-0.5.0.md`). User
+  item 3, last part. VERSION 0.5.0, CHANGELOG `[0.5.0] - 2026-10-19` (two
+  entries corrected for release), and the 0.4.0 → 0.5.0 migration: it
+  removes the `/usr/local` nsxiv build only when a manifest row records it,
+  drops the rows, and deletes unedited `suckless/nsxiv/` leftovers (an
+  edited config.h is kept and named). sudo only for an unwritable prefix.
+- `tests/migration-0.5.0.sh` (sandboxed, fake sudo); 7/7 mutants; suite
+  94 OK; lint ✓; audit READY; reviewer READY.
+- Local tag `v0.5.0` on main. Nothing pushed.
+
+## 2026-10-19 — testing-void + ly-rebuild (fast-forward)
+
+- **`testing-void`** (`863380a`, log `2026-10-19-testing-void.md`). User
+  items 1 + 2. The GTK3 shim and gtk2 template stay by decision (facts read
+  from the gnome-themes-extra 3.28_4 .xbps files); TESTING.md's Fedora-era
+  statements reconciled (base-files 0.146 `usr/sbin -> bin`). Suite 94 OK,
+  reviewer READY.
+- **`ly-rebuild`** (`bb86190`, log `2026-10-19-ly-rebuild.md`). User item 3.
+  `scripts/install-services-ly-place.sh`; a raised pin rebuilds, keeps
+  config.ini, prunes stale paths, never restarts ly. 12 new checks in
+  tests/ly-build.sh, 10/10 mutants, suite 94 OK, reviewer READY.
+
+## 2026-10-20 — suite-host-hermetic (fast-forward)
+
+- **`suite-host-hermetic`** (`324b6d6`, log `2026-10-20-suite-host-hermetic.md`).
+  The suite failed 2 checks on the Arch dev host (CI green): dwm-display's
+  tests reached the real autorandr, doctor's GTK3 case read /usr/share/themes.
+  Sealed PATH + sandboxed XDG_DATA_DIRS. `--help` of install-void.sh and
+  symlinks.sh prints the whole header (install-void.sh before its log tee);
+  new tests/help-header.sh. Suite 95 OK on the host, 6/6 mutants, lint ✓,
+  audit READY, reviewer READY. Nothing pushed.

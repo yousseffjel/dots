@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-19
+Last Updated: 2026-10-20
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -88,6 +88,15 @@ the same time and **not** queued — raise them separately if wanted.
 ---
 
 ## Recently Closed
+
+- 2026-10-20 — **suite-host-hermetic** (`324b6d6`, ff; log
+  `2026-10-20-suite-host-hermetic.md`). The suite passes on a dev host with
+  autorandr or a system Adwaita-dark (sealed PATH in the dwm-display tests,
+  XDG_DATA_DIRS sandboxed for doctor); `--help` of install-void.sh and
+  symlinks.sh prints the whole header, guarded by tests/help-header.sh.
+  6/6 mutants, suite 95 OK on the host, reviewer READY. Records: the
+  2026-10-05 logs archived, CURRENT_AUDIT.md rotated (snapshot
+  `CURRENT_AUDIT-2026-10-20.md`).
 
 - 2026-10-19 — **ly-rebuild** (`bb86190`, ff; log `2026-10-19-ly-rebuild.md`).
   A raised ly pin rebuilds existing installs: `META ly_build` record (none =
