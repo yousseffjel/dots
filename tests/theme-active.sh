@@ -94,6 +94,32 @@ DISPLAY=:99 theme_initial_apply >/dev/null
 expect "re-runs apply --wallbash, then the static theme — never a hard-coded dark" \
     "--wallbash nord" "$(tr '\n' ' ' <"$TMP/applied" | sed 's/ $//')"
 
+blue "==> theme-apply.sh leaves the record theme_active reads"
+# The real theme-apply.sh in a copy of the repo whose engine steps are stubs
+# (their post-commands act on the live desktop), with every XDG directory,
+# HOME and ly's config sandboxed, and no display or session bus.
+COPY="$TMP/repo"
+mkdir -p "$COPY" "$TMP/home"
+cp -r "$REPO/scripts" "$REPO/themes" "$COPY/"
+for stub in colorgen.sh apply-templates.sh reload.sh wallpaper-default.sh ly-theme.sh; do
+    printf '#!/bin/sh\nexit 0\n' >"$COPY/scripts/theme/$stub"
+done
+apply() {
+    env -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS -u WAYLAND_DISPLAY HOME="$TMP/home" \
+        XDG_CONFIG_HOME="$TMP/home/.config" XDG_STATE_HOME="$TMP/home/.local/state" \
+        XDG_DATA_HOME="$TMP/home/.local/share" XDG_CACHE_HOME="$XDG_CACHE_HOME" \
+        DOTS_LY_CONFIG="$TMP/no-ly/config.ini" \
+        bash "$COPY/scripts/theme/theme-apply.sh" "$@" >/dev/null 2>&1
+}
+DOTS_DIR="$COPY"
+cache - '' "$IMG" '2026-10-01 10:00'
+apply nord
+touch -d '2026-10-02 10:00' "$CACHE/theme.set" # an earlier switch, not this second
+apply --wallbash
+expect "--wallbash after a static theme: a re-run keeps --wallbash (Void VM)" --wallbash "$(theme_active)"
+apply nord
+expect "...and a static theme after it wins again" nord "$(theme_active)"
+
 if ((rc != 0)); then
     red "✗ theme re-apply"
     exit 1

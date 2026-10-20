@@ -11,7 +11,9 @@
 # switched to (seen on the Fedora VM, 2026-10-13). The two choices leave two
 # records in the theme cache:
 #   theme.set — written by every static apply (theme-apply.sh <name>);
-#   wall.set  — written by every wallpaper change (wallpaper.sh).
+#   wall.set  — written by every wallpaper change (wallpaper.sh), and
+#               touched by `theme-apply.sh --wallbash` (Void VM, 2026-10-20:
+#               without it, a static theme applied earlier won the re-run).
 # Whichever was written last is the theme in use. A tie (both in the same
 # instant) counts as static. An image that has since been deleted, or a
 # theme.set naming a theme this checkout no longer ships, falls through.

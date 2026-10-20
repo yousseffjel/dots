@@ -172,6 +172,10 @@ fi
 "$SCRIPT_DIR/reload.sh"
 
 if [[ "$MODE" == "wallbash" ]]; then
+    # The record theme_active reads (install-restore-theme-active.sh): wall.set
+    # still names this wallpaper, and a newer mtime than theme.set makes a
+    # re-run keep the wallbash palette instead of the last static theme.
+    touch "$WALL_SET"
     notify "Theme applied" "wallbash (from wallpaper)"
     green "✓ wallbash theme applied"
 else

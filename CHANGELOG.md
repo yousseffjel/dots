@@ -53,6 +53,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   wallpaper change.** A comment in the X resources template had an
   apostrophe, which the preprocessor `xrdb` runs reads as the start of a
   character literal. Harmless, but it was printed every time.
+- **Choosing wallpaper colours with `dots theme --wallbash` sticks.** If a
+  static theme had been applied before, the next `dots update` from your
+  session put that theme back. The wallpaper colours are now remembered as
+  your latest choice.
 
 ## [0.5.0] - 2026-10-19
 
