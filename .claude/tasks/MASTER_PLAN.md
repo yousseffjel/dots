@@ -89,6 +89,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **help-render-aligned** (`0626ec1`, ff; log
+  `2026-10-20-help-render-aligned.md`). VM edge-case pass: `dots theme --help`
+  had a wrapped line four columns off after the name swap, and theme and
+  wallpaper help opened blank. tests/dots-dispatch.sh now checks every
+  subcommand's help.
+
 - 2026-10-20 — **wallbash-choice-recorded** (`864b2a7`, ff; log
   `2026-10-20-wallbash-choice-recorded.md`). Void VM finding: a wallbash
   choice made after a static theme was lost on the next `dots update`.

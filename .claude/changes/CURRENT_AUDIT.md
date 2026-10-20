@@ -146,3 +146,15 @@ above is history, kept verbatim from the pre-rotation snapshot.
 - **Also VM-checked, no finding:** `dots drivers` twice (manifest unchanged),
   `symlinks.sh --restore` with no backups, `dots update` with the network
   unreachable (rc=1, clear message, tree untouched).
+
+## 2026-10-20 — help-render-aligned (fast-forward)
+
+- **`help-render-aligned`** (`0626ec1`, log `2026-10-20-help-render-aligned.md`).
+  `dots theme --help` wrapped a usage line that the DOTS_CMD swap left four
+  columns off; theme and wallpaper help opened on a blank line. Unwrapped,
+  sed ranges narrowed; tests/dots-dispatch.sh checks every subcommand. 3/3
+  mutants, suite 98 OK, reviewer READY.
+- **Same VM pass, no finding:** bad/traversal theme names refused; missing
+  and non-image wallpapers refused before any state is written (feh runs
+  first); a path with spaces and an apostrophe applies and round-trips
+  through ~/.fehbg.
