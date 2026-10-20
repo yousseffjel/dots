@@ -15,7 +15,7 @@ ${cacheDir}/xresources|if command -v timeout >/dev/null 2>&1; then timeout 10 xr
 !   st     killall -USR1 st         (in-place, keeps the shell alive)
 !   dmenu  next invocation
 !   slock  next invocation
-!   nsxiv  next invocation (reads these natively, no patch; Void's package)
+!   nsxiv  next invocation (reads these natively, no patch; the Void package)
 !
 ! ANSI color mapping: this palette is derived from a wallpaper, so it
 ! carries no inherent red/green/blue semantics. The 16 ANSI slots are

@@ -49,6 +49,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   random-wallpaper key twice could leave the second wallpaper on screen with
   the first one's colours. Changes now run one after another, and the last
   one you started is the one you see.
+- **No more `missing terminating ' character` warning on every theme or
+  wallpaper change.** A comment in the X resources template had an
+  apostrophe, which the preprocessor `xrdb` runs reads as the start of a
+  character literal. Harmless, but it was printed every time.
 
 ## [0.5.0] - 2026-10-19
 
