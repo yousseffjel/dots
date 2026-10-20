@@ -89,6 +89,15 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **wallbash-choice-recorded** (`864b2a7`, ff; log
+  `2026-10-20-wallbash-choice-recorded.md`). Void VM finding: a wallbash
+  choice made after a static theme was lost on the next `dots update`.
+  `theme-apply.sh --wallbash` now records it in wall.set. Verified on the VM.
+
+- 2026-10-20 — **xresources-cpp-safe** (`6b1910d`, ff; log
+  `2026-10-20-xresources-cpp-safe.md`). xrdb's cpp warned on an apostrophe in
+  the xresources template; reworded, and a test bans `'` and `/*` there.
+
 - 2026-10-20 — **theme-change-lock** (`35313cc`, ff; log
   `2026-10-20-theme-change-lock.md`). Void VM finding: concurrent wallpaper
   changes mixed one wallpaper with another's colours. Changes now run one at

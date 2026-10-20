@@ -130,3 +130,19 @@ above is history, kept verbatim from the pre-rotation snapshot.
   change starts never hold it). 6/6 mutants, suite 97 OK, reviewer READY;
   VM: 3 concurrent rounds, palette always matches the final wallpaper.
   wallpaper.sh is now exactly at the 250-line cap.
+
+## 2026-10-20 — xresources-cpp-safe, wallbash-choice-recorded (fast-forward)
+
+- **`xresources-cpp-safe`** (`6b1910d`, log `2026-10-20-xresources-cpp-safe.md`).
+  An apostrophe in an xresources.dcol comment made xrdb's cpp warn on every
+  merge. Reworded; new tests/xresources-cpp-safe.sh bans `'` and `/*` in the
+  template body and runs `cpp -P` when present.
+- **`wallbash-choice-recorded`** (`864b2a7`, log
+  `2026-10-20-wallbash-choice-recorded.md`). Void VM finding: `dots theme
+  --wallbash` after a static theme never touched wall.set, so the next
+  restore re-run re-applied the static theme. It now touches wall.set;
+  tests/theme-active.sh runs the real theme-apply.sh. Suite 98 OK, reviewer
+  READY; VM confirmed.
+- **Also VM-checked, no finding:** `dots drivers` twice (manifest unchanged),
+  `symlinks.sh --restore` with no backups, `dots update` with the network
+  unreachable (rc=1, clear message, tree untouched).
