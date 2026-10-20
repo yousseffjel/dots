@@ -120,3 +120,13 @@ above is history, kept verbatim from the pre-rotation snapshot.
   `dots update` re-ran and converged.
 - **Also VM-checked:** the packaged nsxiv reads the theme's X resources
   (window background = `Nsxiv.window.background`, #2C2363).
+
+## 2026-10-20 — theme-change-lock (fast-forward)
+
+- **`theme-change-lock`** (`35313cc`, log `2026-10-20-theme-change-lock.md`).
+  Void VM finding: two concurrent `dots wallpaper --random` left the second
+  wallpaper with the first one's palette. New `scripts/theme/theme-lock.sh`
+  re-runs wallpaper.sh / theme-apply.sh under `flock -o` (the daemons a
+  change starts never hold it). 6/6 mutants, suite 97 OK, reviewer READY;
+  VM: 3 concurrent rounds, palette always matches the final wallpaper.
+  wallpaper.sh is now exactly at the 250-line cap.

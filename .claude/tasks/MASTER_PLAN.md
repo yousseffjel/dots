@@ -89,6 +89,12 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-20 — **theme-change-lock** (`35313cc`, ff; log
+  `2026-10-20-theme-change-lock.md`). Void VM finding: concurrent wallpaper
+  changes mixed one wallpaper with another's colours. Changes now run one at
+  a time under `flock -o`. Verified on the VM. **Watch:** wallpaper.sh is
+  at 250 lines; split it before the next addition.
+
 - 2026-10-20 — **complete-stamp-cleared** (`848acac`, ff; log
   `2026-10-20-complete-stamp-cleared.md`). Void VM finding: an interrupted
   re-run of an already-finished commit read as finished to `dots update`. A
