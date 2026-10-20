@@ -197,3 +197,7 @@ yellow "  - on first tmux start, TPM auto-installs plugins"
 yellow "  - log in via ly on tty2 on next boot; tty1's getty is left alone on purpose as a rescue login"
 yellow "  - Node.js: install nvm yourself (https://github.com/nvm-sh/nvm), then nvm install --lts"
 yellow "  - lazygit is not installed by default: sudo xbps-install lazygit"
+# Repeated from the suckless stage, whose notes scroll far up a full run.
+# shellcheck source=running-build.sh
+source "$SCRIPT_DIR/running-build.sh"
+running_build_report

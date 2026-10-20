@@ -35,6 +35,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   on GitHub.** An install that followed the `void` branch, deleted once the
   Void port merged, stayed on 0.4.0 without a word. The update now stops,
   names the deleted branch and tells you to `git switch main`.
+- **After an update, you are told when dwm or the bar still runs the old
+  build.** Rebuilding under a running session replaced the programs on disk,
+  but the running dwm and dwmblocks kept the old code until the next theme
+  change or login. The installer now ends with the command that restarts
+  each one in place (windows and tags are kept), and `dots doctor` warns
+  until it is done. A rebuild that changed nothing stays quiet.
 
 ## [0.5.0] - 2026-10-19
 

@@ -127,10 +127,12 @@ run_doctor() {
     # A session bus address unless FAKE_NOBUS; empty reads as "no bus".
     local bus="unix:path=$SB/bus"
     [[ -z "${FAKE_NOBUS:-}" ]] || bus=""
+    # DOTS_PROC: running-build.sh scans $SB/proc, never the host's processes
+    # (empty unless a case puts a fake one there).
     # XDG_DATA_DIRS is the system half of check_gtk3_theme's lookup. Unset
     # (env -i), it defaults to /usr/share, so a host with gnome-themes-extra
     # made "an Adwaita-dark nothing provides" find one and pass as ok.
-    mkdir -p "$SB/share"
+    mkdir -p "$SB/share" "$SB/proc"
     env -i PATH="$BIN" HOME="$H" USER=probe DISPLAY="${DISPLAY_SET-:9}" \
         XDG_CONFIG_HOME="$H/.config" XDG_CACHE_HOME="$H/.cache" \
         XDG_STATE_HOME="$H/.local/state" XDG_DATA_HOME="$H/.local/share" \
@@ -138,7 +140,7 @@ run_doctor() {
         DBUS_SESSION_BUS_ADDRESS="$bus" \
         DOTS_DOCTOR_RELEASE="${RELEASE-$SB/os-release}" DOTS_DOCTOR_BT_SYSFS="$SB/bt" DOTS_RUNIT_SERVICE="$SB/service" \
         DOTS_SYSFS="$SB/sys" DOTS_CPUINFO="$SB/cpuinfo" DOTS_VIRT="${FAKE_VIRT:-kvm}" \
-        DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
+        DOTS_XORG_CONF_DIR="$SB/xorg.conf.d" DOTS_PROC="$SB/proc" FAKE_PICOM_ARGS="${FAKE_PICOM_ARGS:-}" \
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
         FAKE_NOGROUP="${FAKE_NOGROUP:-}" FAKE_DB_GROUPS="${FAKE_DB_GROUPS:-}" FAKE_SESSION_GROUPS="${FAKE_SESSION_GROUPS:-}" FAKE_NOID="${FAKE_NOID:-}" \

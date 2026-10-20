@@ -79,6 +79,7 @@ check "autorandr is one-shot, not a daemon" row skip session daemon-autorandr
 check "the GTK3 theme name resolves (the shim)" row ok theme gtk3
 check "Flatpak grants and Flathub are checked" row ok theme flatpak
 check "...the Flathub remote too" row ok theme flathub
+check "no running build is older than the installed one" row ok session builds
 find "$H" -printf '%p %s %l\n' | sort >"$SB/before"
 
 blue "==> one code path, two formats"
@@ -206,6 +207,18 @@ check "nm-applet without NetworkManager is skipped" row skip session daemon-nm-a
 check "...naming that reason, and only that one" bash -c '[[ "$1" == *"(NetworkManager is not running)" ]]' _ "$(detail daemon-nm-applet)"
 FAKE_UP=NetworkManager FAKE_DOWN=nm-applet tsv
 check "nm-applet down while NetworkManager runs warns" row warn session daemon-nm-applet
+# A dwm whose binary an install replaced: /proc/<pid>/exe reads "... (deleted)".
+mkdir -p "$SB/proc/4242" "$SB/inst"
+echo dwm >"$SB/proc/4242/comm"
+echo new >"$SB/inst/dwm" && echo old >"$SB/inst/dwm (deleted)"
+ln -s "$SB/inst/dwm (deleted)" "$SB/proc/4242/exe"
+tsv
+check "dwm on a replaced, different build warns" row warn session build-dwm
+check "...naming the in-place restart" grep -q 'pkill -HUP -x dwm' <(detail build-dwm)
+echo new >"$SB/inst/dwm (deleted)"
+tsv
+check "an identical rebuild is not stale" row ok session builds
+rm -rf "$SB/proc/4242"
 DISPLAY_SET="" tsv
 check "no X: one skip for the whole session section" \
     test "$(grep -c $'\tsession\t' "$SB/out.tsv")" -eq 1

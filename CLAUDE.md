@@ -144,6 +144,9 @@ dots/
 │   │                           # `META ly_build v<ver> <commit>`, and the rebuild when the pins move: config.ini
 │   │                           # kept, paths the new ly lacks pruned with their rows, ly never restarted
 │   ├── install-suckless.sh     # standalone builder: dwm/st/dmenu/dwmblocks/slock (called by the install stage unless --skip-suckless)
+│   ├── running-build.sh        # sourced by install-suckless.sh, install-void.sh and dots doctor: a running dwm/dwmblocks
+│   │                           # still on the binary an install replaced (/proc/<pid>/exe "(deleted)", content differs),
+│   │                           # with the in-place restart for each. DOTS_PROC fakes /proc in tests
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)
 │   ├── install-session-template-applets.sh # sourced by the template: the desktop-applet part (polkit, blueman, nm-applet, xdg-user-dirs)

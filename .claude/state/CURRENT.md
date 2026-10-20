@@ -4,4 +4,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: 2026-10-20-update-upstream-gone.md
+Last log: 2026-10-20-running-build-stale.md

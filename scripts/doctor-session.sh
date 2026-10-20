@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # The X session, theme and hardware checks of scripts/doctor.sh — SOURCED by
 # it, never run alone. Assumes doctor.sh's report(), DOTS_DIR, global_fn.sh
-# (via doctor-checks.sh) and `set -euo pipefail`. check_session calls
-# check_daemons, which lives in doctor-daemons.sh (split at the 250-line cap,
-# 2026-10-12); BT_SYSFS below is shared with it.
+# (via doctor-checks.sh), running-build.sh and `set -euo pipefail`.
+# check_session calls check_daemons, which lives in doctor-daemons.sh (split
+# at the 250-line cap, 2026-10-12); BT_SYSFS below is shared with it.
 
 COLOR_SCHEME_KEY=/org/gnome/desktop/interface/color-scheme
 # Test override (tests/doctor.sh).
@@ -37,6 +37,18 @@ check_picom_backend() {
     fi
 }
 
+# A dwm or dwmblocks still running the binary an install has since replaced
+# (running-build.sh): new patches do nothing until it restarts.
+check_running_builds() {
+    local s=session name stale=0
+    for name in dwm dwmblocks; do
+        running_build_stale "$name" || continue
+        report warn "$s" "build-$name" "$name runs the build from before the last install — restart it: ${RUNNING_BUILD_RESTART[$name]}"
+        stale=1
+    done
+    ((stale)) || report ok "$s" builds "dwm and dwmblocks run the installed builds"
+}
+
 check_session() {
     local s=session res
     if [[ -z "${DISPLAY:-}" ]] || ! pgrep -x dwm >/dev/null 2>&1; then
@@ -45,6 +57,7 @@ check_session() {
     fi
     report ok "$s" dwm "dwm is running on $DISPLAY"
     check_daemons
+    check_running_builds
     check_picom_backend
     res="$(xrdb -query 2>/dev/null || true)"
     if grep -q '^dwm\.' <<<"$res"; then

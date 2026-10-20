@@ -217,3 +217,7 @@ yellow "  - lock the screen with:    slock"
 yellow "  - rebuild after a config edit:  scripts/install-suckless.sh --skip-deps"
 yellow "  - dwm/st/dmenu/slock read config.h / blocks.h, generated from their *.def.h;"
 yellow "    each build regenerates one you never edited and keeps one you did"
+# A dwm or dwmblocks running in a session keeps the replaced binary.
+# shellcheck source=running-build.sh
+source "$SCRIPT_DIR/running-build.sh"
+running_build_report
