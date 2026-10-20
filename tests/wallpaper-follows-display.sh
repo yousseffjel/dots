@@ -25,6 +25,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/sealed-path.sh
+source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -106,6 +108,11 @@ blue "==> dwm-display re-paints after a layout"
 # would repaint the live desktop.
 DISPLAY_SH="$DOTS_DIR/config/dwm/bin/dwm-display"
 mkdir -p "$TMP/bin" "$TMP/home"
+# Sealed, not prepended: with "$TMP/bin:$PATH", removing the fake autorandr
+# fell through to a real /usr/bin/autorandr on any host that has one, which
+# ran `xrandr -q --verbose` against the fake and broke the Escape case (and let
+# "autorandr not installed" pass for the wrong reason). See sealed-path.sh.
+seal_path "$TMP/bin" bash awk grep cat
 pass_() { green "  ok: $1"; }
 fail_() {
     red "  FAIL: $1"
@@ -122,7 +129,6 @@ fi
 printf 'xrandr %s\n' "\$*" >> "$TMP/applied.log"
 EOF
 chmod 755 "$TMP/bin/notify-send" "$TMP/bin/xrandr"
-chmod 755 "$TMP/bin"/*
 
 # The wallpaper is re-painted at the new size, AFTER the layout applies — feh
 # painted the root window at the old size. Both fakes log to applied.log, so
@@ -132,7 +138,7 @@ chmod 755 "$TMP/home/.fehbg"
 : >"$TMP/applied.log"
 printf '#!/bin/sh\ngrep -x "mirror HDMI-1 onto eDP-1"\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
-HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1 || true
+HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1 || true
 if [[ "$(tr '\n' '|' <"$TMP/applied.log")" == "xrandr "*"|fehbg|" ]]; then
     pass_ ".fehbg is re-run after the layout applies"
 else
@@ -150,7 +156,7 @@ chmod 755 "$TMP/bin/xrandr.fail"
 cp "$TMP/bin/xrandr" "$TMP/xrandr.ok"
 cp "$TMP/bin/xrandr.fail" "$TMP/bin/xrandr"
 : >"$TMP/applied.log"
-HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1 || true
+HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1 || true
 if grep -q fehbg "$TMP/applied.log"; then
     fail_ ".fehbg ran although the layout failed"
 else
@@ -158,13 +164,13 @@ else
 fi
 cp "$TMP/xrandr.ok" "$TMP/bin/xrandr"
 printf '#!/bin/sh\nexit 1\n' >"$TMP/home/.fehbg"
-if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     pass_ "a failing .fehbg does not fail the layout"
 else
     fail_ "a failing .fehbg turned a good layout into an error"
 fi
 rm -f "$TMP/home/.fehbg"
-if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     pass_ "no .fehbg at all is fine"
 else
     fail_ "a missing .fehbg turned a good layout into an error"

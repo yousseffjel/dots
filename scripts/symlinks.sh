@@ -87,7 +87,8 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         -h | --help)
-            sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            # The header, up to its first non-comment line (a fixed range cut it off).
+            sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p}' "${BASH_SOURCE[0]}"
             exit 0
             ;;
         *)

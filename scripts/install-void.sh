@@ -66,6 +66,18 @@ DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/global_fn.sh"
 stop_on_interrupt
 
+# --help prints the header above, up to its first non-comment line (the
+# idiom install-live.sh uses; a fixed line range cut it off mid-sentence).
+# Handled before the log tee below: a help request is not a run.
+for arg in "$@"; do
+    case "$arg" in
+        -h | --help)
+            sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p}' "${BASH_SOURCE[0]}"
+            exit 0
+            ;;
+    esac
+done
+
 # Tee this run's full output (stdout+stderr, including every stage script
 # invoked below as a child process) into install.log at the repo root, so
 # repeated runs can be diffed later, while still showing live colored
@@ -114,10 +126,6 @@ for arg in "$@"; do
             ;;
         --skip-suckless) SKIP_SUCKLESS=1 ;;
         --dry-run) DRY_RUN=1 ;;
-        -h | --help)
-            sed -n '2,50p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
-            exit 0
-            ;;
         *)
             red "unknown argument: $arg"
             exit 1

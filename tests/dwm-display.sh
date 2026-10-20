@@ -34,6 +34,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=lib/sealed-path.sh
+source "$SCRIPT_DIR/lib/sealed-path.sh"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -48,6 +50,11 @@ DISPLAY_SH="$DOTS_DIR/config/dwm/bin/dwm-display"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/home"
+# Sealed, not prepended: with "$TMP/bin:$PATH", removing the fake autorandr
+# fell through to a real /usr/bin/autorandr on any host that has one, which
+# ran `xrandr -q --verbose` against the fake and broke the Escape case (and let
+# "autorandr not installed" pass for the wrong reason). See sealed-path.sh.
+seal_path "$TMP/bin" bash awk grep cat
 
 rc=0
 pass() { green "  ok: $1"; }
@@ -87,7 +94,7 @@ DP-2 disconnected (normal left inverted right)'
 ONE_MONITOR='eDP-1 connected primary 1920x1080+0+0 (normal left inverted right) 344mm x 194mm
 DP-2 disconnected (normal left inverted right)'
 
-menu() { HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list; }
+menu() { HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" --list; }
 
 # --- derivation from what is actually connected -----------------------------
 
@@ -187,7 +194,7 @@ blue "==> selection dispatch"
 : >"$TMP/applied.log"
 printf '#!/bin/sh\ngrep -x "mirror HDMI-1 onto eDP-1"\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
-if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     if grep -qF -- "--output HDMI-1 --auto --same-as eDP-1" "$TMP/applied.log"; then
         pass "choosing an entry runs exactly that entry's xrandr command"
     else
@@ -205,7 +212,7 @@ fi
 : >"$TMP/applied.log"
 printf '#!/bin/sh\nexit 1\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
-if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1; then
     if [[ -s "$TMP/applied.log" ]]; then
         fail "Escape applied something: $(cat "$TMP/applied.log")"
     else
@@ -218,7 +225,7 @@ fi
 # --- no connected outputs at all --------------------------------------------
 
 fake_xrandr 'DP-2 disconnected (normal left inverted right)'
-if HOME="$TMP/home" PATH="$TMP/bin:$PATH" bash "$DISPLAY_SH" --list >/dev/null 2>&1; then
+if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" --list >/dev/null 2>&1; then
     fail "no connected outputs should be an error, not an empty menu"
 else
     pass "no connected outputs fails loudly"

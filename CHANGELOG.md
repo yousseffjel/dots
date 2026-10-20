@@ -23,6 +23,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   Your `/etc/ly/config.ini` is kept as it is, files the new version no
   longer ships are removed, and the login screen you are using is not
   restarted: the new ly starts at the next boot.
+- **`--help` shows the whole header.** `symlinks.sh --help` stopped
+  mid-sentence and `install-void.sh --help` left out its later paragraphs;
+  both now print their full header comment. `install-void.sh --help` no
+  longer adds a run to `install.log`.
+- **The test suite passes on a desktop that has autorandr or a system
+  `Adwaita-dark` theme.** Two tests reached the real tools and themes
+  instead of their fakes; CI never has those installed, so only a local
+  run failed.
 
 ## [0.5.0] - 2026-10-19
 
