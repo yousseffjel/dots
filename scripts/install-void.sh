@@ -60,7 +60,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-# For manifest_set_meta alone (the "complete" stamp at the end); this script
+# For manifest_set_meta alone (the "complete" stamp, cleared below and
+# written at the end); this script
 # defines its own red/green/yellow/blue below, which take precedence.
 # shellcheck source=global_fn.sh
 source "$SCRIPT_DIR/global_fn.sh"
@@ -147,6 +148,16 @@ dry_run_args=()
 if [[ $RUN_PRE -eq 1 ]]; then
     blue "=== pre stage ==="
     "$SCRIPT_DIR/install-pre.sh" "${dry_run_args[@]}"
+fi
+
+# A full run clears the finished-install stamp before it changes anything,
+# and only its own end writes it back: otherwise a run of a commit that had
+# finished before, stopped partway (Ctrl-C on the Void VM, 2026-10-20), left
+# the old stamp equal to HEAD and `dots update` called it up to date. After
+# the pre stage, because a run that stage refuses has changed nothing.
+# manifest_get_meta reads an empty value as no stamp.
+if [[ $ANY_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
+    manifest_set_meta complete ""
 fi
 
 # Runs unconditionally (regardless of which --only-* stages were picked):

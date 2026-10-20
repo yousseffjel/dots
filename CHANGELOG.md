@@ -41,6 +41,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   change or login. The installer now ends with the command that restarts
   each one in place (windows and tags are kept), and `dots doctor` warns
   until it is done. A rebuild that changed nothing stays quiet.
+- **An install you stopped with Ctrl-C is finished by the next
+  `dots update`.** When the same version had installed fully before, the
+  interrupted run still counted as finished, and `dots update` said "already
+  up to date". A full run now counts as finished only once it reaches its end.
 
 ## [0.5.0] - 2026-10-19
 

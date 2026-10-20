@@ -4,7 +4,9 @@
 #
 # WHY. Every stage stamps `commit` as it starts, so a run stopped partway
 # (Ctrl-C in the package stage, on the Fedora VM, 2026-10-13) used to read as
-# current, and `dots update` then refused to finish it. tests/dots-update.sh
+# current, and `dots update` then refused to finish it. A full run also
+# clears the stamp first, or an interrupted re-run of a commit that finished
+# before still read as current (Void VM, 2026-10-20). tests/dots-update.sh
 # covers update.sh's side with a stub installer; this covers the real
 # orchestrator's side.
 #
@@ -72,8 +74,20 @@ check "a stage that fails stops the run before the stamp" test -z "$(FAIL_STAGE=
 # shellcheck disable=SC2016 # $1 belongs to the inner bash
 check "...and the stages after it never ran" bash -c '! grep -q install-restore "$1"' _ "$TMP/failed/stages"
 
+blue "==> a run after a finished one, same commit"
+# The same HOME twice: what a re-run (or `dots update`) meets. The old stamp
+# equals HEAD, so only clearing it shows the second run did not finish.
+run again >/dev/null
+check "a failed re-run clears the old stamp (Ctrl-C on the Void VM read as current)" \
+    test -z "$(FAIL_STAGE=install-suckless run again)"
+check "...and finishing the re-run writes it back" test "$(run again)" == "$HEAD_SHORT"
+check "a re-run the pre stage refuses changed nothing: stamp kept" \
+    test "$(FAIL_STAGE=install-pre run again)" == "$HEAD_SHORT"
+check "--only-restore after it keeps the stamp" test "$(run again --only-restore)" == "$HEAD_SHORT"
+check "--dry-run after it keeps the stamp" test "$(run again --dry-run)" == "$HEAD_SHORT"
+
 if ((rc != 0)); then
     red "✗ install complete stamp"
     exit 1
 fi
-green "✓ install complete stamp: only a finished full run writes it"
+green "✓ install complete stamp: only a finished full run writes it; a full run clears it first"
