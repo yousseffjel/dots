@@ -89,6 +89,13 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **uninstall-dryrun-preview** (`84ec6c7`, ff; log
+  `2026-10-21-uninstall-dryrun-preview.md`). Void VM finding: `dots uninstall
+  --dry-run` asked each category first, so without a terminal it previewed
+  nothing. A dry run now asks nothing. Also fixed: keeping no copy of the
+  log made a finished uninstall exit 1. **Open:** the VM dry-run check (agent
+  socket gone on 2026-10-21).
+
 - 2026-10-20 — **migrate-dryrun-current** (`a12240f`, ff; log
   `2026-10-20-migrate-dryrun-current.md`). Void VM finding:
   `install-void.sh --dry-run` stopped silently (rc=1) at the migrations step

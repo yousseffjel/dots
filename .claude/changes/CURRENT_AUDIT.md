@@ -169,3 +169,12 @@ above is history, kept verbatim from the pre-rotation snapshot.
   reviewer READY.
 - **Same VM pass, no finding:** `dots version --json` parses; `dots doctor
   --tsv` rows all have 4 fields.
+
+## 2026-10-21 — uninstall-dryrun-preview (fast-forward)
+
+- **`uninstall-dryrun-preview`** (`84ec6c7`, log `2026-10-21-uninstall-dryrun-preview.md`).
+  `confirm()` answers yes under DRY_RUN, so `dots uninstall --dry-run`
+  previews every category with no terminal (it printed "skipped" for all).
+  `uninstall_state`'s trailing `[[ ]] && echo` is an if (y/N exited 1).
+  New tests/uninstall-dry-run.sh; 5/5 mutants; suite 99 OK; reviewer READY
+  after checking every confirm site honours DRY_RUN. **Not yet VM-run.**
