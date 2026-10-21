@@ -211,6 +211,12 @@ for i in "${!LABELS[@]}"; do
         if [[ -x "$HOME/.fehbg" ]]; then
             "$HOME/.fehbg" >/dev/null 2>&1 || true
         fi
+        # A screen turned back on starts at full gamma; dwm-brightness puts
+        # the last level back on every screen (the hook 20-dots-brightness
+        # does the same after a profile load). Not a layout failure either.
+        if command -v dwm-brightness >/dev/null 2>&1; then
+            dwm-brightness sync >/dev/null 2>&1 || true
+        fi
         notify "$choice"
         exit 0
     fi

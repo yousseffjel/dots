@@ -63,7 +63,7 @@ dots/
 │   ├── mimeapps.list    # xdg default/added associations — COPIED (GIO rewrites it); docs/THUNAR.md has the table.
 │   │                    # A claimed copy identical to a committed version is replaced on re-run (deploy_app_file)
 │   ├── mpv/             # mpv.conf — gpu-next HDR tone-mapping + hwdec; symlinked (mpv writes state to XDG_STATE_HOME)
-│   ├── autorandr/       # postswitch.d/ wallpaper re-paint hook — COPIED, never linked (`autorandr --save` writes profiles there)
+│   ├── autorandr/       # postswitch.d/ wallpaper re-paint + brightness sync hooks — COPIED, never linked (`autorandr --save` writes profiles there)
 │   ├── fontconfig/      # fonts.conf — Latin face first, Noto Arabic behind it; symlinked (docs/FONTS.md)
 │   ├── xorg/            # 40-dots-touchpad.conf — COPIED by drivers-laptop.sh to /etc/X11/xorg.conf.d on laptops
 │   │                    #  only (sudo, SYSFILE row); never linked, never in symlinks.sh

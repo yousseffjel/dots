@@ -382,12 +382,15 @@ screen's gamma, and the brightness keys go through it, because two programs
 writing the same gamma would undo each other within seconds.
 
 All connected outputs are set together, so displays that have drifted apart
-converge on the next keypress. From a shell:
+converge on the next keypress. A screen turned back on gets the last level
+by itself: `dwm-display` and an autorandr hook run `dwm-brightness sync`
+after every display switch. From a shell:
 
 ```sh
 dwm-brightness get        # integer percent, for scripts
 dwm-brightness up|down
 dwm-brightness set 70
+dwm-brightness sync       # the last level again, after a raw xrandr
 ```
 
 ### Screenshot

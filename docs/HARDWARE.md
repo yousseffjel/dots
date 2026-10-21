@@ -108,7 +108,9 @@ A desktop behaves exactly as it always did. On a laptop:
   list only on a laptop.
 - **The brightness keys dim the backlight**, through `brightnessctl`, and the
   status-bar block says `BL`. On a desktop they scale the picture with
-  xrandr gamma, which saves no power, so the block says `GAMMA`. Void builds
+  xrandr gamma, which saves no power, so the block says `GAMMA`; a screen
+  turned back on gets the last level again (`dwm-brightness sync`, run
+  after every display switch — docs/THEMING.md). Void builds
   `brightnessctl` without logind: it writes `/sys` through the udev rule it
   ships, which grants the `video` group. The Void installer puts you in
   `video` by default.

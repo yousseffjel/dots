@@ -180,7 +180,11 @@ screen size of the moment, and at every login `~/.xinitrc` draws it *before*
 autorandr hook, `~/.config/autorandr/postswitch.d/10-dots-wallpaper`, that
 re-runs `~/.fehbg` after every switch: at login, on hotplug, and on a profile
 loaded from Super+Shift+d. `dwm-display` (Super+Shift+d) also re-runs it after its xrandr
-presets. A raw `xrandr` typed by hand has no hook, so run `~/.fehbg` after one.
+presets. A second hook, `20-dots-brightness`, runs `dwm-brightness sync` on the same
+switches (and `dwm-display` after its presets): a screen X turns on again
+starts at full gamma, and this puts the level the brightness keys last set
+back on every screen. A raw `xrandr` typed by hand has no hook, so run
+`~/.fehbg` (and `dwm-brightness sync`) after one.
 To keep a resolution across logins, save it once with `autorandr --save <name>`.
 
 ## App templates

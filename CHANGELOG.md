@@ -40,6 +40,15 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **A screen turned back on keeps your brightness.** On a desktop the
+  brightness keys dim through xrandr gamma, and a screen that came back
+  from a hotplug, a `Super+Shift+d` layout or an autorandr profile started
+  at full brightness beside a dimmed one. The last level is now put back
+  on every screen after each switch (`dwm-brightness sync`, run by
+  `dwm-display` and a new autorandr hook, `20-dots-brightness`). The
+  brightness keys also stopped reporting an error while a connected
+  screen is switched off: that screen is skipped until it is on again.
+
 - **The dwm runtime test no longer starts your session's autostart.**
   `tests/dwm-runtime.sh` ran dwm with your HOME, so on a dots desktop the
   autostart patch launched your real `autostart.sh` against the test's

@@ -1,0 +1,18 @@
+#!/bin/sh
+# autorandr postswitch hook — put the brightness back after a display change.
+#
+# On a desktop the brightness keys dim through xrandr gamma (dwm-brightness),
+# and X starts a screen it turns on again at full gamma: after a hotplug or a
+# profile load one screen is bright and the other still dimmed.
+# `dwm-brightness sync` re-applies the last level to every screen, and does
+# nothing on a laptop backlight or before any level was set.
+#
+# Copied, never linked, for the reason 10-dots-wallpaper gives. autorandr's
+# udev path runs hooks with whatever PATH it has, so dwm/bin goes in front:
+# dwm-brightness looks up dwm-nightlight there, and while that daemon runs
+# the gamma ramps are its to write.
+bin="${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin"
+[ -x "$bin/dwm-brightness" ] || exit 0
+PATH="$bin:$PATH"
+export PATH
+exec "$bin/dwm-brightness" sync

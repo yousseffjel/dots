@@ -25,7 +25,14 @@
 # status block (roster Epic sub-task 7), which polls at interval 0, and
 # `mode` tells it which label to show.
 #
-# usage: dwm-brightness get|up|down|set <10-100>|mode
+# `sync` re-applies the last gamma level. A screen X turns on again (a
+# hotplug, a dwm-display preset, an autorandr profile) starts at full
+# brightness while the others stay dimmed, so dwm-display and the autorandr
+# hook config/autorandr/postswitch.d/20-dots-brightness call it after every
+# switch. A backlight is not reset by a display change, so it does nothing
+# there, and nothing either until a level has been set once.
+#
+# usage: dwm-brightness get|up|down|set <10-100>|mode|sync
 set -euo pipefail
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
@@ -37,7 +44,7 @@ MIN=10
 MAX=100
 
 usage() {
-    echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>|mode"
+    echo "usage: dwm-brightness get|up|down|set <${MIN}-${MAX}>|mode|sync"
 }
 
 # The first backlight device's `brightnessctl -m` line,
@@ -75,10 +82,48 @@ nightlight_active() {
     pgrep -f '/dwm-nightlight daemon$' >/dev/null 2>&1
 }
 
-# Every connected output. Matching $2 exactly avoids the "disconnected"
-# trap that a bare /connected/ pattern walks into.
+# Where `sync` finds the last gamma level. Resolved per call, and absent rather
+# than an abort when neither variable is set (the reason nightlight_file is
+# lazy too).
+level_file() {
+    if [[ -n "${XDG_STATE_HOME:-}" ]]; then
+        printf '%s\n' "$XDG_STATE_HOME/dots/brightness"
+    elif [[ -n "${HOME:-}" ]]; then
+        printf '%s\n' "$HOME/.local/state/dots/brightness"
+    else
+        return 1
+    fi
+}
+
+# Stored on both gamma paths, the nightlight one included: once the daemon
+# stops, its last ramp is what the screens show, and a sync must not put back
+# an older level. A failed write costs only the next sync, so it is said and
+# the change itself still succeeds.
+store_level() {
+    local file
+    file="$(level_file)" || return 0
+    if ! { mkdir -p "${file%/*}" && printf '%d\n' "$1" >"$file"; } 2>/dev/null; then
+        red "dwm-brightness: could not record the level in $file"
+    fi
+}
+
+# apply() takes the nightlight path itself while that daemon runs.
+sync_level() {
+    local file pct
+    backlight_info >/dev/null && return 0
+    file="$(level_file)" || return 0
+    pct="$(cat "$file" 2>/dev/null || true)"
+    [[ "$pct" =~ ^[0-9]+$ ]] || return 0
+    apply "$pct" >/dev/null
+}
+
+# Every connected output that is ON. Matching $2 exactly avoids the
+# "disconnected" trap that a bare /connected/ pattern walks into; the
+# WxH+X+Y geometry is what a switched-off screen lacks ("Virtual-2 connected
+# (normal left ...)"), and xrandr refuses its --brightness, which made every
+# change exit 1 while it was off. `sync` gives it the level once it is on.
 outputs() {
-    xrandr 2>/dev/null | awk '$2 == "connected" { print $1 }'
+    xrandr 2>/dev/null | awk '$2 == "connected" && / [0-9]+x[0-9]+\+[0-9]+\+[0-9]+( |$)/ { print $1 }'
 }
 
 # Brightness of the first connected output, as an integer percent.
@@ -146,6 +191,7 @@ apply() {
         mkdir -p "${file%/*}"
         printf '%d\n' "$pct" >"$file"
         dwm-nightlight apply || return 1
+        store_level "$pct"
         printf '%d\n' "$pct"
         return 0
     fi
@@ -163,6 +209,7 @@ apply() {
         red "dwm-brightness: no connected outputs (or xrandr is unavailable)"
         return 1
     fi
+    store_level "$pct"
     printf '%d\n' "$pct"
     return "$failed"
 }
@@ -179,6 +226,7 @@ adjust() {
 case "${1:-}" in
     get) current ;;
     mode) mode ;;
+    sync) sync_level ;;
     up) adjust "$STEP" ;;
     down) adjust "-$STEP" ;;
     set)

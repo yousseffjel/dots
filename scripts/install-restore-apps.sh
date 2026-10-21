@@ -215,16 +215,21 @@ restore_apps() {
     deploy_app_file "$DOTS_DIR/config/applications/dots-st.desktop" \
         "$data_home/applications/dots-st.desktop"
 
-    # Re-paints the wallpaper after every autorandr switch. Copied like the
-    # rest, for a different reason: `autorandr --save` writes profiles into
-    # this directory, so config/autorandr must never be linked. autorandr
-    # skips a hook that is not executable; cp keeps the repo file's mode, and
-    # the chmod makes that explicit — on our own copy only, never the user's.
-    local hook="$conf_home/autorandr/postswitch.d/10-dots-wallpaper"
-    deploy_app_file "$DOTS_DIR/config/autorandr/postswitch.d/10-dots-wallpaper" "$hook"
-    if [[ $DRY_RUN -eq 0 ]] && manifest_has_path APP "$hook"; then
-        chmod 755 "$hook"
-    fi
+    # Re-paint the wallpaper and put the brightness back after every
+    # autorandr switch. Copied like the rest, for a different reason:
+    # `autorandr --save` writes profiles into this directory, so
+    # config/autorandr must never be linked. autorandr skips a hook that is
+    # not executable; cp keeps the repo file's mode, and the chmod makes that
+    # explicit — on our own copy only, never the user's.
+    # Globbed, not named: a third hook is deployed with no edit here.
+    local src hook
+    for src in "$DOTS_DIR"/config/autorandr/postswitch.d/*; do
+        hook="$conf_home/autorandr/postswitch.d/${src##*/}"
+        deploy_app_file "$src" "$hook"
+        if [[ $DRY_RUN -eq 0 ]] && manifest_has_path APP "$hook"; then
+            chmod 755 "$hook"
+        fi
+    done
 
     apps_update_desktop_db "$data_home/applications"
     apps_xfconf_prefs
