@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **dwm-runtime-home** (ff; log
+  `2026-10-21-dwm-runtime-home.md`). dwm-runtime test no longer runs the
+  tester's real autostart.sh.
+
 - 2026-10-21 — **capture-name-clash** (ff; log
   `2026-10-21-capture-name-clash.md`). Same-second screenshots/recordings
   no longer overwrite each other.

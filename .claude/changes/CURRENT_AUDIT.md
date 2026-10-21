@@ -292,3 +292,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   noclobber (`-2`, `-3` …); ffmpeg `-y` onto its own reservation. VM:
   three concurrent shots → three files; two real recordings in one pinned
   second → two valid files. 6/6 mutants. Suite 104 OK.
+- **dwm-runtime-home** (ff; log `2026-10-21-dwm-runtime-home.md`):
+  `tests/dwm-runtime.sh` ran dwm with the tester's HOME, so the autostart
+  patch launched their real `autostart.sh` against the Xvfb display
+  (dwm-audiowatch → real PipeWire). Now a sandbox HOME with a stand-in
+  autostart, asserted by marker. Earlier suite runs today were safe only
+  because worktrees had no built dwm (skip). Suite 104 OK with dwm-runtime
+  really running.
