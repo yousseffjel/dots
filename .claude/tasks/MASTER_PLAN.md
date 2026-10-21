@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **monitor-capture** (`0865a45`, ff; log
+  `2026-10-21-monitor-capture.md`). Screenshot and recording `monitor` mode:
+  the screen under the pointer.
+
 - 2026-10-21 — **display-presets** (`2b0ad18`, ff; log
   `2026-10-21-display-presets.md`). Super+Shift+d keeps active screens'
   modes and the real primary; saves the layout as an autorandr profile.

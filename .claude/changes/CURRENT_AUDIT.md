@@ -277,3 +277,11 @@ above is history, kept verbatim from the pre-rotation snapshot.
   (name check, overwrite confirm). VM: extend kept 1080p; a saved layout
   came back via `autorandr --change`. 9/9 mutants. Suite 103 OK.
   Focus-follows-mouse, also picked, already works across monitors (VM).
+- **monitor-capture** (`0865a45`, ff; log `2026-10-21-monitor-capture.md`):
+  second multi-monitor pick. `dwm-screenshot` and `dwm-record` gained a
+  `monitor` mode — the screen under the pointer (new sourced
+  `dwm-lib-monitor.sh`: xdotool position + `xrandr --listactivemonitors`),
+  failing with a reason rather than guessing. VM: real tools picked the
+  right 1920x1080 rectangle at all four edge positions; recording VP9
+  1920x1080. 14/14 mutants. Suite 104 OK. Found: two shots in one second
+  share a name and the second overwrites the first.
