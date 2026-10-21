@@ -17,9 +17,17 @@
 # Runs unlocked when flock is missing or the lock file cannot be made: a
 # theme change must not depend on it. DOTS_THEME_LOCK_WAIT (seconds, default
 # 60) is how long a change waits for the one before it.
+#
+# Arguments that change nothing take no lock (2026-10-21): --list (the
+# Super+Shift+t menu builds its list from it), help, --login-random (a flag
+# file only) and --select, whose dmenu picker held the lock for as long as it
+# stayed open. wallpaper.sh re-runs itself with the chosen path, and that
+# run is locked like any other.
 
 if [[ -n ${DOTS_THEME_LOCKED:-} ]]; then
     unset DOTS_THEME_LOCKED
+elif [[ ${2:-} == @(-h|--help|--list|--login-random|--select) ]]; then
+    :
 else
     theme_lock_file="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/.theme.lock"
     if command -v flock >/dev/null 2>&1 && mkdir -p "${theme_lock_file%/*}" 2>/dev/null \

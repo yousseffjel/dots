@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **The theme menu no longer waits behind a wallpaper change.** `dots theme
+  --list` (which builds the Super+Shift+t menu), `--help` and
+  `dots wallpaper --login-random` no longer wait for a change in progress,
+  and the wallpaper picker no longer blocks every other change while it is
+  open. Only the change itself takes the lock.
+
 - **`dots uninstall --dry-run` previews every category.** It asked each
   category's y/N question first, so without a terminal (or answered N) it
   printed "skipped" for all of them and showed nothing. A dry run now asks

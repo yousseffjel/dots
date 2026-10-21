@@ -159,8 +159,8 @@ missing=0
 while IFS= read -r line; do
     grep -qxF -- "$line" <<<"$template" || missing=1
     grep -qxF -- "$line" <<<"$theming" || missing=1
-done < <(sed -n "/^login_random_hint()/,/^}/s/^ *yellow '  *\(.*\)'$/\1/p" "$DOTS_DIR/scripts/theme/wallpaper.sh")
-hint_lines="$(sed -n "/^login_random_hint()/,/^}/s/^ *yellow '  *\(.*\)'$/\1/p" "$DOTS_DIR/scripts/theme/wallpaper.sh" | wc -l)"
+done < <(sed -n "/^login_random_hint()/,/^}/s/^ *yellow '  *\(.*\)'$/\1/p" "$DOTS_DIR/scripts/theme/wallpaper-login-random.sh")
+hint_lines="$(sed -n "/^login_random_hint()/,/^}/s/^ *yellow '  *\(.*\)'$/\1/p" "$DOTS_DIR/scripts/theme/wallpaper-login-random.sh" | wc -l)"
 check "the $hint_lines paste-hint lines are the template's own, and THEMING.md's" "[[ $missing == 0 && $hint_lines == 3 ]]"
 
 if ((rc != 0)); then

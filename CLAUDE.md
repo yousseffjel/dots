@@ -172,7 +172,8 @@ dots/
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
 │                               # ly-theme.sh (`dots login-theme`: five keys of root's /etc/ly/config.ini, default_input included; sudo, never prompted without a TTY)
 │                               # theme-lock.sh: sourced by wallpaper.sh + theme-apply.sh — one change at a time (`flock -o`,
-│                               #  so dwmblocks and the other daemons a change starts never hold the lock)
+│                               #  so dwmblocks and the other daemons a change starts never hold the lock; --list, help,
+│                               #  --login-random and --select's picker take none). wallpaper-login-random.sh: sourced by wallpaper.sh
 ├── packages/            # four tiers + laptop.lst; tests/pkglist.sh globs them, never names them
 │   ├── core.lst         # hard-fail — the installer's own next step breaks (git, zsh)
 │   ├── build.lst        # suckless build deps — read by install-suckless.sh ONLY, not install-pkg.sh
