@@ -28,6 +28,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **The dwm runtime test no longer starts your session's autostart.**
+  `tests/dwm-runtime.sh` ran dwm with your HOME, so on a dots desktop the
+  autostart patch launched your real `autostart.sh` against the test's
+  display (daemons included; `dwm-audiowatch` talks to your real
+  PipeWire). It now runs dwm in a sandbox HOME and checks that the
+  sandbox's stand-in is the one that ran.
 - **Two screenshots in the same second no longer overwrite each other.**
   File names have seconds resolution, so the second one replaced the
   first; it is now saved as `…-2.png`. Recordings get the same treatment

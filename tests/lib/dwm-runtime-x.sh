@@ -42,8 +42,19 @@ start_xvfb() {
 }
 
 # Starts the built dwm and waits until it has finished setup().
+#
+# HOME and XDG_DATA_HOME are a sandbox. The autostart patch runs
+# $XDG_DATA_HOME/dwm/autostart.sh (else ~/.local/share/dwm/), and on a
+# tester's desktop that is their real one: it would start their daemons
+# against this display, dwm-audiowatch among them, which talks to their real
+# PipeWire and signals their real dwmblocks. The stand-in only leaves a
+# marker, and the wait below proves it was this one that ran. Restarts keep
+# the environment (execvp), so they run the stand-in too.
 start_dwm() {
-    "$DWM" >"$TMP/dwm.log" 2>&1 &
+    mkdir -p "$TMP/home/.local/share/dwm"
+    printf '#!/bin/sh\ntouch "%s/autostart.ran"\n' "$TMP" >"$TMP/home/.local/share/dwm/autostart.sh"
+    chmod 755 "$TMP/home/.local/share/dwm/autostart.sh"
+    HOME="$TMP/home" XDG_DATA_HOME="$TMP/home/.local/share" "$DWM" >"$TMP/dwm.log" 2>&1 &
     DWM_PID=$!
     # _NET_SUPPORTED is set one XChangeProperty call AFTER
     # _NET_SUPPORTING_WM_CHECK in dwm.c's setup() — wait for the LATER one, or
@@ -58,7 +69,15 @@ start_dwm() {
         cat "$TMP/dwm.log" >&2
         exit 1
     }
-    blue "==> dwm running (pid $DWM_PID)"
+    for _ in $(seq 1 50); do
+        [[ -e "$TMP/autostart.ran" ]] && break
+        sleep 0.1
+    done
+    [[ -e "$TMP/autostart.ran" ]] || {
+        red "dwm did not run the sandbox autostart.sh — it may have run the tester's real one"
+        exit 1
+    }
+    blue "==> dwm running (pid $DWM_PID), sandbox autostart ran"
 }
 
 # Opens one test xterm and prints its window id (empty if none appeared).
