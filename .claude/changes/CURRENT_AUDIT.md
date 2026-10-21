@@ -285,3 +285,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   right 1920x1080 rectangle at all four edge positions; recording VP9
   1920x1080. 14/14 mutants. Suite 104 OK. Found: two shots in one second
   share a name and the second overwrites the first.
+- **capture-name-clash** (ff; log `2026-10-21-capture-name-clash.md`):
+  two screenshots in one second shared a seconds-resolution name and the
+  second replaced the first; a recording restarted within a second made
+  ffmpeg refuse the existing file. Both now reserve a free name with
+  noclobber (`-2`, `-3` …); ffmpeg `-y` onto its own reservation. VM:
+  three concurrent shots → three files; two real recordings in one pinned
+  second → two valid files. 6/6 mutants. Suite 104 OK.

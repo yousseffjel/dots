@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **capture-name-clash** (ff; log
+  `2026-10-21-capture-name-clash.md`). Same-second screenshots/recordings
+  no longer overwrite each other.
+
 - 2026-10-21 — **monitor-capture** (`0865a45`, ff; log
   `2026-10-21-monitor-capture.md`). Screenshot and recording `monitor` mode:
   the screen under the pointer.
