@@ -257,3 +257,12 @@ above is history, kept verbatim from the pre-rotation snapshot.
   theme-apply checks before its identity/wallpaper steps. The VM cache was
   repaired headless; a re-login is still owed. Suite 101 OK.
 - **version-columns** (`a599888`, MICRO): `dots version` values aligned.
+- **clipmenud-match** (`db56814`, ff; log `2026-10-21-clipmenud-match.md`):
+  Void's clipmenud is an env-bash script, so it runs as "bash" and
+  `pkill -x clipmenud` at logout never matched — an orphan held ly's tty2
+  on the VM. Now `-f '/clipmenud$'` in the stop and the autostart guard;
+  old `.xinitrc` files are told the one line to replace. New
+  tests/session-end-match.sh runs every shipped stop against real-shaped
+  processes (pgrep only). Suite 102 OK. VM logout check pending a login.
+- VM gained a second QXL head (heads=2, vgamem 32 MB) for multi-monitor
+  testing; original XML kept in the session scratchpad.

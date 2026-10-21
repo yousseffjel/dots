@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **clipmenud-match** (`db56814`, ff; log
+  `2026-10-21-clipmenud-match.md`). clipmenud stopped at logout by -f (it
+  runs as "bash" on Void); old .xinitrc files told the line to replace.
+
 - 2026-10-21 — **palette-missing-keys** (`942ee41`, ff; log
   `2026-10-21-palette-missing-keys.md`). A palette missing a template key is
   refused before anything is written; it used to end the X session.
