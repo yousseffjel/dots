@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sourced by dwm-screenshot, never run (no exec bit, so dmenu_path never lists
 # it): the theming and capture half, split out at the 250-line cap
-# (2026-10-12). Uses the caller's red/notify and its maim/slop flags.
+# (2026-10-12). Uses the caller's red/notify, its maim/slop flags and
+# monitor_geometry (dwm-lib-monitor.sh, or the caller's stand-in).
 
 # --- theming -----------------------------------------------------------
 # slop's --color wants float RGBA, so the palette hex needs converting.
@@ -58,6 +59,14 @@ capture() {
     case "$mode" in
         full)
             maim "${CAPTURE_OPTS[@]}" "$out"
+            ;;
+        monitor)
+            # The key's stderr goes nowhere, so the reason is notified too.
+            geom="$(monitor_geometry)" || {
+                notify -u critical "Screenshot failed" "could not find the monitor under the pointer"
+                return 1
+            }
+            maim "${CAPTURE_OPTS[@]}" --geometry "$geom" "$out"
             ;;
         window)
             require xprop "needed only for --window; --full and --region still work" || return 1

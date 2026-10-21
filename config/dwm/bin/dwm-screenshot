@@ -3,7 +3,10 @@
 #
 # Two prompts, mode then destination, mirroring dwm-powermenu's structure:
 #
-#   screenshot>  full | window | region
+#   screenshot>  full | monitor | window | region
+#
+# full is the whole X screen, every monitor at once; monitor is the one
+# under the pointer (dwm-lib-monitor.sh).
 #   dest>        clipboard | file | both
 #
 # Either prompt is skipped when the matching flag is passed, so a keybind can
@@ -12,6 +15,8 @@
 #   dwm-screenshot                        both prompts
 #   dwm-screenshot --region               region, then ask where it goes
 #   dwm-screenshot --region --clipboard   no prompts at all
+#
+#   dwm-screenshot --monitor --both       this monitor, saved and copied
 #
 # Bound to Print, Shift+Print, Super+p (region -> clipboard) and Super+Alt+p
 # (full -> both) in config/sxhkd/sxhkdrc. Nothing here needs a dwm rebuild:
@@ -50,7 +55,7 @@ cleanup() { if [[ -n "$TMP" ]]; then rm -f "$TMP"; fi; }
 trap cleanup EXIT
 
 usage() {
-    echo "usage: dwm-screenshot [--full|--window|--region] [--clipboard|--file|--both]"
+    echo "usage: dwm-screenshot [--full|--monitor|--window|--region] [--clipboard|--file|--both]"
 }
 
 # Notifications are a nicety, never a dependency — same contract as
@@ -76,6 +81,14 @@ if ! source "${BASH_SOURCE[0]%/*}/dwm-lib-screenshot.sh" 2>/dev/null; then
     red "dwm-screenshot: dwm-lib-screenshot.sh is missing next to this script"
     exit 1
 fi
+
+# monitor_geometry (dwm-lib-monitor.sh). Only --monitor needs it, so a
+# missing one fails that mode alone, like a missing xprop fails --window.
+# shellcheck source=dwm-lib-monitor.sh
+source "${BASH_SOURCE[0]%/*}/dwm-lib-monitor.sh" 2>/dev/null || monitor_geometry() {
+    red "dwm-screenshot: dwm-lib-monitor.sh is missing next to this script"
+    return 1
+}
 
 # Checked here rather than up front: --file needs no clipboard at all, and
 # failing that combination on a missing xclip would be gratuitous.
@@ -115,7 +128,7 @@ MODE=""
 DEST=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --full | --window | --region) MODE="${1#--}" ;;
+        --full | --monitor | --window | --region) MODE="${1#--}" ;;
         --clipboard | --file | --both) DEST="${1#--}" ;;
         -h | --help)
             usage
@@ -135,8 +148,8 @@ require maim "the capture backend" || exit 1
 # An unset mode or destination is prompted for. dmenu exits non-zero on
 # Escape, which is an abort, not an error.
 if [[ -z "$MODE" ]]; then
-    MODE="$(printf '%s\n' full window region \
-        | dmenu "${DMENU_OPTS[@]}" -l 3 -p "screenshot>")" || exit 0
+    MODE="$(printf '%s\n' full monitor window region \
+        | dmenu "${DMENU_OPTS[@]}" -l 4 -p "screenshot>")" || exit 0
 fi
 if [[ -z "$DEST" ]]; then
     DEST="$(printf '%s\n' clipboard file both \
@@ -148,7 +161,7 @@ fi
 # deliver() would mean a wasted capture — in region mode, a whole selection
 # drag performed for nothing.
 case "$MODE" in
-    full | window | region) ;;
+    full | monitor | window | region) ;;
     *)
         red "dwm-screenshot: unknown mode '$MODE'"
         exit 1

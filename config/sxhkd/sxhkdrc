@@ -138,7 +138,8 @@ super + ctrl + r
 	pkill -USR1 -x sxhkd
 
 # --- screenshot --------------------------------------------------------
-# Print opens the full two-level menu: mode (full / window / region), then
+# Print opens the full two-level menu: mode (full / monitor / window /
+# region; monitor is the one under the pointer), then
 # destination (clipboard / file / both). The rest are fast paths, no prompts:
 #
 #   Super+p (and Shift+Print) — drag a region, straight to the clipboard.
@@ -160,7 +161,7 @@ super + alt + p
 	dwm-screenshot --full --both
 
 # --- screen recording --------------------------------------------------
-# One key toggles: with nothing recording it asks full | region and starts;
+# One key toggles: with nothing recording it asks full | monitor | region and starts;
 # while recording, the same key stops it. Files go to ~/Videos/recordings.
 # (super + ctrl + r is the sxhkd reload.)
 super + r

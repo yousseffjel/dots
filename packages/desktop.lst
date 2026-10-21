@@ -47,7 +47,7 @@ xrandr  # the brightness keys do nothing — dwm-brightness drives gamma through
 gammastep  # no night light: Super+n does nothing and the screen never warms at dusk
 xset  # dwm-lock cannot arm X's idle timers, so the screen never locks on inactivity
 xclip  # screenshots are captured but never reach the clipboard
-xdotool  # the Super+c colour picker dies: dwm-colorpicker reads the pointer position with getmouselocation and has no fallback for it
+xdotool  # the Super+c colour picker dies: dwm-colorpicker reads the pointer position with getmouselocation and has no fallback for it; the 'monitor' screenshot and recording modes fail too
 
 # --- keys, and the signalling the status bar depends on ---
 sxhkd  # EVERY non-dwm keybind dies at once: media, volume, mic, brightness, screenshot, lock, theming and launchers

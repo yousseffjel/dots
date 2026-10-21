@@ -18,6 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Capture just the monitor you are on.** The screenshot menu (`Print`)
+  and the recording menu (`Super+r`) offer `monitor`: the screen under the
+  pointer, at its exact edges. On two screens `full` takes both at once.
+
 - **Save a monitor layout from `Super+Shift+d`.** Its new last entry, "save
   this layout as a profile", names and saves the current arrangement with
   autorandr; plugging the same screens in again restores it.

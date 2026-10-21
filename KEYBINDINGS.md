@@ -404,9 +404,14 @@ dwm-brightness set 70
 ```text
 screenshot>          dest>
   full                 clipboard
-  window               file
-  region               both
+  monitor              file
+  window               both
+  region
 ```
+
+On more than one screen, `full` is all of them in one image; `monitor` is
+just the one under the pointer, at its exact edges (the same rectangle dwm
+lays its bar out on), found with `xdotool` and `xrandr`.
 
 Escape at either prompt aborts and captures nothing. `file` and `both` write
 to `screenshots/` inside your pictures folder — `xdg-user-dir PICTURES`,
@@ -438,13 +443,14 @@ From a shell, both prompts can be skipped:
 dwm-screenshot                        # both prompts
 dwm-screenshot --region               # region, then ask where it goes
 dwm-screenshot --full --both          # no prompts at all
+dwm-screenshot --monitor --clipboard  # this monitor, no prompts
 ```
 
 ### Screen recording
 
 | Keys | Action |
 | --- | --- |
-| `Super` + `r` | Start a recording (pick full screen or a region), or stop the one running (`dwm-record`) |
+| `Super` + `r` | Start a recording (pick full screen, the monitor under the pointer, or a region), or stop the one running (`dwm-record`) |
 
 Recordings are VP9 video in WebM, with no audio, saved to `recordings/`
 inside your videos folder (`xdg-user-dir VIDEOS`, else `~/Videos`;

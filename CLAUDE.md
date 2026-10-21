@@ -53,7 +53,8 @@ dots/
 │   ├── dwm/bin/         # dmenu-driven scripts: dwm-apps (the Super+space launcher), dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight, dwm-power, dwm-picom (picom backend), dwm-notify (notification centre + focus mode), dwm-audiowatch (redraws VOL/MIC on PipeWire events)
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
 │   │                    # dwm-lib-*.sh are SOURCED (644, so dmenu never lists them): -xdg (where screenshot,
-│   │                    #  record and wallpaper.sh save/read), -screenshot (dwm-screenshot's capture half)
+│   │                    #  record and wallpaper.sh save/read), -screenshot (dwm-screenshot's capture half),
+│   │                    #  -monitor (the monitor under the pointer, for screenshot and record)
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
 │   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table

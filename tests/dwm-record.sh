@@ -15,6 +15,8 @@
 #   * the second press sends SIGINT (ffmpeg's clean stop), the file exists,
 #     the state is cleared and the process is gone;
 #   * region: slop's geometry, rounded to even, as -video_size and +x,y;
+#   * monitor: the monitor under the pointer (dwm-lib-monitor.sh), the same
+#     way; a pointer on no monitor starts nothing and is reported;
 #   * Escape at dmenu or in slop starts nothing;
 #   * a stale pid naming some other process is never signalled;
 #   * an ffmpeg that dies at once is reported (exit 1) and leaves no state;
@@ -78,7 +80,13 @@ while True:
     time.sleep(0.05)
 EOF
 chmod 755 "$SB/fake/ffmpeg"
-fake "$SB/fake" xrandr 'echo "Screen 0: minimum 8 x 8, current 1921 x 1081, maximum 32767 x 32767"'
+# --listactivemonitors in the real format: two monitors, the right one odd-sized.
+# shellcheck disable=SC2016
+fake "$SB/fake" xrandr 'if [ "$1" = --listactivemonitors ]; then
+    printf "Monitors: 2\n 0: +*HDMI-1 1920/530x1080/300+0+0  HDMI-1\n 1: +HDMI-2 1281/530x1025/300+1920+0  HDMI-2\n"
+else echo "Screen 0: minimum 8 x 8, current 1921 x 1081, maximum 32767 x 32767"; fi'
+# shellcheck disable=SC2016
+fake "$SB/fake" xdotool 'printf "X=%s\nY=%s\nSCREEN=0\n" "${PX:-2000}" "${PY:-10}"'
 # shellcheck disable=SC2016
 fake "$SB/fake" slop 'cat "$SB/slop" 2>/dev/null'
 # shellcheck disable=SC2016
@@ -101,7 +109,7 @@ check() {
 # caller's env.
 rec() {
     RC=0
-    env -i HOME="$SB" LOG="$LOG" SB="$SB" PICK="${PICK:-}" DISPLAY="${DISP-:9}" \
+    env -i HOME="$SB" LOG="$LOG" SB="$SB" PICK="${PICK:-}" PX="${PX:-}" DISPLAY="${DISP-:9}" \
         FFMPEG_DIES="${FFMPEG_DIES:-}" XDG_RUNTIME_DIR="$SB/run" \
         FAKE_XDG="${FAKE_XDG:-}" DOTS_RECORD_DIR="${REC_DIR-$SB/videos}" PATH="$SB/fake:$SB/real" \
         "$(type -P bash)" "$SUT" "$@" >/dev/null 2>&1 || RC=$?
@@ -139,6 +147,19 @@ rec --region
 check "slop geometry, rounded to even" logged '-video_size 300x200 -i :9\+10,20 '
 rec
 check "stopped" ffmpeg_gone
+
+blue "monitor"
+: >"$LOG"
+rec --monitor
+check "the monitor under the pointer, rounded to even" logged '-video_size 1280x1024 -i :9\+1920,0 '
+rec
+check "stopped" ffmpeg_gone
+: >"$LOG"
+PX=9000 rec --monitor
+failed_unstarted() { [[ $RC -eq 1 ]] && none_started; }
+check "pointer on no monitor: exit 1, nothing started" failed_unstarted
+check "...reported" logged '^notify .*Recording failed'
+check "...no state left" state_clear
 
 blue "cancels"
 : >"$LOG"

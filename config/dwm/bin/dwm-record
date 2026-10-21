@@ -3,14 +3,17 @@
 #
 # With nothing recording, it asks for a mode and starts:
 #
-#   record>  full | region
+#   record>  full | monitor | region
 #
-# region is drawn with slop, as dwm-screenshot does. With a recording
+# full is the whole X screen, every monitor at once; monitor is the one
+# under the pointer (dwm-lib-monitor.sh); region is drawn with slop, as
+# dwm-screenshot does. With a recording
 # running, the same key stops it and says where the file went. Escape at the
 # prompt or in slop aborts silently.
 #
 #   dwm-record            toggle (prompt when starting)
 #   dwm-record --full     start full-screen, or stop if running
+#   dwm-record --monitor  start this monitor, or stop if running
 #   dwm-record --region   start region, or stop if running
 #
 # Video only, VP9 in WebM. Chosen when Fedora's ffmpeg-free had no H.264
@@ -43,8 +46,16 @@ STOP_WAIT_TENTHS=50
 FONT="monospace:size=10"
 SLOP_BORDER=2
 
+# monitor_geometry (dwm-lib-monitor.sh). Only --monitor needs it, so a
+# missing one fails that mode alone.
+# shellcheck source=dwm-lib-monitor.sh
+source "${BASH_SOURCE[0]%/*}/dwm-lib-monitor.sh" 2>/dev/null || monitor_geometry() {
+    red "dwm-record: dwm-lib-monitor.sh is missing next to this script"
+    return 1
+}
+
 usage() {
-    echo "usage: dwm-record [--full|--region]"
+    echo "usage: dwm-record [--full|--monitor|--region]"
 }
 
 notify() {
@@ -88,8 +99,8 @@ stop() {
 
 even() { printf '%d' $(($1 / 2 * 2)); }
 
-# Fills INPUT with ffmpeg's input arguments for the mode, or returns 1 on a
-# cancelled region. A global rather than printed output: a function run in
+# Fills INPUT with ffmpeg's input arguments for the mode. Returns 1 on a
+# cancelled region, 2 when there is no monitor under the pointer. A global rather than printed output: a function run in
 # $( ) or <( ) cannot exit the script, so fail() inside it would be lost.
 # yuv420p needs even dimensions, so odd ones are rounded down.
 INPUT=()
@@ -104,6 +115,11 @@ input_args() {
             fi
             INPUT+=(-i "$DISPLAY")
             ;;
+        monitor)
+            geom="$(monitor_geometry)" || return 2
+            IFS='x+' read -r w h x y <<<"$geom"
+            INPUT+=(-video_size "$(even "$w")x$(even "$h")" -i "$DISPLAY+$x,$y")
+            ;;
         region)
             geom="$(slop -b "$SLOP_BORDER" -f '%w %h %x %y' 2>/dev/null || true)"
             read -r w h x y _ <<<"$geom" || true
@@ -116,13 +132,15 @@ input_args() {
 }
 
 start() {
-    local mode="$1" out
+    local mode="$1" out rc=0
     command -v ffmpeg >/dev/null 2>&1 || fail "ffmpeg is not installed (packages/desktop.lst: ffmpeg6)"
     [[ -n "${DISPLAY:-}" ]] || fail "DISPLAY is not set"
     if [[ "$mode" == region ]] && ! command -v slop >/dev/null 2>&1; then
         fail "slop is not installed — region mode needs it"
     fi
-    input_args "$mode" || exit 0
+    input_args "$mode" || rc=$?
+    if ((rc == 2)); then fail "could not find the monitor under the pointer"; fi
+    if ((rc != 0)); then exit 0; fi
     mkdir -p "$OUT_DIR" "$STATE_DIR"
     out="$OUT_DIR/$(date +"$NAME_FMT")"
     ffmpeg -hide_banner -loglevel error -f x11grab -framerate "$FRAMERATE" \
@@ -144,6 +162,7 @@ mode=""
 for arg in "$@"; do
     case "$arg" in
         --full) mode=full ;;
+        --monitor) mode=monitor ;;
         --region) mode=region ;;
         -h | --help)
             usage
@@ -162,9 +181,9 @@ if pid="$(running_pid)"; then
     exit 0
 fi
 if [[ -z "$mode" ]]; then
-    mode="$(printf '%s\n' full region | dmenu -i -fn "$FONT" -l 2 -p "record>")" || exit 0
+    mode="$(printf '%s\n' full monitor region | dmenu -i -fn "$FONT" -l 3 -p "record>")" || exit 0
 fi
 case "$mode" in
-    full | region) start "$mode" ;;
+    full | monitor | region) start "$mode" ;;
     *) exit 0 ;;
 esac
