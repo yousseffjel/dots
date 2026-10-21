@@ -2,4 +2,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-21-monitor-capture.md
+Last log: .claude/changes/2026-10-21-capture-name-clash.md

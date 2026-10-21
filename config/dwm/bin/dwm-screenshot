@@ -49,6 +49,8 @@ CAPTURE_OPTS=(--hidecursor)
 
 # slop's rectangle: 2px, and see selector_color below for the colour.
 SLOP_BORDER=2
+# Same-second names tried before giving up (an unwritable dir, say).
+RESERVE_TRIES=99
 
 TMP=""
 cleanup() { if [[ -n "$TMP" ]]; then rm -f "$TMP"; fi; }
@@ -97,6 +99,20 @@ to_clipboard() {
     xclip -selection clipboard -t image/png -i "$1"
 }
 
+# reserve <path> — creates the first free one of path, path-2, path-3 …
+# and prints it. NAME_FMT has seconds resolution, so two captures in one
+# second shared a name and the second replaced the first. noclobber makes
+# the create atomic: two at once cannot both win the same name.
+reserve() {
+    local base="${1%.*}" ext="${1##*.}" try="$1" n=1
+    until (set -C && : >"$try") 2>/dev/null; do
+        n=$((n + 1))
+        ((n <= RESERVE_TRIES)) || return 1
+        try="$base-$n.$ext"
+    done
+    printf '%s\n' "$try"
+}
+
 # Consumes $TMP. For file/both the temp is moved into place rather than
 # copied, so the EXIT trap's rm finds nothing left to remove. As with
 # capture(), $1 is validated by the caller rather than re-checked here.
@@ -109,7 +125,11 @@ deliver() {
             ;;
         file | both)
             mkdir -p "$SHOT_DIR"
-            target="$SHOT_DIR/$(date +"$NAME_FMT")"
+            if ! target="$(reserve "$SHOT_DIR/$(date +"$NAME_FMT")")"; then
+                notify -u critical "Screenshot failed" "cannot create a file in $SHOT_DIR"
+                red "dwm-screenshot: cannot create a file in $SHOT_DIR"
+                return 1
+            fi
             mv "$src" "$target"
             # The file is already safe on disk by this point, so a failing
             # clipboard step must not take the whole run down with it — it

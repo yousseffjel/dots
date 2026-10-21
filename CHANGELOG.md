@@ -28,6 +28,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Two screenshots in the same second no longer overwrite each other.**
+  File names have seconds resolution, so the second one replaced the
+  first; it is now saved as `…-2.png`. Recordings get the same treatment
+  (a restart within a second made ffmpeg refuse the existing file).
 - **`Super+Shift+d` no longer resets the screen you are using.** Its
   presets ran `--auto` on screens that were already on, which put them back
   on their preferred mode (any mode or refresh rate chosen by hand was

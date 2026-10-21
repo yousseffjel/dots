@@ -43,6 +43,8 @@ FRAMERATE=30
 ENCODE_OPTS=(-c:v libvpx-vp9 -deadline realtime -cpu-used 8 -row-mt 1
     -crf 32 -b:v 0 -pix_fmt yuv420p)
 STOP_WAIT_TENTHS=50
+# Same-second names tried before giving up (an unwritable dir, say).
+RESERVE_TRIES=99
 FONT="monospace:size=10"
 SLOP_BORDER=2
 
@@ -93,8 +95,23 @@ stop() {
     if [[ -s "$out" ]]; then
         notify "Recording saved" "$out"
     else
+        if [[ -n "$out" ]]; then rm -f "$out"; fi # the empty reservation
         fail "no video was written — see $STATE_DIR/ffmpeg.log"
     fi
+}
+
+# reserve <path> — creates the first free one of path, path-2, path-3 …
+# and prints it. NAME_FMT has seconds resolution, so two captures in one
+# second shared a name and the second replaced the first. noclobber makes
+# the create atomic: two at once cannot both win the same name.
+reserve() {
+    local base="${1%.*}" ext="${1##*.}" try="$1" n=1
+    until (set -C && : >"$try") 2>/dev/null; do
+        n=$((n + 1))
+        ((n <= RESERVE_TRIES)) || return 1
+        try="$base-$n.$ext"
+    done
+    printf '%s\n' "$try"
 }
 
 even() { printf '%d' $(($1 / 2 * 2)); }
@@ -142,8 +159,10 @@ start() {
     if ((rc == 2)); then fail "could not find the monitor under the pointer"; fi
     if ((rc != 0)); then exit 0; fi
     mkdir -p "$OUT_DIR" "$STATE_DIR"
-    out="$OUT_DIR/$(date +"$NAME_FMT")"
-    ffmpeg -hide_banner -loglevel error -f x11grab -framerate "$FRAMERATE" \
+    out="$(reserve "$OUT_DIR/$(date +"$NAME_FMT")")" || fail "cannot create a file in $OUT_DIR"
+    # -y: the name is ours, reserved empty above; without it ffmpeg refuses
+    # an existing file (stdin is /dev/null, so it cannot ask).
+    ffmpeg -y -hide_banner -loglevel error -f x11grab -framerate "$FRAMERATE" \
         "${INPUT[@]}" "${ENCODE_OPTS[@]}" "$out" \
         </dev/null >"$STATE_DIR/ffmpeg.log" 2>&1 &
     printf '%s\n' "$!" >"$STATE_DIR/pid"
@@ -153,6 +172,7 @@ start() {
     sleep 0.5
     if ! running_pid >/dev/null; then
         rm -f "$STATE_DIR/pid" "$STATE_DIR/out"
+        if [[ ! -s "$out" ]]; then rm -f "$out"; fi
         fail "ffmpeg exited at once — see $STATE_DIR/ffmpeg.log"
     fi
     notify "Recording" "Super+r stops it"

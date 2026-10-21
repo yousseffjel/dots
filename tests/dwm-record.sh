@@ -19,6 +19,8 @@
 #     way; a pointer on no monitor starts nothing and is reported;
 #   * Escape at dmenu or in slop starts nothing;
 #   * a stale pid naming some other process is never signalled;
+#   * a second recording in the same second gets -2, and ffmpeg -y onto
+#     the reserved name (without it real ffmpeg refuses an existing file);
 #   * an ffmpeg that dies at once is reported (exit 1) and leaves no state;
 #   * no DISPLAY is exit 1;
 #   * without DOTS_RECORD_DIR it records into the XDG videos dir, and falls
@@ -180,12 +182,27 @@ check "a non-ffmpeg pid is not signalled" kill -0 "$STRAY"
 check "a new recording starts instead" logged '^ffmpeg '
 rec
 
+blue "same second"
+# shellcheck disable=SC2016
+fake "$SB/fake" date "exec '$(type -P date)' -d @1700000000 \"\$@\""
+rm -f "$SB"/videos/*
+PICK=full rec
+rec
+: >"$LOG"
+PICK=full rec
+check "the second gets -2" logged 'dots-recording-[0-9-]+-2\.webm$'
+check "ffmpeg overwrites only its own reservation (-y)" logged '^ffmpeg -y '
+rec
+check "both files kept" test "$(find "$SB/videos" -name '*.webm' -size +0 | wc -l)" -eq 2
+rm "$SB/fake/date"
+
 blue "failures"
 : >"$LOG"
 FFMPEG_DIES=1 PICK=full rec
 check "ffmpeg dying at once: exit 1" test "$RC" -eq 1
 check "reported" logged '^notify .*Recording failed'
 check "no state left" state_clear
+check "no empty file left behind" test -z "$(find "$SB/videos" -name '*.webm' -empty)"
 DISP="" PICK=full rec
 check "no DISPLAY: exit 1" test "$RC" -eq 1
 

@@ -12,7 +12,8 @@
 #     capture is taken;
 #   * --window with no focused window (_NET_ACTIVE_WINDOW 0x0) fails;
 #   * file/both land in DOTS_SCREENSHOT_DIR under the documented name; a
-#     missing xclip does not lose a file that was already saved;
+#     missing xclip does not lose a file that was already saved; two shots
+#     in the same second keep both files (-2 suffix), not the second only;
 #   * an empty capture is an error, and a missing maim fails up front.
 #
 # SAFETY: every tool is a fake on a sealed PATH — a real maim would capture
@@ -78,6 +79,9 @@ mkbin all
 mkbin no-xclip xclip
 mkbin no-maim maim
 mkbin no-xdg xdg-user-dir
+# A clock stuck on one second: NAME_FMT has seconds resolution.
+mkbin samesec
+fake "$TMP/samesec" date "exec '$(type -P date)' -d @1700000000 \"\$@\""
 
 # run <bin> [VAR=val...] -- <args...>; sets RC and ERR; fresh log/menu/shots.
 run() {
@@ -188,6 +192,18 @@ if [[ $RC -ne 0 && "$ERR" == *"unknown destination"* ]] && ! has slop && ! has m
     pass "a mistyped destination is rejected BEFORE the region drag (no wasted selection)"
 else
     fail "typo destination: rc=$RC log=$(cat "$LOG")"
+fi
+
+blue "==> two shots in the same second"
+run samesec -- --full --file
+env -i PATH="$TMP/samesec" HOME="$TMP/home" TMPDIR="$TMP" DOTS_SCREENSHOT_DIR="$SHOTS" \
+    bash "$SUT" --full --file >/dev/null 2>&1 || true
+first="$(find "$SHOTS" -type f ! -name '*-2.png' 2>/dev/null)"
+same="$(find "$SHOTS" -type f -printf '%f ' 2>/dev/null)"
+if [[ "$(shots)" -eq 2 && -s "$first" && -s "${first%.png}-2.png" ]]; then
+    pass "both kept: the second is -2, the first not overwritten"
+else
+    fail "same second: $same"
 fi
 
 blue "==> failure paths"
