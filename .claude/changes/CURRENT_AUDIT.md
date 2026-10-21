@@ -218,3 +218,13 @@ above is history, kept verbatim from the pre-rotation snapshot.
   `install-void.sh --only-restore` re-applied `--wallbash`, palette kept;
   dwm and dunst pids unchanged. `Super+Shift+t` via sxhkd opened the menu,
   gruvbox applied (#282828), `--wallbash` restored #171724.
+- **Same session, keybind sweep, no finding**: `Super+w` x3 fast — final
+  wallpaper, ~/.fehbg and palette agree. `Super+Alt+p` saved
+  ~/Pictures/screenshots/dots-screenshot-*.png and put image/png on the
+  clipboard. `Super+Shift+n` toggled dunst pause on/off. Every dmenu key
+  (notify, display, keys, emoji, apps, clipmenu, powermenu, record,
+  screenshot) opened its menu and left no process after Escape (dwm-emoji
+  needs ~0.5 s to grab the keyboard — an Escape sent sooner is lost; human
+  timing is fine). `Super+Shift+p` on a desktop/VM opens no menu and
+  notifies that power profiles are laptop-only, as designed (an apparent
+  5 s menu was the harness's wait-loop timeout).
