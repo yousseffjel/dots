@@ -165,7 +165,8 @@ jobs:
         run: bash tests/dwm-runtime.sh
 
       # Two RandR monitors on one Xvfb screen (xrandr --setmonitor): a bar
-      # per monitor and the status on every one (statusallmons).
+      # per monitor, the status on every one (statusallmons), and windows
+      # returning when a monitor is unplugged and plugged back (replug).
       - name: Run dwm on two monitors under Xvfb
         run: bash tests/dwm-multimon.sh
 

@@ -115,6 +115,10 @@ struct Client {
 	unsigned int tags;
 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
 	int isdropterm;
+	/* replug: the monitor this client was on before a monitor came or went,
+	 * by geometry, with that monitor's view and (floating) its position */
+	int hashome, homex, homey, homew, homeh, homefx, homefy;
+	unsigned int homeview;
 	Client *next;
 	Client *snext;
 	Monitor *mon;
@@ -154,6 +158,8 @@ struct Monitor {
 	Window barwin;
 	const Layout *lt[2];
 	Pertag *pertag;
+	int fresh;            /* replug: created by the last updategeom() */
+	unsigned int homeview; /* replug: the view its returning windows had */
 };
 
 typedef struct {
@@ -244,6 +250,7 @@ static void resizeclient(Client *c, int x, int y, int w, int h);
 static void resizemouse(const Arg *arg);
 static void resizerequest(XEvent *e);
 static void restack(Monitor *m);
+static void restorehomes(void);
 static void restorestate(void);
 static void run(void);
 static void saveclientinfo(Client *c);
@@ -262,6 +269,7 @@ static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
 static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
+static void sethomes(void);
 static void setlayout(const Arg *arg);
 static void setmfact(const Arg *arg);
 static void setup(void);
@@ -817,6 +825,7 @@ configurenotify(XEvent *e)
 		if (updategeom() || dirty) {
 			drw_resize(drw, sw, bh);
 			updatebars();
+			restorehomes();
 			for (m = mons; m; m = m->next) {
 				for (c = m->clients; c; c = c->next)
 					if (c->isfullscreen)
@@ -898,6 +907,7 @@ createmon(void)
 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
 	m->pertag = ecalloc(1, sizeof(Pertag));
 	m->pertag->curtag = m->pertag->prevtag = 1;
+	m->fresh = 1;
 
 	for (i = 0; i <= LENGTH(tags); i++) {
 		m->pertag->nmasters[i] = m->nmaster;
@@ -1530,10 +1540,12 @@ loadclientinfo(Client *c)
 	long *d;
 	Monitor *m;
 
-	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 7L, True,
+	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 15L, True,
 		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
 		return 0;
-	if (type == XA_CARDINAL && format == 32 && n == 7) {
+	/* 7 values before replug (what an older instance hands over on the
+	 * first restart after an upgrade), 15 with a window's home. */
+	if (type == XA_CARDINAL && format == 32 && (n == 7 || n == 15)) {
 		d = (long *)p;
 		saved = (unsigned long)d[0];
 		/* A stash is SCRATCHPAD_MASK alone; anything else must be real tags. */
@@ -1550,6 +1562,18 @@ loadclientinfo(Client *c)
 			c->y = d[4];
 			c->w = d[5];
 			c->h = d[6];
+		}
+		/* replug: a home kept across the restart, so a monitor plugged in
+		 * after a wallpaper change still gets its windows back. */
+		if (n == 15 && d[7] == 1 && d[10] > 0 && d[11] > 0) {
+			c->hashome = 1;
+			c->homex = d[8];
+			c->homey = d[9];
+			c->homew = d[10];
+			c->homeh = d[11];
+			c->homefx = d[12];
+			c->homefy = d[13];
+			c->homeview = (unsigned long)d[14] & TAGMASK;
 		}
 		applied = 1;
 	}
@@ -2261,12 +2285,14 @@ runautostart(void)
 }
 
 /* preserveonrestart: record a window's tags, monitor and floating geometry
- * on the window itself, where the next instance's manage() finds it. */
+ * (and its replug home) on the window itself, where the next instance's manage() finds it. */
 void
 saveclientinfo(Client *c)
 {
 	long data[] = { (long)c->tags, c->mon->num, c->isfloating,
-		c->x, c->y, c->w, c->h };
+		c->x, c->y, c->w, c->h,
+		c->hashome, c->homex, c->homey, c->homew, c->homeh,
+		c->homefx, c->homefy, (long)c->homeview };
 
 	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *)data, LENGTH(data));
@@ -2459,11 +2485,83 @@ scratchpad_show_first(void)
 		}
 }
 
+/* replug: dwm reuses Monitor structs by index and drops the LAST one when a
+ * monitor goes, so a struct is no identity across a hotplug — unplugging the
+ * left screen hands its struct the right screen's geometry. A client's home is
+ * therefore the GEOMETRY it was on. Recorded when the monitor count changes,
+ * for every client not already away from home. */
+void
+sethomes(void)
+{
+	Monitor *m;
+	Client *c;
+
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = c->next) {
+			if (c->hashome)
+				continue;
+			c->hashome = 1;
+			c->homex = m->mx;
+			c->homey = m->my;
+			c->homew = m->mw;
+			c->homeh = m->mh;
+			c->homeview = m->tagset[m->seltags];
+			c->homefx = c->x;
+			c->homefy = c->y;
+		}
+}
+
+/* replug: every client whose home geometry is a monitor again goes back to
+ * it, keeping its tags (and a floating one its position); one still away
+ * keeps its home. A monitor the hotplug created takes back the view its
+ * returning windows had. Runs after updategeom() and updatebars(). */
+void
+restorehomes(void)
+{
+	Monitor *m, *t, *prev = selmon;
+	Client *c, *next;
+
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = next) {
+			next = c->next;
+			if (!c->hashome)
+				continue;
+			for (t = mons; t && (t->mx != c->homex || t->my != c->homey
+			    || t->mw != c->homew || t->mh != c->homeh); t = t->next);
+			if (!t)
+				continue;
+			c->hashome = 0;
+			if (t == m)
+				continue;
+			detach(c);
+			detachstack(c);
+			c->mon = t;
+			if (c->isfloating) {
+				c->x = c->homefx;
+				c->y = c->homefy;
+			}
+			attach(c);
+			attachstack(c);
+			if (t->fresh && !t->homeview)
+				t->homeview = c->homeview;
+		}
+	for (m = mons; m; m = m->next) {
+		if (m->homeview & TAGMASK) {
+			selmon = m;
+			view(&(Arg){ .ui = m->homeview });
+		}
+		m->fresh = 0;
+		m->homeview = 0;
+	}
+	selmon = prev;
+}
+
 void
 sendmon(Client *c, Monitor *m)
 {
 	if (c->mon == m)
 		return;
+	c->hashome = 0; /* moved by hand: a replug no longer sends it back */
 	unfocus(c, 1);
 	detach(c);
 	detachstack(c);
@@ -3055,6 +3153,8 @@ updategeom(void)
 				memcpy(&unique[j++], &info[i], sizeof(XineramaScreenInfo));
 		XFree(info);
 		nn = j;
+		if (nn != n)
+			sethomes();
 
 		/* new monitors if nn > n */
 		for (i = n; i < nn; i++) {

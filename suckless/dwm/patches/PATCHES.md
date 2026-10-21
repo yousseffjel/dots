@@ -89,6 +89,38 @@ layout, mfact, nmaster and bar to the defaults.
 restart, and changing `_DWM_VIEW`'s layout would make the new binary misread
 the old one's data. A property the old binary never writes is simply absent.
 
+## dwm-replug-20261021-local.diff
+
+**Source**: written for this tree; no upstream patch does this. Stock
+`updategeom()` moves a vanished monitor's windows to the first monitor and
+forgets where they came from, so plugging the screen back in left it empty.
+
+**Why geometry, not the Monitor struct**: dwm reuses Monitor structs by
+index and frees the LAST one when a monitor goes. Unplug the left screen
+and struct 0 takes the right screen's geometry, carrying the left screen's
+windows with it; replug and it takes the left geometry back. A struct is no
+identity across a hotplug, so a window's home is the geometry it was on.
+
+**What it does**: `sethomes()`, from `updategeom()` only when the monitor
+COUNT changes (a mode change records nothing), gives every client not
+already away from home its monitor's geometry, that monitor's view, and
+its own position (used when floating). `restorehomes()`, from
+`configurenotify()` after `updatebars()`, moves each client whose home
+geometry is a monitor again back to it, keeping its tags, and clears the
+home; one still away keeps it. A monitor created by the hotplug (`fresh`)
+takes back its returning windows' view through `view()`, so pertag's
+layout follows. `sendmon()` clears the home: a window moved by hand stays
+where it was put. preserveonrestart's record carries the home across a
+restart (see that entry).
+
+**Tests**: `tests/dwm-multimon.sh` unplugs and replugs the right monitor of
+two (Xvfb's screen shrunk through an added RandR mode, the ConfigureNotify a
+real unplug sends): tiled and floating windows return, the view comes back,
+the left monitor's window stays, and a second cycle with a restart in the
+middle does the same with the view the window had then. Stock dwm failed the
+first return. Mutation-checked, except the `sendmon()` clear — with two
+monitors there is nowhere to move a window while one is gone.
+
 ## dwm-statusallmons-20261021-local.diff
 
 **Source**: modelled on the upstream statusallmons patch
@@ -177,6 +209,11 @@ tree before this diff and passes 7/7 after it.
 tag set on its own; any other value must lie inside TAGMASK, or the window
 keeps what `applyrules()` gave it. Floating geometry is restored before
 `manage()`'s clamp, so an off-screen position still lands on the monitor.
+
+**Since 2026-10-21** (`dwm-replug-20261021-local.diff`) the per-window record
+is 15 values, not 7: the replug home follows the original seven. A 7-value
+record is still read, because the first restart after an upgrade is the old
+binary handing over to the new one.
 
 ## dwm-dropterm-20261007-local.diff
 

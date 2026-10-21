@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Windows go back to a monitor you plug in again.** Unplugging a screen
+  still brings its windows to the one left; plugging it back now returns
+  them, on the tag they were showing (floating ones to their spot), even
+  if dwm restarted in between, as it does on every wallpaper change. A
+  window you moved by hand stays where you put it. Rebuild dwm.
+
 - **The status bar text is on every monitor.** The clock, volume, battery
   and the rest used to sit only on the monitor holding the pointer and
   jump with it; now every monitor's bar shows them, and clicking a block
