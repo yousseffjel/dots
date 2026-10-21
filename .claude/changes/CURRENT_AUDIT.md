@@ -242,3 +242,9 @@ above is history, kept verbatim from the pre-rotation snapshot.
   uninstall ordering comments still gave Fedora/rpm reasons. All fixed;
   new `tests/runtime-text-void.sh` runs every scripts/ `--help` (21, read
   from the code) and greps printed literals for Fedora-era tools. Suite 100 OK.
+- **update-arg-check** (`9e05019`, ff; log `2026-10-21-update-arg-check.md`):
+  `dots update --skip-sucless` fetched and fast-forwarded, then the
+  installer rejected the flag — checkout updated, nothing installed.
+  `installer_takes` now refuses a flag install-void.sh does not take (read
+  from its case labels) before the fetch. VM check of every `dots <sub>
+  --help`/`-h` (exit 0, HEAD and manifest unchanged) found it. Suite 100 OK.

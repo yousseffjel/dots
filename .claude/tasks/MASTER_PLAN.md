@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **update-arg-check** (`9e05019`, ff; log
+  `2026-10-21-update-arg-check.md`). `dots update` refuses a flag the
+  installer does not take before it fetches, instead of after the pull.
+
 - 2026-10-21 — **stale-port-text** (`23fa145`, ff; log
   `2026-10-21-stale-port-text.md`). Printed help/messages no longer name
   dnf/rpm/ffmpeg-free or "PORT IN PROGRESS"; tests/runtime-text-void.sh guards it.
