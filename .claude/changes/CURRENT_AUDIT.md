@@ -248,3 +248,12 @@ above is history, kept verbatim from the pre-rotation snapshot.
   `installer_takes` now refuses a flag install-void.sh does not take (read
   from its case labels) before the fetch. VM check of every `dots <sub>
   --help`/`-h` (exit 0, HEAD and manifest unchanged) found it. Suite 100 OK.
+- **palette-missing-keys** (`942ee41`, ff; log
+  `2026-10-21-palette-missing-keys.md`): **a theme whose colors.dcol lacked
+  a key the templates use logged the user out** — rendered anyway,
+  `#<wallbash_pry1>` reached xresources, dwm's restart died in
+  drw_clr_create, .xinitrc ended (ly.log, VM). The engine now refuses a
+  palette with gaps before any write (`palette_gaps`, `--check`), and
+  theme-apply checks before its identity/wallpaper steps. The VM cache was
+  repaired headless; a re-login is still owed. Suite 101 OK.
+- **version-columns** (`a599888`, MICRO): `dots version` values aligned.

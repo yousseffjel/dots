@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **palette-missing-keys** (`942ee41`, ff; log
+  `2026-10-21-palette-missing-keys.md`). A palette missing a template key is
+  refused before anything is written; it used to end the X session.
+
 - 2026-10-21 — **update-arg-check** (`9e05019`, ff; log
   `2026-10-21-update-arg-check.md`). `dots update` refuses a flag the
   installer does not take before it fetches, instead of after the pull.
