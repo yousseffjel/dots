@@ -312,3 +312,16 @@ above is history, kept verbatim from the pre-rotation snapshot.
   to their spot, across a restart too (_DWM_CLIENT_INFO 7 → 15 values).
   Stock dwm failed the test; mutants caught except the untestable sendmon
   clear. Suite 105 OK. VM check pending login.
+- **VM-verify (2026-10-21, after `dots update` to 6e3f1f3 and a re-login):**
+  `dots update` rebuilt dwm and HUP'd it onto the new binary (exit 0).
+  statusallmons: both bars' status regions pixel-identical (same image
+  signature), tray on Virtual-1. replug-windows: a tiled window on
+  Virtual-2 tag 2 and a floating one went to Virtual-1 when Virtual-2
+  was switched off and came back to the exact same positions when it was
+  switched on; the same with `pkill -HUP -x dwm` while it was off. The
+  left-screen unplug (the struct-reuse case) also came out right; there X
+  moves the remaining screen to +0+0. clipmenud-match: the VM's
+  user-owned ~/.xinitrc still has the old `-x` line (never rewritten), and
+  the dry run prints the replacement; the fix itself is unverified until
+  that line is applied and a logout follows. At login autorandr loaded
+  the saved `vm-1080p` profile (Virtual-2 off) — by design.
