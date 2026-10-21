@@ -18,6 +18,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Help and messages speak Void.** `install-void.sh --help` no longer says
+  the port is in progress and the script works on neither distro, or that
+  `--only-install` installs dnf packages; `dwm-record`'s missing-ffmpeg error
+  names `ffmpeg6`. `tests/runtime-text-void.sh` holds every `--help` and
+  printed message to that.
 - **The theme menu no longer waits behind a wallpaper change.** `dots theme
   --list` (which builds the Super+Shift+t menu), `--help` and
   `dots wallpaper --login-random` no longer wait for a change in progress,

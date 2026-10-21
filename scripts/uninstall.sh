@@ -132,7 +132,7 @@ uninstall_dconf
 # binary to delete the remote with.
 uninstall_flatpak
 uninstall_pipewire
-# Before uninstall_packages, which may remove ly.
+# Before uninstall_ly_build, which removes the config.ini of an ly dots built.
 uninstall_ly
 # Before uninstall_packages too: it needs git to prove the clone unchanged.
 uninstall_wallpapers

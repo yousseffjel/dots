@@ -8,10 +8,6 @@
 # 2026-10-15, replacing Fedora Server; .claude/tasks/scope-i-void-port.md).
 # It installs Xorg itself, so a base system with no GUI is the starting point.
 #
-# PORT IN PROGRESS: the stages below still speak dnf/systemd. Sub-tasks I-3
-# to I-8 in the scope file move each one to xbps/runit/elogind. Until those
-# land, this script does not work on either distro.
-#
 # A thin orchestrator over four stages, each its own standalone-runnable,
 # idempotent script: pre (sanity checks) -> install (xbps packages + suckless
 # build) -> restore (config symlinks + shell/tmux plugin managers) ->
@@ -25,7 +21,7 @@
 #                           [--only-services] [--skip-suckless] [--dry-run]
 #
 #   --only-pre        run only the pre stage (sanity checks).
-#   --only-install    run only the install stage (dnf packages + suckless build).
+#   --only-install    run only the install stage (xbps packages + suckless build).
 #   --only-restore    run only the restore stage (config symlinks + plugin managers).
 #   --only-services   run only the services stage (shell, runit services, groups, ly).
 #                      Any combination of --only-* flags may be given; with

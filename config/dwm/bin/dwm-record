@@ -117,7 +117,7 @@ input_args() {
 
 start() {
     local mode="$1" out
-    command -v ffmpeg >/dev/null 2>&1 || fail "ffmpeg is not installed (packages/desktop.lst: ffmpeg-free)"
+    command -v ffmpeg >/dev/null 2>&1 || fail "ffmpeg is not installed (packages/desktop.lst: ffmpeg6)"
     [[ -n "${DISPLAY:-}" ]] || fail "DISPLAY is not set"
     if [[ "$mode" == region ]] && ! command -v slop >/dev/null 2>&1; then
         fail "slop is not installed — region mode needs it"

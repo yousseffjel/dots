@@ -115,8 +115,10 @@ uninstall_theme_backups() {
 
 # The ly login screen. Its config is a root-owned file of ly's own, so it is
 # never removed: scripts/theme/ly-theme.sh --restore writes back the original
-# lines it saved before its first change. Before uninstall_packages, which may
-# remove ly — rpm would then keep our edited copy as config.ini.rpmsave.
+# lines it saved before its first change. That matters for an ly dots did not
+# build: one dots built is removed, with the config.ini it installed, by
+# uninstall_ly_build (uninstall-runit.sh), run after this. (On Fedora this ran
+# first so rpm would not keep the edited copy as config.ini.rpmsave.)
 uninstall_ly() {
     blue "=== ly login screen ==="
     if [[ -z "$(manifest_rows LY)" ]]; then

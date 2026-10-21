@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prints repo version, installed version (from the install manifest), the
-# repo's current git commit, Fedora version, and dwm's build version (if
-# installed).
+# repo's current git commit, the OS (os-release, plus xbps's arch on Void),
+# and dwm's build version (if installed).
 #
 # usage: version.sh [--json]
 
