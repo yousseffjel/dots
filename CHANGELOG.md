@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **A theme missing a colour no longer logs you out.** A `colors.dcol`
+  lacking a key some template uses (a hand-made or third-party theme) was
+  rendered anyway; dwm exited on the unallocatable colour and the session
+  ended, and the next login hit the same cache. `dots theme` and the
+  template engine now refuse such a palette before anything is written,
+  naming the missing keys.
 - **`dots update` refuses a mistyped flag before it pulls.** A flag
   `install-void.sh` does not take (`--skip-sucless`) used to be passed on
   after the fetch and fast-forward, so the checkout was updated and nothing

@@ -9,7 +9,10 @@
 # palette step — see .claude/changes/archive/2026-08-05-theming-apply-templates.md
 # for rationale on each.
 #
-# Usage: apply-templates.sh [--palette PATH] <always|theme|all>...
+# Usage: apply-templates.sh [--check] [--palette PATH] <always|theme|all>...
+#
+# A palette lacking a key the selected templates use is refused before
+# anything is written; --check stops after that test (see palette_gaps).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,14 +39,20 @@ mkdir -p "$cacheDir" 2>/dev/null || true
 PALETTE="$cacheDir/colors.dcol"
 
 usage() {
-    echo "usage: apply-templates.sh [--palette PATH] <always|theme|all>..."
+    echo "usage: apply-templates.sh [--check] [--palette PATH] <always|theme|all>..."
+    echo "  --check          only test the palette has every key the templates use"
     echo "  --palette PATH   dcol file to read instead of \$cacheDir/colors.dcol"
     echo "                   (e.g. a static theme's own colors.dcol)"
 }
 
 TEMPLATE_GROUPS=()
+CHECK=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --check)
+            CHECK=1
+            shift
+            ;;
         --palette)
             PALETTE="$2"
             shift 2
@@ -142,6 +151,28 @@ SED_SCRIPT_FILE="$(mktemp)"
 WORK_TMP=""
 trap 'rm -f "$SED_SCRIPT_FILE" "$WORK_TMP"' EXIT INT TERM HUP
 build_sed_script >"$SED_SCRIPT_FILE"
+
+# palette_gaps — keys the selected templates use that the palette does not
+# define, one per line. A gap used to be rendered as the literal placeholder:
+# `#<wallbash_pry1>` reached xresources, dwm's restart died on a colour it
+# could not allocate (drw.c), and the session ended (Void VM, 2026-10-21).
+palette_gaps() {
+    local group
+    comm -23 \
+        <(for group in "${TEMPLATE_GROUPS[@]}"; do cat "$TEMPLATES_DIR/$group"/*.dcol 2>/dev/null; done \
+            | grep -oE '<wallbash_[A-Za-z0-9_]+>' | sed 's/^<wallbash_//; s/>$//' | sort -u) \
+        <(sed -n 's/^s|<wallbash_\([A-Za-z0-9_]*\)>|.*/\1/p' "$SED_SCRIPT_FILE" | sort -u)
+}
+mapfile -t GAPS < <(palette_gaps)
+if ((${#GAPS[@]} > 0)); then
+    red "palette lacks ${#GAPS[@]} key(s) the templates use: ${GAPS[*]} ($PALETTE)"
+    yellow "  nothing was written: dwm exits on a colour it cannot allocate, ending the session"
+    exit 1
+fi
+if ((CHECK)); then
+    green "✓ palette has every key the templates use"
+    exit 0
+fi
 
 # ${confDir}/${cacheDir} only — deliberately not eval: template headers
 # are first-party repo content today, but a plain string substitution of

@@ -678,6 +678,13 @@ perceptual luminance, darkest first — so the darkest block becomes `dcol_pry1`
 passed them. Each theme's committed header records its seed hex, so any of them
 can be regenerated exactly.
 
+A palette that still lacks a key some template uses is refused before
+anything is written, naming the keys (`scripts/theme/apply-templates.sh
+--check --palette themes/<name>/colors.dcol all` runs that test alone). It
+used to be rendered anyway: `#<wallbash_pry1>` reached xresources, dwm exited
+on a colour it could not allocate and the session ended
+(`tests/palette-complete.sh`).
+
 ## Troubleshooting
 
 **Colours did not change.** Check `xrdb -query | grep dwm.` — if empty,

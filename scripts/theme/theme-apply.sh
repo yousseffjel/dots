@@ -153,6 +153,9 @@ else
         exit 1
     fi
     blue "==> static theme: $THEME"
+    # Before anything is written: the identity and wallpaper steps below run
+    # ahead of apply-templates.sh, whose own check would come too late.
+    "$SCRIPT_DIR/apply-templates.sh" --check --palette "$PALETTE" all || exit 1
 
     # theme.conf carries the non-colour parts of a theme (gtk/icon/cursor
     # theme names, font). Rendered, not just reported — see apply_identity.
