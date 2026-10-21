@@ -325,3 +325,15 @@ above is history, kept verbatim from the pre-rotation snapshot.
   the dry run prints the replacement; the fix itself is unverified until
   that line is applied and a logout follows. At login autorandr loaded
   the saved `vm-1080p` profile (Virtual-2 off) — by design.
+- **brightness-follows-display** (ff; log
+  `2026-10-21-brightness-follows-display.md`). On the plain xrandr gamma
+  path, a screen that was off when the level was set came back at full
+  gamma beside a dimmed one. The level is now recorded, and
+  `dwm-brightness sync` (run by dwm-display and the new autorandr hook
+  `20-dots-brightness`) re-applies it. `set` also no longer exits 1 while
+  a connected screen is off, because `outputs()` now skips outputs that
+  have no geometry. With the nightlight daemon running there was no bug,
+  since gammastep writes every CRTC. Both fixes are VM-verified with the
+  slot's script copied to /tmp. The hook under a real autorandr is
+  pending a push. Suite 106 OK. The monitor-capture pixel check is still
+  blocked by slock.

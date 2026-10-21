@@ -89,6 +89,11 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **brightness-follows-display** (ff; log
+  `2026-10-21-brightness-follows-display.md`). A screen turned back on
+  gets the last gamma level again, and `set` no longer fails while a
+  screen is off.
+
 - 2026-10-21 — **replug-windows** (ff; log
   `2026-10-21-replug-windows.md`). Windows return to a monitor plugged
   back in, with their view, across restarts.
