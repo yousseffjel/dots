@@ -189,3 +189,16 @@ above is history, kept verbatim from the pre-rotation snapshot.
   yet VM-run (ssh agent).
 - **Same pass, noted only:** `dots doctor` on a never-installed HOME lets
   flatpak and dconf create their own stores.
+
+## 2026-10-21 — VM verification of uninstall-dryrun-preview and theme-lock-scope
+
+- **uninstall-dryrun-preview, on the Void VM** (main `b7b5ed9` snapshot):
+  `uninstall.sh --dry-run </dev/null` rc=0 previews every category
+  (suckless `make uninstall`, `xbps-remove -Ry` of the installed set,
+  service disable/re-enable, the ly build's files). No "skipped"/"kept"
+  line. Manifest and /etc/ly/config.ini byte-identical, 0 files newer under
+  HOME or /etc, /usr/local, /var/service, /usr/bin; services, 693 packages
+  and the zsh login shell unchanged.
+- **theme-lock-scope, on the Void VM**: with `~/.cache/dots/theme/.theme.lock`
+  held by flock, `theme-apply.sh --list` and `--help` and `wallpaper.sh
+  --login-random status` each returned rc=0 in 0 s.

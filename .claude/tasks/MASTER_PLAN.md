@@ -94,14 +94,14 @@ the same time and **not** queued — raise them separately if wanted.
   taken before arguments were read, so `dots theme --list` (the Super+Shift+t
   menu) waited behind any change, and the `--select` picker held the lock
   while open. Only a change locks now. wallpaper.sh split (250 -> 220).
-  **Open:** VM check.
+  VM-verified 2026-10-21: `--list`/`--help` return at once with the lock held.
 
 - 2026-10-21 — **uninstall-dryrun-preview** (`84ec6c7`, ff; log
   `2026-10-21-uninstall-dryrun-preview.md`). Void VM finding: `dots uninstall
   --dry-run` asked each category first, so without a terminal it previewed
   nothing. A dry run now asks nothing. Also fixed: keeping no copy of the
-  log made a finished uninstall exit 1. **Open:** the VM dry-run check (agent
-  socket gone on 2026-10-21).
+  log made a finished uninstall exit 1. VM-verified 2026-10-21: every
+  category previewed, nothing changed.
 
 - 2026-10-20 — **migrate-dryrun-current** (`a12240f`, ff; log
   `2026-10-20-migrate-dryrun-current.md`). Void VM finding:
