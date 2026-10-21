@@ -202,3 +202,19 @@ above is history, kept verbatim from the pre-rotation snapshot.
 - **theme-lock-scope, on the Void VM**: with `~/.cache/dots/theme/.theme.lock`
   held by flock, `theme-apply.sh --list` and `--help` and `wallpaper.sh
   --login-random status` each returned rc=0 in 0 s.
+
+## 2026-10-21 — Void VM, real dwm session (ly login), no finding
+
+- **`dots update` 784d203 → ac0b3e1**: rc=0 in 17 s, nothing to migrate,
+  every stage complete, dwm HUP'd in place; manifest `commit` and
+  `complete` both ac0b3e1.
+- **theme-lock-scope, in the session**: `theme-apply.sh --list` answered in
+  6 ms while a `dots wallpaper --random` held the lock (still running after).
+  With the real `--select` dmenu open, `--random` applied in 2 s; Escape then
+  closed the picker (rc=0, nothing changed). Typing a name + Return applied
+  that wallpaper through the re-exec (wall.set, ~/.fehbg; no wallpaper.sh
+  left running; dwm, dunst, dwmblocks alive).
+- **Round trip**: nord (#2E3440) → --wallbash (#171724) →
+  `install-void.sh --only-restore` re-applied `--wallbash`, palette kept;
+  dwm and dunst pids unchanged. `Super+Shift+t` via sxhkd opened the menu,
+  gruvbox applied (#282828), `--wallbash` restored #171724.
