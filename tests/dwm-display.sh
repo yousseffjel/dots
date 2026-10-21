@@ -110,7 +110,7 @@ else
 fi
 
 for want in "only eDP-1" "only HDMI-1" "extend HDMI-1 right of eDP-1" \
-    "extend HDMI-1 left of eDP-1" "mirror HDMI-1 onto eDP-1" "all on (auto)"; do
+    "extend HDMI-1 left of eDP-1" "mirror HDMI-1 onto eDP-1" "all on"; do
     if grep -qxF "$want" <<<"$labels"; then
         pass "offers '$want'"
     else
@@ -195,7 +195,7 @@ blue "==> selection dispatch"
 printf '#!/bin/sh\ngrep -x "mirror HDMI-1 onto eDP-1"\n' >"$TMP/bin/dmenu"
 chmod 755 "$TMP/bin/dmenu"
 if HOME="$TMP/home" PATH="$TMP/bin" bash "$DISPLAY_SH" >/dev/null 2>&1; then
-    if grep -qF -- "--output HDMI-1 --auto --same-as eDP-1" "$TMP/applied.log"; then
+    if grep -qF -- "--output HDMI-1 --same-as eDP-1" "$TMP/applied.log"; then
         pass "choosing an entry runs exactly that entry's xrandr command"
     else
         fail "wrong command applied: $(cat "$TMP/applied.log")"

@@ -40,20 +40,46 @@ if ! command -v xrandr >/dev/null 2>&1; then
     exit 1
 fi
 
-# Connected outputs, in xrandr's own order. Matching $2 exactly avoids the
-# "disconnected" trap a bare /connected/ pattern walks into — the same care
-# dwm-brightness takes.
-connected() {
-    xrandr 2>/dev/null | awk '$2 == "connected" { print $1 }'
+# Connected outputs, in xrandr's own order, one "name active primary" line
+# each. Matching $2 exactly avoids the "disconnected" trap a bare /connected/
+# pattern walks into — the same care dwm-brightness takes. An output is
+# active when a geometry (WxH+X+Y) follows "connected" or "primary".
+outputs() {
+    xrandr 2>/dev/null | awk '$2 == "connected" {
+        p = ($3 == "primary"); g = p ? $4 : $3
+        print $1, (g ~ /^[0-9]+x[0-9]+\+/), p
+    }'
 }
 
-mapfile -t OUTPUTS < <(connected)
+OUTPUTS=()
+declare -A ACTIVE=()
+PRIMARY=""
+while read -r name active primary; do
+    OUTPUTS+=("$name")
+    ACTIVE[$name]="$active"
+    if ((primary)); then PRIMARY="$name"; fi
+done < <(outputs)
 if ((${#OUTPUTS[@]} == 0)); then
     red "dwm-display: no connected outputs (or xrandr is unavailable)"
     exit 1
 fi
+# The output xrandr marks primary; taking the first one instead moved the
+# primary flag with every preset.
+PRIMARY="${PRIMARY:-${OUTPUTS[0]}}"
+OTHERS=()
+for out in "${OUTPUTS[@]}"; do [[ "$out" == "$PRIMARY" ]] || OTHERS+=("$out"); done
 
-PRIMARY="${OUTPUTS[0]}"
+# on <output> — the xrandr options that leave it enabled: nothing for one
+# already on, so its mode survives (--auto reset it to the PREFERRED mode:
+# 1920x1080 became 850x1001 on the VM, and on real hardware it undoes any
+# mode or refresh rate picked by hand), --auto for one that is off.
+on() {
+    if ((ACTIVE[$1])); then
+        printf -- '--output %s' "$1"
+    else
+        printf -- '--output %s --auto' "$1"
+    fi
+}
 
 # Menu entries as "label<TAB>command". Built as two parallel arrays rather than
 # an associative one so the menu order is stable and reproducible.
@@ -69,7 +95,9 @@ add() {
 # set of monitors, it beats anything generated below. Silently skipped when
 # autorandr is absent — it is a desktop.lst package, so a failed install is
 # already reported loudly elsewhere and this must still work without it.
+HAVE_AUTORANDR=0
 if command -v autorandr >/dev/null 2>&1; then
+    HAVE_AUTORANDR=1
     while IFS= read -r profile; do
         [[ -n "$profile" ]] && add "profile: $profile" "autorandr --load $profile"
     done < <(autorandr --list 2>/dev/null || true)
@@ -79,7 +107,7 @@ fi
 # one off in the same xrandr call — a single call so the server never passes
 # through a state with no enabled output.
 for out in "${OUTPUTS[@]}"; do
-    cmd="xrandr --output $out --auto --primary"
+    cmd="xrandr $(on "$out") --primary"
     for other in "${OUTPUTS[@]}"; do
         [[ "$other" == "$out" ]] || cmd+=" --output $other --off"
     done
@@ -88,17 +116,27 @@ done
 
 # Multi-output arrangements only make sense with something to arrange.
 if ((${#OUTPUTS[@]} > 1)); then
-    for out in "${OUTPUTS[@]:1}"; do
+    for out in "${OTHERS[@]}"; do
         add "extend $out right of $PRIMARY" \
-            "xrandr --output $PRIMARY --auto --primary --output $out --auto --right-of $PRIMARY"
+            "xrandr $(on "$PRIMARY") --primary $(on "$out") --right-of $PRIMARY"
         add "extend $out left of $PRIMARY" \
-            "xrandr --output $PRIMARY --auto --primary --output $out --auto --left-of $PRIMARY"
+            "xrandr $(on "$PRIMARY") --primary $(on "$out") --left-of $PRIMARY"
         add "mirror $out onto $PRIMARY" \
-            "xrandr --output $PRIMARY --auto --primary --output $out --auto --same-as $PRIMARY"
+            "xrandr $(on "$PRIMARY") --primary $(on "$out") --same-as $PRIMARY"
     done
     cmd="xrandr"
-    for out in "${OUTPUTS[@]}"; do cmd+=" --output $out --auto"; done
-    add "all on (auto)" "$cmd"
+    for out in "${OUTPUTS[@]}"; do cmd+=" $(on "$out")"; done
+    add "all on" "$cmd"
+fi
+
+# Last: autorandr --save writes the CURRENT layout, so it is what you pick
+# after arranging. A saved profile is re-applied by Void's udev rule
+# (autorandr --change) when the same screens are plugged in again, and at
+# every login by autostart.sh. Dispatch knows it by its label: the command
+# needs a name first (save_layout).
+SAVE_LABEL="save this layout as a profile"
+if ((HAVE_AUTORANDR)); then
+    add "$SAVE_LABEL" "autorandr --save <name>"
 fi
 
 if [[ "${1:-}" == "--list" ]]; then
@@ -112,10 +150,50 @@ elif [[ -n "${1:-}" ]]; then
     exit 1
 fi
 
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a dwm-display "display" "$1" || true
+}
+
+# save_layout — ask for a profile name (the existing ones are offered, to
+# overwrite), then autorandr --save. Escape at either prompt saves nothing.
+# The name becomes a directory under ~/.config/autorandr, so anything but
+# letters, digits, . _ - is refused, and it may not start with a dash or dot.
+save_layout() {
+    local name profiles
+    profiles="$(autorandr --list 2>/dev/null || true)"
+    name="$(printf '%s\n' "$profiles" | dmenu "${DMENU_OPTS[@]}" -p "profile name>")" || return 0
+    [[ -n "$name" ]] || return 0
+    if [[ ! "$name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+        red "dwm-display: '$name' is not a profile name (letters, digits, . _ -)"
+        notify "not saved: '$name' is not a profile name (letters, digits, . _ -)"
+        return 1
+    fi
+    # Read once, not `autorandr --list | grep -q`: under pipefail a grep that
+    # stops early reads as a failure, and the overwrite would go unasked.
+    if grep -qxF -- "$name" <<<"$profiles"; then
+        [[ "$(printf 'no\nyes\n' | dmenu "${DMENU_OPTS[@]}" -p "overwrite profile $name?")" == yes ]] || return 0
+        autorandr --save "$name" --force || {
+            red "dwm-display: autorandr could not save '$name'"
+            return 1
+        }
+    else
+        autorandr --save "$name" || {
+            red "dwm-display: autorandr could not save '$name'"
+            return 1
+        }
+    fi
+    notify "saved this layout as profile $name — it comes back when these screens are plugged in"
+}
+
 # `|| exit 0` on the dmenu call, not `|| exit 1`: dismissing the menu with
 # Escape is a normal way to use it, not an error.
 choice="$(printf '%s\n' "${LABELS[@]}" | dmenu "${DMENU_OPTS[@]}" -l 10 -p "display>")" || exit 0
 [[ -n "$choice" ]] || exit 0
+if [[ "$choice" == "$SAVE_LABEL" ]] && ((HAVE_AUTORANDR)); then
+    save_layout
+    exit
+fi
 
 for i in "${!LABELS[@]}"; do
     if [[ "${LABELS[$i]}" == "$choice" ]]; then
@@ -133,8 +211,7 @@ for i in "${!LABELS[@]}"; do
         if [[ -x "$HOME/.fehbg" ]]; then
             "$HOME/.fehbg" >/dev/null 2>&1 || true
         fi
-        command -v notify-send >/dev/null 2>&1 &&
-            notify-send -a dwm-display "display" "$choice" || true
+        notify "$choice"
         exit 0
     fi
 done

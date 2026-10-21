@@ -39,7 +39,8 @@ no video driver.
 Two things in a VM are settings of that VM, not of dots:
 
 - **The screen size.** A fresh VM's X session starts at 1024x768. Pick a mode
-  with `Super+Shift+d` (or `xrandr`), then `autorandr --save <name>`;
+  with `Super+Shift+d` (or `xrandr`), then its "save this layout as a profile"
+  entry (or `autorandr --save <name>`);
   `autostart.sh` re-applies it at every login. Or enable the viewer's "auto
   resize VM with window", which `spice-vdagent` follows.
 - **The login screen size.** ly draws on the kernel console, which keeps the

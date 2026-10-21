@@ -574,7 +574,13 @@ a LaTeX package — so the script *is* the picker. `gpick` is in
 (`eDP-1` vs `eDP1` vs `LVDS-1`). With a single monitor connected it offers only
 that monitor; the extend/mirror entries appear when there is something to
 arrange. When `autorandr` has saved profiles they are listed first, since a
-profile you curated beats anything generated. Both also run from a shell —
+profile you curated beats anything generated. A screen that is already on
+keeps its mode in every preset (only a screen that is off gets `--auto`), and
+the presets are built around the output `xrandr` marks primary. The last entry,
+**save this layout as a profile**, asks for a name and runs `autorandr --save`
+(asking first before overwriting one): plugging the same screens in again then
+restores the layout by itself, through Void's autorandr udev rule, and every
+login re-applies it. Both also run from a shell —
 `dwm-display --list` prints the menu and the exact `xrandr` command behind each
 entry without applying anything.
 

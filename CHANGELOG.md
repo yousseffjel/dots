@@ -16,8 +16,19 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ## [Unreleased]
 
+### Added
+
+- **Save a monitor layout from `Super+Shift+d`.** Its new last entry, "save
+  this layout as a profile", names and saves the current arrangement with
+  autorandr; plugging the same screens in again restores it.
+
 ### Fixed
 
+- **`Super+Shift+d` no longer resets the screen you are using.** Its
+  presets ran `--auto` on screens that were already on, which put them back
+  on their preferred mode (any mode or refresh rate chosen by hand was
+  lost), and they made the first connected output primary instead of the
+  one that was. A screen that is on now keeps its mode.
 - **clipmenud is stopped at logout again.** Void's `clipmenud` is an
   `env bash` script, so its process is named `bash` and the `.xinitrc`'s
   `pkill -x clipmenud` matched nothing: it outlived the session, writing to
