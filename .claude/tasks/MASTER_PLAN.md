@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **stale-port-text** (`23fa145`, ff; log
+  `2026-10-21-stale-port-text.md`). Printed help/messages no longer name
+  dnf/rpm/ffmpeg-free or "PORT IN PROGRESS"; tests/runtime-text-void.sh guards it.
+
 - 2026-10-21 — **theme-lock-scope** (`c5673a3`, ff; log
   `2026-10-21-theme-lock-scope.md`). Host edge-case pass: the theme lock was
   taken before arguments were read, so `dots theme --list` (the Super+Shift+t

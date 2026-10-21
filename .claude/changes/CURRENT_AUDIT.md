@@ -235,3 +235,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   dropterm's window id was unchanged across restarts. (_DWM_CLIENT_INFO
   exists only during the re-exec — saveclientinfo writes it, manage()
   consumes it — so placement is measured by behaviour, not the property.)
+- **stale-port-text** (`23fa145`, ff; log `2026-10-21-stale-port-text.md`):
+  `install-void.sh --help` said the port was in progress and the script
+  worked on neither distro, and that --only-install installs dnf packages;
+  dwm-record's error named `ffmpeg-free`; version.sh's header and two
+  uninstall ordering comments still gave Fedora/rpm reasons. All fixed;
+  new `tests/runtime-text-void.sh` runs every scripts/ `--help` (21, read
+  from the code) and greps printed literals for Fedora-era tools. Suite 100 OK.
