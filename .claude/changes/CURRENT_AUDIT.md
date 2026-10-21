@@ -305,3 +305,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   clicks aligned on bars without the tray. New tests/dwm-multimon.sh (two
   RandR monitors on one Xvfb screen), run by build-suckless. 3/3 mutants.
   Suite 105 OK. VM check pending login (idle lock up).
+- **replug-windows** (ff; log `2026-10-21-replug-windows.md`): last
+  multi-monitor pick. A vanished monitor's windows remember their home by
+  geometry (dwm reuses Monitor structs by index, so a struct is no
+  identity) and return with their view when it comes back, floating ones
+  to their spot, across a restart too (_DWM_CLIENT_INFO 7 → 15 values).
+  Stock dwm failed the test; mutants caught except the untestable sendmon
+  clear. Suite 105 OK. VM check pending login.

@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **replug-windows** (ff; log
+  `2026-10-21-replug-windows.md`). Windows return to a monitor plugged
+  back in, with their view, across restarts.
+
 - 2026-10-21 — **status-all-mons** (ff; log
   `2026-10-21-status-all-mons.md`). Status text on every monitor's bar.
 
