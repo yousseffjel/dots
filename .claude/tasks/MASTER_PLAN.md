@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **status-all-mons** (ff; log
+  `2026-10-21-status-all-mons.md`). Status text on every monitor's bar.
+
 - 2026-10-21 — **dwm-runtime-home** (ff; log
   `2026-10-21-dwm-runtime-home.md`). dwm-runtime test no longer runs the
   tester's real autostart.sh.

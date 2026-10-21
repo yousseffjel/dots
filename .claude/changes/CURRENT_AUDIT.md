@@ -299,3 +299,9 @@ above is history, kept verbatim from the pre-rotation snapshot.
   autostart, asserted by marker. Earlier suite runs today were safe only
   because worktrees had no built dwm (skip). Suite 104 OK with dwm-runtime
   really running.
+- **status-all-mons** (ff; log `2026-10-21-status-all-mons.md`): third
+  multi-monitor pick. dwm draws the status on every bar (local
+  statusallmons diff); `traywidth(m)` keeps the status and statuscmd
+  clicks aligned on bars without the tray. New tests/dwm-multimon.sh (two
+  RandR monitors on one Xvfb screen), run by build-suckless. 3/3 mutants.
+  Suite 105 OK. VM check pending login (idle lock up).
