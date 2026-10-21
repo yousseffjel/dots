@@ -352,3 +352,9 @@ above is history, kept verbatim from the pre-rotation snapshot.
   file were removed, and the VM was shut down. The two-head domain XML was
   kept for the open checks: the monitor-capture pixel check, clipmenud
   after a logout, and the dwm-brightness split at 248/250.
+- **Open finding (2026-10-21, at shutdown, not investigated):** the VM's
+  dwm desktop ignored `virsh shutdown` (ACPI power button) for more than
+  2.5 min. It has no acpid, and elogind did not act. `loginctl poweroff` over
+  ssh needs polkit interactive auth. The user powered it off with
+  `sudo poweroff`. Check elogind's HandlePowerKey and whether an installed
+  desktop should react to the power button.
