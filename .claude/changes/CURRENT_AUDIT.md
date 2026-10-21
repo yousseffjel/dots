@@ -347,3 +347,8 @@ above is history, kept verbatim from the pre-rotation snapshot.
   dual-screen profile brought it back at 0.60 (the hook). Restored
   afterwards: brightness 100 on both, the recorded level removed, the
   temporary `claude-test-dual` profile deleted, the daemon restarted.
+- **session-handoff** (log `2026-10-21-session-handoff.md`). This closes the
+  2026-10-21 VM loop. The VM's passwordless sudo rule and every temporary
+  file were removed, and the VM was shut down. The two-head domain XML was
+  kept for the open checks: the monitor-capture pixel check, clipmenud
+  after a logout, and the dwm-brightness split at 248/250.
