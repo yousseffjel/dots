@@ -228,3 +228,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   timing is fine). `Super+Shift+p` on a desktop/VM opens no menu and
   notifies that power profiles are laptop-only, as designed (an apparent
   5 s menu was the harness's wait-loop timeout).
+- **Same session, dwm restart keeps placement**: st probeA sent to tag 3,
+  probeB on tag 1; across two theme switches (tokyo-night, --wallbash; each
+  a SIGHUP re-exec, dwm pid unchanged) A stayed on tag 3 and B on tag 1
+  (xdotool geometry: x=0 on its own view, x=-3832 hidden elsewhere).
+  dropterm's window id was unchanged across restarts. (_DWM_CLIENT_INFO
+  exists only during the re-exec — saveclientinfo writes it, manage()
+  consumes it — so placement is measured by behaviour, not the property.)
