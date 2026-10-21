@@ -2,4 +2,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-20-migrate-dryrun-current.md
+Last log: .claude/changes/2026-10-21-uninstall-dryrun-preview.md

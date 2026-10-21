@@ -2,7 +2,7 @@
 # Reverses what install-void.sh did, using ~/.local/state/dots/manifest
 # as the source of truth: removes deployed configs (restoring backups
 # where one was made), uninstalls the vendored suckless binaries, removes
-# ONLY the dnf packages this installer itself installed (never anything
+# ONLY the xbps packages this installer itself installed (never anything
 # that was already present), disables services this installer enabled,
 # and finally offers to remove the state dir itself.
 #

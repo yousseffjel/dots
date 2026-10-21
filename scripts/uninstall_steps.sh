@@ -182,7 +182,11 @@ uninstall_state() {
         fi
         rm -rf "$MANIFEST_DIR"
         echo "removed $MANIFEST_DIR"
-        [[ -n "$keep_path" ]] && echo "log kept at $keep_path"
+        # An if, not `[[ ]] && echo`: with no copy kept that returned 1 as the
+        # function's status, and set -e ended uninstall.sh before its last line.
+        if [[ -n "$keep_path" ]]; then
+            echo "log kept at $keep_path"
+        fi
     else
         yellow "  kept $MANIFEST_DIR"
     fi

@@ -24,8 +24,9 @@ machine, or it's already been uninstalled.
 
 ## What gets removed, one category at a time
 
-Each category below is its own confirmation prompt (or auto-confirmed
-under `--yes`); declining one skips it and moves on to the next — a
+Each category below is its own confirmation prompt (auto-confirmed under
+`--yes`; under `--dry-run` nothing is asked and every category is
+previewed); declining one skips it and moves on to the next — a
 partial uninstall is a normal, supported outcome, not an error.
 
 1. **Configs.** For every config the installer symlinked

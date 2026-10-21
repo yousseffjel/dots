@@ -37,9 +37,16 @@ MANIFEST_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dots"
 MANIFEST_FILE="$MANIFEST_DIR/manifest"
 
 # Prompts "$1 [y/N]" and returns 0 (yes) / 1 (no). ASSUME_YES=1 (set by a
-# caller's --yes flag) auto-confirms without prompting.
+# caller's --yes flag) auto-confirms without prompting. So does DRY_RUN=1:
+# a preview changes nothing, and asking first meant `dots uninstall
+# --dry-run` with no terminal (or answered N) previewed nothing at all
+# (Void VM, 2026-10-20). Every confirmed step checks DRY_RUN itself.
 confirm() {
     local prompt="$1"
+    if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+        blue "  (dry-run) $prompt — previewing"
+        return 0
+    fi
     if [[ "${ASSUME_YES:-0}" -eq 1 ]]; then
         blue "  (auto-yes) $prompt"
         return 0

@@ -18,6 +18,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`dots uninstall --dry-run` previews every category.** It asked each
+  category's y/N question first, so without a terminal (or answered N) it
+  printed "skipped" for all of them and showed nothing. A dry run now asks
+  nothing.
+- **An uninstall that keeps no copy of its log exits 0.** Answering yes to
+  removing the install state and no to keeping the log stopped the script
+  with an error just before "uninstall complete".
+
 - **`install-void.sh --dry-run` runs to the end on an up-to-date install.**
   It stopped silently at the migrations step whenever there was nothing to
   migrate, which is the usual case.
