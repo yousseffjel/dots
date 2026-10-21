@@ -89,6 +89,13 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **theme-lock-scope** (`c5673a3`, ff; log
+  `2026-10-21-theme-lock-scope.md`). Host edge-case pass: the theme lock was
+  taken before arguments were read, so `dots theme --list` (the Super+Shift+t
+  menu) waited behind any change, and the `--select` picker held the lock
+  while open. Only a change locks now. wallpaper.sh split (250 -> 220).
+  **Open:** VM check.
+
 - 2026-10-21 — **uninstall-dryrun-preview** (`84ec6c7`, ff; log
   `2026-10-21-uninstall-dryrun-preview.md`). Void VM finding: `dots uninstall
   --dry-run` asked each category first, so without a terminal it previewed

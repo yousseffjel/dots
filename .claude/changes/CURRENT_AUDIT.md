@@ -178,3 +178,14 @@ above is history, kept verbatim from the pre-rotation snapshot.
   `uninstall_state`'s trailing `[[ ]] && echo` is an if (y/N exited 1).
   New tests/uninstall-dry-run.sh; 5/5 mutants; suite 99 OK; reviewer READY
   after checking every confirm site honours DRY_RUN. **Not yet VM-run.**
+
+## 2026-10-21 — theme-lock-scope (fast-forward)
+
+- **`theme-lock-scope`** (`c5673a3`, log `2026-10-21-theme-lock-scope.md`).
+  theme-lock.sh no longer locks `--list`, help, `--login-random` or
+  `--select`; `--select` re-execs with the chosen path, so only the apply is
+  locked. login_random moved to `scripts/theme/wallpaper-login-random.sh`
+  (wallpaper.sh off the cap). 4/4 mutants, suite 99 OK, reviewer READY. Not
+  yet VM-run (ssh agent).
+- **Same pass, noted only:** `dots doctor` on a never-installed HOME lets
+  flatpak and dconf create their own stores.
