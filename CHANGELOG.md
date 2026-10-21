@@ -18,6 +18,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`dots update` refuses a mistyped flag before it pulls.** A flag
+  `install-void.sh` does not take (`--skip-sucless`) used to be passed on
+  after the fetch and fast-forward, so the checkout was updated and nothing
+  was installed. It is now refused first, with nothing fetched.
 - **Help and messages speak Void.** `install-void.sh --help` no longer says
   the port is in progress and the script works on neither distro, or that
   `--only-install` installs dnf packages; `dwm-record`'s missing-ffmpeg error

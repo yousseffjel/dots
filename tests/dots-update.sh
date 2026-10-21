@@ -15,7 +15,10 @@
 #     has nothing to pull but an install from an older commit: the installer
 #     runs, and --dry-run says it would. So does a missing manifest;
 #   * an install stopped partway (`commit` stamped, `complete` not) and a lone
-#     --only-<stage> run (`complete` older than `commit`) both read as stale.
+#     --only-<stage> run (`complete` older than `commit`) both read as stale;
+#   * a flag install-void.sh does not take is refused BEFORE the fetch (a typo
+#     used to pull and then fail in the installer), and every flag it does
+#     take passes. The stub carries the real installer's case labels.
 # shellcheck disable=SC2016 # the bash -c bodies take $1/$2 as their own arguments
 set -euo pipefail
 
@@ -59,6 +62,11 @@ mkrepos() {
     cp "$DOTS_DIR/scripts/update.sh" "$DOTS_DIR/scripts/global_fn.sh" "$DEV/scripts/"
     cat >"$DEV/scripts/install-void.sh" <<EOF
 #!/bin/sh
+case "\${1:-}" in
+    "") ;;
+$(sed -n 's/^[[:space:]]*\(--[a-z-]*)\).*/    \1 ;;/p' "$DOTS_DIR/scripts/install-void.sh")
+    *) echo "unknown argument: \$1" >&2; exit 1 ;;
+esac
 echo "installer \$*" >>"$LOG"
 d="\$HOME/.local/state/dots"
 mkdir -p "\$d"
@@ -206,6 +214,28 @@ check "...installer never ran" test ! -e "$LOG"
 g "$INST" switch -q main
 update --skip-suckless
 check "after the switch to main it updates" grep -qx 0.2.0 "$INST/VERSION"
+
+blue "==> a flag the installer does not take"
+mkrepos
+upstream 0.2.0
+before="$(git -C "$INST" rev-parse HEAD)"
+# A typo, and a prefix of a real flag (a substring match would let it by).
+for bad in --skip-sucless --only; do
+    update --skip-suckless "$bad"
+    check "$bad: exit 1, naming the flag" bash -c '[[ $1 == 1 && $2 == *"take $3 "* ]]' _ "$RC" "$OUT" "$bad"
+    check "...before the fetch: HEAD and origin/main unmoved" \
+        bash -c '[[ $(git -C "$1" rev-parse HEAD origin/main | sort -u) == "$2" ]]' _ "$INST" "$before"
+    check "...installer never ran" test ! -e "$LOG"
+done
+mapfile -t real < <(sed -n 's/^[[:space:]]*\(--[a-z-]*\)).*/\1/p' "$DOTS_DIR/scripts/install-void.sh")
+check "install-void.sh's flags were found (${#real[@]})" test "${#real[@]}" -ge 5
+for f in "${real[@]}"; do
+    [[ $f == --dry-run ]] && continue # update.sh's own
+    g "$INST" reset -q --hard "$before"
+    rm -f "$LOG"
+    update "$f"
+    check "$f is passed through" grep -qx -- "installer $f" "$LOG"
+done
 
 if ((rc != 0)); then
     red "✗ dots update"

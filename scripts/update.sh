@@ -8,8 +8,8 @@
 #   update.sh --dry-run     fetch and list what would come in; change nothing
 #   update.sh <args...>     pull, then pass <args> on to install-void.sh
 #
-# Refuses — before touching anything — a dirty tracked tree, a detached HEAD,
-# a branch with no upstream, an upstream deleted on the remote, and an
+# Refuses — before touching anything — a flag install-void.sh does not take,
+# a dirty tracked tree, a detached HEAD, a branch with no upstream, an upstream deleted on the remote, and an
 # upstream that is not a fast-forward: each of those needs a decision this
 # script must not make for you.
 #
@@ -62,6 +62,22 @@ need_upstream() {
             "set one: git -C $DOTS_DIR branch --set-upstream-to=origin/main"
     fail "the branch '$branch' tracks '${merge#refs/heads/}', which no longer exists on the remote" \
         "switch to the main branch: git -C $DOTS_DIR switch main"
+}
+
+# installer_takes <args...> — refuse a flag install-void.sh does not take
+# before anything is fetched: the installer would only say so after the pull,
+# leaving the checkout updated and the install not (`--skip-sucless` on the
+# Void VM, 2026-10-21). Read from its case labels, so the list lives in one
+# place. It is the CURRENT checkout's installer: a flag the incoming commits
+# add is refused until the update after.
+installer_takes() {
+    local arg known
+    known="$(sed -n 's/^[[:space:]]*\(--[a-z-]*\)).*/\1/p' "$DOTS_DIR/scripts/install-void.sh" 2>/dev/null)" || return 0
+    [[ -n "$known" ]] || return 0
+    for arg in "$@"; do
+        grep -qxF -- "$arg" <<<"$known" \
+            || fail "install-void.sh does not take $arg — nothing was fetched" "see: $DOTS_DIR/scripts/install-void.sh --help"
+    done
 }
 
 # Every refusal happens here, before the fetch, so a refused update has
@@ -131,6 +147,7 @@ main() {
         esac
     done
 
+    installer_takes "${args[@]}"
     preflight
     blue "==> fetching"
     # --prune, or a branch deleted on the remote (`void`, once the port
