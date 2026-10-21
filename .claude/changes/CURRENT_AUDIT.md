@@ -266,3 +266,14 @@ above is history, kept verbatim from the pre-rotation snapshot.
   processes (pgrep only). Suite 102 OK. VM logout check pending a login.
 - VM gained a second QXL head (heads=2, vgamem 32 MB) for multi-monitor
   testing; original XML kept in the session scratchpad.
+- VM video memory raised to 128 MB (ram/vram 131072, vgamem 65536): at
+  32 MB with two 1080p heads the qxl driver hung Xorg (qxl_fence_wait).
+- **display-presets** (`2b0ad18`, ff; log `2026-10-21-display-presets.md`):
+  first of the user's multi-monitor picks (they run 2×1080p). dwm-display's
+  presets passed `--auto` to screens already on, resetting them to the
+  preferred mode (VM: 1920x1080 → 850x1001), and took the first output as
+  primary. Active screens now keep their mode, the real primary is kept,
+  and a "save this layout as a profile" entry wraps `autorandr --save`
+  (name check, overwrite confirm). VM: extend kept 1080p; a saved layout
+  came back via `autorandr --change`. 9/9 mutants. Suite 103 OK.
+  Focus-follows-mouse, also picked, already works across monitors (VM).

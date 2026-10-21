@@ -89,6 +89,10 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-21 — **display-presets** (`2b0ad18`, ff; log
+  `2026-10-21-display-presets.md`). Super+Shift+d keeps active screens'
+  modes and the real primary; saves the layout as an autorandr profile.
+
 - 2026-10-21 — **clipmenud-match** (`db56814`, ff; log
   `2026-10-21-clipmenud-match.md`). clipmenud stopped at logout by -f (it
   runs as "bash" on Void); old .xinitrc files told the line to replace.
