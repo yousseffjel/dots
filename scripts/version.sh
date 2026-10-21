@@ -78,6 +78,6 @@ else
     else
         echo "installed version:  not installed (no manifest at $MANIFEST_FILE)"
     fi
-    echo "os version:          $os_version"
-    echo "dwm version:          $dwm_version"
+    echo "os version:         $os_version"
+    echo "dwm version:        $dwm_version"
 fi
