@@ -337,3 +337,13 @@ above is history, kept verbatim from the pre-rotation snapshot.
   slot's script copied to /tmp. The hook under a real autorandr is
   pending a push. Suite 106 OK. The monitor-capture pixel check is still
   blocked by slock.
+- **VM-verify (2026-10-21, after `dots update` to 9e6cdff):** the update
+  wrote `postswitch.d/20-dots-brightness` (755) and claimed it as an APP
+  row next to the wallpaper hook (exit 0). With the nightlight daemon
+  running, even a plain `xrandr --auto` brought Virtual-2 back dimmed, so
+  that path cannot show the hook. With the daemon stopped, the level set
+  to 60 while Virtual-2 was off: a plain `xrandr --auto` (no hook) brought
+  it back at 1.0 (the bug, as the control); `autorandr --load` of a
+  dual-screen profile brought it back at 0.60 (the hook). Restored
+  afterwards: brightness 100 on both, the recorded level removed, the
+  temporary `claude-test-dual` profile deleted, the daemon restarted.
