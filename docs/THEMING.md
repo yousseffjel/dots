@@ -451,7 +451,7 @@ Then replace its `exec dwm`, and any `dots_session_end` or
 
 ```sh
 dots_session_end() {
-  pkill -u "$(id -u)" -x clipmenud
+  pkill -u "$(id -u)" -f '/clipmenud$'
   pkill -u "$(id -u)" -x clipnotify
   pkill -u "$(id -u)" -x dwmblocks
   pkill -u "$(id -u)" -f '/dwm-nightlight daemon$'

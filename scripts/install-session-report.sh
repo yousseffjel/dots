@@ -103,7 +103,7 @@ session_autostart_report() {
         'add this line yourself:  pgrep -x dwmblocks >/dev/null || dwmblocks &'
 
     session_report_daemon "$autostart" clipmenud \
-        'add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -x clipmenud >/dev/null && clipmenud &'
+        "add this line yourself:  command -v clipmenud >/dev/null && ! pgrep -u \"\$(id -u)\" -f '/clipmenud\$' >/dev/null && clipmenud &"
 
     session_report_daemon "$autostart" sxhkd \
         'add this line yourself:  command -v sxhkd >/dev/null && ! pgrep -x sxhkd >/dev/null && sxhkd &' \

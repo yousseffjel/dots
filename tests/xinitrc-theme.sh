@@ -122,7 +122,7 @@ expect() {
 }
 
 # What dots_session_end does on every exit path.
-END='pkill -u 4242 -x clipmenud
+END='pkill -u 4242 -f /clipmenud$
 pkill -u 4242 -x clipnotify
 pkill -u 4242 -x dwmblocks
 pkill -u 4242 -f /dwm-nightlight daemon$

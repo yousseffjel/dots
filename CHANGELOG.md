@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **clipmenud is stopped at logout again.** Void's `clipmenud` is an
+  `env bash` script, so its process is named `bash` and the `.xinitrc`'s
+  `pkill -x clipmenud` matched nothing: it outlived the session, writing to
+  ly's TTY. It is matched by `-f '/clipmenud$'` now, in the logout step and
+  in autostart's already-running guard. An existing `~/.xinitrc` with the
+  old line is told the one line to replace on the next install or update.
 - **A theme missing a colour no longer logs you out.** A `colors.dcol`
   lacking a key some template uses (a hand-made or third-party theme) was
   rendered anyway; dwm exited on the unallocatable colour and the session

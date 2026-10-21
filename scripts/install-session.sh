@@ -160,9 +160,11 @@ session_xinitrc_template_session() {
 # This trap runs after dwm exits and before xinit stops X, so a plain SIGTERM
 # here lets it exit cleanly. PipeWire and the WirePlumber it starts hold no X
 # connection either, and nothing else stops them. Every other autostart daemon
-# waits on its X connection and dies quietly with the server.
+# waits on its X connection and dies quietly with the server. clipmenud is
+# matched by -f, like the night-light daemon: Void's is an env-bash script, so
+# its process is named "bash" and `-x clipmenud` found nothing (VM, 2026-10-21).
 dots_session_end() {
-	pkill -u "$(id -u)" -x clipmenud >/dev/null 2>&1
+	pkill -u "$(id -u)" -f '/clipmenud$' >/dev/null 2>&1
 	pkill -u "$(id -u)" -x clipnotify >/dev/null 2>&1
 	pkill -u "$(id -u)" -x dwmblocks >/dev/null 2>&1
 	pkill -u "$(id -u)" -f '/dwm-nightlight daemon$' >/dev/null 2>&1

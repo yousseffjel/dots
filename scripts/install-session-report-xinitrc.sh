@@ -23,12 +23,14 @@
 #     once they die (2026-10-07, later the same day);
 #   * an xss-lock pkill inside it — without it xss-lock aborts with a core
 #     dump at every logout when X vanishes under it (2026-10-12);
-#   * a pipewire pkill inside it — PipeWire holds no X connection (2026-10-15).
+#   * a pipewire pkill inside it — PipeWire holds no X connection (2026-10-15);
+#   * clipmenud stopped by -f, not -x — Void's clipmenud is an env-bash script,
+#     so it runs as "bash" and `-x clipmenud` matched nothing (2026-10-21).
 # The session bus and the cleanup share one paste block while either is
 # missing; once both exist, a missing stop gets only its own line
 # (session_xinitrc_report_stops).
 session_xinitrc_report() {
-    local xinitrc="$1" theme=0 cursor=0 session=0 ended=0 blocks=0 xsslock=0 pw=0
+    local xinitrc="$1" theme=0 cursor=0 session=0 ended=0 blocks=0 xsslock=0 pw=0 clip=0
     grep -q 'dots/theme' "$xinitrc" && theme=1
     grep -q '/xcursor' "$xinitrc" && cursor=1
     grep -q 'dbus-run-session' "$xinitrc" && session=1
@@ -36,7 +38,8 @@ session_xinitrc_report() {
     grep -q 'pkill.*dwmblocks' "$xinitrc" && blocks=1
     grep -q 'pkill.*xss-lock' "$xinitrc" && xsslock=1
     grep -q 'pkill.*pipewire' "$xinitrc" && pw=1
-    if ((theme && cursor && session && ended && blocks && xsslock && pw)); then
+    grep -qF -- "-f '/clipmenud\$'" "$xinitrc" && clip=1
+    if ((theme && cursor && session && ended && blocks && xsslock && pw && clip)); then
         green "ok      ~/.xinitrc exists, restores the dots theme and starts and ends the session"
         return 0
     fi
@@ -51,14 +54,14 @@ session_xinitrc_report() {
             'without it clipmenud outlives X and floods the login TTY with' \
             '"xsel: Can'"'"'t open display" errors.'
     else
-        session_xinitrc_report_stops "$blocks" "$xsslock" "$pw"
+        session_xinitrc_report_stops "$blocks" "$xsslock" "$pw" "$clip"
     fi
 }
 
 # The file already has dots_session_end and lacks only some of its stops, so
 # print only those lines — not the whole block (on the Fedora VM, 2026-10-12,
-# the full block was printed for one missing line). $1 $2 $3: whether the
-# dwmblocks, xss-lock and pipewire stops are already there.
+# the full block was printed for one missing line). $1 $2 $3 $4: whether the
+# dwmblocks, xss-lock, pipewire and (-f) clipmenud stops are already there.
 # shellcheck disable=SC2016
 session_xinitrc_report_stops() {
     if (($1 == 0)); then
@@ -75,6 +78,11 @@ session_xinitrc_report_stops() {
         yellow "kept    ~/.xinitrc (exists, never stops PipeWire at logout)"
         yellow '        it holds no X connection, so it keeps running after you log out.'
     fi
+    (($4)) || session_xinitrc_report_clip
+    if (($1 && $2 && $3)); then
+        yellow '        then log out and back in.'
+        return 0
+    fi
     yellow '        Add inside dots_session_end():'
     if (($1 == 0)); then
         yellow '            pkill -u "$(id -u)" -x dwmblocks'
@@ -86,6 +94,16 @@ session_xinitrc_report_stops() {
         yellow '            pkill -u "$(id -u)" -x pipewire'
     fi
     yellow '        then log out and back in.'
+}
+
+# The clipmenud stop an earlier installer wrote matches nothing on Void:
+# clipmenud is an env-bash script, so its process is named "bash".
+# shellcheck disable=SC2016
+session_xinitrc_report_clip() {
+    yellow "kept    ~/.xinitrc (exists, its clipmenud stop never matches)"
+    yellow '        clipmenud runs as "bash", so it outlives the session and can flood the'
+    yellow '        login TTY. Inside dots_session_end(), replace the clipmenud line with:'
+    yellow "            pkill -u \"\$(id -u)\" -f '/clipmenud\$'"
 }
 
 # The paste-in lines a ~/.xinitrc needs; split out for the 60-line cap.
@@ -127,7 +145,7 @@ session_xinitrc_report_session() {
     yellow '        Then replace `exec dwm` — and any dots_session_end or'
     yellow '        dots-session.target lines above it — with:'
     yellow '          dots_session_end() {'
-    yellow '            pkill -u "$(id -u)" -x clipmenud'
+    yellow "            pkill -u \"\$(id -u)\" -f '/clipmenud\$'"
     yellow '            pkill -u "$(id -u)" -x clipnotify'
     yellow '            pkill -u "$(id -u)" -x dwmblocks'
     yellow "            pkill -u \"\$(id -u)\" -f '/dwm-nightlight daemon\$'"

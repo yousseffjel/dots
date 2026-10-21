@@ -145,8 +145,9 @@ fi
 
 # Clipboard history for dwm-clipmenu (Super+v) — clipmenu is in
 # packages/desktop.lst. Silently skipped when it is not installed, so this
-# line is harmless if that package failed.
-if command -v clipmenud >/dev/null 2>&1 && ! pgrep -x clipmenud >/dev/null 2>&1; then
+# line is harmless if that package failed. Matched by -f: clipmenud is an
+# env-bash script, so its process is named "bash" and -x never finds it.
+if command -v clipmenud >/dev/null 2>&1 && ! pgrep -u "$(id -u)" -f '/clipmenud$' >/dev/null 2>&1; then
 	clipmenud &
 fi
 

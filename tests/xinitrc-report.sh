@@ -86,7 +86,7 @@ fi
 { sed '/^# Session end/,$d' "$SB/xinitrc.shipped" && echo 'exec dwm'; } >"$SB/pre-cleanup-xinitrc"
 out="$(report "$SB/pre-cleanup-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
-if grep -q -- 'never stops clipmenud at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x clipmenud' <<<"$out" \
+if grep -q -- 'never stops clipmenud at logout' <<<"$out" && grep -qF -- "            pkill -u \"\$(id -u)\" -f '/clipmenud\$'" <<<"$out" \
     && ! grep -q -- 'never starts a D-Bus session' <<<"$out" && ! grep -q -- 'never restores' <<<"$out"; then
     green "  ok: a bus without a session end gets the session-end lines"
 else
@@ -101,7 +101,7 @@ out="$(report "$SB/pre-blocks-xinitrc")"
 # shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
 if grep -q -- 'never stops dwmblocks at logout' <<<"$out" && grep -qF -- '            pkill -u "$(id -u)" -x dwmblocks' <<<"$out" \
     && ! grep -q -- 'never stops clipmenud' <<<"$out" && ! grep -q -- 'never starts a D-Bus session' <<<"$out" \
-    && ! grep -qF -- 'pkill -u "$(id -u)" -x clipmenud' <<<"$out"; then
+    && ! grep -qF -- 'clipmenud' <<<"$out"; then
     green "  ok: a session end without dwmblocks gets only the missing lines"
 else
     red "  the pre-dwmblocks ~/.xinitrc report is wrong: $out"
@@ -130,10 +130,24 @@ else
     red "  the pre-pipewire ~/.xinitrc report is wrong: $out"
     rc=1
 fi
+# A Void ~/.xinitrc from before 2026-10-21: everything, but clipmenud stopped
+# by -x, which never matches (it runs as "bash").
+sed "s|-f '/clipmenud\\\$'|-x clipmenud|" "$SB/xinitrc.shipped" >"$SB/pre-clipf-xinitrc"
+out="$(report "$SB/pre-clipf-xinitrc")"
+# shellcheck disable=SC2016 # the $(id -u) is the paste line's, matched literally
+if grep -q -- '-x clipmenud' "$SB/pre-clipf-xinitrc" && grep -q -- 'its clipmenud stop never matches' <<<"$out" \
+    && grep -qF -- "            pkill -u \"\$(id -u)\" -f '/clipmenud\$'" <<<"$out" \
+    && [[ $(grep -c 'then log out and back in' <<<"$out") == 1 ]] && ! grep -q -- 'Add inside' <<<"$out"; then
+    green "  ok: an -x clipmenud stop gets only its replacement line"
+else
+    red "  the pre-clipmenud-f ~/.xinitrc report is wrong: $out"
+    rc=1
+fi
+
 # pkill -f must match the daemon's own self-detection pattern, or the stop
 # silently matches nothing. Both sides read from the shipped files.
 want="$(sed -n "s/^DAEMON_PATTERN='\(.*\)'$/\1/p" "$DOTS_DIR/config/dwm/bin/dwm-nightlight")"
-got="$(sed -n "s/.*pkill -u .* -f '\([^']*\)'.*/\1/p" "$SB/xinitrc.shipped")"
+got="$(sed -n "s/.*pkill -u .* -f '\([^']*nightlight[^']*\)'.*/\1/p" "$SB/xinitrc.shipped")"
 if [[ -n "$want" && "$got" == "$want" ]]; then
     green "  ok: the night-light stop uses dwm-nightlight's own DAEMON_PATTERN"
 else
