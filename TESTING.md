@@ -106,6 +106,13 @@ for adding CI; new docs you add are linted normally.
   tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file
   there is never executed on its own, while `tests/lint.sh` lints every
   tracked `*.sh` at any depth.
+- **`tests/dwm-multimon.sh`** — the built dwm on two monitors: one
+  3840x1080 Xvfb screen split with `xrandr --setmonitor` into two RandR
+  monitors, which dwm reads through the server's Xinerama emulation as it
+  would two real screens. Asserts a bar per monitor and the status on every
+  one, pixel-identical (statusallmons). Shares `tests/lib/dwm-runtime-x.sh`
+  (`XVFB_SCREEN` sets the screen), so dwm runs in the same sandbox HOME.
+  Run by `build-suckless` after `dwm-runtime.sh`; skips without a build.
 - **`tests/bidi.sh`** — the `bidi()` helpers the fribidi patches added to
   dwm (window title) and dmenu (items, input line), **extracted from the
   shipped `dwm.c`/`dmenu.c`** and compiled against fribidi under

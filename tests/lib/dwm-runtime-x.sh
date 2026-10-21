@@ -6,6 +6,7 @@
 # MAGICK) and writes XVFB_PID / DWM_PID back for its cleanup trap.
 
 # Finds a free display number, starts Xvfb on it and exports DISPLAY.
+# XVFB_SCREEN overrides the screen (tests/dwm-multimon.sh splits a wide one).
 #
 # -noreset IS LOAD-BEARING. Without it, the X server resets all state
 # (properties, RESOURCE_MANAGER) the instant zero clients are momentarily
@@ -27,7 +28,7 @@ start_xvfb() {
     }
     export DISPLAY=":$dispnum"
 
-    Xvfb "$DISPLAY" -screen 0 1280x1024x24 -noreset >"$TMP/xvfb.log" 2>&1 &
+    Xvfb "$DISPLAY" -screen 0 "${XVFB_SCREEN:-1280x1024x24}" -noreset >"$TMP/xvfb.log" 2>&1 &
     XVFB_PID=$!
     for _ in $(seq 1 50); do
         xdpyinfo >/dev/null 2>&1 && break

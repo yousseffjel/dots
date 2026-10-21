@@ -157,12 +157,17 @@ jobs:
       # only, and a real install never needs a virtual framebuffer, xdotool,
       # or ImageMagick. Void names (checked against the repo index).
       - name: Install dwm-runtime.sh test dependencies
-        run: xbps-install -y xorg-server-xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng
+        run: xbps-install -y xorg-server-xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng xrandr xsetroot
 
       # Asserts real EWMH state plus xresources/actualfullscreen/pertag/
       # restartsig patch behaviour under Xvfb, every check a hard failure.
       - name: Run dwm under Xvfb
         run: bash tests/dwm-runtime.sh
+
+      # Two RandR monitors on one Xvfb screen (xrandr --setmonitor): a bar
+      # per monitor and the status on every one (statusallmons).
+      - name: Run dwm on two monitors under Xvfb
+        run: bash tests/dwm-multimon.sh
 
   # The installer's INPUTS against the live repos. tests/void-pkgnames.sh
   # (in the tests job) checks the same names offline against a committed

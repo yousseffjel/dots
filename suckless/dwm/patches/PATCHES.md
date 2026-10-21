@@ -89,6 +89,35 @@ layout, mfact, nmaster and bar to the defaults.
 restart, and changing `_DWM_VIEW`'s layout would make the new binary misread
 the old one's data. A property the old binary never writes is simply absent.
 
+## dwm-statusallmons-20261021-local.diff
+
+**Source**: modelled on the upstream statusallmons patch
+(`dwm.suckless.org/patches/statusallmons/`), written against this tree
+because upstream's two-line change assumes stock dwm. Here status2d's
+`drawstatusbar()` and statuscmd's click mapping in `buttonpress()` both
+subtracted the systray width unconditionally — harmless while the status
+was drawn only on the selected monitor, which is where a
+`systraypinning = 0` tray sits.
+
+**What it changes**: `drawbar()` draws the status on every monitor (the
+`m == selmon` guard is gone), `updatestatus()` redraws every bar
+(`drawbars()`), and a new `traywidth(m)` returns the tray's width on the
+monitor that holds it (`systraytomon()`) and 0 elsewhere, used by both
+the status drawing and the click mapping. `statusw` stays one global: it is
+the text's width, the same on every bar.
+
+**Why**: the user runs two monitors (2026-10-21); the clock, volume, battery
+and notification button sat on whichever monitor held the pointer, and
+jumped with it. The tray still follows the selected monitor
+(`systraypinning` unchanged).
+
+**Interactions**: statuscmd clicks work on any bar — `buttonpress()` makes
+the clicked monitor `selmon` before mapping the click, so `selmon->ww` and
+`traywidth(selmon)` are that bar's. `tests/dwm-multimon.sh` (two RandR
+monitors under Xvfb) asserts the status on both bars, pixel-identical,
+across a selection change and a status update; it catches each of the three
+changes reverted on its own.
+
 ## dwm-wakeonsignal-20261012-local.diff
 
 **Source**: written for this tree; no upstream patch. A self-pipe in the

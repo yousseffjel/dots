@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **The status bar text is on every monitor.** The clock, volume, battery
+  and the rest used to sit only on the monitor holding the pointer and
+  jump with it; now every monitor's bar shows them, and clicking a block
+  works on any of them. The tray still follows the focused monitor.
+  Rebuild dwm (`dots update`, or `scripts/install-suckless.sh`).
+
 - **Capture just the monitor you are on.** The screenshot menu (`Print`)
   and the recording menu (`Super+r`) offer `monitor`: the screen under the
   pointer, at its exact edges. On two screens `full` takes both at once.

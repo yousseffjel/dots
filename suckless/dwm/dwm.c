@@ -215,6 +215,7 @@ static int getrootptr(int *x, int *y);
 static long getstate(Window w);
 static pid_t getstatusbarpid();
 static unsigned int getsystraywidth();
+static unsigned int traywidth(Monitor *m);
 static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
 static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
@@ -608,8 +609,8 @@ buttonpress(XEvent *e)
 			arg.ui = 1 << i;
 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
 			click = ClkLtSymbol;
-		else if (ev->x > selmon->ww - statusw - getsystraywidth()) {
-			x = selmon->ww - statusw - getsystraywidth();
+		else if (ev->x > selmon->ww - statusw - traywidth(selmon)) {
+			x = selmon->ww - statusw - traywidth(selmon);
 			click = ClkStatusText;
 
 			char *text, *s, ch;
@@ -1015,7 +1016,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 
 	w += 2; /* 1px padding on both sides */
 	ret = m->ww - w;
-	x = m->ww - w - getsystraywidth();
+	x = m->ww - w - traywidth(m);
 
 	drw_setscheme(drw, scheme[LENGTH(colors)]);
 	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
@@ -1158,10 +1159,10 @@ drawbar(Monitor *m)
 	if(showsystray && m == systraytomon(m) && !systrayonleft)
 		stw = getsystraywidth();
 
-	/* draw status first so it can be overdrawn by tags later */
-	if (m == selmon) { /* status is only drawn on selected monitor */
-		tw = statusw = m->ww - drawstatusbar(m, bh, stext);
-	}
+	/* draw status first so it can be overdrawn by tags later; statusallmons:
+	 * on every monitor, not only the selected one. statusw is the text's
+	 * width, the same on each. */
+	tw = statusw = m->ww - drawstatusbar(m, bh, stext);
 
 	resizebarwin(m);
 	for (c = m->clients; c; c = c->next) {
@@ -1345,6 +1346,14 @@ getsystraywidth()
 	if(showsystray)
 		for(i = systray->icons; i; w += i->w + systrayspacing, i = i->next) ;
 	return w ? w + systrayspacing : 1;
+}
+
+/* statusallmons: the tray's width on the monitor that holds it, 0 on the
+ * others — the status now sits on every bar, and only one has the tray. */
+unsigned int
+traywidth(Monitor *m)
+{
+	return showsystray && m == systraytomon(m) ? getsystraywidth() : 0;
 }
 
 pid_t
@@ -3168,7 +3177,7 @@ updatestatus(void)
 {
 	if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
 		strcpy(stext, "dwm-"VERSION);
-	drawbar(selmon);
+	drawbars();
 	updatesystray();
 }
 
