@@ -2,4 +2,4 @@
 Phase: idle
 Task: _(none)_
 Task folder: _(none)_
-Last log: .claude/changes/2026-10-22-dwm-hyprland-mouse.md
+Last log: .claude/changes/2026-10-22-scratchpad-fill.md

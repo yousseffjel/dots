@@ -18,6 +18,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **A scratchpad comes back filling the screen.** `Super` + `s` used to
+  show a stashed window at whatever size it had when stashed; now it fills
+  the space under the bar each time, still floating on top. The drop-down
+  terminal keeps its own place. Rebuild dwm.
+
 - **Windows move and resize with the mouse the way Hyprland does.**
   `Super` + left-drag on a tiled window drops it into another window's
   slot and keeps it tiled (across monitors too); a floating one moves

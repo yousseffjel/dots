@@ -132,7 +132,7 @@ applications.
 | Keys | Action |
 | --- | --- |
 | `Mod` + `Shift` + `s` | Stash the focused window into the scratchpad |
-| `Mod` + `s` | Show / hide the current scratchpad window; keep pressing to cycle |
+| `Mod` + `s` | Show / hide the current scratchpad window, filling the screen under the bar; keep pressing to cycle |
 | `Mod` + `=` | Drop the current window out of the scratchpad set |
 | `Super` + `grave` | Drop-down terminal: show / hide it; the first press starts it |
 

@@ -1,0 +1,21 @@
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -2726,11 +2726,17 @@
+ 		scratchpad_show_first();
+ }
+ 
++/* scratchpadfill: a shown scratchpad fills the monitor's window area, still
++ * floating, whatever size it was stashed at. The dropterm keeps its own
++ * placement (droptermgeom()). */
+ void
+ scratchpad_show_client(Client *c)
+ {
+ 	scratchpad_last_showed = c;
+ 	c->tags = selmon->tagset[selmon->seltags];
++	if (!c->isdropterm && !c->isfullscreen)
++		resize(c, selmon->wx, selmon->wy, selmon->ww - 2 * c->bw,
++			selmon->wh - 2 * c->bw, 0);
+ 	focus(c);
+ 	arrange(selmon);
+ }

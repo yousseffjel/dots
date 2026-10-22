@@ -25,6 +25,22 @@ updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
 the chords they were published with in their context lines, because they are
 records of what upstream shipped, not of this tree's keymap.
 
+## dwm-scratchpadfill-20261022-local.diff
+
+**Source**: written for this tree, on top of dynamicscratchpads. A window
+stashed with `scratchpad_hide()` is made floating at whatever size it had,
+so `Super` + `s` brought it back at that size, often a tiled column's or a
+near-full leftover (the user saw 1851x1043 on a 1920x1080 monitor).
+`scratchpad_show_client()` now `resize()`s it to the selected monitor's
+window area (`wx`/`wy`/`ww`/`wh`, borders inside) before `arrange()`, on
+every show, so a scratchpad dragged smaller fills again the next time. It
+stays floating: tiled windows stay behind it and Super+drag still works.
+**Skipped**: the dropterm (it has its own top-centre placement,
+`droptermgeom()`) and a fullscreen window. Size hints still apply
+(`resize()`, not `resizeclient()`), so a terminal with size increments can
+stop a cell short. User choice 2026-10-22 over "join the tiling" and
+"centred at 90%". `check_scratchpad_fill` in `tests/lib/dwm-runtime-floating.sh`.
+
 ## Hyprland-style mouse (2026-10-22)
 
 Six records, merged together in one slot (`dwm-hyprland-mouse`). The user

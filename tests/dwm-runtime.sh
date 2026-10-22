@@ -11,7 +11,8 @@
 # wakeonsignal (SIGHUP/SIGTERM act with no X event). It also opens a window
 # of every floating class in config.def.h's rules[] and checks it floats, and
 # drives the Hyprland-style mouse patches with real Super+drags (resizepoint,
-# placemouse, cfacts + dragtile, snapwindows, preservecfact).
+# placemouse, cfacts + dragtile, snapwindows, preservecfact), and checks a
+# scratchpad shown with Super+s fills the screen (scratchpadfill).
 # No patch count: the last one written here went stale twice.
 #
 # Wired into `build-suckless` (CI) rather than a new job, per scope-d locked
@@ -157,6 +158,7 @@ check_float_rules
 check_dropterm
 check_launch_keys
 check_mouse
+check_scratchpad_fill
 check_restartsig
 check_preserve
 check_pertag_restart
