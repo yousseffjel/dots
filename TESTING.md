@@ -115,6 +115,15 @@ for adding CI; new docs you add are linted normally.
   unplug is the screen shrinking through a RandR mode added to Xvfb's output. Shares `tests/lib/dwm-runtime-x.sh`
   (`XVFB_SCREEN` sets the screen), so dwm runs in the same sandbox HOME.
   Run by `build-suckless` after `dwm-runtime.sh`; skips without a build.
+- **`tests/dwm-build-fresh.sh`** — the guard both tests above run first
+  (`tests/lib/dwm-build-fresh.sh`): they **fail**, never skip, when
+  `suckless/dwm/dwm` is older than a source beside it, or `config.def.h`
+  is newer than the generated `config.h` (which `make` never regenerates),
+  and print the command that rebuilds it. Nothing rebuilds the binary
+  between a `git pull` or a slot merge and a local run, so a stale one
+  tested old code: on 2026-10-22 it failed five correct `dwm-multimon.sh`
+  checks, and it would equally have passed a regression. CI builds first,
+  so it never trips there.
 - **`tests/bidi.sh`** — the `bidi()` helpers the fribidi patches added to
   dwm (window title) and dmenu (items, input line), **extracted from the
   shipped `dwm.c`/`dmenu.c`** and compiled against fribidi under

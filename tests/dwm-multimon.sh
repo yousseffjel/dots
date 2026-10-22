@@ -45,12 +45,20 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 # shellcheck source=lib/dwm-runtime-x.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-x.sh"
+# shellcheck source=lib/dwm-build-fresh.sh
+source "$SCRIPT_DIR/lib/dwm-build-fresh.sh"
 
 skip() {
     yellow "SKIP: dwm-multimon.sh needs $1 and it is not available."
     exit 0
 }
 [[ -x "$DWM" ]] || skip "a built suckless/dwm/dwm binary (run tests/build.sh first)"
+# A stale binary tests the old code (tests/lib/dwm-build-fresh.sh): fail,
+# never skip, so a green suite cannot hide it.
+if stale="$(dwm_build_stale "$DWM")"; then
+    red "FAIL: dwm-multimon.sh: suckless/dwm/dwm is older than its sources: $stale"
+    exit 1
+fi
 for t in Xvfb xdotool xrandr xsetroot xwininfo xdpyinfo import; do
     command -v "$t" >/dev/null 2>&1 || skip "$t"
 done

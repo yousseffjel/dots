@@ -60,6 +60,8 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 
 # shellcheck source=lib/dwm-runtime-x.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-x.sh"
+# shellcheck source=lib/dwm-build-fresh.sh
+source "$SCRIPT_DIR/lib/dwm-build-fresh.sh"
 # shellcheck source=lib/dwm-runtime-checks.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-checks.sh"
 # shellcheck source=lib/dwm-runtime-restart.sh
@@ -77,6 +79,12 @@ skip() {
 }
 
 [[ -x "$DWM" ]] || skip "a built suckless/dwm/dwm binary (run tests/build.sh or scripts/install-suckless.sh first)"
+# A stale binary tests the old code (tests/lib/dwm-build-fresh.sh): fail,
+# never skip, so a green suite cannot hide it.
+if stale="$(dwm_build_stale "$DWM")"; then
+    red "FAIL: dwm-runtime.sh: suckless/dwm/dwm is older than its sources: $stale"
+    exit 1
+fi
 command -v Xvfb >/dev/null 2>&1 || skip "Xvfb"
 command -v xdotool >/dev/null 2>&1 || skip "xdotool"
 command -v xrdb >/dev/null 2>&1 || skip "xrdb"

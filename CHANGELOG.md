@@ -40,6 +40,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **The dwm tests no longer run a stale build.** `tests/dwm-runtime.sh`
+  and `tests/dwm-multimon.sh` fail, with the rebuild command, when the
+  built dwm is older than its sources, instead of testing old code.
+
 - **A screen turned back on keeps your brightness.** On a desktop the
   brightness keys dim through xrandr gamma, and a screen that came back
   from a hotplug, a `Super+Shift+d` layout or an autorandr profile started
