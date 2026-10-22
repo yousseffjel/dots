@@ -438,3 +438,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   record (value 17). The dropterm stays out. Retires scratchpadfill (its
   n = 1 case). Mutants caught, including a no-gather one the multimon check
   first missed twice. Suite 107 OK; reviewer READY.
+- **scratchpad-follow** (ff `9dd7d83`; log `2026-10-22-scratchpad-follow.md`).
+  First real-desktop report on scratchpad-group: a set shown on tag 8 of one
+  monitor hid itself when `Super` + `s` was pressed on the other. "Showing"
+  now means on the focused monitor; otherwise every member, wherever it is
+  (including one left on an unviewed tag, which was lost before), is
+  gathered here. Both new checks failed on the old build; suite 107 OK;
+  reviewer READY.

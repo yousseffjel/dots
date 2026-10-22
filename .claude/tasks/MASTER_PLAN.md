@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **scratchpad-follow** (ff `9dd7d83`; log
+  `2026-10-22-scratchpad-follow.md`). `Super` + `s` brings a set shown on
+  another monitor or tag to where you are instead of hiding it.
 - 2026-10-22 — **scratchpad-group** (ff `bfb8a12`; log
   `2026-10-22-scratchpad-group.md`). `Super` + `s` shows all scratchpads
   together, master + stack, on this monitor; the next press hides them all.
