@@ -69,6 +69,17 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **A region screenshot now catches open dropdowns and menus.** The region
+  key moved from `Super` + `p` to `Super` + `a`, for one hand, and it no
+  longer closes an open browser dropdown. Any grabbed hotkey took focus
+  from the window and the browser closed the dropdown on that, so this key is
+  read without a grab by a new listener, `dwm-shotkey`, and the selector runs
+  without its keyboard grab. Escape still cancels. An existing install must
+  add the listener to its `autostart.sh`; the installer prints the line.
+  `xinput` moved to `desktop.lst`, and st and alacritty ignore `Super` + `a`
+  instead of typing an "a". `Super` + `Shift` + `a` is the same shot after 3
+  seconds (`dwm-screenshot --delay N`).
+
 - **The dwm tests no longer run a stale build.** `tests/dwm-runtime.sh`
   and `tests/dwm-multimon.sh` fail, with the rebuild command, when the
   built dwm is older than its sources, instead of testing old code.

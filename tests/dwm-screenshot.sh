@@ -56,7 +56,7 @@ mkbin() {
     local dir="$TMP/$1" t
     shift
     seal_path "$dir" bash awk mktemp rm mv mkdir date cat
-    for t in maim slop xclip xprop dmenu notify-send xrdb xdg-user-dir; do
+    for t in maim slop magick sleep xclip xprop dmenu notify-send xrdb xdg-user-dir; do
         [[ " $* " == *" $t "* ]] && continue
         case "$t" in
             # Writes "PNG" into its last argument, or nothing when FAKE_EMPTY.
@@ -78,6 +78,7 @@ IFS='|' read -ra a <<<\"\${FAKE_MENU:-}\"; ans=\"\${a[\$n]:-ESC}\"; [[ \"\$ans\"
 mkbin all
 mkbin no-xclip xclip
 mkbin no-maim maim
+mkbin no-magick magick
 mkbin no-xdg xdg-user-dir
 # A clock stuck on one second: NAME_FMT has seconds resolution.
 mkbin samesec
@@ -154,19 +155,49 @@ fi
 
 blue "==> region: slop theming and cancel"
 run all FAKE_GEOM=800x600+10+20 FAKE_SEL='#ff8000' -- --region --clipboard
-if has "slop --bordersize 2 --color 1.000,0.502,0.000,1" && has "maim --hidecursor --geometry 800x600+10+20"; then
-    pass "#ff8000 -> --color 1.000,0.502,0.000,1, and slop's geometry reaches maim"
+if has "slop --bordersize 2 --color 1.000,0.502,0.000,1" && has "-crop 800x600+10+20 +repage"; then
+    pass "#ff8000 -> --color 1.000,0.502,0.000,1, and slop's geometry is the crop"
 else
     fail "region themed: $(cat "$LOG")"
 fi
+run all FAKE_GEOM=800x600+10+20 -- --no-grab --region --clipboard
+if has "--nokeyboard"; then pass "--no-grab: slop without its keyboard grab"; else fail "no-grab: $(cat "$LOG")"; fi
 run all FAKE_GEOM=800x600+10+20 -- --region --clipboard
-if has "slop --bordersize 2" && ! grep -q -- '--color' "$LOG"; then pass "unthemed: no --color, slop's default"; else fail "unthemed: $(cat "$LOG")"; fi
+if ! has "--nokeyboard" && has "slop --bordersize 2" && ! grep -q -- '--color' "$LOG"; then pass "unthemed: no --color, slop's default"; else fail "unthemed: $(cat "$LOG")"; fi
 run all FAKE_GEOM= -- --region --file
-if [[ $RC -eq 0 ]] && ! has maim && [[ "$(shots)" -eq 0 ]]; then
+if [[ $RC -eq 0 ]] && ! has magick && [[ "$(shots)" -eq 0 ]]; then
     pass "Escape in slop: exit 0, nothing captured or saved"
 else
     fail "slop cancel: rc=$RC shots=$(shots)"
 fi
+
+# The frame is taken before slop runs: slop's keyboard grab closes open
+# menus, so a capture after the drag would miss them.
+run all FAKE_GEOM=800x600+10+20 -- --region --clipboard
+order="$(grep -o '^maim\|^slop\|^magick' "$LOG" | tr '\n' ' ')"
+if [[ "$order" == "maim slop magick " ]] && ! has "--geometry"; then
+    pass "region: whole screen frozen first, then slop, then the crop"
+else
+    fail "region order: $order"
+fi
+run no-magick FAKE_GEOM=800x600+10+20 -- --region --clipboard
+if [[ $RC -ne 0 && "$ERR" == *ImageMagick* ]] && ! has slop; then
+    pass "no ImageMagick: --region fails before the drag"
+else
+    fail "no magick: rc=$RC err=$ERR"
+fi
+
+run all FAKE_GEOM=800x600+10+20 -- --delay 3 --region --clipboard
+order="$(grep -o '^sleep 3\|^maim\|^slop' "$LOG" | tr '\n' ' ')"
+if [[ $RC -eq 0 && "$order" == "sleep 3 maim slop " ]] && has "notify-send"; then
+    pass "--delay 3: notified, slept, THEN froze the frame and ran slop"
+else
+    fail "delay order: rc=$RC $order"
+fi
+run all -- --delay x --full --file
+if [[ $RC -ne 0 && "$ERR" == *"whole number"* ]] && ! has maim; then pass "--delay x rejected before capturing"; else fail "bad delay: rc=$RC"; fi
+run all -- --full --file
+if ! has sleep; then pass "no --delay: no sleep"; else fail "slept without --delay"; fi
 
 blue "==> dmenu prompts"
 run all 'FAKE_MENU=full|both' --

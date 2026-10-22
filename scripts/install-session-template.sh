@@ -215,5 +215,10 @@ fi
 # PipeWire's events and redraws them. It ends with PipeWire at logout, and a
 # second launch after a dwm restart exits by itself.
 "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-audiowatch" &
+
+# Super+a, the region screenshot, read WITHOUT a key grab so an open browser
+# dropdown survives into the shot (sxhkd's grab would close it). It ends with
+# the X server, and a second launch after a dwm restart exits by itself.
+"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-shotkey" &
 EOF
 }

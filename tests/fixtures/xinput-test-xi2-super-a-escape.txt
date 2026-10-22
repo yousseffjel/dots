@@ -1,0 +1,200 @@
+⎡ Virtual core pointer                    	id=2	[master pointer  (3)]
+⎜   ↳ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+⎜   ↳ Xvfb mouse                              	id=6	[slave  pointer  (2)]
+⎣ Virtual core keyboard                   	id=3	[master keyboard (2)]
+    ↳ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+    ↳ Xvfb keyboard                           	id=7	[slave  keyboard (3)]
+EVENT type 1 (DeviceChanged)
+    device: 3 (5)
+    time: 24494672
+    reason: SlaveSwitch
+	Reporting 1 classes:
+		Class originated from: 5. Type: XIKeyClass
+		Keycodes supported: 248
+
+EVENT type 13 (RawKeyPress)
+    device: 3 (5)
+    time:   24494672
+    detail: 133
+    valuators:
+
+EVENT type 2 (KeyPress)
+    device: 5 (5)
+    time: 24494672
+    detail: 133
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 2 (KeyPress)
+    device: 3 (5)
+    time: 24494672
+    detail: 133
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 13 (RawKeyPress)
+    device: 3 (5)
+    time:   24494679
+    detail: 38
+    valuators:
+
+EVENT type 2 (KeyPress)
+    device: 5 (5)
+    time: 24494679
+    detail: 38
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0x40 effective: 0x40
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 2 (KeyPress)
+    device: 3 (5)
+    time: 24494679
+    detail: 38
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0x40 effective: 0x40
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 14 (RawKeyRelease)
+    device: 3 (5)
+    time:   24494686
+    detail: 133
+    valuators:
+
+EVENT type 3 (KeyRelease)
+    device: 5 (5)
+    time: 24494686
+    detail: 133
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0x40 effective: 0x40
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 3 (KeyRelease)
+    device: 3 (5)
+    time: 24494686
+    detail: 133
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0x40 effective: 0x40
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 14 (RawKeyRelease)
+    device: 3 (5)
+    time:   24494686
+    detail: 133
+    valuators:
+
+EVENT type 14 (RawKeyRelease)
+    device: 3 (5)
+    time:   24494692
+    detail: 38
+    valuators:
+
+EVENT type 3 (KeyRelease)
+    device: 5 (5)
+    time: 24494692
+    detail: 38
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 3 (KeyRelease)
+    device: 3 (5)
+    time: 24494692
+    detail: 38
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 13 (RawKeyPress)
+    device: 3 (5)
+    time:   24494706
+    detail: 9
+    valuators:
+
+EVENT type 2 (KeyPress)
+    device: 5 (5)
+    time: 24494706
+    detail: 9
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 2 (KeyPress)
+    device: 3 (5)
+    time: 24494706
+    detail: 9
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 14 (RawKeyRelease)
+    device: 3 (5)
+    time:   24494712
+    detail: 9
+    valuators:
+
+EVENT type 3 (KeyRelease)
+    device: 5 (5)
+    time: 24494712
+    detail: 9
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0
+EVENT type 3 (KeyRelease)
+    device: 3 (5)
+    time: 24494712
+    detail: 9
+    flags: 
+    root: 640.00/400.00
+    event: 640.00/400.00
+    buttons:
+    modifiers: locked 0 latched 0 base 0 effective: 0
+    group: locked 0 latched 0 base 0 effective: 0
+    valuators:
+    windows: root 0x46f event 0x46f child 0x0

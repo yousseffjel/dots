@@ -17,9 +17,19 @@
 #   dwm-screenshot --region --clipboard   no prompts at all
 #
 #   dwm-screenshot --monitor --both       this monitor, saved and copied
+#   dwm-screenshot --delay 3 --region --clipboard
+#                                         3 s to open a menu, then the region
 #
-# Bound to Print, Shift+Print, Super+p (region -> clipboard) and Super+Alt+p
-# (full -> both) in config/sxhkd/sxhkdrc. Nothing here needs a dwm rebuild:
+# --delay and --no-grab exist for dropdowns and menus: a key grab takes the
+# focus off the window while it is held, and a browser closes its dropdown on
+# that. --no-grab runs slop without its keyboard grab, so Escape cannot
+# cancel; dwm-shotkey (Super+a, read without a grab) cancels on Escape for it.
+# --delay is for a shot started from a grabbed key: press it, then open the
+# menu before the delay runs out.
+#
+# Bound to Print, Shift+Print, Super+Shift+a (region -> clipboard after 3 s)
+# and Super+Alt+p (full -> both) in config/sxhkd/sxhkdrc; Super+a (region ->
+# clipboard, --no-grab) is dwm-shotkey's. Nothing here needs a dwm rebuild:
 # none of those chords is in dwm's keys[], so sxhkd may grab them freely.
 #
 # flameshot was rejected for this job because it is Qt, and the desktop is
@@ -57,7 +67,7 @@ cleanup() { if [[ -n "$TMP" ]]; then rm -f "$TMP"; fi; }
 trap cleanup EXIT
 
 usage() {
-    echo "usage: dwm-screenshot [--full|--monitor|--window|--region] [--clipboard|--file|--both]"
+    echo "usage: dwm-screenshot [--delay SECONDS] [--no-grab] [--full|--monitor|--window|--region] [--clipboard|--file|--both]"
 }
 
 # Notifications are a nicety, never a dependency — same contract as
@@ -146,10 +156,22 @@ deliver() {
 # --- argument parsing --------------------------------------------------
 MODE=""
 DEST=""
+DELAY=0
+# Read by capture() in dwm-lib-screenshot.sh.
+NO_GRAB=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --delay)
+            if [[ ! "${2-}" =~ ^[0-9]+$ ]]; then
+                red "dwm-screenshot: --delay needs a whole number of seconds"
+                exit 1
+            fi
+            DELAY="$2"
+            shift
+            ;;
         --full | --monitor | --window | --region) MODE="${1#--}" ;;
         --clipboard | --file | --both) DEST="${1#--}" ;;
+        --no-grab) NO_GRAB=1 ;;
         -h | --help)
             usage
             exit 0
@@ -194,6 +216,12 @@ case "$DEST" in
         exit 1
         ;;
 esac
+
+# After the prompts, so the time is spent on the screen, not in dmenu.
+if ((DELAY > 0)); then
+    notify -t "$((DELAY * 1000))" "Screenshot in ${DELAY}s" "Open the menu now"
+    sleep "$DELAY"
+fi
 
 TMP="$(mktemp -t dwm-screenshot.XXXXXX.png)"
 

@@ -195,6 +195,9 @@ static MouseShortcut mshortcuts[] = {
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
 	{ XK_ANY_MOD,           XK_Break,       sendbreak,      {.i =  0} },
+	/* Super+a is the region screenshot, read by dwm-shotkey without a key
+	 * grab, so it reaches this window too: send nothing rather than an "a". */
+	{ Mod4Mask,             XK_a,           ttysend,        {.s = ""} },
 	{ ControlMask,          XK_Print,       toggleprinter,  {.i =  0} },
 	{ ShiftMask,            XK_Print,       printscreen,    {.i =  0} },
 	{ XK_ANY_MOD,           XK_Print,       printsel,       {.i =  0} },

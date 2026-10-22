@@ -451,3 +451,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   compact values (no SSID, no RAM total, no "free"). Lamp vs sun keeps the
   backlight/gamma distinction. Octicons' cpu glyph drew blank in the user's
   terminal; MD `󰻠` replaced it. Suite OK; reviewer READY.
+- **screenshot-dropdown** (main; log `2026-10-22-screenshot-dropdown.md`).
+  The region screenshot moved to `Super` + `a` and keeps an open browser
+  dropdown open. Measured in Xvfb Firefox: every grab (sxhkd, slop's keyboard
+  grab) fires page `blur`. So Super+a is read ungrabbed by the new
+  `dwm-shotkey` (xinput raw events), slop runs `--nokeyboard` with Escape
+  handled by the listener, and st/alacritty ignore Super+a. xinput is in
+  desktop.lst now. Suite OK; reviewer READY.

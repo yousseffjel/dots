@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **screenshot-dropdown** (main; log
+  `2026-10-22-screenshot-dropdown.md`). `Super` + `a` takes a region
+  screenshot without closing an open dropdown or menu.
 - 2026-10-22 — **bar-icons** (ff `cd642c9`; log
   `2026-10-22-bar-icons.md`). The status bar shows icons that follow each
   block's state instead of text labels.

@@ -34,6 +34,14 @@ selector_color() {
 }
 
 # --- capture -----------------------------------------------------------
+# ImageMagick 7 is `magick`; 6 has only `convert` (colorgen.sh's fallback).
+magick_bin() {
+    command -v magick 2>/dev/null || command -v convert 2>/dev/null || {
+        red "dwm-screenshot: ImageMagick is not installed (needed only for --region)"
+        return 1
+    }
+}
+
 # The active window id, as the 0x-prefixed string maim -i accepts verbatim.
 # dwm maintains _NET_ACTIVE_WINDOW, and sets it to 0x0 when nothing is
 # focused — which matches the hex pattern, so it needs rejecting by name.
@@ -54,7 +62,7 @@ active_window() {
 # mode list here would be a second place to forget when one is added. An
 # unknown mode falls through to the empty-capture check downstream.
 capture() {
-    local mode="$1" out="$2" id geom rgba slop_opts=()
+    local mode="$1" out="$2" id geom rgba magick slop_opts=()
 
     case "$mode" in
         full)
@@ -78,6 +86,13 @@ capture() {
             ;;
         region)
             require slop "region selection" || return 1
+            magick="$(magick_bin)" || return 1
+            # Freeze first (2026-10-22): the whole screen is captured BEFORE
+            # slop runs, and the selection is cropped out of that frame.
+            # slop grabs the keyboard, and the focus loss closes whatever
+            # popup was open — a browser dropdown, a GTK menu — so capturing
+            # after the drag could never contain one.
+            maim "${CAPTURE_OPTS[@]}" "$out"
             # slop is run directly rather than through maim --select, so the
             # themed colour applies and the geometry is ours to inspect.
             #
@@ -89,9 +104,13 @@ capture() {
             rgba="$(selector_color)"
             slop_opts=(--bordersize "$SLOP_BORDER")
             if [[ -n "$rgba" ]]; then slop_opts+=(--color "$rgba"); fi
+            # --no-grab: slop's keyboard grab would close an open dropdown.
+            if [[ -n "${NO_GRAB:-}" ]]; then slop_opts+=(--nokeyboard); fi
             geom="$(slop "${slop_opts[@]}" || true)"
             if [[ -z "$geom" ]]; then return 2; fi
-            maim "${CAPTURE_OPTS[@]}" --geometry "$geom" "$out"
+            # slop and maim both use root coordinates, so on several
+            # monitors the rectangle lands in the same place in the frame.
+            "$magick" "$out" -crop "$geom" +repage "$out"
             ;;
     esac
 }

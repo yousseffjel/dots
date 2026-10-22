@@ -100,3 +100,11 @@ save_to_clipboard = false
 
 [mouse]
 hide_when_typing = true
+
+# Super+a is the region screenshot, read by dwm-shotkey WITHOUT a key grab (a
+# grab closes an open browser dropdown), so the focused window gets the key
+# too. Without this binding alacritty types an "a" into the shell.
+[keyboard]
+bindings = [
+  { key = "A", mods = "Super", action = "None" },
+]

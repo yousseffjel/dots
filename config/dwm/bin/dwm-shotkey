@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# dwm-shotkey — Super+a, the region screenshot key, WITHOUT a key grab.
+#
+# Every X hotkey tool (sxhkd, dwm's keys[]) grabs its keys, and a grab moves
+# the keyboard focus off the focused window while it is held. Firefox treats
+# that as the window losing focus, and a page dropdown or menu closes on it —
+# before any screenshot code has run (measured in Xvfb, 2026-10-22: the page
+# saw `blur` on sxhkd's grab and on slop's keyboard grab, and nothing on an
+# ungrabbed key or on slop --nokeyboard). So this key is not grabbed at all:
+# it is read from XInput2's raw events, which every client may listen to, and
+# the screenshot runs with --no-grab (slop --nokeyboard). Escape cannot
+# reach slop then, so this script cancels the selection on Escape itself.
+#
+# The price of no grab: the focused window gets the key too. Firefox ignores
+# Super+a; st and alacritty would type an "a", so both bind it to nothing
+# (st's config.def.h, config/alacritty/alacritty.toml).
+#
+# Super+a fires only with nothing but Super held, so Super+Shift+a (the
+# delayed shot, an sxhkd key) never starts this one too. Started by
+# autostart.sh; dwm re-runs that on every restart, so a second launch finds
+# the first and exits. It ends with the X server, when xinput does.
+#
+# usage: dwm-shotkey   (no arguments)
+
+set -u
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+# By command line, not by name: an env-bash script runs as "bash".
+DAEMON_PATTERN='/dwm-shotkey$'
+SHOT="${BASH_SOURCE[0]%/*}/dwm-screenshot"
+
+# evdev keycodes on a US layout, for when xmodmap is missing. Looked up from
+# the live keymap otherwise, so "a" follows the layout (AZERTY moves it).
+FALLBACK_SUPER_L=133
+FALLBACK_SUPER_R=134
+FALLBACK_A=38
+FALLBACK_ESCAPE=9
+
+# pgrep lists this process and the $( ) subshell it runs in, which may still
+# be alive, so neither $$ nor a child of it counts. Nor does anything but
+# bash: a wrapper's command line ends in the same path (`setsid -f
+# .../dwm-shotkey`, `timeout 3 ...`). Both made a real launch exit at once
+# (2026-10-22). DOTS_PROC fakes /proc in tests.
+already_running() {
+    local pid others ppid proc="${DOTS_PROC:-/proc}"
+    others="$(pgrep -f "$DAEMON_PATTERN" 2>/dev/null)"
+    for pid in $others; do
+        [[ "$pid" == "$$" ]] && continue
+        [[ "$(cat "$proc/$pid/comm" 2>/dev/null)" == bash ]] || continue
+        read -r _ _ _ ppid _ <"$proc/$pid/stat" 2>/dev/null || continue
+        [[ "$ppid" == "$$" ]] && continue
+        return 0
+    done
+    return 1
+}
+
+# keycode <keysym> <fallback> — the first keycode whose unshifted keysym it is.
+keycode() {
+    local code
+    code="$(xmodmap -pke 2>/dev/null | awk -v s="$1" '!f && $4 == s { print $2; f = 1 }' || true)"
+    printf '%s\n' "${code:-$2}"
+}
+
+case "${1:-}" in
+    -h | --help)
+        echo "usage: dwm-shotkey   (no arguments; started by autostart.sh)"
+        exit 0
+        ;;
+esac
+
+already_running && exit 0
+if ! command -v xinput >/dev/null 2>&1; then
+    red "dwm-shotkey: xinput is not installed; Super+a does nothing"
+    exit 1
+fi
+
+SUPER_L="$(keycode Super_L "$FALLBACK_SUPER_L")"
+SUPER_R="$(keycode Super_R "$FALLBACK_SUPER_R")"
+KEY_A="$(keycode a "$FALLBACK_A")"
+ESCAPE="$(keycode Escape "$FALLBACK_ESCAPE")"
+
+declare -A HELD=()
+JOB=""
+
+job_running() { [[ -n "$JOB" ]] && kill -0 "$JOB" 2>/dev/null; }
+
+# only_super_held — Super is down and no other key is.
+only_super_held() {
+    local k
+    ((${#HELD[@]} > 0)) || return 1
+    for k in "${!HELD[@]}"; do
+        [[ "$k" == "$SUPER_L" || "$k" == "$SUPER_R" ]] || return 1
+    done
+}
+
+press() {
+    # A key already held is autorepeat, not a new press.
+    [[ -v "HELD[$1]" ]] && return 0
+    if [[ "$1" == "$KEY_A" ]] && only_super_held && ! job_running; then
+        "$SHOT" --region --clipboard --no-grab &
+        JOB=$!
+    elif [[ "$1" == "$ESCAPE" ]] && job_running; then
+        # slop without its keyboard grab never sees Escape; killing it is
+        # the cancel dwm-screenshot already handles (no geometry, exit 0).
+        pkill -u "$(id -u)" -x slop >/dev/null 2>&1 || true
+    fi
+    HELD[$1]=1
+}
+
+# xinput test-xi2 prints a block per event: an "EVENT type N (Name)" line,
+# then indented fields, "detail:" being the keycode for key events.
+ev=""
+while IFS= read -r line; do
+    case "$line" in
+        "EVENT type"*"(RawKeyPress)") ev=press ;;
+        "EVENT type"*"(RawKeyRelease)") ev=release ;;
+        "EVENT type"*) ev="" ;;
+        *"detail: "*)
+            code="${line##*detail: }"
+            case "$ev" in
+                press) press "$code" ;;
+                release) unset "HELD[$code]" ;;
+            esac
+            ev=""
+            ;;
+    esac
+done < <(xinput test-xi2 --root 2>/dev/null)

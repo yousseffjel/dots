@@ -53,10 +53,10 @@
 #     itself immediately before it compiles.
 
 # core system & display server
-# xinput, xsetroot, opendoas and fuse are referenced by nothing in config/ or
+# xsetroot, opendoas and fuse are referenced by nothing in config/ or
 # scripts/ (verified 2026-08-08). Kept as the diagnostic and privilege tools
 # a bare Void base install lacks, not because anything here calls them.
-xinput
+# (xinput was one of them until 2026-10-22: dwm-shotkey needs it, desktop.lst.)
 xsetroot
 xsel
 network-manager-applet

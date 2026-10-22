@@ -22,6 +22,7 @@ daemon_applies() {
         blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
         nm-applet) pgrep -x NetworkManager >/dev/null 2>&1 ;;
         dwm-audiowatch) command -v pactl >/dev/null 2>&1 ;;
+        dwm-shotkey) command -v xinput >/dev/null 2>&1 ;;
         *) return 0 ;;
     esac
 }
@@ -35,6 +36,7 @@ daemon_skip_reason() {
         blueman-applet) echo "no bluetooth adapter" ;;
         nm-applet) echo "NetworkManager is not running" ;;
         dwm-audiowatch) echo "pactl is not installed" ;;
+        dwm-shotkey) echo "xinput is not installed" ;;
         *) echo "not needed on this machine" ;;
     esac
 }

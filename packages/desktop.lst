@@ -73,6 +73,7 @@ feh  # wallpaper.sh exits early — no wallpaper can be set, so no theme can be 
 alacritty  # the terminal keybind and thunar's "Open Terminal Here" fall back to the vendored st
 maim  # the screenshot keys capture nothing at all
 slop  # region and window screenshot modes die; full-screen capture still works
+xinput  # Super+a, the region screenshot key, does nothing: dwm-shotkey reads it from xinput's raw key events (Shift+Print still works)
 xprop  # the active-window screenshot mode degrades to a diagnostic; full-screen and region are unaffected
 # Screen recording (Super+r, dwm-record) and mpv's decoders. Void's ffmpeg6
 # is the full build: its configure line (read from libavcodec.so.60, 6.1.6_3,

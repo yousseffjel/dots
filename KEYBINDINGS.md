@@ -34,7 +34,8 @@ and `Alt` + `Tab` used to be swallowed by dwm and now reach tmux. Until
 > layout toggle moved to `Ctrl` + `space`, scratchpads from `-` to `s`, and lock
 > from `Escape` to `Shift` + `l`. The wallpaper picker and random wallpaper
 > swapped (`Shift` + `w` and `w`), and the theme menu moved from `Ctrl` + `w`
-> to `Shift` + `t`. `Super` + `p` and `Super` + `Alt` + `p` are now screenshot keys.
+> to `Shift` + `t`. `Super` + `p` and `Super` + `Alt` + `p` are now screenshot keys
+> (the region key moved on to `Super` + `a` on 2026-10-22).
 > An existing install picks up the dwm half on its next build (see the note
 > under Launching), then a logout.
 
@@ -395,8 +396,9 @@ dwm-brightness sync       # the last level again, after a raw xrandr
 | Keys | Action |
 | --- | --- |
 | `Print` | Screenshot menu — pick a mode, then a destination |
-| `Super` + `p` | Drag a region straight to the clipboard, no prompts |
-| `Shift` + `Print` | The same as `Super` + `p` |
+| `Super` + `a` | Drag a region straight to the clipboard, no prompts; an open dropdown or menu stays open |
+| `Super` + `Shift` + `a` | The same after 3 seconds, for the rare menu that `Super` + `a` still closes |
+| `Shift` + `Print` | The same as `Super` + `a` |
 | `Super` + `Alt` + `p` | Whole screen, to the clipboard **and** saved as a file, no prompts |
 
 `Print` opens two dmenu prompts in sequence:
@@ -419,7 +421,7 @@ so a localised or moved one is honoured, else `~/Pictures` — overridable
 with `DOTS_SCREENSHOT_DIR`, named
 `dots-screenshot-YYYYmmdd-HHMMSS.png`.
 
-`Super` + `p` deliberately does **not** also keep a file. Region grabs are
+`Super` + `a` deliberately does **not** also keep a file. Region grabs are
 overwhelmingly paste-once, and a keybind that quietly fills a directory is one
 you end up cleaning up after — press `Print` (or `Super` + `Alt` + `p` for
 the whole screen) when you want the shot kept.
@@ -429,6 +431,27 @@ capture, `slop` for the region selector and `xclip` for the clipboard. The
 selector rectangle is drawn in `dwm.selbordercolor` read live from `xrdb`, so
 it matches the border dwm puts around the focused window and re-themes with
 the wallpaper. Unthemed, it falls back to slop's own grey.
+
+**`Super` + `a` is not a normal hotkey.** Every other key here is grabbed
+(by sxhkd or dwm), and a grab takes the keyboard focus off the window while
+the key is held. A browser treats that as losing focus and closes an open
+dropdown before any screenshot code runs. So `Super` + `a` is read without a
+grab by `config/dwm/bin/dwm-shotkey`, a small listener started by
+`autostart.sh`, and the region selector runs without its keyboard grab
+(`dwm-screenshot --no-grab`). The dropdown stays open while you drag, and
+Escape still cancels: the listener does it. Three consequences:
+
+- With no grab, the focused window gets `Super` + `a` too. Firefox ignores it;
+  st and alacritty are configured to ignore it rather than type an "a".
+- It fires only with nothing but `Super` held, so it never clashes with
+  `Super` + `Shift` + `a`.
+- An install older than this has an `autostart.sh` without the listener: the
+  installer prints the line to add.
+
+Region mode also captures the whole screen at the keypress and crops your
+selection out of that frame (with ImageMagick), so what is in the image is
+what was on screen when you pressed the key. From a shell, `--delay N` waits
+before any mode.
 
 > **`window` means the *focused* window, not one you click.** It resolves
 > `_NET_ACTIVE_WINDOW` via `xprop`, so it needs no mouse — that is the only

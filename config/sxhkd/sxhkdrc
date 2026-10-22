@@ -142,7 +142,13 @@ super + ctrl + r
 # region; monitor is the one under the pointer), then
 # destination (clipboard / file / both). The rest are fast paths, no prompts:
 #
-#   Super+p (and Shift+Print) — drag a region, straight to the clipboard.
+#   Shift+Print — drag a region, straight to the clipboard.
+#   Super+a is the same, but deliberately NOT here: a grabbed key takes the
+#     focus off the window while held, and a browser closes an open dropdown
+#     on that. dwm-shotkey (autostart.sh) reads it without a grab instead.
+#     Binding it here again would bring the grab back.
+#   Super+Shift+a — region to clipboard after 3 s: press it, then open the
+#     menu (for the rare one that closes even on an ungrabbed key).
 #     Deliberately no file: region grabs are overwhelmingly paste-once, and a
 #     key that silently fills ~/Pictures/screenshots is one you end up
 #     cleaning up after.
@@ -151,8 +157,8 @@ super + ctrl + r
 Print
 	dwm-screenshot
 
-super + p
-	dwm-screenshot --region --clipboard
+super + shift + a
+	dwm-screenshot --delay 3 --region --clipboard
 
 shift + Print
 	dwm-screenshot --region --clipboard

@@ -50,4 +50,9 @@ session_autostart_report_more() {
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-audiowatch" &' \
         'without it the volume and mic blocks can show a stale level after' \
         'login, until the first volume key.'
+
+    session_report_daemon "$autostart" dwm-shotkey \
+        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-shotkey" &' \
+        'without it Super+a (the region screenshot) does nothing; Shift+Print' \
+        'still works.'
 }
