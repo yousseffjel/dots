@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **scratchpad-group** (ff `bfb8a12`; log
+  `2026-10-22-scratchpad-group.md`). `Super` + `s` shows all scratchpads
+  together, master + stack, on this monitor; the next press hides them all.
 - 2026-10-22 — **scratchpad-fill** (ff `cea55cc`; log
   `2026-10-22-scratchpad-fill.md`). A scratchpad shown with `Super` + `s`
   fills the screen under the bar.

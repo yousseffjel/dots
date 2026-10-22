@@ -430,3 +430,11 @@ above is history, kept verbatim from the pre-rotation snapshot.
   every show (the user chose this over tiling it or 90% centred). The
   dropterm keeps its own placement. The new check failed on the old build;
   suite 107 OK; reviewer READY.
+- **scratchpad-group** (ff `bfb8a12`; log `2026-10-22-scratchpad-group.md`).
+  `Super` + `s` showed one stashed window per press, cycling. It now shows
+  every scratchpad at once on the focused monitor, gathering any from the
+  other, laid out master + stack (the user's choice), floating; the next
+  press hides them all. Membership is a Client flag kept in the restart
+  record (value 17). The dropterm stays out. Retires scratchpadfill (its
+  n = 1 case). Mutants caught, including a no-gather one the multimon check
+  first missed twice. Suite 107 OK; reviewer READY.
