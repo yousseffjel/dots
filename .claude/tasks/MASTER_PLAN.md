@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **dwm-hyprland-mouse** (ff `2828808`; log
+  `2026-10-22-dwm-hyprland-mouse.md`). Super+drag moves, places, resizes
+  and snaps windows the way Hyprland does. Rebuild dwm to get it.
 - 2026-10-22 — **dwm-test-stale-build** (ff `104e1ef`; log
   `2026-10-22-dwm-test-stale-build.md`). The dwm X tests fail on a build
   older than its sources instead of testing old code.

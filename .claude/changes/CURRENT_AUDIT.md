@@ -411,3 +411,15 @@ above is history, kept verbatim from the pre-rotation snapshot.
     regression does not touch. The Arch host shows it bound to
     `acpi-button` with a "Power Button" input device. Check after the
     install with `grep "Power Button" /proc/bus/input/devices`.
+- **dwm-hyprland-mouse** (ff `2828808`; log
+  `2026-10-22-dwm-hyprland-mouse.md`). Hyprland-style mouse in dwm, the
+  user's "complete" choice. `Super` + left-drag drops a tiled window into
+  another slot and keeps it tiled (placemouse). `Super` + right-drag resizes
+  a floating window from the grabbed corner with no pointer warp
+  (resizepoint), and on a tiled one moves the split and the grabbed edge
+  (cfacts + local dragtile; dragmfact is retired). Floating windows snap to
+  each other within 10 px (snapwindows), and cfact survives a restart
+  (preservecfact). Upstream placemouse returned with the grab held on a
+  failed `getrootptr()`; that is fixed. The new `check_mouse` caught every
+  mutant. Slot suite 107 OK; reviewer WARN, a false positive. Xvfb only:
+  not yet felt on a real desktop.
