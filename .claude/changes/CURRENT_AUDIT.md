@@ -381,3 +381,33 @@ above is history, kept verbatim from the pre-rotation snapshot.
   build older than its sources, or on a `config.def.h` newer than
   `config.h`, and name the rebuild command. Mutants were all caught; the
   slot suite was 107 OK; the reviewer said READY.
+- **Power-button finding (2026-10-21): cause found, not a dots bug, no code
+  change.** It was traced on the VM, with the user typing every sudo:
+  - **The cause** is a Linux 6.18.57 stable regression. "ACPI: button:
+    Convert the driver to a platform one" (upstream `52d864019636`) was
+    backported without "ACPI: scan: Register platform devices for fixed
+    event buttons" (upstream `ab06eb920401`). So a **fixed-event** button
+    (`LNXPWRBN`, every QEMU guest and some real hardware) gets no platform
+    device and no input device. Source: siderolabs/talos#14657. Void's
+    newest kernel (repodata 2026-10-22) is still 6.18.58.
+  - **On 6.18.58 the button was dead.** `button.ko` had nothing to bind,
+    so `tiny_power_button` (`CONFIG_ACPI_TINY_POWER_BUTTON=m`, the same
+    modalias) took `LNXPWRBN` and sent signal 38 to PID 1, which runit
+    ignores. Blacklisting `tiny_power_button` and rebooting left the
+    button bound to nothing: still dead.
+  - **On 6.18.56** (still in the VM's /boot; booted once with grub-reboot,
+    with that blacklist): `button` bound `LNXPWRBN`, "Power Button" had
+    `TAGS=:power-switch:`, and `virsh shutdown` powered the VM off through
+    elogind in about 10 s.
+  - **The control** (6.18.56, blacklist removed) gave the same result,
+    `button`. Both modules load, but `modules.alias` lists `button` first
+    (lines 1458/1459 against 1463/1464), so modprobe registers it first.
+    `tiny_power_button` only wins where `button` has no device.
+  - **The decision:** no blacklist. It changes nothing on either kernel.
+    The temporary `/etc/modprobe.d/zz-claude-test-power-button.conf` and
+    `/tmp/claude-boot-56.sh` were removed. The VM boots 6.18.58 by default
+    again (grub-reboot is one-shot).
+  - **The user's Dell** has a control-method button (`PNP0C0C`), which the
+    regression does not touch. The Arch host shows it bound to
+    `acpi-button` with a "Power Button" input device. Check after the
+    install with `grep "Power Button" /proc/bus/input/devices`.
