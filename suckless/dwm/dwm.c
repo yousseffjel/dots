@@ -120,6 +120,7 @@ struct Client {
 	unsigned int tags;
 	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
 	int isdropterm;
+	int isscratchpad; /* scratchpadgroup: in the Super+s set, shown or stashed */
 	int beingmoved; /* placemouse: tile() places it, the drag draws it */
 	/* replug: the monitor this client was on before a monitor came or went,
 	 * by geometry, with that monitor's view and (floating) its position */
@@ -269,11 +270,9 @@ static void savepertag(void);
 static void runautostart(void);
 static void scan(void);
 static void scratchpad_hide(const Arg *arg);
-static int scratchpad_last_showed_is_killed(void);
+static void scratchpad_layout(Client **sp, int n);
 static void scratchpad_remove(const Arg *arg);
 static void scratchpad_show(const Arg *arg);
-static void scratchpad_show_client(Client *c);
-static void scratchpad_show_first(void);
 static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
 static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
@@ -381,10 +380,9 @@ static XrmDatabase xrdb = NULL;
 /* dynamic scratchpads: one tag bit above the real tags marks a stashed
  * window. Kept out of TAGMASK on purpose, so a scratchpad client is never
  * shown by an ordinary view() and drawbar's `i < LENGTH(tags)` loop never
- * draws it. scratchpad_last_showed tracks the cycle position for
- * scratchpad_show(). */
+ * draws it. Client.isscratchpad says which windows Super+s shows and hides
+ * together (scratchpadgroup). */
 #define SCRATCHPAD_MASK         (1u << LENGTH(tags))
-static Client *scratchpad_last_showed = NULL;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -1195,9 +1193,9 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
  * None running -> spawn it (applyrules() marks it when it maps). Showing
  * and focused -> stash it as SCRATCHPAD_MASK, exactly as scratchpad_hide()
  * would. Otherwise -> bring it to the focused monitor's current view, back
- * in its drop-down position, and focus it. Because it is an ordinary
- * scratchpad client while stashed, Mod+s cycles it too and
- * preserveonrestart keeps it stashed across a restart. */
+ * in its drop-down position, and focus it. preserveonrestart keeps it
+ * stashed across a restart. It is never in the Super+s set
+ * (isscratchpad), so Super+s neither shows nor hides it. */
 void
 dropterm(const Arg *arg)
 {
@@ -1625,13 +1623,13 @@ loadclientinfo(Client *c)
 	long *d;
 	Monitor *m;
 
-	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 16L, True,
+	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 17L, True,
 		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
 		return 0;
 	/* 7 values before replug (what an older instance hands over on the
 	 * first restart after an upgrade), 15 with a window's home, 16 with
-	 * its cfact. */
-	if (type == XA_CARDINAL && format == 32 && (n == 7 || n == 15 || n == 16)) {
+	 * its cfact, 17 with its Super+s membership. */
+	if (type == XA_CARDINAL && format == 32 && (n == 7 || n == 15 || n == 16 || n == 17)) {
 		d = (long *)p;
 		saved = (unsigned long)d[0];
 		/* A stash is SCRATCHPAD_MASK alone; anything else must be real tags. */
@@ -1662,8 +1660,12 @@ loadclientinfo(Client *c)
 			c->homeview = (unsigned long)d[14] & TAGMASK;
 		}
 		/* cfacts: x1000; out of setcfact()'s range means not ours. */
-		if (n == 16 && d[15] >= 250 && d[15] <= 4000)
+		if (n >= 16 && d[15] >= 250 && d[15] <= 4000)
 			c->cfact = d[15] / 1000.0;
+		/* scratchpadgroup: an older record has no membership, but every
+		 * window it stashed (the dropterm apart) was a member. */
+		c->isscratchpad = n == 17 ? d[16] == 1
+			: c->tags == SCRATCHPAD_MASK && !c->isdropterm;
 		applied = 1;
 	}
 	XFree(p);
@@ -2546,7 +2548,7 @@ runautostart(void)
 }
 
 /* preserveonrestart: record a window's tags, monitor and floating geometry
- * (its replug home and its cfact) on the window itself, where the next instance's manage() finds it. */
+ * (its replug home, cfact and Super+s membership) on the window itself, where the next instance's manage() finds it. */
 void
 saveclientinfo(Client *c)
 {
@@ -2554,7 +2556,7 @@ saveclientinfo(Client *c)
 		c->x, c->y, c->w, c->h,
 		c->hashome, c->homex, c->homey, c->homew, c->homeh,
 		c->homefx, c->homefy, (long)c->homeview,
-		(long)(c->cfact * 1000 + 0.5) };
+		(long)(c->cfact * 1000 + 0.5), c->isscratchpad };
 
 	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *)data, LENGTH(data));
@@ -2654,103 +2656,99 @@ scan(void)
 }
 
 /* Stash the focused window: its whole tag set becomes SCRATCHPAD_MASK, so
- * no ordinary view shows it again until scratchpad_show() brings it back. */
+ * no ordinary view shows it again until scratchpad_show() brings it back.
+ * It joins the Super+s set, unless it is the dropterm. */
 void
 scratchpad_hide(const Arg *arg)
 {
 	if (selmon->sel) {
 		selmon->sel->tags = SCRATCHPAD_MASK;
 		selmon->sel->isfloating = 1;
+		selmon->sel->isscratchpad = !selmon->sel->isdropterm;
 		focus(NULL);
 		arrange(selmon);
 	}
 }
 
-/* The cycle cursor is a bare pointer, so it can dangle if the window it
- * names was closed while stashed. unmanage() clears it for the normal
- * path; this covers a stale pointer surviving by any other route. */
-int
-scratchpad_last_showed_is_killed(void)
+/* scratchpadgroup: n shown scratchpads on selmon's window area, master and
+ * stack: one fills it, the first of several takes the left half and the
+ * rest share the right half top to bottom. Still floating. A fullscreen
+ * one keeps its slot but is not resized out of fullscreen. */
+void
+scratchpad_layout(Client **sp, int n)
 {
-	Client *c;
+	Monitor *m = selmon;
+	int i, x, y = m->wy, w, h, mw = n > 1 ? m->ww / 2 : m->ww;
 
-	for (c = selmon->clients; c; c = c->next)
-		if (c == scratchpad_last_showed)
-			return 0;
-	return 1;
+	for (i = 0; i < n; i++) {
+		if (i == 0) {
+			x = m->wx, w = mw, h = m->wh;
+		} else {
+			x = m->wx + mw, w = m->ww - mw;
+			h = i == n - 1 ? m->wy + m->wh - y : m->wh / (n - 1);
+		}
+		if (!sp[i]->isfullscreen)
+			resize(sp[i], x, y, w - 2 * sp[i]->bw, h - 2 * sp[i]->bw, 0);
+		if (i)
+			y += h;
+	}
 }
 
-/* Drop the current window out of the scratchpad set permanently: it keeps
- * whatever tags it is showing on and stops being part of the cycle. */
+/* Drop the current window out of the Super+s set permanently: it keeps
+ * whatever tags it is showing on, as an ordinary floating window. */
 void
 scratchpad_remove(const Arg *arg)
 {
-	if (selmon->sel && scratchpad_last_showed == selmon->sel)
-		scratchpad_last_showed = NULL;
+	if (selmon->sel)
+		selmon->sel->isscratchpad = 0;
 }
 
-/* Bring back a stashed window, cycling on repeat presses. */
+/* scratchpadgroup: Super+s toggles the whole set, like Hyprland's special
+ * workspace. Any member showing (on any monitor): stash every showing one.
+ * Otherwise: bring every stashed member, from every monitor, to the focused
+ * monitor's view, laid out by scratchpad_layout(), and focus the first. */
 void
 scratchpad_show(const Arg *arg)
 {
-	Client *c;
-	int found_current = 0, found_next = 0;
+	Client *c, **sp;
+	Monitor *m;
+	int i, n = 0, shown = 0;
 
-	if (!scratchpad_last_showed || scratchpad_last_showed_is_killed()) {
-		scratchpad_show_first();
-		return;
-	}
-	/* The cursor names a window that is currently showing, so this press
-	 * stashes it again — that is what makes the same key both show and
-	 * hide. Only once it is stashed does a further press advance. */
-	if (scratchpad_last_showed->tags != SCRATCHPAD_MASK) {
-		scratchpad_last_showed->tags = SCRATCHPAD_MASK;
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = c->next)
+			if (c->isscratchpad && c->tags != SCRATCHPAD_MASK && ISVISIBLE(c)) {
+				c->tags = SCRATCHPAD_MASK;
+				shown = 1;
+			} else if (c->isscratchpad && c->tags == SCRATCHPAD_MASK)
+				n++;
+	if (shown || !n) {
 		focus(NULL);
-		arrange(selmon);
+		arrange(NULL);
 		return;
 	}
-	/* Otherwise advance to the next stashed window after the cursor. */
-	for (c = selmon->clients; c; c = c->next) {
-		if (!found_current) {
-			if (c == scratchpad_last_showed)
-				found_current = 1;
-			continue;
+	sp = ecalloc(n, sizeof(Client *));
+	n = 0;
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = c->next)
+			if (c->isscratchpad && c->tags == SCRATCHPAD_MASK)
+				sp[n++] = c;
+	for (i = 0; i < n; i++) {
+		c = sp[i];
+		if (c->mon != selmon) { /* as sendmon(), without its focus and arrange */
+			c->hashome = 0;
+			detach(c);
+			detachstack(c);
+			c->mon = selmon;
+			attach(c);
+			attachstack(c);
 		}
-		if (c->tags == SCRATCHPAD_MASK) {
-			found_next = 1;
-			scratchpad_show_client(c);
-			break;
-		}
+		c->tags = selmon->tagset[selmon->seltags];
+		c->isfloating = 1;
 	}
-	if (!found_next)
-		scratchpad_show_first();
-}
-
-/* scratchpadfill: a shown scratchpad fills the monitor's window area, still
- * floating, whatever size it was stashed at. The dropterm keeps its own
- * placement (droptermgeom()). */
-void
-scratchpad_show_client(Client *c)
-{
-	scratchpad_last_showed = c;
-	c->tags = selmon->tagset[selmon->seltags];
-	if (!c->isdropterm && !c->isfullscreen)
-		resize(c, selmon->wx, selmon->wy, selmon->ww - 2 * c->bw,
-			selmon->wh - 2 * c->bw, 0);
-	focus(c);
-	arrange(selmon);
-}
-
-void
-scratchpad_show_first(void)
-{
-	Client *c;
-
-	for (c = selmon->clients; c; c = c->next)
-		if (c->tags == SCRATCHPAD_MASK) {
-			scratchpad_show_client(c);
-			break;
-		}
+	scratchpad_layout(sp, n);
+	focus(sp[0]);
+	arrange(NULL);
+	free(sp);
 }
 
 /* replug: dwm reuses Monitor structs by index and drops the LAST one when a
@@ -3392,11 +3390,6 @@ unmanage(Client *c, int destroyed)
 		XSetErrorHandler(xerror);
 		XUngrabServer(dpy);
 	}
-	/* Must precede free(c): scratchpad_last_showed is a bare pointer into
-	 * the client list, so leaving it set here would leave the scratchpad
-	 * cycle pointing at freed memory. */
-	if (scratchpad_last_showed == c)
-		scratchpad_last_showed = NULL;
 	free(c);
 	focus(NULL);
 	updateclientlist();

@@ -18,10 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
-- **A scratchpad comes back filling the screen.** `Super` + `s` used to
-  show a stashed window at whatever size it had when stashed; now it fills
-  the space under the bar each time, still floating on top. The drop-down
-  terminal keeps its own place. Rebuild dwm.
+- **`Super` + `s` shows all your scratchpads at once.** It used to bring
+  back one stashed window at a time, at whatever size it was stashed at,
+  cycling on each press. Now one press brings every stashed window to the
+  monitor you are on, filling the space under the bar: one fills it, two
+  sit side by side, more stack on the right of the first. The next press
+  hides them all. The drop-down terminal stays on its own key. Rebuild dwm.
 
 - **Windows move and resize with the mouse the way Hyprland does.**
   `Super` + left-drag on a tiled window drops it into another window's

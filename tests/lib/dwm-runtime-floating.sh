@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Floating-window sections of tests/dwm-runtime.sh: the float rules, the
-# drop-down terminal and scratchpadfill. SOURCED, never run on its own
+# Floating-window sections of tests/dwm-runtime.sh: the float rules and the
+# drop-down terminal. SOURCED, never run on its own
 # (tests/lib/ is outside run-tests.sh's depth-1 glob). Uses the caller's
 # pass/fail, TMP, DOTS_DIR and the helpers in dwm-runtime-x.sh. Every window
 # opened here carries the title prefix "dwm-runtime-$$-", which the caller's
@@ -164,38 +164,6 @@ dropterm_toggle() {
 
     xdotool key --clearmodifiers super+grave
     sleep 0.3
-    xdotool key --clearmodifiers super+1
-    sleep 0.2
-}
-
-# 8. scratchpadfill: a window stashed small comes back with Super+s filling
-#    the monitor under the bar, still floating. On tag 9 (no other section
-#    keeps windows there); outer_geom and mouse_floating_win are in
-#    dwm-runtime-mouse.sh. A lone tiled window gives the bar's height.
-check_scratchpad_fill() {
-    local t s wy x y w h
-    blue "==> scratchpadfill (Super+s fills the screen)"
-    xdotool key --clearmodifiers super+9
-    sleep 0.2
-    t="$(spawn_win)"
-    sleep 0.3
-    read -r _ wy _ _ <<<"$(outer_geom "$t")"
-    mouse_floating_win s 300 300 400 300
-    xdotool key --clearmodifiers super+shift+s
-    sleep 0.3
-    xdotool key --clearmodifiers super+s
-    sleep 0.4
-    read -r x y w h <<<"$(outer_geom "$s")"
-    # 13px: xterm's size increments still apply to a floating window.
-    if ((x == 0 && y == wy)) && near "$w" 1280 13 && near "$h" $((1024 - wy)) 13; then
-        pass "a scratchpad stashed at 404x304 comes back filling the screen (${w}x$h at $x,$y)"
-    else
-        fail "the shown scratchpad is ${w}x$h at $x,$y, not the area under the bar (1280x$((1024 - wy)) at 0,$wy)"
-    fi
-    xdotool key --clearmodifiers super+s
-    sleep 0.3
-    xdotool windowkill "$s"
-    xdotool windowkill "$t"
     xdotool key --clearmodifiers super+1
     sleep 0.2
 }

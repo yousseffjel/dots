@@ -25,21 +25,41 @@ updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
 the chords they were published with in their context lines, because they are
 records of what upstream shipped, not of this tree's keymap.
 
-## dwm-scratchpadfill-20261022-local.diff
+## dwm-scratchpadgroup-20261022-local.diff
 
-**Source**: written for this tree, on top of dynamicscratchpads. A window
-stashed with `scratchpad_hide()` is made floating at whatever size it had,
-so `Super` + `s` brought it back at that size, often a tiled column's or a
-near-full leftover (the user saw 1851x1043 on a 1920x1080 monitor).
-`scratchpad_show_client()` now `resize()`s it to the selected monitor's
-window area (`wx`/`wy`/`ww`/`wh`, borders inside) before `arrange()`, on
-every show, so a scratchpad dragged smaller fills again the next time. It
-stays floating: tiled windows stay behind it and Super+drag still works.
-**Skipped**: the dropterm (it has its own top-centre placement,
-`droptermgeom()`) and a fullscreen window. Size hints still apply
-(`resize()`, not `resizeclient()`), so a terminal with size increments can
-stop a cell short. User choice 2026-10-22 over "join the tiling" and
-"centred at 90%". `check_scratchpad_fill` in `tests/lib/dwm-runtime-floating.sh`.
+**Source**: written for this tree, on top of dynamicscratchpads, and it
+replaces that patch's show cycle. The user found `Super` + `s` brought back
+one stashed window per press (show, hide, show the next...) and asked for
+all of them side by side, as Hyprland's special workspace shows its windows.
+
+**What it does**: `Client.isscratchpad` marks the `Super` + `s` set.
+`scratchpad_hide()` sets it (never for the dropterm), `scratchpad_remove()`
+clears it. `scratchpad_show()` is one toggle: if any member is showing on
+any monitor, every showing member is stashed; otherwise every stashed
+member, from every monitor, is moved to `selmon` (sendmon()'s list moves,
+without its focus and arrange; `hashome` cleared as there), given the
+current view, and laid out by `scratchpad_layout()` on the window area:
+one fills it, the first of several takes the left half, the rest share the
+right half top to bottom. All stay floating; the first is focused.
+`scratchpad_last_showed`, `scratchpad_last_showed_is_killed()`,
+`scratchpad_show_client()` and `scratchpad_show_first()` are gone, and with
+them `unmanage()`'s pointer clear. User choices 2026-10-22: master + stack
+(over columns-then-grid and all columns) and gather to the focused monitor
+(over per monitor).
+
+**Restart**: preserveonrestart's record gains a 17th value, the membership.
+A 16-, 15- or 7-value record (the first restart after an upgrade) has none,
+so a window it stashed is taken as a member unless it is the dropterm —
+which is exactly what dynamicscratchpads' stash meant.
+
+**Retired:** `dwm-scratchpadfill-20261022-local.diff` (same day). Its only
+change, filling the screen in `scratchpad_show_client()`, is this layout's
+one-window case, and the function no longer exists.
+
+**Tests**: `check_scratchpad_group` (`tests/lib/dwm-runtime-floating.sh`):
+one window fills; three are laid out master + stack; the next press hides
+all; the set survives a restart; the dropterm stays out.
+`tests/dwm-multimon.sh` checks the gather from the other monitor.
 
 ## Hyprland-style mouse (2026-10-22)
 
@@ -343,6 +363,10 @@ hunk reads its `loadclientinfo()` return value). Since 2026-10-12 dwm's
 `MODKEY` is Super too, so dwm and `config/sxhkd/sxhkdrc` share one key space;
 `tests/key-collisions.sh` fails the build if they grab the same chord.
 
+**Since 2026-10-22** (`dwm-scratchpadgroup-20261022-local.diff`) `Super+s`
+no longer reaches it: it shows and hides the scratchpad set as one, and the
+dropterm is never in that set. It is still stashed with `SCRATCHPAD_MASK`.
+
 ## dwm-dynamicscratchpads-20260807-local.diff
 
 **Source**: adapted from the upstream dynamicscratchpads patch
@@ -415,6 +439,11 @@ reproduces the current `dwm.c` and `config.def.h` byte-for-byte
 
 **Build verified**: `rm -f config.h && make clean && make` — clean compile,
 zero warnings, `dwm` binary links.
+
+**Since 2026-10-22** (`dwm-scratchpadgroup-20261022-local.diff`) the show
+cycle described above is gone: `Super+s` shows or hides the whole set, and
+`scratchpad_last_showed` with its helpers was removed. Stashing
+(`SCRATCHPAD_MASK`) is unchanged.
 
 ## dwm-xresources-20260805-local.diff
 

@@ -132,45 +132,40 @@ applications.
 | Keys | Action |
 | --- | --- |
 | `Mod` + `Shift` + `s` | Stash the focused window into the scratchpad |
-| `Mod` + `s` | Show / hide the current scratchpad window, filling the screen under the bar; keep pressing to cycle |
-| `Mod` + `=` | Drop the current window out of the scratchpad set |
+| `Mod` + `s` | Show / hide **all** stashed windows together, on this monitor |
+| `Mod` + `=` | Drop the focused window out of the scratchpad set |
 | `Super` + `grave` | Drop-down terminal: show / hide it; the first press starts it |
 
 A stashed window is hidden from every tag — its whole tag set becomes a
 single reserved bit above the nine real tags, so no ordinary tag view brings
 it back and it is never drawn in the bar.
 
-`Mod` + `s` is a single show/hide key, which is why there is no separate hide
-binding. It works on one window at a time — the "current" one:
+`Mod` + `s` is a single show/hide key for the whole set, like Hyprland's
+special workspace (since 2026-10-22; until then it cycled one window at a
+time):
 
-1. First press restores a stashed window onto the current tag and remembers
-   it as the current one.
-2. Press again and that same window is stashed away again.
-3. Press a third time and the *next* stashed window is restored, wrapping
-   round to the first.
+- **Nothing showing:** every stashed window comes out at once, from every
+  monitor, onto the focused monitor's current tag, laid out master + stack
+  under the bar: one fills the screen, two sit side by side, and with three
+  or more the first takes the left half and the rest share the right half
+  top to bottom. The first one is focused.
+- **Any of them showing:** every one that is showing is stashed again.
 
-So repeated presses go show → hide → show next → hide → …, and `Mod` + `s`
-alone is enough to both summon a window and dismiss it. `Mod` + `=` breaks
-the link instead — the window stays exactly where it is on screen and simply
-stops being part of the rotation.
+They stay floating, on top of the tiled windows, so `Super` + drag still
+moves and resizes them; the next `Mod` + `s` lays them out afresh. `Mod` +
+`=` takes the focused one out of the set: it stays where it is, as an
+ordinary floating window. A dwm restart (every wallpaper change) keeps the
+set and what is stashed.
 
-Two behaviours worth knowing, both inherited from the upstream patch:
-
-- **Stashing makes a window floating, and restoring does not undo that.**
-  `Mod` + `Shift` + `s` sets the window floating so it comes back as an
-  overlay rather than re-tiling. Nothing sets it back, so a window that was
-  tiled before you stashed it stays floating afterwards — `Mod` + `Shift` +
-  `space` re-tiles it.
-- **The cycle is per-monitor.** Stashed windows are looked up in the current
-  monitor's client list, so a window stashed on one monitor is not reachable
-  by `Mod` + `s` from another. Stash and restore on the same monitor.
+- **Stashing makes a window floating, and showing does not undo that.**
+  `Mod` + `Shift` + `space` re-tiles a shown scratchpad (it stays in the set).
 
 **The drop-down terminal** (`Super` + `grave`, the key left of `1`) is one
 alacritty window with class `dots-dropterm`, hanging from the top of the
 screen, 60% wide. The first press starts it; after that the same key stashes
 it when it is showing and focused, and otherwise brings it to the current tag
-— from any monitor — and focuses it. While stashed it is an ordinary
-scratchpad window, so `Mod` + `s` cycles it with the others. Its size and the
+— from any monitor — and focuses it. It is not in the `Mod` + `s` set, so
+`Mod` + `s` neither shows nor hides it. Its size and the
 terminal it runs are `droptermw`, `droptermh` and `droptermcmd` in
 `config.def.h`.
 
