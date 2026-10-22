@@ -11,6 +11,12 @@ xresources patch onward.
 2026-08-07, replaced by `dwm-dynamicscratchpads-20260807-local.diff`. The two
 are mutually exclusive — see that entry.
 
+**Retired:** `dwm-dragmfact-6.2.diff` was removed on 2026-10-22. Its
+behaviour (Super+right-drag on a tiled window warps the pointer to the split
+and drags mfact) was replaced by `dwm-dragtile-20261022-local.diff`, which
+does not warp and adds the vertical axis. Nothing of dragmfact is left in
+`resizemouse()`.
+
 **Chords are config, not patch behaviour.** The 2026-10-13 keymap moved
 several `keys[]` entries (scratchpads to `Super+s`/`Super+Shift+s`, quit to
 `Super+Shift+Escape`, killclient to `Super+Shift+q`, the layout toggle to
@@ -18,6 +24,87 @@ several `keys[]` entries (scratchpads to `Super+s`/`Super+Shift+s`, quit to
 updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
 the chords they were published with in their context lines, because they are
 records of what upstream shipped, not of this tree's keymap.
+
+## Hyprland-style mouse (2026-10-22)
+
+Six records, merged together in one slot (`dwm-hyprland-mouse`). The user
+asked for Hyprland's `Super` + mouse move/resize; the Hyprland wiki
+(configuring/core/dispatchers: `drag()`, `resize()`; config-options:
+`general.snap`) was the reference. Three are upstream, all from
+`bakkeby/patches` at `d99bbe2`, vendored byte-for-byte; three are local.
+`tests/dwm-runtime.sh` covers all six (`tests/lib/dwm-runtime-mouse.sh`).
+
+### dwm-cfacts-6.6-d99bbe2.diff
+
+**Source**: the first of the two commits in bakkeby's
+`dwm-cfacts-dragcfact-6.6_full.diff`, cut at its `-- ` trailer. Per-client
+weights (`Client.cfact`) in `tile()`, so windows in one column can differ in
+height. **Deviations**: `setcfact()` is merged in the form the second commit
+(dragcfact) leaves it — it clamps to 0.25–4.0 instead of refusing, and
+`arg > 4.0` sets the weight absolutely. The keys are `Super+Shift+k`/`j`/`o`,
+not upstream's `Super+Shift+h`/`l`/`o`: sxhkd owns `Super+Shift+l` (lock).
+**Interactions**: pertag does not store cfacts; they belong to the window,
+whatever tag it is on.
+
+**dragcfact itself was not merged.** It moves cfact for both axes and warps
+the pointer to the window's centre; dragtile below replaces it.
+
+### dwm-resizepoint-6.6-d99bbe2.diff
+
+**Source**: bakkeby's resizepoint: a floating window resizes from the corner
+nearest the grab point, the pointer is never warped, the cursor shows that
+corner, and `resizeclient()` is called directly, so size hints do not make a
+terminal resize in steps. **Merged by hand**: this tree's `resizemouse()`
+carried dragmfact's tiled branch where upstream's context has stock dwm's
+"resize a tiled window and it floats". Both are gone: a tiled window goes to
+`dragtile()` before the grab. The cursor enum keeps `CurResize` after
+`CurNormal` (dragtile uses it); the four corner cursors must stay first,
+because `cursor[left | top << 1]` indexes them.
+
+### dwm-placemouse-6.6-d99bbe2.diff
+
+**Source**: bakkeby's placemouse. `Super` + left-drag on a tiled window
+detaches it and re-inserts it next to the window under its centre
+(`moveorplace`, `{.i = 1}`), live, across monitors; it stays tiled, as in
+Hyprland. A floating window, or any window in the floating layout, still
+goes to `movemouse()`. **Deviations**: (1) the motion throttle is
+`1000 / refreshrate`, as in `movemouse()`, not a hard-coded 60; (2) both
+places that move the window to another monitor clear `hashome`, as
+`sendmon()` does (replug: a window moved by hand stays); (3) a failed
+`getrootptr()` after the grab ungrabs and clears `beingmoved` instead of
+returning with both left set, which froze the window. **Lost on purpose**:
+dragging a tiled window no longer floats it; `Super` + middle-click
+(togglefloating) does that. `beingmoved` makes `resizeclient()` record the
+tiled geometry without configuring the window, so the window follows the
+pointer while `tile()` lays the others out around its slot.
+
+### dwm-dragtile-20261022-local.diff
+
+**Source**: written for this tree. `Super` + right-drag on a tiled window in
+`tile()`. Horizontal motion moves the split (mfact, into pertag's slot as
+`setmfact()` does), only while both columns are on screen. Vertical motion
+moves the window's edge nearest the grab point by trading cfact with the
+neighbour on that side: the pair keeps its summed weight and its pixel
+height, so no other window in the column moves. The first or last window of
+a column has one movable edge, used whichever half was grabbed. In monocle
+it does nothing. The pointer never warps.
+
+### dwm-preservecfact-20261022-local.diff
+
+**Source**: written for this tree. preserveonrestart's per-window record
+gains a 16th value, cfact x1000, so a restart (every wallpaper change) keeps
+a window's height. A value outside 250–4000 is ignored: any client can write
+the property on its own window.
+
+### dwm-snapwindows-20261022-local.diff
+
+**Source**: written for this tree; stock dwm snaps only to the monitor's
+edges. A floating window being moved snaps by whichever of its edges is
+nearer to another visible window's edge, after the monitor-edge snap; a
+resize snaps the edges being dragged. `windowsnap` (10 px, Hyprland's
+`general.snap.window_gap` default) is separate from `snap` (32 px), which a
+screen edge keeps. Only windows whose span meets the moving one's on the
+other axis count. Tiled windows count too.
 
 ## dwm-bidi-20261013-local.diff
 
@@ -214,6 +301,10 @@ keeps what `applyrules()` gave it. Floating geometry is restored before
 is 15 values, not 7: the replug home follows the original seven. A 7-value
 record is still read, because the first restart after an upgrade is the old
 binary handing over to the new one.
+
+**Since 2026-10-22** (`dwm-preservecfact-20261022-local.diff`) it is 16: the
+window's cfact, x1000, follows the replug home. 7- and 15-value records are
+still read.
 
 ## dwm-dropterm-20261007-local.diff
 

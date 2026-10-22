@@ -9,7 +9,9 @@
 # (a restart keeps tags, view, stash, floating and focus), preservepertag
 # (and each tag's layout, mfact, nmaster, bar, and Mod+Tab's history) and
 # wakeonsignal (SIGHUP/SIGTERM act with no X event). It also opens a window
-# of every floating class in config.def.h's rules[] and checks it floats.
+# of every floating class in config.def.h's rules[] and checks it floats, and
+# drives the Hyprland-style mouse patches with real Super+drags (resizepoint,
+# placemouse, cfacts + dragtile, snapwindows, preservecfact).
 # No patch count: the last one written here went stale twice.
 #
 # Wired into `build-suckless` (CI) rather than a new job, per scope-d locked
@@ -45,7 +47,7 @@
 #
 # Split at the 250-line cap (2026-09-28, again 2026-10-07): the X helpers live
 # in tests/lib/dwm-runtime-x.sh and the sections in tests/lib/dwm-runtime-
-# {checks,floating,restart,pertag}.sh. All sourced, never globbed as tests.
+# {checks,floating,restart,pertag,mouse}.sh. All sourced, never globbed as tests.
 
 set -euo pipefail
 
@@ -70,6 +72,8 @@ source "$SCRIPT_DIR/lib/dwm-runtime-restart.sh"
 source "$SCRIPT_DIR/lib/dwm-runtime-pertag.sh"
 # shellcheck source=lib/dwm-runtime-floating.sh
 source "$SCRIPT_DIR/lib/dwm-runtime-floating.sh"
+# shellcheck source=lib/dwm-runtime-mouse.sh
+source "$SCRIPT_DIR/lib/dwm-runtime-mouse.sh"
 
 skip() {
     yellow "SKIP: dwm-runtime.sh needs $1 and it is not available."
@@ -152,6 +156,7 @@ check_pertag
 check_float_rules
 check_dropterm
 check_launch_keys
+check_mouse
 check_restartsig
 check_preserve
 check_pertag_restart
@@ -161,4 +166,4 @@ if ((rc != 0)); then
     red "✗ dwm-runtime is broken"
     exit 1
 fi
-green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, remapped keys, restartsig, preserveonrestart (incl. pertag) and wakeonsignal all hold"
+green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, remapped keys, Super+mouse move/resize, restartsig, preserveonrestart (incl. pertag) and wakeonsignal all hold"

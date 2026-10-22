@@ -18,6 +18,16 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Windows move and resize with the mouse the way Hyprland does.**
+  `Super` + left-drag on a tiled window drops it into another window's
+  slot and keeps it tiled (across monitors too); a floating one moves
+  freely. `Super` + right-drag resizes a floating window from the corner
+  you grabbed, without the pointer jumping to the bottom-right, and on a
+  tiled window moves the master split and the window's own edge. Floating
+  windows snap to each other's edges. `Super` + `Shift` + `k`/`j`/`o` make
+  a tiled window taller, shorter, or even again; its height survives a
+  dwm restart. Rebuild dwm.
+
 - **Windows go back to a monitor you plug in again.** Unplugging a screen
   still brings its windows to the one left; plugging it back now returns
   them, on the tag they were showing (floating ones to their spot), even

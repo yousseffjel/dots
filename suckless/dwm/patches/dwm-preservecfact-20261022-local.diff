@@ -1,0 +1,57 @@
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -1625,12 +1625,13 @@
+ 	long *d;
+ 	Monitor *m;
+ 
+-	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 15L, True,
++	if (XGetWindowProperty(dpy, c->win, dwmatom[DwmClientInfo], 0L, 16L, True,
+ 		XA_CARDINAL, &type, &format, &n, &extra, &p) != Success || !p)
+ 		return 0;
+ 	/* 7 values before replug (what an older instance hands over on the
+-	 * first restart after an upgrade), 15 with a window's home. */
+-	if (type == XA_CARDINAL && format == 32 && (n == 7 || n == 15)) {
++	 * first restart after an upgrade), 15 with a window's home, 16 with
++	 * its cfact. */
++	if (type == XA_CARDINAL && format == 32 && (n == 7 || n == 15 || n == 16)) {
+ 		d = (long *)p;
+ 		saved = (unsigned long)d[0];
+ 		/* A stash is SCRATCHPAD_MASK alone; anything else must be real tags. */
+@@ -1650,7 +1651,7 @@
+ 		}
+ 		/* replug: a home kept across the restart, so a monitor plugged in
+ 		 * after a wallpaper change still gets its windows back. */
+-		if (n == 15 && d[7] == 1 && d[10] > 0 && d[11] > 0) {
++		if (n >= 15 && d[7] == 1 && d[10] > 0 && d[11] > 0) {
+ 			c->hashome = 1;
+ 			c->homex = d[8];
+ 			c->homey = d[9];
+@@ -1660,6 +1661,9 @@
+ 			c->homefy = d[13];
+ 			c->homeview = (unsigned long)d[14] & TAGMASK;
+ 		}
++		/* cfacts: x1000; out of setcfact()'s range means not ours. */
++		if (n == 16 && d[15] >= 250 && d[15] <= 4000)
++			c->cfact = d[15] / 1000.0;
+ 		applied = 1;
+ 	}
+ 	XFree(p);
+@@ -2537,14 +2541,15 @@
+ }
+ 
+ /* preserveonrestart: record a window's tags, monitor and floating geometry
+- * (and its replug home) on the window itself, where the next instance's manage() finds it. */
++ * (its replug home and its cfact) on the window itself, where the next instance's manage() finds it. */
+ void
+ saveclientinfo(Client *c)
+ {
+ 	long data[] = { (long)c->tags, c->mon->num, c->isfloating,
+ 		c->x, c->y, c->w, c->h,
+ 		c->hashome, c->homex, c->homey, c->homew, c->homeh,
+-		c->homefx, c->homefy, (long)c->homeview };
++		c->homefx, c->homefy, (long)c->homeview,
++		(long)(c->cfact * 1000 + 0.5) };
+ 
+ 	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
+ 		PropModeReplace, (unsigned char *)data, LENGTH(data));

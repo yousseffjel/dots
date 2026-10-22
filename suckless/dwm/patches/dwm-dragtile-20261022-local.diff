@@ -1,0 +1,102 @@
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -211,6 +211,7 @@
+ static void detach(Client *c);
+ static void detachstack(Client *c);
+ static Monitor *dirtomon(int dir);
++static void dragtile(Client *c);
+ static void dropterm(const Arg *arg);
+ static void droptermgeom(Client *c);
+ static void drawbar(Monitor *m);
+@@ -988,6 +989,78 @@
+ 	return m;
+ }
+ 
++/* dragtile: Super+right-drag on a tiled window, Hyprland's resizewindow for
++ * tile(). The pointer never warps. Horizontal motion moves the split between
++ * the master and stack columns (mfact). Vertical motion moves the edge of the
++ * window nearest the grab point by trading cfact with the neighbour on that
++ * side, so no other window in the column changes. A window at the top or
++ * bottom of its column has one edge to move, used whichever half was grabbed. */
++void
++dragtile(Client *c)
++{
++	int ox, oy, k, n, nt, col, first, last, top, h0, hp, th;
++	float omfact, pair = 0, f;
++	Client *nb = NULL;
++	Monitor *m = c->mon;
++	XEvent ev;
++	Time lasttime = 0;
++
++	if (m->lt[m->sellt]->arrange != tile || !getrootptr(&ox, &oy))
++		return;
++	for (n = 0, nb = nexttiled(m->clients); nb && nb != c; nb = nexttiled(nb->next), n++);
++	for (nt = n, nb = c; nb; nb = nexttiled(nb->next), nt++);
++	col = n < m->nmaster;
++	first = n == 0 || n == m->nmaster;
++	last = n == (col ? MIN(nt, m->nmaster) : nt) - 1;
++	top = first ? 0 : last ? 1 : oy < c->y + c->h / 2;
++	nb = NULL;
++	if (!(first && last))
++		for (k = 0, nb = nexttiled(m->clients); nb && k != n + (top ? -1 : 1); nb = nexttiled(nb->next), k++);
++	if (nb) {
++		pair = c->cfact + nb->cfact;
++		hp = HEIGHT(c) + HEIGHT(nb);
++	}
++	h0 = HEIGHT(c);
++	omfact = m->mfact;
++	restack(m);
++	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
++		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
++		return;
++	do {
++		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
++		switch(ev.type) {
++		case ConfigureRequest:
++		case Expose:
++		case MapRequest:
++			handler[ev.type](&ev);
++			break;
++		case MotionNotify:
++			if ((ev.xmotion.time - lasttime) <= (1000 / refreshrate))
++				continue;
++			lasttime = ev.xmotion.time;
++
++			/* the split exists only with both columns on screen */
++			if (m->nmaster && nt > m->nmaster) {
++				f = omfact + (float)(ev.xmotion.x - ox) / m->ww;
++				m->mfact = m->pertag->mfacts[m->pertag->curtag] = MAX(0.05, MIN(f, 0.95));
++			}
++			/* the pair keeps its height hp and its cfact sum */
++			if (nb) {
++				th = h0 + (top ? oy - ev.xmotion.y : ev.xmotion.y - oy);
++				th = MAX(1, MIN(th, hp - 1));
++				f = pair * th / hp;
++				f = MAX(MAX(0.25, pair - 4.0), MIN(f, MIN(4.0, pair - 0.25)));
++				c->cfact = f;
++				nb->cfact = pair - f;
++			}
++			arrange(m);
++			break;
++		}
++	} while (ev.type != ButtonRelease);
++	XUngrabPointer(dpy, CurrentTime);
++	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
++}
++
+ int
+ drawstatusbar(Monitor *m, int bh, char* stext) {
+ 	int ret, i, j, w, x, len;
+@@ -2130,6 +2203,11 @@
+ 		return;
+ 	if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+ 		return;
++	/* dragtile: a tiled window resizes its layout, not itself */
++	if (!c->isfloating && c->mon->lt[c->mon->sellt]->arrange) {
++		dragtile(c);
++		return;
++	}
+ 	restack(selmon);
+ 	ocx = c->x;
+ 	ocy = c->y;

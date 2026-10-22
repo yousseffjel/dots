@@ -94,6 +94,8 @@ palette, so they look alike.
 | `Mod` + `Tab` | Toggle back to the previously viewed tag |
 | `Mod` + `Shift` + `q` | Close the focused window |
 | `Mod` + `h` / `l` | Shrink / grow the master area |
+| `Mod` + `Shift` + `k` / `j` | Make the focused tiled window taller / shorter in its column (cfacts) |
+| `Mod` + `Shift` + `o` | Reset its height share |
 | `Mod` + `i` / `d` | Increase / decrease the number of master windows |
 | `Mod` + `b` | Toggle the status bar |
 | `Mod` + `t` | Tiled layout |
@@ -212,10 +214,9 @@ returns to the tag you were on before (`preservepertag`).
 
 | Action | Effect |
 | --- | --- |
-| `Mod` + left-drag | Move a window (makes it floating) |
-| `Mod` + right-drag | Resize a window |
-| `Mod` + middle-click | Toggle floating |
-| Drag the layout split | Adjust master/stack ratio (dragmfact) |
+| `Mod` + left-drag | Tiled: drop it into another window's slot, still tiled, on any monitor (placemouse). Floating: move it anywhere, snapping to screen and window edges |
+| `Mod` + right-drag | Floating: resize from the corner nearest the grab, the pointer stays put (resizepoint). Tiled: left/right moves the master split, up/down the window's nearer edge (dragtile) |
+| `Mod` + middle-click | Toggle floating (how to float a tiled window, since a drag keeps it tiled) |
 | Click a status block | Runs the block's click handler (statuscmd) |
 | Scroll over a status block | Same, with `$BUTTON` 4 (up) or 5 (down) |
 

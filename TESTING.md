@@ -105,7 +105,12 @@ for adding CI; new docs you add are linted normally.
   (split at the 250-line cap). **`tests/lib/` holds sourced helpers, never
   tests**: `tests/run-tests.sh` globs `tests/*.sh` at depth 1 only, so a file
   there is never executed on its own, while `tests/lint.sh` lints every
-  tracked `*.sh` at any depth.
+  tracked `*.sh` at any depth. It has outgrown "four patches": the script's
+  own header is the current list. Since 2026-10-22
+  `tests/lib/dwm-runtime-mouse.sh` drives the Hyprland-style mouse patches
+  with real held-Super `xdotool` drags on tag 9 (resizepoint, snapwindows,
+  dragtile, placemouse, cfacts, and cfact surviving a restart); each check
+  was seen failing on a build without its patch.
 - **`tests/dwm-multimon.sh`** — the built dwm on two monitors: one
   3840x1080 Xvfb screen split with `xrandr --setmonitor` into two RandR
   monitors, which dwm reads through the server's Xinerama emulation as it

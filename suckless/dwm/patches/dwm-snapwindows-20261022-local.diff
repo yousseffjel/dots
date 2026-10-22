@@ -1,0 +1,98 @@
+diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
+--- a/suckless/dwm/dwm.c
++++ b/suckless/dwm/dwm.c
+@@ -286,6 +286,8 @@
+ static void setup(void);
+ static void seturgent(Client *c, int urg);
+ static void showhide(Client *c);
++static int snapedge(Client *c, int x, int y, int w, int h, int vert, int v);
++static void snapmove(Client *c, int *nx, int *ny);
+ static void sighup(int unused);
+ static void sigstatusbar(const Arg *arg);
+ static void sigterm(int unused);
+@@ -1862,6 +1864,7 @@
+ 				ny = selmon->wy;
+ 			else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < snap)
+ 				ny = selmon->wy + selmon->wh - HEIGHT(c);
++			snapmove(c, &nx, &ny);
+ 			if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
+ 			&& (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
+ 				togglefloating(NULL);
+@@ -2234,6 +2237,17 @@
+ 			ny = vertcorner ? (ocy + ev.xmotion.y - opy) : c->y;
+ 			nw = MAX(horizcorner ? (ocx + ocw - nx) : (ocw + (ev.xmotion.x - opx)), 1);
+ 			nh = MAX(vertcorner ? (ocy + och - ny) : (och + (ev.xmotion.y - opy)), 1);
++			/* snapwindows: the edges being dragged, outer edges as WIDTH() */
++			if (horizcorner) {
++				nx = snapedge(c, nx, ny, WIDTH(c), HEIGHT(c), 0, nx);
++				nw = MAX(ocx + ocw - nx, 1);
++			} else
++				nw = MAX(snapedge(c, nx, ny, WIDTH(c), HEIGHT(c), 0, nx + nw + 2 * c->bw) - nx - 2 * c->bw, 1);
++			if (vertcorner) {
++				ny = snapedge(c, nx, ny, WIDTH(c), HEIGHT(c), 1, ny);
++				nh = MAX(ocy + och - ny, 1);
++			} else
++				nh = MAX(snapedge(c, nx, ny, WIDTH(c), HEIGHT(c), 1, ny + nh + 2 * c->bw) - ny - 2 * c->bw, 1);
+ 			resizeclient(c, nx, ny, nw, nh);
+ 			break;
+ 		}
+@@ -3120,6 +3134,48 @@
+ 	quit(&a);
+ }
+ 
++/* snapwindows: the edge of another visible window on c's monitor nearest the
++ * edge position v, along x (vert = 0) or y, if it is under windowsnap pixels
++ * away; v otherwise. Only windows whose span on the other axis meets the
++ * rectangle x, y, w, h count, so a window never snaps to one it cannot touch. */
++int
++snapedge(Client *c, int x, int y, int w, int h, int vert, int v)
++{
++	Client *t;
++	int e[2], i, best = v, d = windowsnap;
++
++	for (t = c->mon->clients; t; t = t->next) {
++		if (t == c || !ISVISIBLE(t))
++			continue;
++		if (vert ? (x > t->x + WIDTH(t) || x + w < t->x)
++		         : (y > t->y + HEIGHT(t) || y + h < t->y))
++			continue;
++		e[0] = vert ? t->y : t->x;
++		e[1] = vert ? t->y + HEIGHT(t) : t->x + WIDTH(t);
++		for (i = 0; i < 2; i++)
++			if (abs(e[i] - v) < d) {
++				d = abs(e[i] - v);
++				best = e[i];
++			}
++	}
++	return best;
++}
++
++/* snapwindows: snap a window being moved to nx, ny by whichever of its two
++ * edges on each axis is closer to another window's edge. */
++void
++snapmove(Client *c, int *nx, int *ny)
++{
++	int l, r, t, b;
++
++	l = snapedge(c, *nx, *ny, WIDTH(c), HEIGHT(c), 0, *nx) - *nx;
++	r = snapedge(c, *nx, *ny, WIDTH(c), HEIGHT(c), 0, *nx + WIDTH(c)) - (*nx + WIDTH(c));
++	t = snapedge(c, *nx, *ny, WIDTH(c), HEIGHT(c), 1, *ny) - *ny;
++	b = snapedge(c, *nx, *ny, WIDTH(c), HEIGHT(c), 1, *ny + HEIGHT(c)) - (*ny + HEIGHT(c));
++	*nx += (l && (!r || abs(l) <= abs(r))) ? l : r;
++	*ny += (t && (!b || abs(t) <= abs(b))) ? t : b;
++}
++
+ void
+ spawn(const Arg *arg)
+ {
+diff --git a/suckless/dwm/config.def.h b/suckless/dwm/config.def.h
+--- a/suckless/dwm/config.def.h
++++ b/suckless/dwm/config.def.h
+@@ -3,6 +3,7 @@
+ /* appearance */
+ static const unsigned int borderpx  = 2;        /* border pixel of windows — sole separator in the edge-to-edge layout */
+ static const unsigned int snap      = 32;       /* snap pixel */
++static const unsigned int windowsnap = 10;      /* snapwindows: pixels to another window's edge */
+ static const unsigned int systraypinning = 0;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
+ static const unsigned int systrayonleft = 0;    /* 0: systray in the right corner, >0: systray on left of status text */
+ static const unsigned int systrayspacing = 2;   /* systray spacing */
