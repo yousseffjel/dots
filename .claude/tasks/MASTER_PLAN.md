@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-20
+Last Updated: 2026-10-22
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **dwm-test-stale-build** (ff `104e1ef`; log
+  `2026-10-22-dwm-test-stale-build.md`). The dwm X tests fail on a build
+  older than its sources instead of testing old code.
 - 2026-10-21 — **brightness-follows-display** (ff; log
   `2026-10-21-brightness-follows-display.md`). A screen turned back on
   gets the last gamma level again, and `set` no longer fails while a

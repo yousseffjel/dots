@@ -358,3 +358,26 @@ above is history, kept verbatim from the pre-rotation snapshot.
   ssh needs polkit interactive auth. The user powered it off with
   `sudo poweroff`. Check elogind's HandlePowerKey and whether an installed
   desktop should react to the power button.
+
+## 2026-10-22
+
+- **Readiness check for the user's main machine** (read-only). The host is
+  a Dell Pro Micro: i5-14500T, Intel UHD 770 (i915), CNVi Wi-Fi (iwlwifi),
+  I219-LM, HDA audio, 2x HDMI 1080p, UEFI with Secure Boot off, one 512 GB
+  NVMe (Arch on btrfs today). Results:
+  - CI green on `9f22814`; lint passes.
+  - Void repodata 2026-10-22: `linux` → `linux-base` pulls
+    `linux-firmware-intel`, `-network` and `sof-firmware`, so a live
+    install's target has the i915 and iwlwifi firmware even though `dots
+    drivers` only sees the live kernel's (complete) log.
+  - `intel-ucode` comes from nonfree, which is enabled before `dots drivers`.
+  - `base-system` depends on acpid, but no installer enables its service:
+    the power button is elogind's alone (still open, see 2026-10-21).
+- **dwm-test-stale-build** (ff `104e1ef`; log
+  `2026-10-22-dwm-test-stale-build.md`). The first full suite failed five
+  `dwm-multimon.sh` checks because main's untracked dwm binary (2026-10-19)
+  predated the statusallmons and replug changes to `dwm.c`. After a rebuild,
+  main was 106 OK. `dwm-runtime.sh` and `dwm-multimon.sh` now fail on a
+  build older than its sources, or on a `config.def.h` newer than
+  `config.h`, and name the rebuild command. Mutants were all caught; the
+  slot suite was 107 OK; the reviewer said READY.
