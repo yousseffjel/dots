@@ -445,3 +445,9 @@ above is history, kept verbatim from the pre-rotation snapshot.
   (including one left on an unviewed tag, which was lost before), is
   gathered here. Both new checks failed on the old build; suite 107 OK;
   reviewer READY.
+- **bar-icons** (ff `cd642c9`; log `2026-10-22-bar-icons.md`). The
+  dwmblocks labels became Material Design Nerd Font glyphs, state-aware
+  (volume waves, Wi-Fi bars, battery tenths, BT off/on/connected), with
+  compact values (no SSID, no RAM total, no "free"). Lamp vs sun keeps the
+  backlight/gamma distinction. Octicons' cpu glyph drew blank in the user's
+  terminal; MD `󰻠` replaced it. Suite OK; reviewer READY.

@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **bar-icons** (ff `cd642c9`; log
+  `2026-10-22-bar-icons.md`). The status bar shows icons that follow each
+  block's state instead of text labels.
 - 2026-10-22 — **scratchpad-follow** (ff `9dd7d83`; log
   `2026-10-22-scratchpad-follow.md`). `Super` + `s` brings a set shown on
   another monitor or tag to where you are instead of hiding it.
