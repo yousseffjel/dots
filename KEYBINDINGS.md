@@ -155,8 +155,10 @@ time):
 They stay floating, on top of the tiled windows, so `Super` + drag still
 moves and resizes them; the next `Mod` + `s` lays them out afresh. `Mod` +
 `=` takes the focused one out of the set: it stays where it is, as an
-ordinary floating window. A dwm restart (every wallpaper change) keeps the
-set and what is stashed.
+ordinary floating window. Sending a shown one to a tag (`Mod` + `Shift` +
+`<N>`, or `Mod` + `Ctrl` + `Shift` + `<N>` to add one) also takes it out of
+the set, and tiles it (since 2026-10-22). A dwm restart (every wallpaper
+change) keeps the set and what is stashed.
 
 - **Stashing makes a window floating, and showing does not undo that.**
   `Mod` + `Shift` + `space` re-tiles a shown scratchpad (it stays in the set).

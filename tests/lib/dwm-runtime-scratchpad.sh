@@ -4,7 +4,7 @@
 # depth-1 glob). Uses the caller's pass/fail and the helpers in
 # dwm-runtime-x.sh and dwm-runtime-mouse.sh (outer_geom, near,
 # mouse_floating_win). On tag 9, which no other section keeps windows on,
-# with a visit to tag 8; closes every window it opens. Gathering from the other monitor is checked
+# with visits to tag 8; closes every window it opens. Gathering from the other monitor is checked
 # in tests/dwm-multimon.sh.
 
 # Stashes the focused window (Super+Shift+s).
@@ -125,6 +125,54 @@ check_scratchpad_group() {
         fail "after a restart, Super+s left $n of the shown scratchpads up — the set was lost"
     fi
     for w in "$s1" "$s2" "$s3" "$t"; do xdotool windowkill "$w"; done
+    xdotool key --clearmodifiers super+1
+    sleep 0.2
+}
+
+# Super+Shift+<N> and Super+Ctrl+Shift+<N> on a shown member: it leaves
+# the set and is tiled (scratchpad_leave). Tiled shows as sharing the
+# width with another window; the floating set's one window fills it,
+# and two get the 640px halves.
+check_scratchpad_leave() {
+    local t s1 s2 w
+    blue "==> scratchpadgroup: tagging a member takes it out of the set"
+    xdotool key --clearmodifiers super+9
+    sleep 0.2
+    t="$(spawn_win)"
+    s1="$(spawn_win)"
+    sp_stash
+    s2="$(spawn_win)"
+    sp_stash
+    xdotool mousemove 5 5
+    sleep 0.2
+    sp_toggle
+    # Whichever member Super+s focused goes to tag 8; s1 names it below.
+    if [[ "$(xdotool getactivewindow)" == "$s2" ]]; then
+        s2="$s1" s1="$(xdotool getactivewindow)"
+    fi
+    xdotool key --clearmodifiers super+shift+8
+    sleep 0.3
+    # s2 is the set now: hide it, and the next Super+s shows it focused.
+    sp_toggle
+    sp_toggle
+    xdotool key --clearmodifiers super+ctrl+shift+8
+    sleep 0.3
+    sp_toggle
+    if is_shown "$s2" && (($(win_width "$s2") < 1200 && $(win_width "$t") < 1200)); then
+        pass "toggletag took a member out of the set: Super+s left it up, tiled beside the other window"
+    else
+        fail "after Super+Ctrl+Shift+8 the member is $(is_shown "$s2" && echo shown || echo hidden), $(win_width "$s2")px wide — still in the set or floating"
+    fi
+    xdotool key --clearmodifiers super+8
+    sleep 0.3
+    # Tiled beside s2 (toggletag put it here too): master or stack width,
+    # never the 640px half the floating set lays it out on.
+    if is_shown "$s1" && (($(win_width "$s1") < 1200)) && ! near "$(win_width "$s1")" 640 8; then
+        pass "Super+Shift+8 sent a member to tag 8 as an ordinary tiled window"
+    else
+        fail "on tag 8 the member sent with Super+Shift+8 is $(is_shown "$s1" && echo shown || echo hidden), $(win_width "$s1")px wide"
+    fi
+    for w in "$s1" "$s2" "$t"; do xdotool windowkill "$w"; done
     xdotool key --clearmodifiers super+1
     sleep 0.2
 }

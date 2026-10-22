@@ -162,6 +162,7 @@ check_dropterm
 check_launch_keys
 check_mouse
 check_scratchpad_group
+check_scratchpad_leave
 check_restartsig
 check_preserve
 check_pertag_restart
@@ -171,4 +172,4 @@ if ((rc != 0)); then
     red "✗ dwm-runtime is broken"
     exit 1
 fi
-green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, remapped keys, Super+mouse move/resize, the Super+s scratchpad set, restartsig, preserveonrestart (incl. pertag) and wakeonsignal all hold"
+green "✓ dwm-runtime: EWMH state, xresources, actualfullscreen, pertag, float rules, dropterm, remapped keys, Super+mouse move/resize, the Super+s scratchpad set (and leaving it by tag), restartsig, preserveonrestart (incl. pertag) and wakeonsignal all hold"

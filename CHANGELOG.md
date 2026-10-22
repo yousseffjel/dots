@@ -69,6 +69,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Sending a scratchpad to a tag takes it out of the scratchpad set.**
+  `Super` + `Shift` + `<N>` on a shown scratchpad moved it to tag N, but it
+  stayed in the set, so the next `Super` + `s` pulled it back and hid it
+  again; you had to press `Super` + `=` first, while it was still focused.
+  Now giving it a tag (`Super` + `Shift` + `<N>`, `Super` + `Ctrl` +
+  `Shift` + `<N>`, or `Super`-clicking the tag bar) also takes it out of
+  the set and tiles it like any other window. Rebuild dwm.
+
 - **The dwm tests no longer run a stale build.** `tests/dwm-runtime.sh`
   and `tests/dwm-multimon.sh` fail, with the rebuild command, when the
   built dwm is older than its sources, instead of testing old code.

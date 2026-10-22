@@ -271,6 +271,7 @@ static void runautostart(void);
 static void scan(void);
 static void scratchpad_hide(const Arg *arg);
 static void scratchpad_layout(Client **sp, int n);
+static void scratchpad_leave(Client *c);
 static void scratchpad_remove(const Arg *arg);
 static void scratchpad_show(const Arg *arg);
 static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
@@ -2694,6 +2695,22 @@ scratchpad_layout(Client **sp, int n)
 	}
 }
 
+/* An explicit tag (Super+Shift+<N>, toggletag, a tag-bar click) makes a
+ * member an ordinary window again: it leaves the Super+s set, or the next
+ * Super+s would stash it off that tag, and is tiled, undoing the float
+ * scratchpad_hide() forced (a fixed-size one floats, as manage() has it). */
+void
+scratchpad_leave(Client *c)
+{
+	if (!c->isscratchpad)
+		return;
+	c->isscratchpad = 0;
+	if (c->isfullscreen)
+		c->oldstate = c->isfixed;
+	else
+		c->isfloating = c->isfixed;
+}
+
 /* Drop the current window out of the Super+s set permanently: it keeps
  * whatever tags it is showing on, as an ordinary floating window. */
 void
@@ -3221,6 +3238,7 @@ tag(const Arg *arg)
 {
 	if (selmon->sel && arg->ui & TAGMASK) {
 		selmon->sel->tags = arg->ui & TAGMASK;
+		scratchpad_leave(selmon->sel);
 		focus(NULL);
 		arrange(selmon);
 	}
@@ -3321,6 +3339,7 @@ toggletag(const Arg *arg)
 	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
 	if (newtags) {
 		selmon->sel->tags = newtags;
+		scratchpad_leave(selmon->sel);
 		focus(NULL);
 		arrange(selmon);
 	}
