@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **scratchpad-tag-leave** (merge `0b42969`; log
+  `2026-10-22-scratchpad-tag-leave.md`). Sending a scratchpad to a tag
+  takes it out of the Super+s set and tiles it.
 - 2026-10-22 — **screenshot-dropdown** (main; log
   `2026-10-22-screenshot-dropdown.md`). `Super` + `a` takes a region
   screenshot without closing an open dropdown or menu.

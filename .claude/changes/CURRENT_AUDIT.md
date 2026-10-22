@@ -458,3 +458,9 @@ above is history, kept verbatim from the pre-rotation snapshot.
   `dwm-shotkey` (xinput raw events), slop runs `--nokeyboard` with Escape
   handled by the listener, and st/alacritty ignore Super+a. xinput is in
   desktop.lst now. Suite OK; reviewer READY.
+- **scratchpad-tag-leave** (merge `0b42969` of `cd39d89`; log
+  `2026-10-22-scratchpad-tag-leave.md`). `tag()`/`toggletag()` call
+  `scratchpad_leave()`: a Super+s member given a tag leaves the set and is
+  tiled (user choices: re-tile, and toggletag too). CHANGELOG conflicted
+  with screenshot-dropdown's Fixed entry; both kept. Three mutants fail the
+  new runtime check; reviewer READY.
