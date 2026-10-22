@@ -73,6 +73,19 @@ in `tests/lib/dwm-runtime-scratchpad.sh`, not `-floating.sh` as written
 above, and now covers a visit to another tag; `tests/dwm-multimon.sh` also
 checks a set shown on the left follows Super+s to the right.
 
+**Since 2026-10-22 (scratchpad-tag-leave), giving a member a tag takes it
+out of the set.** `tag()` and `toggletag()` (`Mod` + `Shift` + `<N>`,
+`Mod` + `Ctrl` + `Shift` + `<N>`, `Mod` + a tag-bar click) call the new
+`scratchpad_leave()`: it clears `isscratchpad` and tiles the window (sets
+`isfloating` to `isfixed`, as `manage()` does; `oldstate` instead while
+fullscreen). Before, the window reached the tag but stayed a member, so
+the next `Super+s` stashed it again; leaving needed `Super+=` first, while
+it was still focused. Re-tiling was the user's choice, over keeping it
+floating as `Super+=` does. The diff above was regenerated against the
+same base (`diff -u` of `bfb8a12^:suckless/dwm/dwm.c` and the tree, under
+a `diff --git` line). `check_scratchpad_leave`
+(`tests/lib/dwm-runtime-scratchpad.sh`) covers both keys.
+
 ## Hyprland-style mouse (2026-10-22)
 
 Six records, merged together in one slot (`dwm-hyprland-mouse`). The user

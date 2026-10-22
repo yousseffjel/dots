@@ -9,12 +9,13 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  	int beingmoved; /* placemouse: tile() places it, the drag draws it */
  	/* replug: the monitor this client was on before a monitor came or went,
  	 * by geometry, with that monitor's view and (floating) its position */
-@@ -269,11 +270,9 @@
+@@ -269,11 +270,10 @@
  static void runautostart(void);
  static void scan(void);
  static void scratchpad_hide(const Arg *arg);
 -static int scratchpad_last_showed_is_killed(void);
 +static void scratchpad_layout(Client **sp, int n);
++static void scratchpad_leave(Client *c);
  static void scratchpad_remove(const Arg *arg);
  static void scratchpad_show(const Arg *arg);
 -static void scratchpad_show_client(Client *c);
@@ -22,7 +23,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
  static void sendmon(Client *c, Monitor *m);
  static void setclientstate(Client *c, long state);
-@@ -381,10 +380,9 @@
+@@ -381,10 +381,9 @@
  /* dynamic scratchpads: one tag bit above the real tags marks a stashed
   * window. Kept out of TAGMASK on purpose, so a scratchpad client is never
   * shown by an ordinary view() and drawbar's `i < LENGTH(tags)` loop never
@@ -35,7 +36,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  
  /* configuration, allows nested code to access above variables */
  #include "config.h"
-@@ -1195,9 +1193,9 @@
+@@ -1195,9 +1194,9 @@
   * None running -> spawn it (applyrules() marks it when it maps). Showing
   * and focused -> stash it as SCRATCHPAD_MASK, exactly as scratchpad_hide()
   * would. Otherwise -> bring it to the focused monitor's current view, back
@@ -48,7 +49,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  void
  dropterm(const Arg *arg)
  {
-@@ -1625,13 +1623,13 @@
+@@ -1625,13 +1624,13 @@
  	long *d;
  	Monitor *m;
  
@@ -65,7 +66,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  		d = (long *)p;
  		saved = (unsigned long)d[0];
  		/* A stash is SCRATCHPAD_MASK alone; anything else must be real tags. */
-@@ -1662,8 +1660,12 @@
+@@ -1662,8 +1661,12 @@
  			c->homeview = (unsigned long)d[14] & TAGMASK;
  		}
  		/* cfacts: x1000; out of setcfact()'s range means not ours. */
@@ -79,7 +80,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  		applied = 1;
  	}
  	XFree(p);
-@@ -2546,7 +2548,7 @@
+@@ -2546,7 +2549,7 @@
  }
  
  /* preserveonrestart: record a window's tags, monitor and floating geometry
@@ -88,7 +89,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  void
  saveclientinfo(Client *c)
  {
-@@ -2554,7 +2556,7 @@
+@@ -2554,7 +2557,7 @@
  		c->x, c->y, c->w, c->h,
  		c->hashome, c->homex, c->homey, c->homew, c->homeh,
  		c->homefx, c->homefy, (long)c->homeview,
@@ -97,7 +98,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  
  	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
  		PropModeReplace, (unsigned char *)data, LENGTH(data));
-@@ -2654,103 +2656,108 @@
+@@ -2654,103 +2657,124 @@
  }
  
  /* Stash the focused window: its whole tag set becomes SCRATCHPAD_MASK, so
@@ -123,11 +124,6 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
 -scratchpad_last_showed_is_killed(void)
 -{
 -	Client *c;
--
--	for (c = selmon->clients; c; c = c->next)
--		if (c == scratchpad_last_showed)
--			return 0;
--	return 1;
 +/* scratchpadgroup: n shown scratchpads on selmon's window area, master and
 + * stack: one fills it, the first of several takes the left half and the
 + * rest share the right half top to bottom. Still floating. A fullscreen
@@ -150,6 +146,26 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
 +		if (i)
 +			y += h;
 +	}
++}
+ 
+-	for (c = selmon->clients; c; c = c->next)
+-		if (c == scratchpad_last_showed)
+-			return 0;
+-	return 1;
++/* An explicit tag (Super+Shift+<N>, toggletag, a tag-bar click) makes a
++ * member an ordinary window again: it leaves the Super+s set, or the next
++ * Super+s would stash it off that tag, and is tiled, undoing the float
++ * scratchpad_hide() forced (a fixed-size one floats, as manage() has it). */
++void
++scratchpad_leave(Client *c)
++{
++	if (!c->isscratchpad)
++		return;
++	c->isscratchpad = 0;
++	if (c->isfullscreen)
++		c->oldstate = c->isfixed;
++	else
++		c->isfloating = c->isfixed;
  }
  
 -/* Drop the current window out of the scratchpad set permanently: it keeps
@@ -275,7 +291,23 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  }
  
  /* replug: dwm reuses Monitor structs by index and drops the LAST one when a
-@@ -3392,11 +3399,6 @@
+@@ -3214,6 +3238,7 @@
+ {
+ 	if (selmon->sel && arg->ui & TAGMASK) {
+ 		selmon->sel->tags = arg->ui & TAGMASK;
++		scratchpad_leave(selmon->sel);
+ 		focus(NULL);
+ 		arrange(selmon);
+ 	}
+@@ -3314,6 +3339,7 @@
+ 	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
+ 	if (newtags) {
+ 		selmon->sel->tags = newtags;
++		scratchpad_leave(selmon->sel);
+ 		focus(NULL);
+ 		arrange(selmon);
+ 	}
+@@ -3392,11 +3418,6 @@
  		XSetErrorHandler(xerror);
  		XUngrabServer(dpy);
  	}
