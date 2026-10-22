@@ -144,12 +144,13 @@ it back and it is never drawn in the bar.
 special workspace (since 2026-10-22; until then it cycled one window at a
 time):
 
-- **Nothing showing:** every stashed window comes out at once, from every
-  monitor, onto the focused monitor's current tag, laid out master + stack
+- **None of them showing on this monitor:** every one comes out at once —
+  stashed, or left showing on another monitor or another tag — onto the
+  focused monitor's current tag, laid out master + stack
   under the bar: one fills the screen, two sit side by side, and with three
   or more the first takes the left half and the rest share the right half
   top to bottom. The first one is focused.
-- **Any of them showing:** every one that is showing is stashed again.
+- **Any of them showing on this monitor:** all of them are stashed again.
 
 They stay floating, on top of the tiled windows, so `Super` + drag still
 moves and resizes them; the next `Mod` + `s` lays them out afresh. `Mod` +

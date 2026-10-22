@@ -2704,9 +2704,10 @@ scratchpad_remove(const Arg *arg)
 }
 
 /* scratchpadgroup: Super+s toggles the whole set, like Hyprland's special
- * workspace. Any member showing (on any monitor): stash every showing one.
- * Otherwise: bring every stashed member, from every monitor, to the focused
- * monitor's view, laid out by scratchpad_layout(), and focus the first. */
+ * workspace. Any member showing on the focused monitor: stash every member.
+ * Otherwise: bring every member, stashed or shown elsewhere, from every
+ * monitor, to the focused monitor's view, laid out by scratchpad_layout(),
+ * and focus the first. */
 void
 scratchpad_show(const Arg *arg)
 {
@@ -2714,14 +2715,22 @@ scratchpad_show(const Arg *arg)
 	Monitor *m;
 	int i, n = 0, shown = 0;
 
+	/* Only what THIS monitor shows counts as showing: a member left on
+	 * another monitor, or on a tag no longer viewed, is gathered here. */
 	for (m = mons; m; m = m->next)
 		for (c = m->clients; c; c = c->next)
-			if (c->isscratchpad && c->tags != SCRATCHPAD_MASK && ISVISIBLE(c)) {
-				c->tags = SCRATCHPAD_MASK;
-				shown = 1;
-			} else if (c->isscratchpad && c->tags == SCRATCHPAD_MASK)
+			if (c->isscratchpad) {
 				n++;
-	if (shown || !n) {
+				if (c->mon == selmon && c->tags != SCRATCHPAD_MASK && ISVISIBLE(c))
+					shown = 1;
+			}
+	if (!n)
+		return;
+	if (shown) {
+		for (m = mons; m; m = m->next)
+			for (c = m->clients; c; c = c->next)
+				if (c->isscratchpad)
+					c->tags = SCRATCHPAD_MASK;
 		focus(NULL);
 		arrange(NULL);
 		return;
@@ -2730,7 +2739,7 @@ scratchpad_show(const Arg *arg)
 	n = 0;
 	for (m = mons; m; m = m->next)
 		for (c = m->clients; c; c = c->next)
-			if (c->isscratchpad && c->tags == SCRATCHPAD_MASK)
+			if (c->isscratchpad)
 				sp[n++] = c;
 	for (i = 0; i < n; i++) {
 		c = sp[i];

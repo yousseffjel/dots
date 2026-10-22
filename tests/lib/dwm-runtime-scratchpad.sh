@@ -3,8 +3,8 @@
 # SOURCED, never run on its own (tests/lib/ is outside run-tests.sh's
 # depth-1 glob). Uses the caller's pass/fail and the helpers in
 # dwm-runtime-x.sh and dwm-runtime-mouse.sh (outer_geom, near,
-# mouse_floating_win). On tag 9, which no other section keeps windows on;
-# closes every window it opens. Gathering from the other monitor is checked
+# mouse_floating_win). On tag 9, which no other section keeps windows on,
+# with a visit to tag 8; closes every window it opens. Gathering from the other monitor is checked
 # in tests/dwm-multimon.sh.
 
 # Stashes the focused window (Super+Shift+s).
@@ -95,6 +95,17 @@ check_scratchpad_group() {
         fail "Super+s showed the stashed dropterm too"
     else
         pass "the stashed dropterm is not part of the set"
+    fi
+    # Shown on tag 9, then viewing tag 8: the set is showing nowhere here,
+    # so Super+s brings it along instead of hiding it.
+    xdotool key --clearmodifiers super+8
+    sleep 0.3
+    sp_toggle
+    n="$(sp_shown "$s1" "$s2" "$s3")"
+    if ((n == 3)); then
+        pass "on another tag, Super+s brings the set shown on tag 9 along"
+    else
+        fail "on another tag, Super+s showed $n of the three scratchpads shown on tag 9"
     fi
     sp_toggle
     n="$(sp_shown "$s1" "$s2" "$s3")"

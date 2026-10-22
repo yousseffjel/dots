@@ -61,6 +61,18 @@ one window fills; three are laid out master + stack; the next press hides
 all; the set survives a restart; the dropterm stays out.
 `tests/dwm-multimon.sh` checks the gather from the other monitor.
 
+**Since 2026-10-22 (scratchpad-follow), "showing" means showing on the
+focused monitor.** The first build hid the set when any member was visible
+anywhere, so a set shown on tag 8 of one monitor hid itself when Super+s was
+pressed on the other, instead of coming over; and a member left shown on a
+tag no longer viewed was never gathered again (only stashed ones were).
+Now: a member visible on the focused monitor → every member is stashed;
+otherwise every member, stashed or shown anywhere, comes to this monitor's
+view. The diff above was regenerated against the same base. The check lives
+in `tests/lib/dwm-runtime-scratchpad.sh`, not `-floating.sh` as written
+above, and now covers a visit to another tag; `tests/dwm-multimon.sh` also
+checks a set shown on the left follows Super+s to the right.
+
 ## Hyprland-style mouse (2026-10-22)
 
 Six records, merged together in one slot (`dwm-hyprland-mouse`). The user

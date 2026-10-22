@@ -23,7 +23,8 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   cycling on each press. Now one press brings every stashed window to the
   monitor you are on, filling the space under the bar: one fills it, two
   sit side by side, more stack on the right of the first. The next press
-  hides them all. The drop-down terminal stays on its own key. Rebuild dwm.
+  hides them all; pressed on another monitor or tag, it brings them there
+  instead. The drop-down terminal stays on its own key. Rebuild dwm.
 
 - **Windows move and resize with the mouse the way Hyprland does.**
   `Super` + left-drag on a tiled window drops it into another window's
