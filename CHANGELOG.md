@@ -18,6 +18,17 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **The status bar shows icons instead of words.** `VOL 42%` is now
+  `󰖀 42%`, `BT off` is `󰂲`, and so on, drawn from the Nerd Font glyphs in
+  Cascadia Code NF. The icons follow the state: the speaker's waves follow the
+  volume, the Wi-Fi bars the signal, the battery its charge, and a muted mic,
+  muted speaker or powered-off Bluetooth shows only its crossed icon. The
+  values are shorter too: disk space without "free", memory in use without
+  the total, the temperature without "C", and the network without its
+  name (nmtui, on a left-click, still shows it). The clock is unchanged.
+  Rebuilding dwmblocks is not needed: `make install-scripts` (or any
+  installer run) copies the new scripts in.
+
 - **`Super` + `s` shows all your scratchpads at once.** It used to bring
   back one stashed window at a time, at whatever size it was stashed at,
   cycling on each press. Now one press brings every stashed window to the

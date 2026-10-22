@@ -12,8 +12,9 @@
 #     opens the upgrade in a floating terminal EVEN when the count failed —
 #     and that command, run for real against fakes, upgrades, then refreshes
 #     the block, then waits for Enter;
-#   * BT: n/a without bluetoothctl or an adapter, off when unpowered, the
-#     connected count, `on` with none; left opens blueman-manager;
+#   * BT: n/a without bluetoothctl or an adapter, the crossed icon alone when
+#     unpowered, the connect icon and count, the plain icon with none; left
+#     opens blueman-manager;
 #   * notification button (dwm-dnd): always visible — bell + history count,
 #     FOCUS + held count while paused; right toggles and the same run renders
 #     the new state, left opens dwm-notify;
@@ -68,16 +69,16 @@ printf '%s\n' \
     'mesa-26.2.5_1 update x86_64 https://repo-default.voidlinux.org/current 52428800 9437184' >"$SB/xbps.out"
 echo 0 >"$SB/xbps.rc"
 block dwm-updates
-check "three pending, the new dependency not counted" is "UPD 3"
+check "three pending, the new dependency not counted" is "󰏗 3"
 check "a local dry run (-nu), never a sync" logged "xbps-install -nu"
 block dwm-updates 1
 check "left: lists them" has "notify-send -u low 3 update(s) pending oniguruma-6.9.10_1"
 : >"$SB/xbps.out"
 block dwm-updates
-check "none pending" is "UPD 0"
+check "none pending" is "󰏗 0"
 echo 1 >"$SB/xbps.rc"
 block dwm-updates 3
-check "xbps failed (no index yet): n/a" is "UPD n/a"
+check "xbps failed (no index yet): n/a" is "󰏗 n/a"
 check "right: the upgrade terminal opens anyway" has "alacritty --class dots-float-updates -e sh -c sudo xbps-install -Su;"
 upgrade="$(sed -n 's/^alacritty --class dots-float-updates -e sh -c //p' "$LOG")"
 # shellcheck disable=SC2016
@@ -88,7 +89,7 @@ check "the upgrade command syncs and upgrades everything, then refreshes UPD (si
     test "$(tr '\n' '|' <"$LOG")" = "sudo xbps-install -Su|pkill -RTMIN+1 dwmblocks|"
 mv "$SB/fake/xbps-install" "$SB/xbps.off"
 block dwm-updates
-check "no xbps" is "UPD n/a"
+check "no xbps" is "󰏗 n/a"
 
 blue "BT"
 # shellcheck disable=SC2016
@@ -97,22 +98,22 @@ btshow() { printf '%s\n' 'Controller 28:0C:50:84:AA:9D (public)' '	Name: Antar' 
     "	Powered: $1" '	Discoverable: no' >"$SB/bt.show"; }
 : >"$SB/bt.show"
 block dwm-bluetooth
-check "no adapter / no bluetoothd" is "BT n/a"
+check "no adapter / no bluetoothd" is "󰂯 n/a"
 btshow no
 block dwm-bluetooth
-check "unpowered" is "BT off"
+check "unpowered: the crossed icon alone" is "󰂲"
 btshow yes
 printf '%s\n' 'Device AA:BB:CC:DD:EE:01 Headset' 'Device AA:BB:CC:DD:EE:02 Mouse' >"$SB/bt.dev"
 block dwm-bluetooth
-check "connected count" is "BT 2"
+check "connected: the connect icon and the count" is "󰂱 2"
 : >"$SB/bt.dev"
 block dwm-bluetooth
-check "powered, nothing connected" is "BT on"
+check "powered, nothing connected: the icon alone" is "󰂯"
 block dwm-bluetooth 1
 check "left: blueman-manager" logged "blueman-manager "
 rm "$SB/fake/bluetoothctl"
 block dwm-bluetooth
-check "no bluetoothctl" is "BT n/a"
+check "no bluetoothctl" is "󰂯 n/a"
 
 blue "notification button (dwm-dnd)"
 # dunstctl answers from state files: paused, and the history/waiting counts.

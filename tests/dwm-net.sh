@@ -3,13 +3,14 @@
 # fake /sys/class/net (DWM_NET_SYSFS), on a sealed PATH.
 #
 # What is asserted:
-#   * Wi-Fi shows its SSID and signal; a '\:' in a terse-mode SSID is
-#     unescaped; a long SSID is cut;
-#   * wired only shows `eth`; Wi-Fi wins when both are connected;
+#   * Wi-Fi shows bars for its signal and the percent, never the SSID, and
+#     a '\:' in a terse-mode SSID does not hide the connection; with no
+#     signal reading, the plain Wi-Fi icon;
+#   * wired only shows 󰈀; Wi-Fi wins when both are connected;
 #   * loopback's "connected (externally)" never counts as a connection;
-#   * nothing connected shows `off`;
+#   * nothing connected shows 󰤮;
 #   * no nmcli, or nmcli printing nothing (NetworkManager stopped), falls
-#     back to the kernel's operstate, skipping lo;
+#     back to the kernel's operstate, skipping lo, shown as 󰛳;
 #   * the Wi-Fi signal is read with `--rescan no` — a scan every 30 s would
 #     stall the bar for seconds.
 #   * a left-click opens nmtui with class dots-float-nmtui — which dwm's
@@ -82,38 +83,45 @@ blue "Wi-Fi"
 printf '%s\n' 'wifi:connected:Home\:Net' 'ethernet:unavailable:' 'loopback:connected (externally):lo' >"$SB/status"
 printf '%s\n' 'no:40' 'yes:72' >"$SB/wifi"
 net
-check "SSID unescaped, with signal" is "NET Home:Net 72%"
+check "bars and signal, no SSID" is "󰤥 72%"
 check "signal read without a rescan" grep -q -- '--rescan no' "$LOG"
 
-blue "long SSID"
-printf '%s\n' 'wifi:connected:ABCDEFGHIJKLMNOPQRSTUVWXYZ' >"$SB/status"
+blue "signal bars"
+printf '%s\n' 'wifi:connected:Cafe' >"$SB/status"
+for case in 100:󰤨 80:󰤨 79:󰤥 40:󰤢 39:󰤟 20:󰤟 19:󰤯 0:󰤯; do
+    printf '%s\n' "yes:${case%%:*}" >"$SB/wifi"
+    net
+    check "${case%%:*}%: ${case#*:}" is "${case#*:} ${case%%:*}%"
+done
+: >"$SB/wifi"
 net
-check "cut to 16 characters" is "NET ABCDEFGHIJKLMNOP… 72%"
+check "no signal reading: the plain Wi-Fi icon" is "󰖩"
+printf '%s\n' 'no:40' 'yes:72' >"$SB/wifi"
 
 blue "wired"
 printf '%s\n' 'ethernet:connected:Wired connection 1' 'loopback:connected (externally):lo' >"$SB/status"
 net
-check "shows eth" is "NET eth"
+check "shows 󰈀" is "󰈀"
 
 blue "wired, set up outside NetworkManager"
 printf '%s\n' 'ethernet:connected (externally):enp1s0' 'loopback:connected (externally):lo' >"$SB/status"
 net
-check "connected (externally) counts" is "NET eth"
+check "connected (externally) counts" is "󰈀"
 
 blue "both"
 printf '%s\n' 'ethernet:connected:Wired connection 1' 'wifi:connected:Cafe' >"$SB/status"
 net
-check "Wi-Fi wins" is "NET Cafe 72%"
+check "Wi-Fi wins" is "󰤥 72%"
 
 blue "two Wi-Fi adapters"
 printf '%s\n' 'wifi:connected:First' 'wifi:connected:Second' >"$SB/status"
 net
-check "the first listed (NetworkManager's primary) wins" is "NET First 72%"
+check "the active one's signal" is "󰤥 72%"
 
 blue "nothing connected"
 printf '%s\n' 'ethernet:unavailable:' 'wifi:disconnected:' 'loopback:connected (externally):lo' >"$SB/status"
 net
-check "loopback does not count" is "NET off"
+check "loopback does not count" is "󰤮"
 
 blue "left-click"
 # shellcheck disable=SC2016
@@ -148,14 +156,14 @@ blue "fallbacks"
 sysdev lo up
 sysdev enp1s0 up
 net
-check "NetworkManager silent: kernel link state" is "NET up"
+check "NetworkManager silent: kernel link state" is "󰛳"
 sysdev enp1s0 down
 net
-check "only lo up: off" is "NET off"
+check "only lo up: off" is "󰤮"
 mv "$SB/fake/nmcli" "$SB/nmcli.off"
 sysdev enp1s0 up
 net
-check "no nmcli: kernel link state" is "NET up"
+check "no nmcli: kernel link state" is "󰛳"
 
 if [[ $FAILS -gt 0 ]]; then
     red "$FAILS check(s) failed"

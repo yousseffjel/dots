@@ -66,7 +66,7 @@ blue "==> one battery, energy units"
 fresh
 ps BAT0 type=Battery status=Discharging capacity=99 energy_now=42000000 energy_full=50000000 power_now=10000000
 block dwm-battery
-check "84% from energy_now/energy_full, not the stale capacity file" is "BAT 84%"
+check "84% from energy_now/energy_full, not the stale capacity file" is "󰂁 84%"
 check "normal colour above 15%" test "$(colour_of)" = "^c#7ebd6f^"
 block dwm-battery 1
 check "left: time left from power_now (42/10 Wh -> 4:12)" notified "Battery On battery, 84%, 4:12 left"
@@ -76,7 +76,7 @@ fresh
 ps BAT0 type=Battery status=Charging charge_now=3000000 charge_full=4000000 current_now=1000000
 ps BAT1 type=Battery status=Discharging charge_now=1000000 charge_full=4000000
 block dwm-battery
-check "summed charge: 4/8 Ah = 50%, + while charging" is "BAT 50%+"
+check "summed charge: 4/8 Ah = 50%, the charging icon" is "󰂄 50%"
 block dwm-battery 1
 check "left: time to full (4 Ah at 1 A -> 4:00)" notified "Battery Charging, 50%, full in 4:00"
 
@@ -85,19 +85,19 @@ fresh
 ps BAT0 type=Battery status=Discharging capacity=80 energy_now=1 energy_full=2
 ps BAT1 type=Battery status=Discharging capacity=40 charge_now=1 charge_full=2
 block dwm-battery
-check "units disagree: mean of capacity (60%)" is "BAT 60%"
+check "units disagree: mean of capacity (60%)" is "󰁿 60%"
 
 blue "==> an unreadable attribute"
 fresh
 ps BAT0 type=Battery status=Discharging capacity= energy_now=garbage energy_full=50000000
 block dwm-battery
-check "empty capacity + junk energy_now: renders 0%, never blanks" is "BAT 0%"
+check "empty capacity + junk energy_now: renders 0%, never blanks" is "󰂎 0%"
 
 blue "==> full on AC"
 fresh
 ps BAT0 type=Battery status=Full capacity=100
 block dwm-battery
-check "full, no +" is "BAT 100%"
+check "full: the full icon, not the charging one" is "󰁹 100%"
 block dwm-battery 1
 check "left: plugged in" notified "Battery Plugged in, 100%"
 
@@ -127,6 +127,6 @@ rm "$SB/fake/notify-send"
 fresh
 ps BAT0 type=Battery status=Discharging capacity=3
 block dwm-battery
-check "no notify-send: the block still renders" is "BAT 3%"
+check "no notify-send: the block still renders" is "󰂎 3%"
 
 blocks_done "blocks-battery"

@@ -66,7 +66,7 @@ done
 # number. Either way there is no temperature to report.
 case "$milli" in
 '' | *[!0-9]*)
-	printf '%sTEMP%s n/a\n' "$STATUS_ACCENT3" "$STATUS_RESET"
+	printf '%s󰔏%s n/a\n' "$STATUS_ACCENT3" "$STATUS_RESET"
 	exit 0
 	;;
 esac
@@ -82,4 +82,4 @@ else
 	col=$STATUS_ACCENT3
 fi
 
-printf '%sTEMP%s %d°C\n' "$col" "$STATUS_RESET" "$deg"
+printf '%s󰔏%s %d°\n' "$col" "$STATUS_RESET" "$deg"

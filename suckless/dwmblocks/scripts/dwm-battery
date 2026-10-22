@@ -13,7 +13,8 @@
 # energy_now/energy_full (uWh), else summed charge_now/charge_full (uAh), else
 # the average of each one's `capacity` when they report different units.
 #
-# Shows `BAT 85%`, with `+` while charging. While DISCHARGING the label turns
+# Shows a battery icon filled to the nearest tenth and `85%`, or the charging
+# icon 󰂄 while charging (`BAT 85%+` until 2026-10-22). While DISCHARGING it turns
 # STATUS_WARN at LOW and STATUS_URGENT at CRIT, and a notification goes out
 # once per threshold crossed: normal urgency at LOW, critical at CRIT. The
 # last one sent is kept in $XDG_STATE_HOME/dots/battery-alert, so the 60 s
@@ -158,6 +159,13 @@ col=$STATUS_ACCENT2
 if [ "$state" = discharging ]; then
 	if [ "$pct" -le "$CRIT" ]; then col=$STATUS_URGENT; elif [ "$pct" -le "$LOW" ]; then col=$STATUS_WARN; fi
 fi
-plus=""
-[ "$state" = charging ] && plus="+"
-printf '%sBAT%s %d%%%s\n' "$col" "$STATUS_RESET" "$pct" "$plus"
+# 󰂎 is the empty outline, then one glyph per tenth (󰁺 10% .. 󰂂 90%), 󰁹 full.
+# Rounded, so 4% reads empty and 96% full; the number beside it is exact.
+if [ "$state" = charging ]; then
+	icon=󰂄
+else
+	set -- 󰂎 󰁺 󰁻 󰁼 󰁽 󰁾 󰁿 󰂀 󰂁 󰂂 󰁹
+	shift $(((pct + 5) / 10))
+	icon=$1
+fi
+printf '%s%s%s %d%%\n' "$col" "$icon" "$STATUS_RESET" "$pct"

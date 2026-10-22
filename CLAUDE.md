@@ -283,7 +283,7 @@ an odd chassis type is `unknown`, also treated as a desktop. On Void (I-7,
 vendor, not `systemd-detect-virt`; `dwm-picom` sources the same
 `drivers_virt`, so the two cannot disagree.
 Landed so far: the checker, `packages/laptop.lst`, the real backlight in
-`dwm-brightness` (block `BL` vs `GAMMA`), the `BAT` block with
+`dwm-brightness` (block lamp `󰛨` vs sun `󰃟`; the words `BL`/`GAMMA` until the 2026-10-22 icon bar), the battery block with
 low/critical alerts (`dwm-battery`, no daemon), and the touchpad snippet
 (`config/xorg/`, an Xorg InputClass, not xinput), and power profiles
 (`dwm-power`, which talks to the profiles D-Bus API with gdbus; served by

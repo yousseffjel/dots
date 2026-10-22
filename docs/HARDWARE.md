@@ -107,19 +107,20 @@ A desktop behaves exactly as it always did. On a laptop:
   manifest row, so `dots uninstall` removes it. `dots doctor` checks that
   list only on a laptop.
 - **The brightness keys dim the backlight**, through `brightnessctl`, and the
-  status-bar block says `BL`. On a desktop they scale the picture with
-  xrandr gamma, which saves no power, so the block says `GAMMA`; a screen
+  status-bar block shows a lamp, `󰛨`. On a desktop they scale the picture
+  with xrandr gamma, which saves no power, so the block shows a sun, `󰃟`; a screen
   turned back on gets the last level again (`dwm-brightness sync`, run
   after every display switch — docs/THEMING.md). Void builds
   `brightnessctl` without logind: it writes `/sys` through the udev rule it
   ships, which grants the `video` group. The Void installer puts you in
   `video` by default.
 
-- **The bar shows the battery**: `BAT 84%`, with `+` while charging. On
+- **The bar shows the battery**: `󰂁 84%`, the icon filled to the nearest
+  tenth, or `󰂄` while charging. On
   battery it turns the warning colour at 15 % and the urgent colour at 5 %,
   and each threshold sends one notification (critical urgency at 5 %).
   Charging re-arms them. Left-click shows the time left or to full. A
-  desktop's bar has no `BAT` block at all. A wireless mouse's battery
+  desktop's bar has no battery block at all. A wireless mouse's battery
   doesn't count, because the kernel marks it `scope=Device`.
 
 - **The touchpad taps to click.** dots writes

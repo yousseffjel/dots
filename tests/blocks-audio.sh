@@ -4,8 +4,10 @@
 # sealed PATH — harness in tests/lib/blocks.sh.
 #
 # What is asserted:
-#   * each prints its value, `mute`/`off` when muted, and `n/a` when the tool
-#     is missing or prints nothing (no sound server, no display);
+#   * each prints its icon and value (the speaker's waves follow the level,
+#     the lamp is a backlight and the sun is gamma), the crossed icon alone
+#     when muted, and `n/a` when the tool is missing or prints nothing (no
+#     sound server, no display);
 #   * every click does what its header says, mutation BEFORE the read, so one
 #     run both applies and shows the change;
 #   * the clicks that change a level show the same dwm-osd pop-up the keys do,
@@ -49,14 +51,21 @@ echo 70 >"$SB/svol"
 
 blue "VOL"
 block dwm-vol
-check "level" is "VOL 42%"
+check "level: two waves from a third up" is "󰖀 42%"
+echo 80 >"$SB/vol"
+block dwm-vol
+check "three waves from two thirds up" is "󰕾 80%"
+echo 10 >"$SB/vol"
+block dwm-vol
+check "one wave below a third" is "󰕿 10%"
+echo 42 >"$SB/vol"
 echo true >"$SB/mute"
 block dwm-vol
-check "muted" is "VOL mute"
+check "muted: the crossed speaker alone" is "󰝟"
 echo false >"$SB/mute"
 : >"$SB/vol"
 block dwm-vol
-check "no sound server (pamixer prints nothing)" is "VOL n/a"
+check "no sound server (pamixer prints nothing)" is "󰕾 n/a"
 echo 42 >"$SB/vol"
 block dwm-vol 1
 check "left: toggles mute" logged "pamixer --toggle-mute"
@@ -72,15 +81,15 @@ check "right: opens pavucontrol" logged "pavucontrol "
 check "right: no pop-up (nothing changed)" not_logged dwm-osd
 mv "$SB/fake/pamixer" "$SB/pamixer.off"
 block dwm-vol
-check "no pamixer" is "VOL n/a"
+check "no pamixer" is "󰕾 n/a"
 mv "$SB/pamixer.off" "$SB/fake/pamixer"
 
 blue "MIC"
 block dwm-mic
-check "level" is "MIC 70%"
+check "level" is "󰍬 70%"
 echo true >"$SB/smute"
 block dwm-mic
-check "muted" is "MIC off"
+check "muted: the crossed mic alone" is "󰍭"
 echo false >"$SB/smute"
 block dwm-mic 1
 check "left: toggles the SOURCE's mute" logged "pamixer --default-source --toggle-mute"
@@ -98,13 +107,13 @@ exit 0'
 echo 80 >"$SB/gamma"
 echo gamma >"$SB/mode"
 block dwm-brightness-block
-check "level, found in ~/.config/dwm/bin off PATH" is "GAMMA 80%"
+check "level, found in ~/.config/dwm/bin off PATH" is "󰃟 80%"
 echo backlight >"$SB/mode"
 block dwm-brightness-block
-check "a real backlight (laptop) is labelled BL" is "BL 80%"
+check "a real backlight (laptop) gets the lamp" is "󰛨 80%"
 : >"$SB/mode"
 block dwm-brightness-block
-check "mode unanswered: GAMMA, never a backlight claim" is "GAMMA 80%"
+check "mode unanswered: the sun, never a backlight claim" is "󰃟 80%"
 echo gamma >"$SB/mode"
 block dwm-brightness-block 4
 check "scroll up: dwm-brightness up" logged "dwm-brightness up"
@@ -123,13 +132,13 @@ cp "$BLOCKS_DIR/dwm-brightness-block" "$SB/solo/"
 OUT="$(env -i HOME="$SB/home" XDG_CONFIG_HOME="$SB/home/.config" LOG="$LOG" \
     PATH="$SB/fake:$SB/real" /bin/sh "$SB/solo/dwm-brightness-block" 2>/dev/null \
     | sed 's/\^[^^]*\^//g')"
-check "renders without dwm-blockutil" is "GAMMA 80%"
+check "renders without dwm-blockutil" is "󰃟 80%"
 : >"$SB/gamma"
 block dwm-brightness-block
-check "no display (get prints nothing)" is "GAMMA n/a"
+check "no display (get prints nothing)" is "󰃟 n/a"
 rm "$DWM_BIN/dwm-brightness"
 block dwm-brightness-block 4
-check "no dwm-brightness" is "GAMMA n/a"
+check "no dwm-brightness" is "󰃟 n/a"
 check "no dwm-brightness: no pop-up either" not_logged dwm-osd
 
 blocks_done "blocks-audio"

@@ -47,7 +47,7 @@ util="${0%/*}/dwm-blockutil"
 [ -r "$util" ] && . "$util"
 
 if ! command -v xbps-install >/dev/null 2>&1; then
-	printf '%sUPD%s n/a\n' "$STATUS_ACCENT2" "$STATUS_RESET"
+	printf '%s󰏗%s n/a\n' "$STATUS_ACCENT2" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -62,7 +62,7 @@ esac
 out=$(timeout "$XBPS_TIMEOUT" xbps-install -nu 2>/dev/null)
 rc=$?
 if [ "$rc" -ne 0 ]; then
-	printf '%sUPD%s n/a\n' "$STATUS_ACCENT2" "$STATUS_RESET"
+	printf '%s󰏗%s n/a\n' "$STATUS_ACCENT2" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -90,7 +90,7 @@ case "$BUTTON" in
 esac
 
 if [ "$n" -gt 0 ]; then
-	printf '%sUPD%s %d\n' "$STATUS_WARN" "$STATUS_RESET" "$n"
+	printf '%s󰏗%s %d\n' "$STATUS_WARN" "$STATUS_RESET" "$n"
 else
-	printf '%sUPD%s 0\n' "$STATUS_ACCENT2" "$STATUS_RESET"
+	printf '%s󰏗%s 0\n' "$STATUS_ACCENT2" "$STATUS_RESET"
 fi

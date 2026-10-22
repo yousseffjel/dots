@@ -28,7 +28,7 @@ fi
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/dwmblocks"
 if ! mkdir -p "$cache" 2>/dev/null; then
 	# No cache means no delta, but a silent block is worse than an honest one.
-	printf '^c%s^CPU^d^ n/a\n' "$COL_CPU"
+	printf '^c%s^󰻠^d^ n/a\n' "$COL_CPU"
 	exit 0
 fi
 prev="$cache/cpu"
@@ -63,4 +63,4 @@ else
 	[ -r "$prev" ] || printf '%s %s %s\n' "$busy" "$total" "$pct" > "$prev"
 fi
 
-printf '^c%s^CPU^d^ %d%%\n' "$COL_CPU" "$pct"
+printf '^c%s^󰻠^d^ %d%%\n' "$COL_CPU" "$pct"

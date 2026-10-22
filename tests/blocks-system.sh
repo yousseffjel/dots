@@ -53,22 +53,22 @@ htop_click() { # htop_click <block>
 blue "CPU"
 echo "cpu  100 0 100 800 0 0 0 0 0 0" >"$SB/proc/stat"
 block dwm-cpu
-check "first run: average since boot" is "CPU 20%"
+check "first run: average since boot" is "󰻠 20%"
 echo "cpu  150 0 150 900 0 0 0 0 0 0" >"$SB/proc/stat"
 block dwm-cpu
-check "second run: the delta (100 busy of 200)" is "CPU 50%"
+check "second run: the delta (100 busy of 200)" is "󰻠 50%"
 block dwm-cpu
-check "no time passed: last figure reprinted" is "CPU 50%"
+check "no time passed: last figure reprinted" is "󰻠 50%"
 htop_click dwm-cpu
 
 blue "MEM"
 printf '%s\n' 'MemTotal:        8388608 kB' 'MemFree:          1048576 kB' \
     'MemAvailable:    6291456 kB' >"$SB/proc/meminfo"
 block dwm-mem
-check "used / total" is "MEM 2.0G/8G"
+check "used, not the total" is "󰍛 2.0G"
 printf '%s\n' 'MemTotal:        8388608 kB' 'MemFree:          1048576 kB' >"$SB/proc/meminfo"
 block dwm-mem
-check "no MemAvailable (old kernel)" is "MEM n/a"
+check "no MemAvailable (old kernel)" is "󰍛 n/a"
 htop_click dwm-mem
 
 blue "TEMP"
@@ -79,14 +79,14 @@ hwmon() { # hwmon <n> <name> <millideg>
 }
 hwmon 0 nvme 45000
 block dwm-temp
-check "only a non-CPU sensor: n/a, not the NVMe's reading" is "TEMP n/a"
+check "only a non-CPU sensor: n/a, not the NVMe's reading" is "󰔏 n/a"
 hwmon 1 coretemp 55400
 block dwm-temp
-check "the CPU package sensor, by name" is "TEMP 55°C"
+check "the CPU package sensor, by name" is "󰔏 55°"
 normal="$(colour_of)"
 hwmon 1 coretemp 71500
 block dwm-temp
-check "millidegrees round, not truncate" is "TEMP 72°C"
+check "millidegrees round, not truncate" is "󰔏 72°"
 warn="$(colour_of)"
 hwmon 1 k10temp 80000
 block dwm-temp
@@ -101,7 +101,7 @@ dfrow() { printf '%s\n' 'Filesystem      Size  Used Avail Use% Mounted on' \
     "/dev/nvme0n1p2  476G  338G  $1  $2% /" >"$SB/df"; }
 dfrow 135G 72
 block dwm-disk
-check "free space from df -P" is "DISK 135G free"
+check "free space from df -P" is "󰋊 135G"
 normal="$(colour_of)"
 dfrow 60G 87
 block dwm-disk
@@ -112,7 +112,7 @@ urgent="$(colour_of)"
 check "colour changes at 85% and again at 95%" test "$normal" != "$warn" -a "$warn" != "$urgent" -a "$normal" != "$urgent"
 : >"$SB/df"
 block dwm-disk
-check "df prints nothing: n/a" is "DISK n/a"
+check "df prints nothing: n/a" is "󰋊 n/a"
 block dwm-disk 1
 check "left: thunar at /" logged "thunar /"
 

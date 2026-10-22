@@ -8,7 +8,7 @@
 //
 // Colour markup (^c#RRGGBB^ ... ^d^) is emitted by the scripts themselves and
 // rendered by the status2d patch in dwm. The palette they share lives in
-// ./scripts/dwm-colors. That is also why every icon below is empty: the label
+// ./scripts/dwm-colors. That is also why every icon below is empty: the icon
 // has to sit *inside* the colour escape, so the scripts print their own.
 //
 // A non-zero signal is required for a block to be clickable: dwm's statuscmd

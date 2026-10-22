@@ -26,6 +26,9 @@ colors="${XDG_CACHE_HOME:-$HOME/.cache}/dots/theme/statusbar-colors.sh"
 : "${STATUS_RESET:=^d^}"
 
 STEP=5
+# Where the speaker icon gains its second and third wave, in percent.
+WAVES_2=34
+WAVES_3=67
 
 # Shared click helpers (block_bin, block_term, block_osd) -- see dwm-blockutil.
 util="${0%/*}/dwm-blockutil"
@@ -33,7 +36,7 @@ util="${0%/*}/dwm-blockutil"
 [ -r "$util" ] && . "$util"
 
 if ! command -v pamixer >/dev/null 2>&1; then
-	printf '%sVOL%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰕾%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -61,7 +64,7 @@ case "$BUTTON" in
 esac
 
 if [ "$(pamixer --get-mute 2>/dev/null)" = "true" ]; then
-	printf '%sVOL%s mute\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰝟%s\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -71,9 +74,19 @@ vol=$(pamixer --get-volume 2>/dev/null)
 # this guard the block would render a bare percent sign and look like 0.
 case "$vol" in
 '' | *[!0-9]*)
-	printf '%sVOL%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰕾%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 	;;
 esac
 
-printf '%sVOL%s %d%%\n' "$STATUS_ACCENT2" "$STATUS_RESET" "$vol"
+# The speaker's waves follow the level: one below a third, three from two
+# thirds up. Muted is the crossed speaker alone, with no number.
+if [ "$vol" -ge "$WAVES_3" ]; then
+	icon=󰕾
+elif [ "$vol" -ge "$WAVES_2" ]; then
+	icon=󰖀
+else
+	icon=󰕿
+fi
+
+printf '%s%s%s %d%%\n' "$STATUS_ACCENT2" "$icon" "$STATUS_RESET" "$vol"

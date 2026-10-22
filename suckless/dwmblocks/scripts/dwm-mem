@@ -1,6 +1,7 @@
 #!/bin/sh
-# Used / total physical memory, read straight from /proc/meminfo so the output
-# does not depend on the locale or the `free` version installed.
+# Used physical memory, read straight from /proc/meminfo so the output does
+# not depend on the locale or the `free` version installed. The total is read
+# too, but only to reject an impossible reading; the bar shows used alone.
 #
 # Left-click opens htop. DOTS_PROC_ROOT redirects /proc, for tests only.
 
@@ -32,10 +33,10 @@ awk -v c="$COL_MEM" '
 		# unchecked it reads as 0 and the block would claim every byte
 		# of RAM is in use, which looks plausible and is wrong.
 		if (total <= 0 || avail == "") {
-			printf "^c%s^MEM^d^ n/a\n", c
+			printf "^c%s^󰍛^d^ n/a\n", c
 			exit
 		}
 		used = total - avail
-		printf "^c%s^MEM^d^ %.1fG/%.0fG\n", c, used / 1048576, total / 1048576
+		printf "^c%s^󰍛^d^ %.1fG\n", c, used / 1048576
 	}
 ' "${DOTS_PROC_ROOT:-/proc}/meminfo"

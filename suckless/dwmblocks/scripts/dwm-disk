@@ -38,7 +38,7 @@ fields=$(df -P -h / 2>/dev/null | awk 'NR == 2 { sub(/%$/, "", $5); print $4, $5
 
 # Empty means df failed or printed no data row -- do not fabricate a reading.
 if [ -z "$fields" ]; then
-	printf '%sDISK%s n/a\n' "$STATUS_ACCENT1" "$STATUS_RESET"
+	printf '%s󰋊%s n/a\n' "$STATUS_ACCENT1" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -52,7 +52,7 @@ pct=$2
 # than letting [ -ge ] fail and print nothing.
 case "$pct" in
 '' | *[!0-9]*)
-	printf '%sDISK%s %s\n' "$STATUS_ACCENT1" "$STATUS_RESET" "$avail"
+	printf '%s󰋊%s %s\n' "$STATUS_ACCENT1" "$STATUS_RESET" "$avail"
 	exit 0
 	;;
 esac
@@ -65,4 +65,4 @@ else
 	col=$STATUS_ACCENT1
 fi
 
-printf '%sDISK%s %s free\n' "$col" "$STATUS_RESET" "$avail"
+printf '%s󰋊%s %s\n' "$col" "$STATUS_RESET" "$avail"

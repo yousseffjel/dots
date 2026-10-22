@@ -1,7 +1,10 @@
 #!/bin/sh
-# Network state: Wi-Fi name and signal, `eth` for a wired link, `off` when
-# nothing is connected. Read from NetworkManager via nmcli; without nmcli (or
-# with NetworkManager stopped) it falls back to the kernel's link state.
+# Network state as an icon: Wi-Fi bars and the signal percent, 󰈀 for a wired
+# link, 󰤮 when nothing is connected. Read from NetworkManager via nmcli;
+# without nmcli (or with NetworkManager stopped) it falls back to the kernel's
+# link state, which knows a link is up but not what kind, so it shows 󰛳.
+# The SSID is not shown (user decision 2026-10-22, to keep the bar compact);
+# a left-click's nmtui names it.
 #
 # Every nmcli call is wrapped in `timeout`: like bluetoothctl it talks to a
 # daemon over D-Bus, and dwmblocks runs blocks synchronously, so a wedged
@@ -33,7 +36,6 @@ util="${0%/*}/dwm-blockutil"
 [ -r "$util" ] && . "$util"
 
 NM_TIMEOUT=3
-SSID_MAX=16
 sysfs="${DWM_NET_SYSFS:-/sys/class/net}"
 
 case "$BUTTON" in
@@ -52,15 +54,30 @@ case "$BUTTON" in
 	;;
 esac
 
-on() { printf '%sNET%s %s\n' "$STATUS_ACCENT4" "$STATUS_RESET" "$1"; }
-off() { printf '%sNET%s off\n' "$STATUS_MUTED" "$STATUS_RESET"; }
+on() { printf '%s%s%s%s\n' "$STATUS_ACCENT4" "$1" "$STATUS_RESET" "${2:+ $2}"; }
+off() { printf '%s󰤮%s\n' "$STATUS_MUTED" "$STATUS_RESET"; }
+
+# wifi_icon <signal> -- the bars for a 0-100 signal, one per 20 points over 20.
+wifi_icon() {
+	if [ "$1" -ge 80 ]; then
+		echo 󰤨
+	elif [ "$1" -ge 60 ]; then
+		echo 󰤥
+	elif [ "$1" -ge 40 ]; then
+		echo 󰤢
+	elif [ "$1" -ge 20 ]; then
+		echo 󰤟
+	else
+		echo 󰤯
+	fi
+}
 
 # Kernel view: any interface other than loopback whose operstate is up.
 sysfs_state() {
 	for dev in "$sysfs"/*; do
 		[ "${dev##*/}" = lo ] && continue
 		[ "$(cat "$dev/operstate" 2>/dev/null)" = up ] && {
-			on up
+			on 󰛳
 			return
 		}
 	done
@@ -77,16 +94,15 @@ if [ -z "$status" ]; then
 fi
 
 # Terse mode separates fields with ':' and escapes a ':' inside a field as
-# '\:'. TYPE and STATE never contain one, so only the connection name
-# (a Wi-Fi SSID) needs unescaping. Wi-Fi wins over wired when both are up,
-# since its name and signal are the more useful thing to show.
+# '\:'. TYPE and STATE never contain one, and they come first, so the
+# connection name (which can) is never split on. Wi-Fi wins over wired when
+# both are up, since its signal is the more useful thing to show.
 wired=""
-ssid=""
+wifi=""
 while IFS= read -r line; do
 	type=${line%%:*}
 	rest=${line#*:}
 	state=${rest%%:*}
-	name=${rest#*:}
 	# "connected (externally)" is a link NetworkManager sees but did not set
 	# up (a static config, a VM's network); it is still a connection.
 	# Loopback reports that state too, and is excluded by its type below.
@@ -95,24 +111,23 @@ while IFS= read -r line; do
 	*) continue ;;
 	esac
 	case "$type" in
-	wifi) [ -z "$ssid" ] && ssid=$(printf '%s' "$name" | sed 's/\\:/:/g') ;;
+	wifi) wifi=1 ;;
 	ethernet) wired=1 ;;
 	esac
 done <<EOF
 $status
 EOF
 
-if [ -n "$ssid" ]; then
-	[ "${#ssid}" -gt "$SSID_MAX" ] && ssid="$(printf '%s' "$ssid" | cut -c1-"$SSID_MAX")…"
+if [ -n "$wifi" ]; then
 	signal=$(timeout "$NM_TIMEOUT" nmcli -t -f ACTIVE,SIGNAL device wifi list --rescan no 2>/dev/null \
 		| sed -n 's/^yes:\([0-9]*\)$/\1/p' | head -n 1)
 	if [ -n "$signal" ]; then
-		on "$ssid $signal%"
+		on "$(wifi_icon "$signal")" "$signal%"
 	else
-		on "$ssid"
+		on 󰖩
 	fi
 elif [ -n "$wired" ]; then
-	on eth
+	on 󰈀
 else
 	off
 fi

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Bluetooth adapter state and connected-device count, via bluetoothctl.
+# Bluetooth adapter state and connected-device count, via bluetoothctl:
+# 󰂲 off, 󰂯 on, 󰂱 and the count while something is connected.
 #
 # Every bluetoothctl call is wrapped in `timeout`: it talks to bluetoothd over
 # D-Bus, and with the daemon stopped or wedged the call can block. dwmblocks
@@ -30,7 +31,7 @@ case "$BUTTON" in
 esac
 
 if ! command -v bluetoothctl >/dev/null 2>&1; then
-	printf '%sBT%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰂯%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 fi
 
@@ -39,14 +40,14 @@ show=$(timeout "$BT_TIMEOUT" bluetoothctl show 2>/dev/null)
 # No adapter at all reads the same as a stopped daemon from here, and both
 # mean the same thing to the user: there is no bluetooth to show.
 if [ -z "$show" ]; then
-	printf '%sBT%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰂯%s n/a\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 fi
 
 case "$show" in
 *'Powered: yes'*) ;;
 *)
-	printf '%sBT%s off\n' "$STATUS_MUTED" "$STATUS_RESET"
+	printf '%s󰂲%s\n' "$STATUS_MUTED" "$STATUS_RESET"
 	exit 0
 	;;
 esac
@@ -62,7 +63,7 @@ case "$n" in
 esac
 
 if [ "$n" -gt 0 ]; then
-	printf '%sBT%s %d\n' "$STATUS_ACCENT4" "$STATUS_RESET" "$n"
+	printf '%s󰂱%s %d\n' "$STATUS_ACCENT4" "$STATUS_RESET" "$n"
 else
-	printf '%sBT%s on\n' "$STATUS_ACCENT4" "$STATUS_RESET"
+	printf '%s󰂯%s\n' "$STATUS_ACCENT4" "$STATUS_RESET"
 fi

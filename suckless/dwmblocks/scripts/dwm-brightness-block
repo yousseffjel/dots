@@ -7,12 +7,12 @@
 # sxhkd's `dwm-brightness up` would start invoking this status block instead.
 # Do not rename it to match the other blocks.
 #
-# THE LABEL IS NOT AN ACCIDENT EITHER. It names the path `dwm-brightness mode`
-# reports. BL is a real backlight (a laptop, via brightnessctl): the lamp
-# dims and saves power. GAMMA is xrandr gamma (a desktop, scope-b decision
-# 12): the panel keeps drawing full power and only the output signal is
-# scaled, so a "BRI" or "BL" label there would promise a power saving it
-# cannot deliver.
+# THE ICON IS NOT AN ACCIDENT EITHER. It names the path `dwm-brightness mode`
+# reports. The lamp 󰛨 is a real backlight (a laptop, via brightnessctl): it
+# dims and saves power. The sun 󰃟 is xrandr gamma (a desktop, scope-b
+# decision 12): the panel keeps drawing full power and only the output signal
+# is scaled, so the lamp there would promise a power saving it cannot deliver.
+# (Until 2026-10-22 the two were the words BL and GAMMA.)
 #
 # Clicks: scroll steps the brightness up/down (dwm-brightness, the same command
 # the brightness keys run) and shows the dwm-osd pop-up; left toggles night
@@ -46,12 +46,12 @@ bright=$(command -v dwm-brightness 2>/dev/null)
 [ -n "$bright" ] || bright="${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-brightness"
 
 if [ ! -x "$bright" ]; then
-	printf '%sGAMMA%s n/a\n' "$STATUS_ACCENT1" "$STATUS_RESET"
+	printf '%s󰃟%s n/a\n' "$STATUS_ACCENT1" "$STATUS_RESET"
 	exit 0
 fi
 
-label=GAMMA
-[ "$("$bright" mode 2>/dev/null)" = backlight ] && label=BL
+label=󰃟
+[ "$("$bright" mode 2>/dev/null)" = backlight ] && label=󰛨
 
 case "$BUTTON" in
 1)

@@ -226,18 +226,18 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 
 | # | Block | Shows | Refreshes | Clicks |
 | --- | --- | --- | --- | --- |
-| 1 | `UPD` | Pending package updates | hourly | left → list them in a notification, right → `sudo xbps-install -Su` in a terminal |
-| 2 | `DISK` | Free space on `/` | 5 min | left → open `/` in thunar |
-| 3 | `TEMP` | CPU package temperature | 5 s | left → htop |
-| 4 | `CPU` | CPU utilisation | 2 s | left → htop |
-| 5 | `MEM` | Used / total RAM | 10 s | left → htop |
-| 6 | `BL` / `GAMMA` | Backlight (laptop) or screen gamma (desktop) level | **on change only** | left → night light on / off, scroll → brightness ±, with the pop-up |
-| 7 | `MIC` | Microphone level, or `off` | **on change only** | left → toggle mute, with the pop-up |
-| 8 | `VOL` | Output volume, or `mute` | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
-| 9 | `NET` | Wi-Fi name and signal, `eth`, or `off` | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
-| 10 | `BT` | Bluetooth state / connected count | 30 s | left → blueman-manager |
+| 1 | `󰏗` updates | Pending package updates | hourly | left → list them in a notification, right → `sudo xbps-install -Su` in a terminal |
+| 2 | `󰋊` disk | Free space on `/` | 5 min | left → open `/` in thunar |
+| 3 | `󰔏` temp | CPU package temperature, in °C | 5 s | left → htop |
+| 4 | `󰻠` cpu | CPU utilisation | 2 s | left → htop |
+| 5 | `󰍛` mem | RAM in use | 10 s | left → htop |
+| 6 | `󰛨` / `󰃟` brightness | Backlight (laptop, the lamp) or screen gamma (desktop, the sun) level | **on change only** | left → night light on / off, scroll → brightness ±, with the pop-up |
+| 7 | `󰍬` mic | Microphone level, or `󰍭` alone when muted | **on change only** | left → toggle mute, with the pop-up |
+| 8 | `󰕿` `󰖀` `󰕾` vol | Output volume, the waves following the level, or `󰝟` alone when muted | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
+| 9 | `󰤯`…`󰤨` net | Wi-Fi bars and signal, `󰈀` wired, `󰤮` off, `󰛳` when only the kernel's link state is known. No SSID: nmtui shows it | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
+| 10 | `󰂯` bt | Bluetooth: `󰂲` off, `󰂯` on, `󰂱` and the count while connected | 30 s | left → blueman-manager |
 | 11 | `󰂚` / `󰂛 FOCUS` | The notification button, always shown: a bell and the number of notifications in dunst's history, or a crossed bell and `FOCUS` in focus mode, plus how many it is holding back | 5 s, and at once on a change | left → the notification centre, right → focus mode on / off |
-| 12 | `BAT` | Battery percent, `+` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
+| 12 | `󰂎`…`󰁹` battery | Battery percent, the icon filled to the nearest tenth, `󰂄` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
 | 13 | `` | Day, date and time | 60 s | left → this month's calendar |
 
 **The bar behaves like the keys** (2026-10-07). A click or scroll that changes
@@ -246,7 +246,7 @@ keys. Every terminal a click opens (`nmtui`, `htop`, the upgrade) floats: its
 class is `dots-float-<tool>`, and one `dots-float-` rule in `config.def.h`
 matches them all. The terminal is alacritty, or st without it. The helpers
 live in `dwm-blockutil`, sourced by the blocks the way `dwm-colors` is. The
-upgrade terminal refreshes `UPD` the moment dnf finishes and stays open until
+upgrade terminal refreshes the updates block the moment dnf finishes and stays open until
 Enter, so a failed upgrade can be read.
 
 > **Scroll on the bar needs a dwm rebuild on an existing install.** dwm bound
@@ -259,7 +259,7 @@ Enter, so a failed upgrade can be read.
 > scripts/install-suckless.sh --skip-deps
 > ```
 
-**`NET`, and the notification button's 5 s refresh, need a dwmblocks rebuild
+**The network block, and the notification button's 5 s refresh, need a dwmblocks rebuild
 with a fresh `blocks.h` on an existing install.** Without it the button still
 works, but its count only moves when you click it or press a notification key.
 The block list is compiled in, and `blocks.h` is generated from `blocks.def.h`
@@ -270,7 +270,7 @@ rm -f suckless/dwmblocks/blocks.h
 scripts/install-suckless.sh --skip-deps
 ```
 
-**`BL`/`GAMMA`, `MIC` and `VOL` are never polled.** They run once at startup
+**The brightness, mic and volume blocks are never polled.** They run once at startup
 and then only when something sends their signal — `config/sxhkd/sxhkdrc` fires
 `pkill -RTMIN+6/7/8 dwmblocks` after every brightness, mic and volume change. That keeps them off the CPU
 entirely (`tests/blocks-info.sh` holds every signal-only block in
@@ -278,21 +278,21 @@ entirely (`tests/blocks-info.sh` holds every signal-only block in
 those values by some *other* route (`pamixer` straight from a
 shell, say) leaves the bar stale until the next keypress.
 
-> **`BL` is a backlight, and `GAMMA` is not.** On a laptop, `dwm-brightness`
+> **The lamp `󰛨` is a backlight, and the sun `󰃟` is not.** On a laptop, `dwm-brightness`
 > dims the backlight with `brightnessctl` (installed only on laptops by
-> `dots drivers`), and the block says `BL`. A desktop GPU has no
+> `dots drivers`), and the block shows the lamp. A desktop GPU has no
 > `/sys/class/backlight`, so there it scales the output signal with
 > `xrandr --brightness` while the monitor keeps drawing full power. The block
-> then says `GAMMA` rather than `BRI` precisely so it does not promise a power
+> then shows the sun rather than the lamp precisely so it does not promise a power
 > saving it cannot deliver. The brightness keys are the same on both.
 
-`TEMP` matches sensors **by name** (`coretemp`, `k10temp`, `zenpower`,
+The temperature block matches sensors **by name** (`coretemp`, `k10temp`, `zenpower`,
 `cpu_thermal`), never by hwmon number — that numbering is assigned in probe
 order and changes between boots. A machine whose CPU sensor is named something
 else shows `n/a` rather than silently reporting an NVMe drive or the
 motherboard; add the name to `CPU_SENSORS` in `dwm-temp` to fix it.
 
-`UPD` runs `xbps-install -nu` — a dry run against the repo index already on
+The updates block runs `xbps-install -nu` — a dry run against the repo index already on
 disk, never the network, since dwmblocks runs blocks synchronously and one
 slow block stalls the whole bar. The count is therefore as fresh as the last
 sync (`xbps-install -S`, which every installer run and `dots update` do) and
