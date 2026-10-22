@@ -89,6 +89,9 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-22 — **scratchpad-fill** (ff `cea55cc`; log
+  `2026-10-22-scratchpad-fill.md`). A scratchpad shown with `Super` + `s`
+  fills the screen under the bar.
 - 2026-10-22 — **dwm-hyprland-mouse** (ff `2828808`; log
   `2026-10-22-dwm-hyprland-mouse.md`). Super+drag moves, places, resizes
   and snaps windows the way Hyprland does. Rebuild dwm to get it.

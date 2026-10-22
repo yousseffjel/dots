@@ -423,3 +423,10 @@ above is history, kept verbatim from the pre-rotation snapshot.
   failed `getrootptr()`; that is fixed. The new `check_mouse` caught every
   mutant. Slot suite 107 OK; reviewer WARN, a false positive. Xvfb only:
   not yet felt on a real desktop.
+- **scratchpad-fill** (ff `cea55cc`; log `2026-10-22-scratchpad-fill.md`).
+  The user's first look at the mouse build showed a scratchpad Alacritty
+  stuck at 1851x1043, the size it had when stashed. `Super` + `s` now sizes
+  a shown scratchpad to the monitor area under the bar, still floating, on
+  every show (the user chose this over tiling it or 90% centred). The
+  dropterm keeps its own placement. The new check failed on the old build;
+  suite 107 OK; reviewer READY.
