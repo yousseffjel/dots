@@ -154,4 +154,11 @@ check_specific_claims() {
     else
         fail "no THEME row for fonts/CascadiaCodeNF — restore_font_assets did not run"
     fi
+    # The Qt confs (scope K, slot 2): restore_theme must write both, so this
+    # round trip proves their removal and not an absence.
+    if grep -q "^THEME	theme	.*/qt5ct/qt5ct.conf$" "$1" && grep -q "^THEME	theme	.*/qt6ct/qt6ct.conf$" "$1"; then
+        pass "manifest claims both Qt confs"
+    else
+        fail "no THEME row for qt5ct.conf and qt6ct.conf — theme_write_qt_conf did not run"
+    fi
 }

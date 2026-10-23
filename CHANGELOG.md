@@ -18,6 +18,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Qt apps follow the wallpaper.** qt5ct and qt6ct are installed and
+  `QT_QPA_PLATFORMTHEME` is set for the session, so Qt5 and Qt6 apps (VLC,
+  qBittorrent, KeePassXC, OBS) stop opening light and unstyled. Their colours
+  come from the same palette as GTK and change with every wallpaper, even in
+  apps that are already open. The theme's icons and font apply too. A
+  `qt5ct.conf` or `qt6ct.conf` you already have is left alone. `dots doctor`
+  checks the whole chain. See `docs/DESKTOP.md`.
 - **A keyring that unlocks with your login.** gnome-keyring is installed
   and provides the Secret Service, so browsers, VS Code and git credential
   helpers stop storing passwords and tokens in plain text. ly's login unlocks

@@ -85,6 +85,7 @@ apply_identity() {
     theme_write_xsettingsd_conf
     theme_write_cursor_default
     theme_write_xcursor_resources
+    theme_write_qt_conf
 }
 
 MODE=""

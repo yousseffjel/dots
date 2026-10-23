@@ -227,6 +227,7 @@ restore_theme() {
     theme_write_xsettingsd_conf
     theme_write_cursor_default
     theme_write_xcursor_resources
+    theme_write_qt_conf
     theme_claim_engine_target "$CONF_HOME/gtk-3.0/gtk.css"
     theme_claim_engine_target "$HOME/.gtkrc-2.0"
     theme_claim_fastfetch

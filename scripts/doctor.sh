@@ -93,6 +93,8 @@ source "$SCRIPT_DIR/doctor-daemons.sh"
 source "$SCRIPT_DIR/doctor-portal.sh"
 # shellcheck source=doctor-keyring.sh
 source "$SCRIPT_DIR/doctor-keyring.sh"
+# shellcheck source=doctor-desktop.sh
+source "$SCRIPT_DIR/doctor-desktop.sh"
 # shellcheck source=doctor-notify.sh
 source "$SCRIPT_DIR/doctor-notify.sh"
 # shellcheck source=doctor-drivers.sh
@@ -105,6 +107,7 @@ check_notifications
 check_keyring
 check_theme
 check_portal
+check_qt
 check_gtk3_theme
 check_flatpak
 check_system

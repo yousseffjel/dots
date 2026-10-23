@@ -62,3 +62,44 @@ login goes through Void's `/etc/pam.d/login`, which dots does not edit, so
 the first app that needs a secret asks for the keyring's password once per
 session. ly's autologin (`ly-autologin`) has no password to hand over at
 all, so it behaves the same way.
+
+## Qt apps
+
+Qt apps (VLC, qBittorrent, KeePassXC, OBS, anything KDE) do not read GTK's
+theme. Without help they open in Qt's own light Fusion palette next to dark
+GTK apps. dots themes them through **qt5ct** and **qt6ct**
+(`packages/desktop.lst`), from the same wallpaper palette as everything
+else:
+
+| Piece | Where | Written |
+| --- | --- | --- |
+| `QT_QPA_PLATFORMTHEME=qt5ct` | `config/zsh/.zshenv` | every session; a value already set (another desktop's) is kept |
+| the colours | `~/.cache/dots/theme/qt-colors.conf` | by `always/qt.dcol`, on every wallpaper change |
+| `qt5ct.conf`, `qt6ct.conf` | `~/.config/qt5ct/`, `~/.config/qt6ct/` | by the installer, and again by a theme switch: the colour file's path, the theme's icons and font, the Fusion style |
+
+One value covers both Qt versions: each plugin answers to `qt5ct` and to
+`qt6ct`. Fixed-width text is not set. It follows fontconfig's `monospace`,
+which `config/fontconfig` already points at Cascadia Code NF.
+
+**Open apps re-theme on their own**, within a couple of seconds of a
+wallpaper change. qt5ct and qt6ct watch their config directory, so the
+template's post-command re-places each conf with an identical copy, and the
+directory watcher sees that. Editing the colour file in place would go
+unseen.
+
+**Your own settings are kept.** A `qt5ct.conf` or `qt6ct.conf` that existed
+before the install is never written to and never removed. Changing a setting
+in the qt5ct/qt6ct GUI also works, but the next `dots theme` switch rewrites a
+conf dots wrote. To keep your own for good, remove its `THEME` row from
+`~/.local/state/dots/manifest`: dots then treats the file as yours, and never
+writes or removes it again. Pointing `color_scheme_path` at a scheme of your
+own also works, though only until the next switch.
+
+**Check it:** `dots doctor` reads `QT_QPA_PLATFORMTHEME` from the running dwm
+session's environment rather than the terminal's, then checks that both confs
+name a colour file that exists. A new install needs one log out and back in
+for the variable to reach the session.
+
+**Not covered:** Kvantum (an SVG theme engine with a richer look, but fixed
+colours) is not installed. Qt's own file dialogs are used, not the portal's
+GTK one (`standard_dialogs=default`).

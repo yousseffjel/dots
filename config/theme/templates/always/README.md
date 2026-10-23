@@ -19,13 +19,22 @@ for the reader of the *output*, not for the reader of the template.
 | --- | --- | --- |
 | Write the target directly | `xresources`, `dunst`, `picom`, `gtk`, `statusbar`, `fastfetch` | The file is engine-owned. Nothing of the user's lives there. |
 | Render to `${cacheDir}`, install via post-command | `vim`, `starship`, `gtk2` | The real destination is user-owned, or is not detectable by the engine's install-check. |
-| Render to `${cacheDir}`, let the app import it | `alacritty` | The app's own config is a **symlink into this repo**, so it can never be rewritten — but the app can pull a second file in itself. |
+| Render to `${cacheDir}`, let the app import it | `alacritty`, `qt` | The app's own config is a **symlink into this repo** (alacritty) or is the user's (qt5ct/qt6ct, which their GUIs rewrite), so it is not the engine's to write — but the app can pull a second file in itself. |
 
 The third style is the one to reach for whenever a themed app's config is
 symlinked by `scripts/symlinks.sh`. `config/dunst` and `config/picom` are
 copied rather than symlinked precisely because their templates rewrite the
 whole file; alacritty avoids that trade entirely because `general.import`
 lets the colours live somewhere else.
+
+`qt` adds one twist: qt5ct and qt6ct notice a change by watching their
+config **directory**, not the files in it, so a rewrite of the imported
+colour file alone reaches no open app. Its post-command therefore re-places
+each `qt*ct.conf` with an identical copy (cp, then a rename), which the
+watcher does see. Verified 2026-10-23 with compiled Qt5 and Qt6 probes
+(qt5ct 1.9, qt6ct 0.11): a touch or an in-place edit is ignored; a rename
+re-themes the app in about two seconds. A symlinked conf is skipped, since
+the rename would replace the link with a file.
 
 Two properties were **verified** against alacritty 0.17.0 (the version
 Void ships, and Fedora 44 did): a missing import is not fatal, so a fresh install works

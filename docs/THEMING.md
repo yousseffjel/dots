@@ -189,7 +189,7 @@ To keep a resolution across logins, save it once with `autorandr --save <name>`.
 
 ## App templates
 
-Five templates theme ordinary applications rather than the desktop shell.
+Six templates theme ordinary applications rather than the desktop shell.
 None of them appears in `reload.sh`: each app re-reads its config on its own,
 so there is nothing to signal.
 
@@ -200,6 +200,7 @@ so there is nothing to signal.
 | `fastfetch.dcol` | `~/.config/fastfetch/config.jsonc` | read on each run |
 | `vim.dcol` | `~/.vim/colors/wallbash.vim` and/or `~/.config/vim/colors/` | `:colorscheme wallbash` |
 | `gtk2.dcol` | `~/.cache/dots/theme/gtkrc-2.0`, moved into `~/.gtkrc-2.0` | read when a GTK2 app starts |
+| `qt.dcol` | `~/.cache/dots/theme/qt-colors.conf` | `qt5ct.conf`/`qt6ct.conf` name it; its post-command re-places them, so open Qt apps re-read it ([DESKTOP.md](DESKTOP.md#qt-apps)) |
 
 ### starship
 

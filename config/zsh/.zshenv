@@ -18,6 +18,12 @@ export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
+# Qt apps take their theme from qt5ct/qt6ct (packages/desktop.lst). Both
+# plugins answer to "qt5ct", so one value covers Qt5 and Qt6. Here, not in
+# conf.d, because the dwm session inherits it from this file. A value already
+# set (another desktop's own) is kept. docs/DESKTOP.md, Qt apps.
+export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt5ct}"
+
 # PATH must be set here rather than in conf.d, because dwm's autostart and
 # the theming engine invoke config/dwm/bin/* from non-interactive contexts.
 # typeset -U keeps entries unique if this file is sourced more than once.

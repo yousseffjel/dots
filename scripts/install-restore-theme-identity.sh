@@ -9,8 +9,9 @@
 # what the engine is about to overwrite. This file's job is *rendering*: one
 # source (theme.conf, the non-colour half of the theme) into one output per
 # consumer — settings.ini and xsettingsd.conf for GTK, the XDG default cursor
-# theme and the Xcursor X resources for everything else. Adding another toolkit
-# format belongs here.
+# theme and the Xcursor X resources for everything else, qt5ct.conf and
+# qt6ct.conf for Qt (install-restore-theme-qt.sh, sourced at the end: this file
+# is near the cap). Adding another toolkit format belongs here or beside it.
 #
 # Not palette work. Nothing here re-renders on a wallpaper change — that is what
 # config/theme/templates/always/ is for. See theme_write_xsettingsd_conf's
@@ -216,3 +217,7 @@ theme_write_xcursor_resources() {
     } >"$out"
     green "wrote   $out"
 }
+
+# The Qt writer, theme_write_qt_conf: same contract, its own file (the cap).
+# shellcheck source=install-restore-theme-qt.sh
+source "$(dirname "${BASH_SOURCE[0]}")/install-restore-theme-qt.sh"
