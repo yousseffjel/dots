@@ -86,6 +86,21 @@ same base (`diff -u` of `bfb8a12^:suckless/dwm/dwm.c` and the tree, under
 a `diff --git` line). `check_scratchpad_leave`
 (`tests/lib/dwm-runtime-scratchpad.sh`) covers both keys.
 
+**Since 2026-10-23 (scratchpad-raise), a shown set is raised.** On a tag
+that already had tiled windows, `Super+s` focused the set but drew it
+under them: `scratchpad_show()` ends with `arrange(NULL)`, which, unlike
+`arrange(m)`, never calls `restack()`, so each member kept its old place
+in the X stack (below every window opened after it was stashed). On an
+empty tag nothing covered it, so it looked fine there. Now every member is
+raised and `restack(selmon)` raises the focused one last and drains the
+EnterNotify events, so focus-follows-mouse does not move focus to the window
+the pointer was over. The diff above was regenerated the same way.
+`check_scratchpad_raised` (`tests/lib/dwm-runtime-scratchpad.sh`) checks
+the X stacking order. `tests/dwm-multimon.sh` checks a set stashed on the
+left and shown on the right: restack() puts each monitor's tiled windows
+just below its own bar, and the right bar is above the left one, which is
+why the bug showed on one monitor and not the other.
+
 ## Hyprland-style mouse (2026-10-22)
 
 Six records, merged together in one slot (`dwm-hyprland-mouse`). The user

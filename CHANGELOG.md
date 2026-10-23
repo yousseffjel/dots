@@ -88,6 +88,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   `Shift` + `<N>`, or `Super`-clicking the tag bar) also takes it out of
   the set and tiles it like any other window. Rebuild dwm.
 
+- **`Super` + `s` shows your scratchpads on a tag that already has
+  windows.** They opened behind that tag's tiled windows: focused, but out
+  of sight, so it looked as if nothing happened. On an empty tag nothing
+  covered them. Now they are raised above everything on the tag. Rebuild
+  dwm.
+
 - **The dwm tests no longer run a stale build.** `tests/dwm-runtime.sh`
   and `tests/dwm-multimon.sh` fail, with the rebuild command, when the
   built dwm is older than its sources, instead of testing old code.

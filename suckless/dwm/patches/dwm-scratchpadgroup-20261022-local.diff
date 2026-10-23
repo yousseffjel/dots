@@ -98,7 +98,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  
  	XChangeProperty(dpy, c->win, dwmatom[DwmClientInfo], XA_CARDINAL, 32,
  		PropModeReplace, (unsigned char *)data, LENGTH(data));
-@@ -2654,103 +2657,124 @@
+@@ -2654,103 +2657,131 @@
  }
  
  /* Stash the focused window: its whole tag set becomes SCRATCHPAD_MASK, so
@@ -287,11 +287,18 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
 +	scratchpad_layout(sp, n);
 +	focus(sp[0]);
 +	arrange(NULL);
++	/* arrange(NULL) never restacks: a member left at its old place in the
++	 * X stack shows UNDER the tag's tiled windows, focused but hidden.
++	 * restack() raises the focused one and drains the EnterNotify events
++	 * the raises cause, so focus-follows-mouse does not undo focus(). */
++	for (i = 1; i < n; i++)
++		XRaiseWindow(dpy, sp[i]->win);
++	restack(selmon);
 +	free(sp);
  }
  
  /* replug: dwm reuses Monitor structs by index and drops the LAST one when a
-@@ -3214,6 +3238,7 @@
+@@ -3214,6 +3245,7 @@
  {
  	if (selmon->sel && arg->ui & TAGMASK) {
  		selmon->sel->tags = arg->ui & TAGMASK;
@@ -299,7 +306,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  		focus(NULL);
  		arrange(selmon);
  	}
-@@ -3314,6 +3339,7 @@
+@@ -3314,6 +3346,7 @@
  	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
  	if (newtags) {
  		selmon->sel->tags = newtags;
@@ -307,7 +314,7 @@ diff --git a/suckless/dwm/dwm.c b/suckless/dwm/dwm.c
  		focus(NULL);
  		arrange(selmon);
  	}
-@@ -3392,11 +3418,6 @@
+@@ -3392,11 +3425,6 @@
  		XSetErrorHandler(xerror);
  		XUngrabServer(dpy);
  	}

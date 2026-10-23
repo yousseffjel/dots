@@ -176,3 +176,35 @@ check_scratchpad_leave() {
     xdotool key --clearmodifiers super+1
     sleep 0.2
 }
+
+# Members stashed BEFORE the tag's tiled windows opened sit below them in
+# the X stack; Super+s must raise every one, not only focus the first.
+# arrange(NULL) never restacks, so the set used to show hidden underneath.
+check_scratchpad_raised() {
+    local s1 s2 t1 t2 s t ok=1 w
+    blue "==> scratchpadgroup: the shown set is above the tag's tiled windows"
+    xdotool key --clearmodifiers super+9
+    sleep 0.2
+    s1="$(spawn_win)"
+    sp_stash
+    s2="$(spawn_win)"
+    sp_stash
+    t1="$(spawn_win)"
+    t2="$(spawn_win)"
+    xdotool mousemove 5 5
+    sleep 0.2
+    sp_toggle
+    for s in "$s1" "$s2"; do
+        for t in "$t1" "$t2"; do
+            stacked_above "$s" "$t" || ok=0
+        done
+    done
+    if ((ok)) && [[ "$(sp_shown "$s1" "$s2")" == 2 ]]; then
+        pass "Super+s on a tag with tiled windows draws both scratchpads above them"
+    else
+        fail "Super+s on a tag with tiled windows left a scratchpad below them in the X stack"
+    fi
+    for w in "$s1" "$s2" "$t1" "$t2"; do xdotool windowkill "$w"; done
+    xdotool key --clearmodifiers super+1
+    sleep 0.2
+}

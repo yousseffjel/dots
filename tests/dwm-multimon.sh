@@ -16,7 +16,7 @@
 #     that was on the remaining monitor stays (replug-local.diff). Stock dwm
 #     left every window on the first monitor.
 #   * Super+s on one monitor shows a scratchpad stashed, or shown, on the
-#     other (scratchpadgroup-local.diff).
+#     other, above the windows already tiled there (scratchpadgroup-local.diff).
 #
 # Not covered: a window moved by hand while away (sendmon) must lose its
 # home. With two monitors there is nowhere to move it while one is gone,
@@ -49,6 +49,8 @@ blue() { printf '\033[34m%s\033[0m\n' "$*"; }
 source "$SCRIPT_DIR/lib/dwm-runtime-x.sh"
 # shellcheck source=lib/dwm-build-fresh.sh
 source "$SCRIPT_DIR/lib/dwm-build-fresh.sh"
+# shellcheck source=lib/dwm-multimon-scratchpad.sh
+source "$SCRIPT_DIR/lib/dwm-multimon-scratchpad.sh"
 
 skip() {
     yellow "SKIP: dwm-multimon.sh needs $1 and it is not available."
@@ -216,29 +218,7 @@ xrandr --output screen --mode 3840x1080 --fb 3840x1080
 sleep 1
 check "second replug, after a restart: back on the right, on tag 3's view" on_right "$WR"
 
-# scratchpadgroup: Super+s gathers the set to the focused monitor. Via the
-# left: a move inside the window under the pointer selects nothing.
-blue "==> scratchpad set gathers to the focused monitor"
-xdotool mousemove 300 500
-sleep 0.3
-xdotool mousemove 2500 500
-sleep 0.3
-xdotool key super+9
-sleep 0.3
-WS="$(spawn_win)"
-sleep 0.3
-check "...the test window opened on the right monitor" on_right "$WS"
-xdotool key super+shift+s sleep 0.3 mousemove 300 500 sleep 0.3 key super+s sleep 0.5
-# is_shown too: a hidden window's negative x passes on_left alone.
-shown_left() { is_shown "$1" && on_left "$1"; }
-shown_right() { is_shown "$1" && on_right "$1"; }
-check "a scratchpad stashed on the right shows on the left" shown_left "$WS"
-# Shown on the left, Super+s on the right brings it over, not hides it.
-xdotool mousemove 2500 500 sleep 0.3 key super+s sleep 0.5
-check "a scratchpad shown on the left follows Super+s to the right" shown_right "$WS"
-xdotool key super+s
-sleep 0.3
-xdotool windowkill "$WS"
+check_multimon_scratchpad
 
 if ((rc != 0)); then
     red "✗ dwm on two monitors"

@@ -2774,6 +2774,13 @@ scratchpad_show(const Arg *arg)
 	scratchpad_layout(sp, n);
 	focus(sp[0]);
 	arrange(NULL);
+	/* arrange(NULL) never restacks: a member left at its old place in the
+	 * X stack shows UNDER the tag's tiled windows, focused but hidden.
+	 * restack() raises the focused one and drains the EnterNotify events
+	 * the raises cause, so focus-follows-mouse does not undo focus(). */
+	for (i = 1; i < n; i++)
+		XRaiseWindow(dpy, sp[i]->win);
+	restack(selmon);
 	free(sp);
 }
 

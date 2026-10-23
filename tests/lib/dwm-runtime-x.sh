@@ -167,6 +167,16 @@ is_shown() {
     ((${x:--1} >= 0))
 }
 
+# True when window <a> is above <b> in the X stack. `xwininfo -root -children`
+# lists top-most first: dwm's bar comes before the tiled windows restack()
+# puts just below it.
+stacked_above() {
+    local a b
+    a="$(printf '0x%x' "$1")" b="$(printf '0x%x' "$2")"
+    xwininfo -root -children | awk -v a="$a" -v b="$b" '
+        $1 == a { r = 0; exit } $1 == b { r = 1; exit } END { exit (r == "" ? 1 : r) }'
+}
+
 # Width of <win> in pixels. Falls back to 0 rather than an empty string on
 # any failure, so a broken xdotool call surfaces as a clear FAIL comparison
 # instead of an opaque arithmetic error aborting the whole script under set -e.
