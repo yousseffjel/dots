@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# dwm-sound-notify — the notification sound, run by dunst as the script of
+# the [dots_sound] rule (config/dunst/dunstrc, always/dunst.dcol).
+#
+# dunst calls it as `dwm-sound-notify appname summary body icon urgency`
+# when it SHOWS a notification (dunst 1.13.2, with always_run_script off).
+# Focus mode holds every notification back, critical ones too, so it is
+# silent; the held ones show, and sound, when it ends. By urgency:
+#
+#   CRITICAL   dialog-warning
+#   NORMAL     message-new-instant
+#   LOW        nothing — the volume/brightness pop-up (dwm-osd) and the
+#              screenshot confirmation are low, and play their own sounds
+set -euo pipefail
+
+if [[ "${1:-}" == -h || "${1:-}" == --help ]]; then
+    echo "usage: dwm-sound-notify appname summary body icon urgency — dunst's rule script; plays the notification sound"
+    exit 0
+fi
+case "${5:-}" in
+    CRITICAL) event=dialog-warning ;;
+    NORMAL) event=message-new-instant ;;
+    *) exit 0 ;;
+esac
+exec "${BASH_SOURCE[0]%/*}/dwm-sound" "$event"

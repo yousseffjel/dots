@@ -12,10 +12,8 @@
 #
 #   * ONCE PER SESSION. dwm re-runs autostart.sh after every restart, and
 #     reload.sh restarts dwm on every wallpaper change. The session is the
-#     D-Bus bus ~/.xinitrc starts (a new address at every login, the same one
-#     across a restart, which keeps dwm's environment), or without one dwm's
-#     PID and start time (an exec restart keeps both). autostart.sh is started
-#     through system("... &"), so its parent is a short-lived sh, not dwm.
+#     D-Bus bus ~/.xinitrc starts, or without one dwm's PID and start time
+#     (dwm-lib-session.sh).
 #   * ONE ENTRY AT A TIME. A single malformed file (Hidden=maybe) makes dex
 #     raise and abandon the whole `dex -a` run; given a search path holding
 #     one entry, only that entry is lost.
@@ -35,20 +33,13 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
 AUTOSTART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 MARKER="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dots/xdg-autostart.session"
 
-# session_key — what identifies this login; empty when nothing does.
-session_key() {
-    local pid stat
-    if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
-        printf 'bus %s\n' "$DBUS_SESSION_BUS_ADDRESS"
-        return 0
-    fi
-    pid="$(pgrep -u "$(id -u)" -x -n dwm 2>/dev/null)" || return 0
-    # Field 22 of stat is the start time; the comm field before it may hold
-    # spaces, so cut after its closing parenthesis.
-    { read -r stat <"${DOTS_PROC:-/proc}/$pid/stat"; } 2>/dev/null || return 0
-    stat="${stat##*) }"
-    printf 'dwm %s %s\n' "$pid" "$(cut -d' ' -f20 <<<"$stat")"
-}
+# session_key / session_once: the "once per session" half, shared with
+# dwm-sound --login. Without it every dwm restart would start every app again.
+# shellcheck source=dwm-lib-session.sh
+if ! source "${BASH_SOURCE[0]%/*}/dwm-lib-session.sh" 2>/dev/null; then
+    red "dwm-xdg-autostart: dwm-lib-session.sh is missing next to this script"
+    exit 1
+fi
 
 # disabled_by_gnome_key <file> — true when the entry turned its own autostart off.
 disabled_by_gnome_key() {
@@ -101,11 +92,6 @@ if [[ "$mode" == --list ]]; then
     exit $?
 fi
 
-key="$(session_key)"
-if [[ -z "$mode" && -n "$key" && -f "$MARKER" && "$(<"$MARKER")" == "$key" ]]; then
-    exit 0 # this session already started them; a dwm restart re-ran autostart.sh
-fi
-# Recorded before launching: an interrupted run must not start doubles later.
-mkdir -p "$(dirname "$MARKER")"
-printf '%s\n' "$key" >"$MARKER"
+# A dwm restart re-ran autostart.sh: this session already started them.
+session_once "$MARKER" || [[ "$mode" == --force ]] || exit 0
 run_entries

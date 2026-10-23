@@ -3,6 +3,8 @@
 # have no older file to live in. Sourced by doctor.sh; same report() contract.
 # The keyring has its own file, doctor-keyring.sh.
 
+SOUND_CMD="$DOTS_DIR/config/dwm/bin/dwm-sound"
+
 # session_env_get <VAR> — VAR as the running dwm session has it, read from
 # dwm's /proc/<pid>/environ (DOTS_PROC fakes /proc in tests). Not this
 # process's environment: the doctor runs in a terminal whose zsh read
@@ -59,4 +61,25 @@ check_qt() {
         fi
     done
     report ok "$s" qt "Qt apps are themed: QT_QPA_PLATFORMTHEME=$value, and qt5ct and qt6ct both name an existing colour scheme"
+}
+
+# Desktop sounds (dwm-sound): the switch, the player, the theme, and the dunst
+# rule that plays the notification sound. That rule arrives with the
+# generated dunstrc, which an existing install only gets at its next
+# wallpaper or theme change.
+check_sounds() {
+    local s=session dunstrc="${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
+    # check_session reported the skip for this section.
+    [[ -n "${DISPLAY:-}" ]] && pgrep -x dwm >/dev/null 2>&1 || return 0
+    if [[ "$("$SOUND_CMD" status 2>/dev/null || true)" == off ]]; then
+        report ok "$s" sounds "desktop sounds are off by choice — dwm-sound on turns them back on"
+    elif ! command -v pw-play >/dev/null 2>&1; then
+        report warn "$s" sounds "no pw-play (packages/desktop.lst: pipewire), so the desktop makes no sound"
+    elif ! "$SOUND_CMD" --file service-login >/dev/null 2>&1; then
+        report warn "$s" sounds "no freedesktop sound theme (packages/desktop.lst: sound-theme-freedesktop), so the desktop makes no sound"
+    elif [[ -f "$dunstrc" ]] && ! grep -qx '    script = dwm-sound-notify' "$dunstrc"; then
+        report warn "$s" sounds "$dunstrc predates notification sounds — dots wallpaper --random, or dots theme dark, regenerates it"
+    else
+        report ok "$s" sounds "desktop sounds are on: login, notifications, volume keys and screenshots"
+    fi
 }

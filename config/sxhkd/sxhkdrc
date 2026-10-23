@@ -55,12 +55,14 @@ XF86AudioStop
 #
 # dwm-osd then shows a pop-up with the new level. It follows a `;`, not `&&`:
 # it only reads, so it runs even when dwmblocks is not there to signal.
+# dwm-sound plays the volume tick last (`dwm-sound off` silences it; mute
+# makes no tick, so a mute key never startles).
 
 XF86AudioRaiseVolume
-	pamixer --unmute --increase 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume
+	pamixer --unmute --increase 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume; dwm-sound audio-volume-change
 
 XF86AudioLowerVolume
-	pamixer --decrease 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume
+	pamixer --decrease 5 && pkill -RTMIN+8 dwmblocks; dwm-osd volume; dwm-sound audio-volume-change
 
 XF86AudioMute
 	pamixer --toggle-mute && pkill -RTMIN+8 dwmblocks; dwm-osd volume

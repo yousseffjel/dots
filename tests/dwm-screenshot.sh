@@ -237,6 +237,32 @@ else
     fail "same second: $same"
 fi
 
+blue "==> the shutter (dwm-sound; pw-play is a fake, nothing plays)"
+mkbin snd
+ln -s "$(type -P flock)" "$TMP/snd/flock"
+fake "$TMP/snd" pw-play "echo \"pw-play \$*\" >>'$LOG'"
+mkdir -p "$TMP/share/sounds/freedesktop/stereo" "$TMP/run"
+: >"$TMP/share/sounds/freedesktop/stereo/screen-capture.oga"
+SND=(XDG_DATA_DIRS="$TMP/share" XDG_DATA_HOME="$TMP/none" XDG_RUNTIME_DIR="$TMP/run" XDG_STATE_HOME="$TMP/state")
+# The shutter runs in the background, so wait for it (or give up) first.
+shutter_played() {
+    local _
+    for _ in $(seq 20); do
+        has "pw-play $TMP/share/sounds/freedesktop/stereo/screen-capture.oga" && return 0
+        sleep 0.1
+    done
+    return 1
+}
+run snd "${SND[@]}" -- --full --file
+if [[ $RC -eq 0 ]] && shutter_played && has "-u low Screenshot Saved to"; then
+    pass "a delivered shot plays the shutter, and its notification is low (silent)"
+else
+    fail "shutter: rc=$RC log=$(cat "$LOG")"
+fi
+run snd "${SND[@]}" FAKE_GEOM= -- --region --file
+sleep 0.5
+if [[ $RC -eq 0 ]] && ! has "pw-play"; then pass "a cancelled region shot makes no sound"; else fail "cancel: rc=$RC log=$(cat "$LOG")"; fi
+
 blue "==> failure paths"
 run no-xclip -- --full --both
 if [[ $RC -eq 0 && "$(shots)" -eq 1 ]] && has "notify-send" && ! grep -q "and copied" "$LOG"; then

@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-22
+Last Updated: 2026-10-23
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -9,7 +9,10 @@ when slots run concurrently.
 
 ## Active
 
-(none)
+- **Scope K — integrated desktop** (Epic, opened 2026-10-23; 7 slots).
+  Scope file `scope-k-integrated-desktop.md`: keyring + PAM, Qt themed from
+  the wallpaper, XDG autostart, desktop sounds, dim before lock, calendar
+  popup, cursor hiding. Next: slot 1 `keyring`.
 
 ---
 

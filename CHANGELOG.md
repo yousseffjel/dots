@@ -18,6 +18,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **The desktop makes sounds.** A chime at login, a sound for each
+  notification (a different one when it is critical), a tick on the volume
+  keys and a shutter for a screenshot, from the freedesktop sound theme
+  through PipeWire. Focus mode keeps notifications silent, and a burst plays
+  one sound, not one each. `dwm-sound off` silences all of them. See
+  `docs/DESKTOP.md`.
 - **Apps set to start at login now start.** Turning on an app's own "start
   at login" switch (Syncthing, Discord, Nextcloud, KeePassXC) writes an entry
   to `~/.config/autostart`, and a dwm session used to ignore it.

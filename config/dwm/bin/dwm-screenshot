@@ -123,6 +123,13 @@ reserve() {
     printf '%s\n' "$try"
 }
 
+# The shutter (dwm-sound, docs/DESKTOP.md § Sounds) for a delivered shot.
+# Its notification is low, which dwm-sound-notify keeps silent, so a shot
+# makes one sound, not two.
+shutter() {
+    "${BASH_SOURCE[0]%/*}/dwm-sound" screen-capture >/dev/null 2>&1 &
+}
+
 # Consumes $TMP. For file/both the temp is moved into place rather than
 # copied, so the EXIT trap's rm finds nothing left to remove. As with
 # capture(), $1 is validated by the caller rather than re-checked here.
@@ -131,7 +138,8 @@ deliver() {
     case "$dest" in
         clipboard)
             to_clipboard "$src"
-            notify "Screenshot" "Copied to clipboard"
+            shutter
+            notify -u low "Screenshot" "Copied to clipboard"
             ;;
         file | both)
             mkdir -p "$SHOT_DIR"
@@ -141,13 +149,14 @@ deliver() {
                 return 1
             fi
             mv "$src" "$target"
+            shutter
             # The file is already safe on disk by this point, so a failing
             # clipboard step must not take the whole run down with it — it
             # downgrades the message instead.
             if [[ "$dest" == "both" ]] && to_clipboard "$target"; then
-                notify "Screenshot" "Saved to $target and copied"
+                notify -u low "Screenshot" "Saved to $target and copied"
             else
-                notify "Screenshot" "Saved to $target"
+                notify -u low "Screenshot" "Saved to $target"
             fi
             ;;
     esac

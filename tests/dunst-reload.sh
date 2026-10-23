@@ -15,7 +15,10 @@
 #     dunst.dcol and the static config/dunst/dunstrc, identical;
 #   * with dunst, dbus-run-session and Xvfb on the host: the same reload.sh
 #     against a REAL dunst on a private bus keeps the history and the pause
-#     level, and the shipped dunstrc keeps a dwm-osd pop-up out of history.
+#     level, and the shipped dunstrc keeps a dwm-osd pop-up out of history;
+#   * the [dots_sound] rule (notification sounds) is in both files, identical,
+#     and that real dunst runs its script for each notification it SHOWS,
+#     never for one focus mode holds back (a critical one included).
 #
 # SAFETY: the fake run never sees a real dunst. The real run uses its own
 # D-Bus session and Xvfb with WAYLAND_DISPLAY unset (inherited, a Wayland
@@ -119,6 +122,11 @@ check "dunst.dcol's post-command kills nothing" \
 osd_block() { sed -n '/^# The volume \/ mic \/ brightness pop-up/,/^    history_ignore = yes$/p' "$1"; }
 check "the [dots_osd] rule is in dunst.dcol" "$(osd_block "$DCOL" | grep -c '^\[dots_osd\]$')" "1"
 check "...and identical in the static dunstrc" "$(osd_block "$STATIC")" "$(osd_block "$DCOL")"
+sound_block() { sed -n '/^# Notification sounds/,/^    script = dwm-sound-notify$/p' "$1"; }
+check "the [dots_sound] rule is in dunst.dcol" "$(sound_block "$DCOL" | grep -c '^\[dots_sound\]$')" "1"
+check "...and identical in the static dunstrc" "$(sound_block "$STATIC")" "$(sound_block "$DCOL")"
+check "rule scripts run only for a shown notification, in both" \
+    "$(grep -h '^    always_run_script' "$DCOL" "$STATIC" | sort -u)" "    always_run_script = false"
 
 blue "==> reload.sh against a real dunst (private D-Bus + Xvfb)"
 # dunstctl is a POSIX shell script over dbus-send, busctl and jq.
@@ -131,12 +139,16 @@ else
     REAL="$TMP/real"
     seal_path "$REAL" bash mkdir cat dirname dunst dunstctl pgrep timeout dbus-send busctl jq
     fake "$REAL" pkill "echo \"pkill \$*\" >>'$LOG'"
+    # The rule's script, found on dunst's PATH: a logging fake ahead of the
+    # real one (on the tester's PATH after an install), which would PLAY.
+    mkdir -p "$TMP/snd"
+    fake "$TMP/snd" dwm-sound-notify "echo \"\$5\" >>'$TMP/snd.log'"
     cat >"$TMP/real.sh" <<EOF
 set -u
 export DISPLAY=:97
 Xvfb :97 -screen 0 800x600x24 >/dev/null 2>&1 & xp=\$!
 for _ in \$(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
-dunst -config '$STATIC' >/dev/null 2>&1 & dp=\$!
+PATH='$TMP/snd':\$PATH dunst -config '$STATIC' >/dev/null 2>&1 & dp=\$!
 # Wait until OUR dunst owns the name. Asking dunstctl sooner would make D-Bus
 # activate a second dunst with the default config, and ours would exit.
 owned() { dbus-send --session --print-reply --dest=org.freedesktop.DBus / \\
@@ -151,11 +163,18 @@ before="\$(dunstctl count history)"
 env -i PATH='$REAL' HOME='$TMP/home' XDG_CACHE_HOME='$TMP/home/.cache' DISPLAY=:97 \
     DBUS_SESSION_BUS_ADDRESS="\$DBUS_SESSION_BUS_ADDRESS" bash '$RELOAD' >/dev/null 2>&1
 echo "\$before|\$(dunstctl count history)|\$(dunstctl get-pause-level)|\$(kill -0 \$dp 2>/dev/null && echo alive)"
+notify-send held; notify-send -u critical held-too; sleep 0.5
+echo "sounds:\$(paste -sd, '$TMP/snd.log')"
 kill \$dp \$xp 2>/dev/null
 EOF
     : >"$LOG"
-    res="$(timeout 60 env -u WAYLAND_DISPLAY dbus-run-session -- bash "$TMP/real.sh" 2>/dev/null | tail -n1 || true)"
+    out="$(timeout 60 env -u WAYLAND_DISPLAY dbus-run-session -- bash "$TMP/real.sh" 2>/dev/null || true)"
+    res="$(grep -v '^sounds:' <<<"$out" | tail -n1)"
     check "history (OSD excluded), kept history, pause level, same dunst" "$res" "2|2|2|alive"
+    # one, two and the low OSD (dwm-sound-notify drops it); then focus mode
+    # is on, and neither the normal nor the critical one shows.
+    check "the sound rule runs per shown notification, never in focus mode" \
+        "$(grep '^sounds:' <<<"$out")" "sounds:NORMAL,NORMAL,LOW"
     check "...and nothing was killed" "$(calls)" ""
 fi
 

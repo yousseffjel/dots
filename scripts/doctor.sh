@@ -105,6 +105,7 @@ check_packages
 check_session
 check_notifications
 check_keyring
+check_sounds
 check_theme
 check_portal
 check_qt

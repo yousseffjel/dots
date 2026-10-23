@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# dwm-sound — the desktop's event sounds (docs/DESKTOP.md § Sounds).
+#
+#   dwm-sound <event>        play one sound of the freedesktop sound theme
+#   dwm-sound --login        the login chime, once per session (autostart.sh)
+#   dwm-sound off | on       the one switch for all of them
+#   dwm-sound status         prints on or off
+#   dwm-sound --file <event> prints the file <event> plays (dots doctor)
+#
+# <event> is a sound-theme name: service-login, message-new-instant,
+# dialog-warning, audio-volume-change, screen-capture... The file is looked
+# up as sounds/freedesktop/stereo/<event>.{oga,ogg,wav} under
+# $XDG_DATA_HOME first, then each $XDG_DATA_DIRS entry, so a file of the same
+# name in ~/.local/share/sounds/freedesktop/stereo replaces a stock one.
+#
+# The callers: dwm-sound-notify (dunst's rule script), the volume keys in
+# config/sxhkd/sxhkdrc, dwm-screenshot, and autostart.sh. A sound is a
+# nicety: off, no pw-play or no audio server all exit 0, so a key never
+# fails because the chime could not play.
+#
+# One sound of each event at a time: a second while the first still plays is
+# dropped (flock -n), so a held volume key, or the burst dunst shows when
+# focus mode ends, plays once instead of piling up.
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+
+OFF_FLAG="${XDG_STATE_HOME:-$HOME/.local/state}/dots/sounds-off"
+RUN_DIR="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dots"
+# PipeWire starts in ~/.xinitrc just before dwm, so at login the chime may
+# arrive first: retry for up to LOGIN_TRIES * LOGIN_WAIT seconds.
+LOGIN_TRIES=10
+LOGIN_WAIT=0.5
+
+usage() {
+    echo "usage: dwm-sound <event> | --login | on | off | status | --file <event> — the desktop's event sounds"
+}
+
+# sound_file <event> — the theme file for it, or exit 1.
+sound_file() {
+    local dir ext dirs
+    IFS=: read -r -a dirs <<<"${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    for dir in "${dirs[@]}"; do
+        for ext in oga ogg wav; do
+            [[ -f "$dir/sounds/freedesktop/stereo/$1.$ext" ]] || continue
+            printf '%s\n' "$dir/sounds/freedesktop/stereo/$1.$ext"
+            return 0
+        done
+    done
+    return 1
+}
+
+# play <event> [tries] — pw-play under a per-event lock; tries > 1 retries a
+# failed pw-play (no audio server yet).
+play() {
+    local event="$1" tries="${2:-1}" file
+    [[ ! -e "$OFF_FLAG" ]] || return 0
+    command -v pw-play >/dev/null 2>&1 || return 0
+    if ! file="$(sound_file "$event")"; then
+        red "dwm-sound: no sound named '$event' (is sound-theme-freedesktop installed?)"
+        return 1
+    fi
+    mkdir -p "$RUN_DIR"
+    exec 9>"$RUN_DIR/sound-$event.lock"
+    flock -n 9 || return 0
+    while ! pw-play "$file" >/dev/null 2>&1; do
+        tries=$((tries - 1))
+        ((tries > 0)) || return 0
+        sleep "$LOGIN_WAIT"
+    done
+}
+
+if [[ $# -eq 2 && "$1" == --file ]]; then
+    sound_file "$2"
+    exit $?
+fi
+[[ $# -eq 1 ]] || {
+    usage >&2
+    exit 2
+}
+case "$1" in
+    -h | --help) usage ;;
+    off)
+        mkdir -p "${OFF_FLAG%/*}"
+        : >"$OFF_FLAG"
+        ;;
+    on) rm -f "$OFF_FLAG" ;;
+    status) if [[ -e "$OFF_FLAG" ]]; then echo off; else echo on; fi ;;
+    --login)
+        # shellcheck source=dwm-lib-session.sh
+        source "${BASH_SOURCE[0]%/*}/dwm-lib-session.sh" || exit 0
+        # A dwm restart re-runs autostart.sh: one chime per login, not per restart.
+        session_once "$RUN_DIR/login-sound.session" || exit 0
+        play service-login "$LOGIN_TRIES"
+        ;;
+    -* | */* | "")
+        red "dwm-sound: unknown argument: $1 (try --help)"
+        exit 2
+        ;;
+    *) play "$1" ;;
+esac

@@ -58,5 +58,9 @@ fi
 # every restart, and the script remembers that it already ran (docs/DESKTOP.md).
 "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-xdg-autostart" &
 
+# The login chime, once per session like the line above (`dwm-sound off`
+# silences it and every other desktop sound; docs/DESKTOP.md).
+"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-sound" --login &
+
 EOF
 }

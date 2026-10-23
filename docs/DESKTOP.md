@@ -139,3 +139,46 @@ twice. To stop one of those, edit `autostart.sh`. To stop an app you enabled,
 use its own switch, or delete its file from `~/.config/autostart`. An entry
 there for something `autostart.sh` already starts (an `nm-applet.desktop` of
 your own, say) starts a second copy.
+
+## Sounds
+
+The desktop makes the sounds a desktop environment makes, from the
+freedesktop sound theme (**sound-theme-freedesktop**, `packages/desktop.lst`)
+played through PipeWire's **`pw-play`**:
+
+| When | Sound | Played by |
+| ---- | ----- | --------- |
+| You log in | `service-login` | `autostart.sh` (`dwm-sound --login`) |
+| A notification shows | `message-new-instant`; `dialog-warning` when critical | dunst's `[dots_sound]` rule (`dwm-sound-notify`) |
+| A volume key raises or lowers (mute makes no tick) | `audio-volume-change` | `config/sxhkd/sxhkdrc` |
+| A screenshot is delivered | `screen-capture` | `dwm-screenshot` |
+
+```sh
+dwm-sound off       # silence all of them; `dwm-sound on` brings them back
+dwm-sound status    # on or off
+dwm-sound bell      # play any sound of the theme by name
+```
+
+**Focus mode is silent.** dunst runs a rule's script only for a notification
+it shows (`always_run_script = false`), and focus mode holds every
+notification back, critical ones too. When it ends, the held notifications
+show and sound once, not once each (a critical one among them has its own
+sound). Each sound plays one at a time: if the same one is still playing, a new request for it is dropped, so a
+held volume key or a burst of notifications cannot pile up. Low-urgency
+notifications are silent. The volume pop-up and the screenshot confirmation
+are both low, because their own sounds already played.
+
+**Once per login.** dwm runs `autostart.sh` again after every restart, so the
+login chime remembers the session as `dwm-xdg-autostart` does (above), and
+waits up to five seconds for PipeWire, which `~/.xinitrc` starts just before
+dwm.
+
+**Your own sounds.** A file of the same name under
+`~/.local/share/sounds/freedesktop/stereo/` (`.oga`, `.ogg` or `.wav`) replaces
+the stock one.
+
+An existing install gets the notification sound with its next generated
+dunstrc (`dots wallpaper --random`, or `dots theme dark`). Until then,
+`dots doctor` warns about it. It also checks that `pw-play` and the sound
+theme are present. An existing `autostart.sh` gets the `dwm-sound --login`
+line to paste on the next installer run.

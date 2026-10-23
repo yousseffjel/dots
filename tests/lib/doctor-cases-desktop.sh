@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The desktop-integration cases of tests/doctor.sh (notifications, portal,
+# The desktop-integration cases of tests/doctor.sh (notifications, sounds, portal,
 # GTK3 theme, cursor, flatpak) — SOURCED by it, never run alone (tests/lib/ is
 # outside run-tests.sh's depth-1 glob). Uses that file's tsv/row/check
 # helpers and the sandbox from doctor-sandbox.sh; split off at the 250-line
@@ -17,6 +17,34 @@ FAKE_DUNST=dead tsv
 check "a dunst that does not answer warns" grep -q 'does not answer' <(detail notifications)
 FAKE_NO_DWM=1 tsv
 check "no dwm session: no notification row at all" no_row '[a-z]+' session notifications
+
+blue "==> desktop sounds"
+SOUNDS="$DOTS_DIR/config/dwm/bin/dwm-sound"
+tsv
+check "healthy: sounds on, player, theme, no dunstrc yet" row ok session sounds
+mkdir -p "$H/.config/dunst"
+printf '[global]\n    font = x\n' >"$H/.config/dunst/dunstrc"
+tsv
+check "a dunstrc without the sound rule warns" row warn session sounds
+check "...naming how to regenerate it" grep -q 'dots theme dark' <(detail sounds)
+cp "$DOTS_DIR/config/dunst/dunstrc" "$H/.config/dunst/dunstrc"
+tsv
+check "the shipped dunstrc carries the rule" row ok session sounds
+mv "$SB/share/sounds" "$SB/sounds.bak"
+tsv
+check "no sound theme warns, naming the package" grep -q 'sound-theme-freedesktop' <(detail sounds)
+mv "$SB/sounds.bak" "$SB/share/sounds"
+mv "$BIN/pw-play" "$SB/pw-play.bak"
+tsv
+check "no pw-play warns, naming pipewire" grep -q 'pipewire' <(detail sounds)
+XDG_STATE_HOME="$H/.local/state" "$SOUNDS" off
+tsv
+check "switched off: ok, by choice, before the missing player" grep -q 'off by choice' <(detail sounds)
+XDG_STATE_HOME="$H/.local/state" "$SOUNDS" on
+mv "$SB/pw-play.bak" "$BIN/pw-play"
+rm -rf "$H/.config/dunst"
+FAKE_NO_DWM=1 tsv
+check "no dwm session: no sounds row" no_row '[a-z]+' session sounds
 
 blue "==> desktop portal"
 tsv

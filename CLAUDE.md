@@ -50,11 +50,12 @@ dots/
 │   │                    #  BEFORE compinit runs there — an addition after it is a no-op.
 │   │                    #  There is no functions/ dir; this map claimed one for months.)
 │   ├── tmux/            # tmux.conf, conf.d/, bin/, workflows/
-│   ├── dwm/bin/         # dmenu-driven scripts: dwm-apps (the Super+space launcher), dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight, dwm-power, dwm-picom (picom backend), dwm-notify (notification centre + focus mode), dwm-audiowatch (redraws VOL/MIC on PipeWire events), dwm-shotkey (Super+a read WITHOUT a key grab, so a browser dropdown survives the screenshot), dwm-xdg-autostart (~/.config/autostart through dex, once per session, one entry at a time)
+│   ├── dwm/bin/         # dmenu-driven scripts: dwm-apps (the Super+space launcher), dwm-powermenu, dwm-clipmenu, dwm-wallpaper, dwm-theme, dwm-screenshot, dwm-lock, dwm-brightness, dwm-colorpicker, dwm-display, dwm-osd, dwm-keys, dwm-emoji, dwm-record, dwm-nightlight, dwm-power, dwm-picom (picom backend), dwm-notify (notification centre + focus mode), dwm-audiowatch (redraws VOL/MIC on PipeWire events), dwm-shotkey (Super+a read WITHOUT a key grab, so a browser dropdown survives the screenshot), dwm-xdg-autostart (~/.config/autostart through dex, once per session, one entry at a time), dwm-sound (event sounds through pw-play; `off`/`on`) + dwm-sound-notify (dunst's [dots_sound] rule script)
 │   │                    # (on $PATH via config/zsh/.zshenv — NOT conf.d, which is interactive-only; dwm's autostart needs it)
 │   │                    # dwm-lib-*.sh are SOURCED (644, so dmenu never lists them): -xdg (where screenshot,
 │   │                    #  record and wallpaper.sh save/read), -screenshot (dwm-screenshot's capture half),
-│   │                    #  -monitor (the monitor under the pointer, for screenshot and record)
+│   │                    #  -monitor (the monitor under the pointer, for screenshot and record),
+│   │                    #  -session (session_key/session_once: once per login, for xdg-autostart and dwm-sound --login)
 │   ├── sxhkd/           # sxhkdrc — media/volume/brightness/screenshot/lock/theme keys (dwm keeps window management)
 │   ├── alacritty/       # main terminal; alacritty.toml imports the engine's cached palette
 │   ├── starship/        # starship.toml — prompt; themed via a spliced [palettes.dots] table

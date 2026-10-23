@@ -61,7 +61,10 @@
     sticky_history = yes
     history_length = 20
     browser = /usr/bin/env xdg-open
-    always_run_script = true
+    # Rule scripts run only for a notification dunst SHOWS, so the sound
+    # rule below is silent in focus mode; what it held back sounds once it
+    # ends. true would also re-run them for one already on screen.
+    always_run_script = false
     title = Dunst
     class = Dunst
     corner_radius = 6
@@ -96,3 +99,10 @@
 [dots_osd]
     appname = dwm-osd
     history_ignore = yes
+
+# Notification sounds (config/dwm/bin/dwm-sound-notify picks one by urgency;
+# `dwm-sound off` silences it). tests/dunst-reload.sh holds this block
+# identical in dunst.dcol and config/dunst/dunstrc.
+[dots_sound]
+    summary = "*"
+    script = dwm-sound-notify

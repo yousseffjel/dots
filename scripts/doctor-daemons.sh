@@ -8,10 +8,10 @@ AUTOSTART="${XDG_DATA_HOME:-$HOME/.local/share}/dwm/autostart.sh"
 # Exceptions to "daemon N runs as a process whose command line names N".
 # dwm-lock execs xss-lock; autorandr --change runs once at login and exits
 # (empty = not a daemon, nothing to look for); so do xdg-user-dirs-update
-# and dwm-xdg-autostart. Every key must be a name
+# and dwm-xdg-autostart, and dwm-sound --login. Every key must be a name
 # session_autostart_report reports — tests/doctor.sh fails the build if one
 # is renamed or dropped there and left stale here.
-declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="" ["xdg-user-dirs-update"]="" ["dwm-xdg-autostart"]="")
+declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="" ["xdg-user-dirs-update"]="" ["dwm-xdg-autostart"]="" ["dwm-sound"]="")
 
 # daemon_applies <name> — false for a daemon autostart.sh deliberately does
 # not start on this machine. Mirrors the conditions in the autostart template
