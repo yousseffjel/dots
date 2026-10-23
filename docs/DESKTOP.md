@@ -103,3 +103,39 @@ for the variable to reach the session.
 **Not covered:** Kvantum (an SVG theme engine with a richer look, but fixed
 colours) is not installed. Qt's own file dialogs are used, not the portal's
 GTK one (`standard_dialogs=default`).
+
+## Autostart apps
+
+An app's own "start at login" switch (Syncthing, Discord, Nextcloud,
+KeePassXC, a Flatpak through the Background portal) writes a `.desktop` entry
+to `~/.config/autostart`. A desktop environment reads that directory at
+login. dwm does not, so `autostart.sh` runs **`dwm-xdg-autostart`**, which
+hands each entry to **dex** (`packages/desktop.lst`). dex handles `Exec`,
+`TryExec`, `Hidden` and `OnlyShowIn`/`NotShowIn`. A dwm session sets no
+`XDG_CURRENT_DESKTOP`, so an entry marked for one desktop only (GNOME, KDE)
+is skipped.
+
+```sh
+dwm-xdg-autostart --list     # what would start, starting nothing
+dwm-xdg-autostart --force    # start them again in this session
+```
+
+Three things it adds on top of dex:
+
+- **Once per login.** dwm runs `autostart.sh` again after every restart, and
+  every wallpaper change restarts dwm. The script records the session (the
+  D-Bus address `~/.xinitrc` starts, or dwm's PID and start time when there
+  is no bus) under `$XDG_RUNTIME_DIR/dots/`, and does nothing on a restart.
+- **One entry at a time.** dex 0.10.1 stops the whole run at the first entry
+  it cannot parse (a `Hidden=maybe`), so each entry gets its own run, and a
+  broken one is reported by name while the rest start.
+- **`X-GNOME-Autostart-enabled=false` keeps an app off.** GNOME-style apps
+  use it to turn their own autostart off, and dex ignores it.
+
+**Only `~/.config/autostart`.** `/etc/xdg/autostart` holds entries for
+desktop components that `autostart.sh` already starts itself, such as
+nm-applet, blueman and the polkit agent, so reading it would start them
+twice. To stop one of those, edit `autostart.sh`. To stop an app you enabled,
+use its own switch, or delete its file from `~/.config/autostart`. An entry
+there for something `autostart.sh` already starts (an `nm-applet.desktop` of
+your own, say) starts a second copy.

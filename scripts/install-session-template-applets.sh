@@ -53,5 +53,10 @@ if command -v xdg-user-dirs-update >/dev/null 2>&1; then
 	xdg-user-dirs-update &
 fi
 
+# Apps that asked to start at login (~/.config/autostart, where an app's own
+# "start at login" switch writes). Once per session: dwm re-runs this file on
+# every restart, and the script remembers that it already ran (docs/DESKTOP.md).
+"${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-xdg-autostart" &
+
 EOF
 }

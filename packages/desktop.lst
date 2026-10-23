@@ -69,6 +69,8 @@ libnotify  # notify-send itself is missing: wallpaper, theme and screenshot feed
 xss-lock  # the screen never locks on idle or on suspend; only the manual Super+Shift+l keybind still works
 xsettingsd  # GTK apps get no XSETTINGS: Xft DPI, antialiasing and hinting fall back to each toolkit's own defaults, and a themes/dark/theme.conf edit needs an app restart instead of a theme reload
 udiskie  # USB sticks and SD cards never auto-mount: thunar-volman only does it while Thunar is running, and nothing daemonises Thunar, so removable media has to be mounted by hand
+# dwm-xdg-autostart hands each ~/.config/autostart entry to it (scope K).
+dex  # apps set to start at login (their own "start at login" switch, which writes ~/.config/autostart) never start
 autorandr  # display profiles are never applied: plugging in an external monitor leaves the layout untouched, and the profile saved by autorandr --save is only reachable by running it by hand
 
 # --- theming engine ---

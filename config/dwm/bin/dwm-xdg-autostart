@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# dwm-xdg-autostart — start the apps that asked to start at login, the way a
+# desktop environment would: every entry in ~/.config/autostart, which is
+# where an app's own "start at login" switch writes. autostart.sh runs it.
+#
+#   dwm-xdg-autostart           once per session (autostart.sh)
+#   dwm-xdg-autostart --force   again, even if this session already ran it
+#   dwm-xdg-autostart --list    what would start, starting nothing
+#
+# dex does the reading and launching (Hidden, OnlyShowIn/NotShowIn, TryExec,
+# the Exec field codes). Three things it does not do are done here:
+#
+#   * ONCE PER SESSION. dwm re-runs autostart.sh after every restart, and
+#     reload.sh restarts dwm on every wallpaper change. The session is the
+#     D-Bus bus ~/.xinitrc starts (a new address at every login, the same one
+#     across a restart, which keeps dwm's environment), or without one dwm's
+#     PID and start time (an exec restart keeps both). autostart.sh is started
+#     through system("... &"), so its parent is a short-lived sh, not dwm.
+#   * ONE ENTRY AT A TIME. A single malformed file (Hidden=maybe) makes dex
+#     raise and abandon the whole `dex -a` run; given a search path holding
+#     one entry, only that entry is lost.
+#   * X-GNOME-Autostart-enabled=false is skipped. GNOME-style apps turn their
+#     own autostart OFF that way, and dex 0.10.1 ignores the key.
+#
+# Only ~/.config/autostart, never /etc/xdg/autostart: the entries there belong
+# to desktop components autostart.sh already starts itself (nm-applet,
+# blueman, the polkit agent), and would start twice. docs/DESKTOP.md.
+#
+# DOTS_PROC replaces /proc for the no-bus fallback (tests).
+set -euo pipefail
+
+red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+yellow() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
+
+AUTOSTART_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+MARKER="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dots/xdg-autostart.session"
+
+# session_key — what identifies this login; empty when nothing does.
+session_key() {
+    local pid stat
+    if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+        printf 'bus %s\n' "$DBUS_SESSION_BUS_ADDRESS"
+        return 0
+    fi
+    pid="$(pgrep -u "$(id -u)" -x -n dwm 2>/dev/null)" || return 0
+    # Field 22 of stat is the start time; the comm field before it may hold
+    # spaces, so cut after its closing parenthesis.
+    { read -r stat <"${DOTS_PROC:-/proc}/$pid/stat"; } 2>/dev/null || return 0
+    stat="${stat##*) }"
+    printf 'dwm %s %s\n' "$pid" "$(cut -d' ' -f20 <<<"$stat")"
+}
+
+# disabled_by_gnome_key <file> — true when the entry turned its own autostart off.
+disabled_by_gnome_key() {
+    sed -n '/^\[Desktop Entry\]/,/^\[/p' "$1" | grep -qix 'X-GNOME-Autostart-enabled *= *false'
+}
+
+# run_entries [-d] — every entry through dex, one at a time.
+run_entries() {
+    local entry one rc=0
+    one="$(mktemp -d)"
+    # shellcheck disable=SC2064 # $one is fixed now
+    trap "rm -rf '$one'" EXIT
+    for entry in "$AUTOSTART_DIR"/*.desktop; do
+        [[ -f "$entry" ]] || continue
+        if disabled_by_gnome_key "$entry"; then
+            [[ "${1:-}" != -d ]] || printf 'Skipping (X-GNOME-Autostart-enabled=false): %s\n' "$entry"
+            continue
+        fi
+        rm -f "$one"/*.desktop
+        ln -s "$entry" "$one/${entry##*/}"
+        dex -a ${1:+"$1"} -s "$one" || {
+            red "dwm-xdg-autostart: dex could not start $entry (see above); the rest still start"
+            rc=1
+        }
+    done
+    return "$rc"
+}
+
+mode="${1:-}"
+case "$mode" in
+    "" | --force | --list) ;;
+    -h | --help)
+        echo "usage: dwm-xdg-autostart [--force | --list] — start the apps in ~/.config/autostart, once per session"
+        exit 0
+        ;;
+    *)
+        red "dwm-xdg-autostart: unknown argument: $mode (try --help)"
+        exit 2
+        ;;
+esac
+
+if ! command -v dex >/dev/null 2>&1; then
+    yellow "dwm-xdg-autostart: dex is not installed (packages/desktop.lst) — nothing in $AUTOSTART_DIR starts"
+    exit 0
+fi
+[[ -d "$AUTOSTART_DIR" ]] || exit 0
+
+if [[ "$mode" == --list ]]; then
+    run_entries -d
+    exit $?
+fi
+
+key="$(session_key)"
+if [[ -z "$mode" && -n "$key" && -f "$MARKER" && "$(<"$MARKER")" == "$key" ]]; then
+    exit 0 # this session already started them; a dwm restart re-ran autostart.sh
+fi
+# Recorded before launching: an interrupted run must not start doubles later.
+mkdir -p "$(dirname "$MARKER")"
+printf '%s\n' "$key" >"$MARKER"
+run_entries

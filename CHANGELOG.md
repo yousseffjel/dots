@@ -18,6 +18,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **Apps set to start at login now start.** Turning on an app's own "start
+  at login" switch (Syncthing, Discord, Nextcloud, KeePassXC) writes an entry
+  to `~/.config/autostart`, and a dwm session used to ignore it.
+  `dwm-xdg-autostart` now starts those entries once per login, not again on
+  each dwm restart. An app that turned itself off with
+  `X-GNOME-Autostart-enabled=false` stays off, and one broken entry no longer
+  stops the others. `dwm-xdg-autostart --list` shows what would start. An
+  existing `autostart.sh` gets the line to paste on the next installer run.
 - **Qt apps follow the wallpaper.** qt5ct and qt6ct are installed and
   `QT_QPA_PLATFORMTHEME` is set for the session, so Qt5 and Qt6 apps (VLC,
   qBittorrent, KeePassXC, OBS) stop opening light and unstyled. Their colours

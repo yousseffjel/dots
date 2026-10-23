@@ -36,6 +36,11 @@ session_autostart_report_more() {
         'without it ~/Pictures, ~/Videos and the rest are never created or named,' \
         'and screenshots and recordings fall back to fixed English paths.'
 
+    session_report_daemon "$autostart" dwm-xdg-autostart \
+        'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-xdg-autostart" &' \
+        'without it the apps you set to start at login (~/.config/autostart)' \
+        'never start; dwm-xdg-autostart --list shows which ones they are.'
+
     session_report_daemon "$autostart" dwm-lock \
         'add this line yourself:  "${XDG_CONFIG_HOME:-$HOME/.config}/dwm/bin/dwm-lock" --daemon &' \
         'without it the screen never locks on idle or on suspend.' \
