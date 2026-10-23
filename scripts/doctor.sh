@@ -91,6 +91,8 @@ source "$SCRIPT_DIR/running-build.sh"
 source "$SCRIPT_DIR/doctor-daemons.sh"
 # shellcheck source=doctor-portal.sh
 source "$SCRIPT_DIR/doctor-portal.sh"
+# shellcheck source=doctor-keyring.sh
+source "$SCRIPT_DIR/doctor-keyring.sh"
 # shellcheck source=doctor-notify.sh
 source "$SCRIPT_DIR/doctor-notify.sh"
 # shellcheck source=doctor-drivers.sh
@@ -100,6 +102,7 @@ check_install
 check_packages
 check_session
 check_notifications
+check_keyring
 check_theme
 check_portal
 check_gtk3_theme

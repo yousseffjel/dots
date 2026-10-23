@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Sandbox for tests/doctor.sh — SOURCED, never run on its own (tests/lib/ is
-# outside run-tests.sh's depth-1 glob). Builds a HOME that looks like a
-# healthy install and a sealed PATH of fakes whose answers are steered by
-# FAKE_* variables. Reads the caller's SB and DOTS_DIR.
+# Sandbox for tests/doctor.sh and tests/doctor-keyring.sh — SOURCED, never
+# run on its own (tests/lib/ is outside run-tests.sh's depth-1 glob). Builds
+# a HOME that looks like a healthy install and a sealed PATH of fakes whose
+# answers are steered by FAKE_* variables. Reads the caller's SB and DOTS_DIR.
 
 # shellcheck source=sealed-path.sh
 source "$(dirname "${BASH_SOURCE[0]}")/sealed-path.sh"
@@ -44,7 +44,15 @@ esac'
         fake "$BIN" nmcli 'echo connected'
         # ReadOne returns one variant: gdbus prints "(<uint32 1>,)". The error
         # text is what the Fedora VM printed when the portal could not start.
-        fake "$BIN" gdbus 'case "${FAKE_PORTAL:-dark}" in
+        # --dest org.freedesktop.secrets is the keyring (FAKE_KEYRING, texts
+        # from gnome-keyring 51.1; tests/doctor-keyring.sh cross-checks them).
+        fake "$BIN" gdbus '[[ " $* " == *" org.freedesktop.secrets "* ]] && case "${FAKE_KEYRING:-unlocked}" in
+unlocked) echo "(<false>,)"; exit 0 ;;
+locked) echo "(<true>,)"; exit 0 ;;
+empty) echo "Error: GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: Object does not exist at path “/org/freedesktop/secrets/collection/login”" >&2; exit 1 ;;
+*) echo "Error: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.secrets was not provided by any .service files" >&2; exit 1 ;;
+esac
+case "${FAKE_PORTAL:-dark}" in
 dark) echo "(<uint32 1>,)" ;;
 light) echo "(<uint32 0>,)" ;;
 *) echo "Error: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer '"'"'org.freedesktop.portal.Desktop'"'"': startup job failed" >&2; exit 1 ;;
@@ -144,6 +152,6 @@ run_doctor() {
         FAKE_MISSING="${FAKE_MISSING:-}" FAKE_DOWN="${FAKE_DOWN:-}" \
         FAKE_NO_DWM="${FAKE_NO_DWM:-}" FAKE_SERVICE="${FAKE_SERVICE:-}" \
         FAKE_NOGROUP="${FAKE_NOGROUP:-}" FAKE_DB_GROUPS="${FAKE_DB_GROUPS:-}" FAKE_SESSION_GROUPS="${FAKE_SESSION_GROUPS:-}" FAKE_NOID="${FAKE_NOID:-}" \
-        FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
+        FAKE_PORTAL="${FAKE_PORTAL:-}" FAKE_KEYRING="${FAKE_KEYRING:-}" FAKE_XCURSOR="${FAKE_XCURSOR:-}" FAKE_DUNST="${FAKE_DUNST:-}" FAKE_UP="${FAKE_UP:-}" \
         "$(type -P bash)" "$DOTS_DIR/scripts/doctor.sh" "$@"
 }

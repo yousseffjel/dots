@@ -40,6 +40,12 @@ mesa-dri  # no GL driver: Xorg falls back to unaccelerated drawing, and picom an
 # --- session plumbing (scope I, decision D2: elogind) ---
 dbus  # no D-Bus: dunst, the portal, polkit and NetworkManager all need a bus, and every notification is dropped
 elogind  # no session manager: suspend, reboot and poweroff in the power menu fail, and polkit sees no active session, so mounting and network changes are denied
+# The Secret Service (scope K, decision 1). Nothing here starts it: ly's
+# stock /etc/pam.d/ly already carries `-auth`/`-session optional
+# pam_gnome_keyring.so auto_start` (the `-` skips a missing module), so the
+# login password unlocks it, and the bus activates the secrets component
+# through org.freedesktop.secrets.service on first use.
+gnome-keyring  # no Secret Service: browsers, VS Code and git credential helpers keep passwords and tokens in plain text on disk, or ask for a keyring that never comes
 
 # --- X tools the shipped scripts call by name ---
 xrdb  # theming engine cannot load colours; dwm, st, dmenu and slock stay at their compiled defaults

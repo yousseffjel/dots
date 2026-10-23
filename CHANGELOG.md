@@ -18,6 +18,13 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **A keyring that unlocks with your login.** gnome-keyring is installed
+  and provides the Secret Service, so browsers, VS Code and git credential
+  helpers stop storing passwords and tokens in plain text. ly's login unlocks
+  it with your password, and the session bus starts it the first time an app
+  asks, so nothing has to be added to `autostart.sh` or `~/.xinitrc`. Flatpak
+  apps reach it through the Secret portal. `dots doctor` reports whether it
+  is unlocked. See `docs/DESKTOP.md`.
 - **The status bar shows icons instead of words.** `VOL 42%` is now
   `󰖀 42%`, `BT off` is `󰂲`, and so on, drawn from the Nerd Font glyphs in
   Cascadia Code NF. The icons follow the state: the speaker's waves follow the

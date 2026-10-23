@@ -477,6 +477,9 @@ then log out and back in. `dots doctor` checks both halves:
 
 The dconf line only proves the preference is stored.
 
+The same bus also starts the keyring on demand, and `portals.conf` sends the
+Secret portal to it. See [DESKTOP.md](DESKTOP.md#keyring).
+
 ## How reload works, per tool
 
 | Tool | Reads colours from | Reload mechanism |

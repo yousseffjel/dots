@@ -168,7 +168,8 @@ dots/
 │   │                           # while unedited (file_matches_history) — uninstall-sysfiles.sh
 │   ├── doctor.sh               # `dots doctor`: read-only health report, human or --tsv from one report();
 │   │                           # checks in doctor-checks.sh / doctor-session.sh / doctor-daemons.sh /
-│   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on) / doctor-drivers.sh,
+│   │                           # doctor-portal.sh / doctor-notify.sh (dunst answers, DND left on) /
+│   │                           # doctor-keyring.sh (the Secret Service is unlocked) / doctor-drivers.sh,
 │   │                           # every list read from its source
 │   └── theme/                  # theming engine: colorgen.sh, apply-templates.sh, reload.sh, wallpaper.sh, wallpaper-default.sh, theme-apply.sh,
 │                               # ly-theme.sh (`dots login-theme`: five keys of root's /etc/ly/config.ini, default_input included; sudo, never prompted without a TTY)
@@ -194,7 +195,7 @@ dots/
 │                        # tests/fixtures/ holds captured real-tool files (ly's config.ini), same reason.
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / package-names (Void container jobs)
 │                        # install-container.yml — the only job that RUNS install-void.sh (paths-filtered)
-├── docs/                # THEMING.md, THUNAR.md, UNINSTALL.md, FONTS.md, HARDWARE.md
+├── docs/                # user docs; `ls docs/` is the list (this line named five and missed two)
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
 ├── dwm-titus/           # untracked local clone of ChrisTitusTech/dwm-titus — reference only; see Reference clones
