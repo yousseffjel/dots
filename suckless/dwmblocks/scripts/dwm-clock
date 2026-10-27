@@ -24,7 +24,7 @@ case "$BUTTON" in
 	# stdout, and a window still holding it open would stall the bar. A
 	# second click reaches the open calendar and closes it.
 	if command -v block_bin >/dev/null 2>&1 && calendar=$(block_bin dwm-calendar) \
-		&& python3 -c 'import gi' >/dev/null 2>&1; then
+		&& python3 -c 'import gi; gi.require_version("Gtk", "3.0")' >/dev/null 2>&1; then
 		"$calendar" >/dev/null 2>&1 &
 	elif command -v notify-send >/dev/null 2>&1; then
 		notify-send -u low "$(date '+%B %Y')" "$(cal)"
@@ -32,6 +32,6 @@ case "$BUTTON" in
 	;;
 esac
 
-# One date(1) call, not two: this runs every 10s for the life of the session,
+# One date(1) call, not two: this runs every 60s for the life of the session,
 # and the two calls could also straddle a minute boundary and disagree.
 date "+^c${COL_CLOCK}^%a %d %b^d^ %H:%M"

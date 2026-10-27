@@ -6,7 +6,8 @@
 #     (read with xprop, matched by strstr the way dwm's applyrules does);
 #   * it is a dialog-type window with no decorations asked of dwm;
 #   * a second launch closes the first and exits (the clock's toggle);
-#   * with no session bus it still opens.
+#   * with no session bus it still opens;
+#   * it closes when another window takes the focus (needs xterm).
 #
 # The clock block's side (which binary it starts, the notify-send fallback)
 # is tests/blocks-info.sh. SKIPS without Xvfb, xdotool, xprop,
@@ -119,12 +120,40 @@ check "a second launch exits at once" test "$(val second_rc)" = 0
 check "...and closes the open one (the clock's toggle)" test "$(val first)" = closed
 
 blue "no session bus"
-env -u DBUS_SESSION_BUS_ADDRESS "$SUT" >/dev/null 2>&1 &
+# An address that cannot connect, not merely an unset one: with none set,
+# GLib may autolaunch a bus over X11 and this would test the bus case again.
+DBUS_SESSION_BUS_ADDRESS="unix:path=$TMP/no-bus" "$SUT" >/dev/null 2>&1 &
 nobus=$!
 id="$(window_id)"
 check "still opens a window" test -n "$id"
 kill "$nobus" 2>/dev/null || true
 wait "$nobus" 2>/dev/null || true
+
+blue "focus"
+if command -v xterm >/dev/null 2>&1; then
+    xterm -class dwm-calendar-other -e sleep 30 >/dev/null 2>&1 &
+    other_pid=$!
+    # A dead bus address, like the section above: never the caller's own bus.
+    DBUS_SESSION_BUS_ADDRESS="unix:path=$TMP/no-bus" "$SUT" >/dev/null 2>&1 &
+    cal=$!
+    id="$(window_id)"
+    other=""
+    for _ in $(seq 1 40); do
+        other="$(xdotool search --class dwm-calendar-other 2>/dev/null | head -n 1)" || true
+        [[ -n "$other" ]] && break
+        sleep 0.1
+    done
+    sleep 0.3
+    [[ -z "$id" ]] || xdotool windowfocus --sync "$id" 2>/dev/null || true
+    sleep 0.3
+    check "focused, it stays open" kill -0 "$cal"
+    [[ -z "$other" ]] || xdotool windowfocus "$other" 2>/dev/null || true
+    sleep 0.6
+    check "another window takes the focus: it closes" bash -c "! kill -0 $cal 2>/dev/null"
+    kill "$cal" "$other_pid" 2>/dev/null || true
+else
+    yellow "  skipped (no xterm to take the focus)"
+fi
 
 if [[ $FAILS -gt 0 ]]; then
     red "$FAILS check(s) failed"

@@ -77,7 +77,13 @@ def build(app):
             app.quit()
 
     win.connect("key-press-event", key)
-    win.connect("focus-out-event", lambda *_: app.quit())
+    # A key grab (an sxhkd or dwm binding pressed while it is open) also sends
+    # a focus-out, and focus comes straight back. So look again a moment
+    # later, and close only if another window really has the focus.
+    def focus_out(*_):
+        GLib.timeout_add(200, lambda: win.is_active() or app.quit())
+
+    win.connect("focus-out-event", focus_out)
     box.show_all()
     place(win)
     win.present()
