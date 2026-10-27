@@ -88,9 +88,21 @@ jobs:
       - name: Bring the image up to date, add bash and git
         shell: sh
         run: |
-          xbps-install -Syu xbps
-          xbps-install -yu
-          xbps-install -y bash git
+          # `retry`: every xbps-install in this job downloads from Void's repo,
+          # and network blips there (a TLS failure, a timed-out signature,
+          # 2026-10-27) failed jobs no change had touched. Three tries, 15 s
+          # apart; a real failure still fails. Installed here, before
+          # checkout, so every later step in this container can use it.
+          mkdir -p /usr/local/bin
+          cat >/usr/local/bin/retry <<'EOF'
+          #!/bin/sh
+          for i in 1 2 3; do "$@" && exit 0; [ "$i" = 3 ] || sleep 15; done
+          exit 1
+          EOF
+          chmod 755 /usr/local/bin/retry
+          retry xbps-install -Syu xbps
+          retry xbps-install -yu
+          retry xbps-install -y bash git
 
       - uses: actions/checkout@v7
 

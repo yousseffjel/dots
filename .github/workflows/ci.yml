@@ -118,9 +118,21 @@ jobs:
       - name: Bring the image up to date, add bash and git
         shell: sh
         run: |
-          xbps-install -Syu xbps
-          xbps-install -yu
-          xbps-install -y bash git
+          # `retry`: every xbps-install in this job downloads from Void's repo,
+          # and network blips there (a TLS failure, a timed-out signature,
+          # 2026-10-27) failed jobs no change had touched. Three tries, 15 s
+          # apart; a real failure still fails. Installed here, before
+          # checkout, so every later step in this container can use it.
+          mkdir -p /usr/local/bin
+          cat >/usr/local/bin/retry <<'EOF'
+          #!/bin/sh
+          for i in 1 2 3; do "$@" && exit 0; [ "$i" = 3 ] || sleep 15; done
+          exit 1
+          EOF
+          chmod 755 /usr/local/bin/retry
+          retry xbps-install -Syu xbps
+          retry xbps-install -yu
+          retry xbps-install -y bash git
 
       - uses: actions/checkout@v7
 
@@ -133,7 +145,7 @@ jobs:
           # step installs exactly what build.lst declares, so this can't drift
           # back into a hardcoded list unnoticed.
           mapfile -t pkgs < <(sed 's/#.*//' packages/build.lst | tr -s '[:space:]' '\n' | grep -v '^$')
-          xbps-install -y "${pkgs[@]}"
+          retry xbps-install -y "${pkgs[@]}"
 
       # tests/build.sh owns the program list and the make invocation. It
       # deliberately does not install build dependencies — that is the step
@@ -148,7 +160,7 @@ jobs:
       # header or ASan runtime a failure; the tests job, which has none of
       # them, skips the script instead.
       - name: Install the ASan runtime for tests/bidi.sh
-        run: xbps-install -y libsanitizer-devel
+        run: retry xbps-install -y libsanitizer-devel
 
       - name: Check the fribidi patches' bidi() under ASan
         run: bash tests/bidi.sh --strict
@@ -157,7 +169,7 @@ jobs:
       # only, and a real install never needs a virtual framebuffer, xdotool,
       # or ImageMagick. Void names (checked against the repo index).
       - name: Install dwm-runtime.sh test dependencies
-        run: xbps-install -y xorg-server-xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng xrandr xsetroot
+        run: retry xbps-install -y xorg-server-xvfb xdotool xwininfo xprop xdpyinfo xrdb xterm ImageMagick procps-ng xrandr xsetroot
 
       # Asserts real EWMH state plus xresources/actualfullscreen/pertag/
       # restartsig patch behaviour under Xvfb, every check a hard failure.
@@ -187,8 +199,20 @@ jobs:
       - name: Sync the repo index, add bash and git
         shell: sh
         run: |
-          xbps-install -Syu xbps
-          xbps-install -y bash git
+          # `retry`: every xbps-install in this job downloads from Void's repo,
+          # and network blips there (a TLS failure, a timed-out signature,
+          # 2026-10-27) failed jobs no change had touched. Three tries, 15 s
+          # apart; a real failure still fails. Installed here, before
+          # checkout, so every later step in this container can use it.
+          mkdir -p /usr/local/bin
+          cat >/usr/local/bin/retry <<'EOF'
+          #!/bin/sh
+          for i in 1 2 3; do "$@" && exit 0; [ "$i" = 3 ] || sleep 15; done
+          exit 1
+          EOF
+          chmod 755 /usr/local/bin/retry
+          retry xbps-install -Syu xbps
+          retry xbps-install -y bash git
 
       - uses: actions/checkout@v7
 

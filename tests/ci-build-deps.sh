@@ -68,6 +68,10 @@ cat >"$SB/xbps-install" <<'SHIM'
 printf '%s\n' "$@" >"$XBPS_CAPTURE"
 SHIM
 chmod +x "$SB/xbps-install"
+# The job's first step installs `retry` in the container; here it just runs
+# its command once.
+printf '#!/bin/sh\nexec "$@"\n' >"$SB/retry"
+chmod +x "$SB/retry"
 
 printf '%s\n' "$BLOCK" >"$SB/block.sh"
 
