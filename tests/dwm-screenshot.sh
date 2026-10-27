@@ -189,8 +189,8 @@ fi
 
 run all FAKE_GEOM=800x600+10+20 -- --delay 3 --region --clipboard
 order="$(grep -o '^sleep 3\|^maim\|^slop' "$LOG" | tr '\n' ' ')"
-if [[ $RC -eq 0 && "$order" == "sleep 3 maim slop " ]] && has "notify-send"; then
-    pass "--delay 3: notified, slept, THEN froze the frame and ran slop"
+if [[ $RC -eq 0 && "$order" == "sleep 3 maim slop " ]] && has "-u low -t 3000 Screenshot in 3s"; then
+    pass "--delay 3: notified (low, so silent), slept, THEN froze the frame and ran slop"
 else
     fail "delay order: rc=$RC $order"
 fi

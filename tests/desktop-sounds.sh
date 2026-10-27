@@ -96,6 +96,9 @@ check "a .wav is found when there is no .oga" played "sys/$STEREO/complete.wav"
 run dwm-sound --file bell
 check "--file prints the file it would play" says "^$SHARE/home/$STEREO/bell.oga$"
 check "...playing nothing" nothing
+# A file that exists one level up, so only the name check can refuse it.
+: >"$SHARE/home/sounds/freedesktop/outside.oga"
+check "--file refuses a path out of the theme" test "$(rc_of dwm-sound --file ../outside)" -eq 1
 check "an unknown event exits 1" test "$(rc_of dwm-sound no-such-event)" -eq 1
 check "...naming the package" says 'sound-theme-freedesktop'
 check "no argument exits 2" test "$(rc_of dwm-sound)" -eq 2

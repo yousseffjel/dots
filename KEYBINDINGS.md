@@ -349,7 +349,8 @@ quietly when nothing is playing.
 
 Raising unmutes, matching what a hardware volume key does elsewhere.
 Lowering deliberately does not — turning a muted system down should not make
-it audible.
+it audible. Both play a short tick (`dwm-sound off` silences it, with every
+other desktop sound); mute plays none.
 
 Each of these also fires `pkill -RTMIN+<n> dwmblocks`. That is not a
 cosmetic refresh: the volume and mic status blocks poll at interval 0, so

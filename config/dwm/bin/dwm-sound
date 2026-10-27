@@ -71,6 +71,8 @@ play() {
 }
 
 if [[ $# -eq 2 && "$1" == --file ]]; then
+    # The same names an event accepts: never a path out of the theme.
+    [[ -n "$2" && "$2" != -* && "$2" != */* ]] || exit 1
     sound_file "$2"
     exit $?
 fi

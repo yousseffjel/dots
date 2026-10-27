@@ -1,5 +1,5 @@
-Phase: coding
-Task: desktop-sounds
-Task folder: .claude/tasks/desktop-sounds/
-Last log: .claude/changes/2026-10-23-xdg-autostart.md
-Note: WIP handoff 2026-10-23 — code + tests done, audit/reviewer/commit records pending (see progress.md)
+Phase: idle
+Task: (none) — next: scope K slot 5 idle-dim
+Task folder: —
+Last log: .claude/changes/2026-10-27-desktop-sounds.md
+Note: desktop-sounds done 2026-10-27; VM proof for scope K slots 1-4 still pending

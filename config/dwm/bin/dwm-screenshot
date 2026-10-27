@@ -228,7 +228,8 @@ esac
 
 # After the prompts, so the time is spent on the screen, not in dmenu.
 if ((DELAY > 0)); then
-    notify -t "$((DELAY * 1000))" "Screenshot in ${DELAY}s" "Open the menu now"
+    # Low, so silent: the shutter is the shot's one sound.
+    notify -u low -t "$((DELAY * 1000))" "Screenshot in ${DELAY}s" "Open the menu now"
     sleep "$DELAY"
 fi
 
