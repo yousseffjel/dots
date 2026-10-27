@@ -25,6 +25,63 @@ updated to the new chord; upstream diffs (restartsig, actualfullscreen) keep
 the chords they were published with in their context lines, because they are
 records of what upstream shipped, not of this tree's keymap.
 
+## dwm-sharetags-20261027-local.diff
+
+**Source**: written for this tree, at the user's request (2026-10-27): one
+set of nine tags for every monitor, as Hyprland's workspaces were, instead
+of nine per monitor. Stock dwm's per-monitor tags left a window on a tag of
+a monitor that was then unplugged, and the user wanted any tag on any screen,
+chosen as they go. Apply after pertag, preservepertag and replug.
+
+**Model**: a tag is shown on at most one monitor. A window still belongs to
+a monitor (`c->mon`; all of dwm assumes that), but it lives on the monitor
+that shows one of its tags. `claimclients()` moves each window hidden where
+it is to the monitor showing its tag (`movemon()`: floating windows keep
+their offset, fullscreen ones fill the new monitor, a replug home is kept).
+
+**A tag belongs to a monitor** (`tagowner()`): the one showing it, else the
+one holding its windows (selmon first), as Hyprland binds a workspace to the
+monitor it was opened on. An empty tag nobody shows belongs to none.
+
+**What changes where**:
+- `view()` of a tag that belongs to another monitor views it THERE: that
+  monitor becomes selmon and the pointer warps to its focused window (or its
+  middle). Nothing swaps. The user asked for exactly this: Super+5 with the
+  pointer on the laptop shows tag 5 on the screen that holds it. Mod+0 (all
+  tags) is never redirected.
+- `view()` that is not redirected (Mod+Tab, a bar click on an empty tag),
+  and `toggleview()`, call `sharetags()`: a monitor that showed any of
+  the new tags gives them up and keeps what is left, or goes back to its own
+  previous view (its Mod+Tab), or takes the old view of the monitor that took
+  the tag (the two swap), or the first free tag, whichever no other monitor
+  shows. With none free (Mod+0 views all nine) it keeps its view. Its views
+  are changed through `view()` under `sharelock`, so pertag and Mod+Tab
+  history follow.
+- `tag()` sends the window to the monitor its new tag belongs to.
+  `toggletag()` and `manage()` claim: a window tagged, or opened by a rule,
+  on a tag another monitor shows goes there.
+- `createmon()` starts a monitor on the first free tag, not tag 1.
+  `configurenotify()` claims after `restorehomes()`, so a replugged monitor's
+  free tag brings its windows.
+- **pertag's arrays moved out of `Pertag` into one `tagprefs` table**: a
+  tag's layout, mfact, nmaster and bar now follow it to whichever monitor
+  shows it. `Pertag` keeps `curtag`/`prevtag` (a monitor's own history) and
+  `restoredprevset`. `createmon()` fills the table once, so a monitor plugged
+  in later does not reset it. preservepertag's `_DWM_PERTAG` format is
+  unchanged: every monitor block now carries the same table.
+- `main()` holds sharing off (`sharelock`) through `scan()` and
+  `restorestate()`, then `settletags()` moves any monitor that shares a tag
+  with an earlier one to a free tag (what an older instance's restart hands
+  over) and claims once.
+- `drawbar()`/`buttonpress()` count a tag occupied by windows on ANY
+  monitor (hide_vacant_tags draws it on every bar).
+
+**Tests**: `tests/dwm-multimon.sh` (`check_multimon_sharetags` in
+`tests/lib/dwm-multimon-sharetags.sh`): Super+N for a tag the other monitor
+shows, or holds hidden, views it there and moves the pointer, with no swap;
+an empty tag opens on the focused monitor; Super+Shift+N sends the window to
+the tag's monitor.
+
 ## dwm-scratchpadgroup-20261022-local.diff
 
 **Source**: written for this tree, on top of dynamicscratchpads, and it

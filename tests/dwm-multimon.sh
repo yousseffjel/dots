@@ -17,6 +17,9 @@
 #     left every window on the first monitor.
 #   * Super+s on one monitor shows a scratchpad stashed, or shown, on the
 #     other, above the windows already tiled there (scratchpadgroup-local.diff).
+#   * both monitors share one set of nine tags: Super+N brings tag N and its
+#     windows to the focused monitor, and taking the tag the other monitor
+#     shows swaps the two views (sharetags-local.diff).
 #
 # Not covered: a window moved by hand while away (sendmon) must lose its
 # home. With two monitors there is nowhere to move it while one is gone,
@@ -51,6 +54,8 @@ source "$SCRIPT_DIR/lib/dwm-runtime-x.sh"
 source "$SCRIPT_DIR/lib/dwm-build-fresh.sh"
 # shellcheck source=lib/dwm-multimon-scratchpad.sh
 source "$SCRIPT_DIR/lib/dwm-multimon-scratchpad.sh"
+# shellcheck source=lib/dwm-multimon-sharetags.sh
+source "$SCRIPT_DIR/lib/dwm-multimon-sharetags.sh"
 
 skip() {
     yellow "SKIP: dwm-multimon.sh needs $1 and it is not available."
@@ -219,9 +224,10 @@ sleep 1
 check "second replug, after a restart: back on the right, on tag 3's view" on_right "$WR"
 
 check_multimon_scratchpad
+check_multimon_sharetags
 
 if ((rc != 0)); then
     red "✗ dwm on two monitors"
     exit 1
 fi
-green "✓ dwm-multimon: a bar per monitor, the status on every one, windows return on replug, scratchpads gather"
+green "✓ dwm-multimon: a bar per monitor, the status on every one, windows return on replug, scratchpads gather, tags shared"

@@ -117,6 +117,14 @@ palette, so they look alike.
 | `Mod` + `0` | View all tags |
 | `Mod` + `Shift` + `0` | Put the focused window on all tags |
 
+Every monitor shares the same nine tags, and a tag is on one monitor at a
+time (`sharetags`). A tag belongs to the monitor showing it or holding its
+windows: `Mod` + `1`–`9` shows it on THAT monitor and moves focus and the
+pointer there. An empty tag opens on the monitor you are on.
+`Mod` + `Shift` + `1`–`9` sends the window to the tag's monitor. Each tag
+keeps its layout wherever it is shown. Unplug a monitor and its windows come
+to the one left, on the same tags.
+
 ### Monitors
 
 | Keys | Action |
