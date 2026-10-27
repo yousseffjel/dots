@@ -24,6 +24,14 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 # set (another desktop's own) is kept. docs/DESKTOP.md, Qt apps.
 export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-qt5ct}"
 
+# Alacritty (winit) scales each window by the DPI it computes from the
+# monitor's EDID size. Many monitors and docks store only an aspect ratio
+# there, which X reports as 160x90 mm: a 1920x1080 panel then reads as
+# ~305 DPI and alacritty draws 11pt at about three times its size on that
+# screen. dwm, st, dmenu and GTK all render at X's 96 DPI, so 1 keeps the
+# terminal the same size as everything else. Set a value yourself to scale it.
+export WINIT_X11_SCALE_FACTOR="${WINIT_X11_SCALE_FACTOR:-1}"
+
 # PATH must be set here rather than in conf.d, because dwm's autostart and
 # the theming engine invoke config/dwm/bin/* from non-interactive contexts.
 # typeset -U keeps entries unique if this file is sourced more than once.
