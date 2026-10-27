@@ -37,6 +37,9 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*" >&2; }
 # gap lands on a live desktop.
 LOCK_SECS=600
 DPMS_OFF_SECS=660
+# The screen fades this many seconds before the lock (dwm-idle-dim, xss-lock's
+# notifier), and any input in that time cancels both. 0 turns the fade off.
+DIM_SECS=15
 
 usage() {
     echo "usage: dwm-lock [--daemon]"
@@ -58,11 +61,21 @@ arm_timers() {
         return 0
     fi
 
-    # Second argument is the pattern-cycle period. It is irrelevant once the
-    # video blanks, but xset takes length and period as a pair.
-    if ! xset s "$LOCK_SECS" "$LOCK_SECS"; then
+    # The screensaver activates at the first value and cycles every second
+    # one. With a notifier xss-lock dims at activation and locks at the first
+    # cycle, so the two add up to LOCK_SECS; without one it locks at
+    # activation. noblank + noexpose: X itself then draws nothing when it
+    # activates. Its default, blanking, turns every output off (DPMS) right
+    # there, which would hide the fade and power the monitor down at the lock
+    # rather than at DPMS_OFF_SECS.
+    local saver=("$LOCK_SECS" "$LOCK_SECS")
+    ((DIM_SECS > 0)) && saver=("$((LOCK_SECS - DIM_SECS))" "$DIM_SECS")
+    if ! xset s "${saver[@]}"; then
         yellow "dwm-lock: xset s failed — is DISPLAY set and X running?"
         return 0
+    fi
+    if ! { xset s noblank && xset s noexpose; }; then
+        yellow "dwm-lock: xset s noblank/noexpose failed — X may blank the screen at the lock"
     fi
 
     # standby and suspend are disabled (0), leaving the monitor exactly one
@@ -95,8 +108,11 @@ start_daemon() {
     fi
 
     # exec, so the daemon replaces this shell instead of leaving it parked as
-    # a useless parent for the life of the session.
-    exec xss-lock -- slock
+    # a useless parent for the life of the session. xss-lock parses -n with
+    # shell quoting, hence %q.
+    local notifier=()
+    ((DIM_SECS > 0)) && notifier=(-n "$(printf '%q' "${BASH_SOURCE[0]%/*}/dwm-idle-dim")")
+    exec xss-lock "${notifier[@]}" -- slock
 }
 
 lock_now() {

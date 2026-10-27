@@ -214,11 +214,26 @@ apply() {
     return "$failed"
 }
 
+# dwm-idle-dim fades the gamma before the idle lock. The key press that runs
+# this is input, so xss-lock is already killing it: wait (1 s at most) for
+# its restore, or `current` reads the dimmed level and the change stores it.
+# Its marker holds its pid until the restore is done.
+await_undim() {
+    local marker pid i
+    marker="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-${HOME:-/nonexistent}/.cache}}/dots/idle-dim.pid"
+    for ((i = 0; i < 20; i++)); do
+        { read -r pid <"$marker"; } 2>/dev/null || return 0
+        [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null || return 0
+        sleep 0.05
+    done
+}
+
 # Relative change. Reading the current value has to succeed before anything is
 # written: inlining `apply "$(($(current) + STEP))"` would carry on with an
 # empty reading and clamp the display to MIN when only the read had failed.
 adjust() {
     local cur
+    await_undim
     cur="$(current)" || return 1
     apply "$((cur + $1))"
 }
@@ -235,6 +250,7 @@ case "${1:-}" in
             usage >&2
             exit 1
         fi
+        await_undim
         apply "$2"
         ;;
     -h | --help)

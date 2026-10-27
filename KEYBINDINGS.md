@@ -494,6 +494,7 @@ The screen also locks by itself:
 
 | After | What happens |
 | --- | --- |
+| 9 min 45 s idle | The screen fades to 40% brightness; any key or mouse movement brings it back |
 | 10 minutes idle | `slock` takes the screen |
 | 11 minutes idle | The monitor powers down (already locked) |
 | Any suspend | `slock` takes the screen before the machine sleeps |
@@ -510,11 +511,21 @@ dwm-lock                              # lock now
 dwm-lock --daemon                     # arm the timers, then run the daemon
 ```
 
-`--daemon` sets `xset s 600 600` and `xset dpms 0 0 660`, then execs
-`xss-lock -- slock`. It is started once per session from
-`~/.local/share/dwm/autostart.sh`. To change the timings, edit `LOCK_SECS` and
-`DPMS_OFF_SECS` at the top of the script — not `autostart.sh`, which only
-holds the one launch line.
+`--daemon` sets `xset s 585 15` (`xset s noblank noexpose` too) and
+`xset dpms 0 0 660`, then execs `xss-lock -n dwm-idle-dim -- slock`. xss-lock
+runs the dimmer when X's screensaver activates, 15 seconds before the lock,
+and kills it on input or when slock starts. The dimmer puts back the
+brightness and tint the screen had, night light included. It is started once
+per session from `~/.local/share/dwm/autostart.sh`. To change the timings, edit
+`LOCK_SECS`, `DIM_SECS` (0 turns the fade off) and `DPMS_OFF_SECS` at the top
+of the script — not `autostart.sh`, which only holds the one launch line.
+A session that was running before this change keeps an xss-lock with no
+dimmer until the next login; until then it locks at 9 min 45 s, undimmed.
+
+**`noblank noexpose` matters.** By default X "blanks" at screensaver
+activation, which on a modesetting driver turns every output off (DPMS). That
+would hide the fade, and it powered the monitor down at the lock rather than
+a minute later, as the table says it should.
 
 **Why `xss-lock` and not `xautolock`:** it hooks systemd-logind as well as X's
 screensaver, so it also locks on suspend, which xautolock structurally cannot

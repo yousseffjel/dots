@@ -87,22 +87,25 @@ calls() { tr '\n' ';' <"$LOG"; }
 
 blue "==> --daemon"
 run all -- --daemon
-check "arms screensaver, then DPMS, then hands off to xss-lock" "$(calls)" \
-    "xset s 600 600;xset dpms 0 0 660;xss-lock -- slock;"
-lock_secs="$(awk '$2 == "s" { print $3 }' "$LOG")"
+DIMMER="$DOTS_DIR/config/dwm/bin/dwm-idle-dim"
+check "arms the screensaver (no X blanking), then DPMS, then xss-lock with the dimmer" "$(calls)" \
+    "xset s 585 15;xset s noblank;xset s noexpose;xset dpms 0 0 660;xss-lock -n $DIMMER -- slock;"
+# xss-lock runs the notifier at activation and the locker at the first cycle.
+lock_secs="$(awk '$2 == "s" && $3 ~ /^[0-9]+$/ { print $3 + $4 }' "$LOG")"
 dpms_secs="$(awk '$2 == "dpms" { print $5 }' "$LOG")"
-if ((lock_secs < dpms_secs)); then
-    pass "the screen locks ($lock_secs s) before the monitor powers off ($dpms_secs s)"
+if ((lock_secs == 600 && lock_secs < dpms_secs)); then
+    pass "the screen locks at 600 s, dim included, before the monitor powers off ($dpms_secs s)"
 else
-    fail "lock $lock_secs s is not before DPMS off $dpms_secs s"
+    fail "lock $lock_secs s is not 600 s before DPMS off $dpms_secs s"
 fi
+if [[ -x "$DIMMER" ]]; then pass "the notifier exists and is executable"; else fail "no executable $DIMMER"; fi
 if grep -q 'transfer-sleep-lock' "$LOG"; then
     fail "xss-lock was given --transfer-sleep-lock"
 else
     pass "no --transfer-sleep-lock"
 fi
 run all FAKE_RUNNING=1 -- --daemon
-check "already running: timers re-armed, no second xss-lock" "$(calls)" "xset s 600 600;xset dpms 0 0 660;"
+check "already running: timers re-armed, no second xss-lock" "$(calls)" "xset s 585 15;xset s noblank;xset s noexpose;xset dpms 0 0 660;"
 check "already running: exits 0" "$RC" 0
 run no-xss -- --daemon
 if [[ $RC -ne 0 && "$ERR" == *"xss-lock is not installed"* ]]; then pass "missing xss-lock fails loudly"; else fail "missing xss-lock: rc=$RC err=$ERR"; fi
@@ -113,7 +116,7 @@ else
     fail "missing slock: rc=$RC calls=$(calls)"
 fi
 run no-xset -- --daemon
-if [[ "$ERR" == *"xset not installed"* && "$(calls)" == "xss-lock -- slock;" ]]; then
+if [[ "$ERR" == *"xset not installed"* && "$(calls)" == "xss-lock -n $DIMMER -- slock;" ]]; then
     pass "missing xset only warns; the daemon still starts"
 else
     fail "missing xset: err=$ERR calls=$(calls)"

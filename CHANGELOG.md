@@ -18,6 +18,11 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **The screen fades before it locks.** 15 seconds before the idle lock it
+  dims to 40%, and any key or mouse movement brings it back, with the night
+  light tint and the brightness you had. The monitor now stays on behind the
+  lock screen for the minute before it powers down, instead of turning off at
+  the lock. See `KEYBINDINGS.md` § Lock and idle.
 - **The desktop makes sounds.** A chime at login, a sound for each
   notification (a different one when it is critical), a tick on the volume
   keys and a shutter for a screenshot, from the freedesktop sound theme

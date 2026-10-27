@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# dwm-idle-dim — fades the screen before the idle lock. xss-lock's notifier
+# (dwm-lock --daemon passes it as -n): xss-lock runs it when X's screensaver
+# activates, DIM_SECS before the lock, and kills it on any input or when
+# slock starts. Either way the screen gets back exactly what it had.
+#
+# Through the gamma ramps, so it works on any screen (a backlight fade would
+# only work on a laptop). Two writers can already own those ramps:
+#
+#   * dwm-nightlight's daemon, which re-applies temperature and brightness
+#     every minute and would undo a fade written here. While it runs it stays
+#     the ONE writer: this script hands it a factor in its dim file
+#     ("<factor> <pid>", honoured only while this process lives) and asks it
+#     to apply. On the way out the file goes and it applies once more.
+#   * otherwise xrandr (dwm-brightness's gamma path). Each output's Gamma and
+#     Brightness are read first and every step sets both, because
+#     `xrandr --brightness` alone resets the gamma to 1.0. xrandr prints the
+#     gamma INVERTED (--gamma 0.8 reads back as 1.3), so it is inverted here.
+#
+# DIM_LEVEL is the factor the brightness fades to.
+set -euo pipefail
+
+DIM_LEVEL=0.40
+FADE_STEPS=8
+# DWM_IDLE_DIM_STEP_SECS overrides the step, for tests/dwm-idle-dim.sh.
+FADE_STEP_SECS="${DWM_IDLE_DIM_STEP_SECS:-0.1}"
+
+DIM_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dots/nightlight/dim"
+NIGHTLIGHT="${BASH_SOURCE[0]%/*}/dwm-nightlight"
+# Holds this pid until the restore is done. dwm-brightness waits on it: a
+# brightness key is the input that ends the dim, and must read the restored
+# level, not the dimmed one.
+MARKER="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dots/idle-dim.pid"
+
+if [[ "${1:-}" == -h || "${1:-}" == --help ]]; then
+    echo "usage: dwm-idle-dim — xss-lock's notifier: dims the screen until it is killed, then restores it"
+    exit 0
+fi
+
+# The same test dwm-brightness uses to decide who owns the gamma.
+nightlight_active() {
+    pgrep -u "$(id -u)" -f '/dwm-nightlight daemon$' >/dev/null 2>&1
+}
+
+# "<output> <r> <g> <b> <brightness>" for each connected output that is on,
+# the gamma as --gamma takes it. A value xrandr cannot report (0 on a screen
+# with no ramp yet) reads as 1, never as a black screen to restore.
+capture() {
+    xrandr --verbose 2>/dev/null | awk '
+        function inv(v) { return (v > 0) ? 1 / v : 1 }
+        /^[^ \t]/ {
+            out = ($2 == "connected" && / [0-9]+x[0-9]+\+[0-9]+\+[0-9]+( |$)/) ? $1 : ""
+            next
+        }
+        out != "" && $1 == "Gamma:" { split($2, g, ":"); gamma = sprintf("%.3f %.3f %.3f", inv(g[1]), inv(g[2]), inv(g[3])) }
+        out != "" && $1 == "Brightness:" {
+            b = ($2 >= 0.1 && $2 <= 1) ? $2 : 1
+            print out, (gamma != "" ? gamma : "1 1 1"), b
+            out = ""; gamma = ""
+        }'
+}
+
+# set_factor <f> — every output at f times the brightness it had. One xrandr
+# call per output: in one call, an output that lost its CRTC meanwhile
+# (unplugged, autorandr) aborts the rest, which would stay dim.
+set_factor() {
+    local f="$1" out r g b br
+    if [[ "$MODE" == nightlight ]]; then
+        mkdir -p "${DIM_FILE%/*}"
+        printf '%s %s\n' "$f" "$$" >"$DIM_FILE"
+        "$NIGHTLIGHT" apply >/dev/null 2>&1 || true
+        return 0
+    fi
+    while read -r out r g b br; do
+        [[ -n "$out" ]] || continue
+        xrandr --output "$out" --gamma "$r:$g:$b" \
+            --brightness "$(awk -v b="$br" -v f="$f" 'BEGIN { printf "%.3f", b * f }')" >/dev/null 2>&1 || true
+    done <<<"$SAVED"
+}
+
+restore() {
+    trap - EXIT
+    if [[ -n "${sleeper:-}" ]]; then kill "$sleeper" 2>/dev/null || true; fi
+    case "$MODE" in
+        nightlight)
+            rm -f "$DIM_FILE"
+            "$NIGHTLIGHT" apply >/dev/null 2>&1 || true
+            ;;
+        xrandr) set_factor 1 ;;
+    esac
+    rm -f "$MARKER"
+}
+
+if nightlight_active; then
+    MODE=nightlight
+    SAVED=""
+else
+    MODE=xrandr
+    SAVED="$(capture)"
+    # Nothing to dim (no xrandr, no screen that is on): wait to be killed.
+    [[ -n "$SAVED" ]] || MODE=none
+fi
+
+sleeper=""
+mkdir -p "${MARKER%/*}"
+printf '%s\n' "$$" >"$MARKER"
+trap restore EXIT
+trap 'exit 0' TERM INT HUP
+if [[ "$MODE" != none ]]; then
+    for ((i = 1; i <= FADE_STEPS; i++)); do
+        set_factor "$(awk -v d="$DIM_LEVEL" -v i="$i" -v n="$FADE_STEPS" 'BEGIN { printf "%.3f", 1 - (1 - d) * i / n }')"
+        sleep "$FADE_STEP_SECS"
+    done
+fi
+# Held until xss-lock kills it, or until xss-lock itself is gone (it died
+# with the session), so a dimmer never outlives it. `sleep & wait`: bash runs
+# the TERM trap only between commands, and a foreground sleep would delay
+# the restore.
+parent="$PPID"
+while kill -0 "$parent" 2>/dev/null; do
+    sleep 2 &
+    sleeper=$!
+    wait "$sleeper" || true
+done

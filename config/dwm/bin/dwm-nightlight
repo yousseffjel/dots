@@ -38,6 +38,10 @@ INTERVAL=60
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dots/nightlight"
 OFF_FLAG="$STATE_DIR/off"
 BRIGHTNESS_FILE="$STATE_DIR/brightness"
+# "<factor> <pid>", written by dwm-idle-dim while it fades the screen before
+# the idle lock; honoured only while that pid lives, so a dimmer that died
+# without cleaning up never leaves the screen dark.
+DIM_FILE="$STATE_DIR/dim"
 
 usage() {
     echo "usage: dwm-nightlight daemon|apply|toggle|status"
@@ -76,14 +80,29 @@ temperature() {
     fi
 }
 
+# The idle dimmer's factor (0.05-1.00), or 1 when no live dimmer asked.
+dim_factor() {
+    local factor="" pid=""
+    { read -r factor pid <"$DIM_FILE"; } 2>/dev/null || true
+    if [[ "$factor" =~ ^(0?\.[0-9]+|1(\.0+)?)$ && "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+        printf '%s' "$factor"
+        return 0
+    fi
+    # A dimmer that died without cleaning up: drop its file now, before its
+    # pid can be reused by something that would make it count again.
+    [[ -n "$factor" ]] && rm -f "$DIM_FILE"
+    printf '1'
+}
+
 # The stored brightness as a 0.10-1.00 fraction; 100% when nothing is stored.
+# Times the idle dimmer's factor while it runs (never below 0.05).
 brightness() {
     local pct
     pct="$(cat "$BRIGHTNESS_FILE" 2>/dev/null || true)"
     [[ "$pct" =~ ^[0-9]+$ ]] || pct=100
     ((pct < 10)) && pct=10
     ((pct > 100)) && pct=100
-    awk -v p="$pct" 'BEGIN { printf "%.2f", p / 100 }'
+    awk -v p="$pct" -v f="$(dim_factor)" 'BEGIN { b = p / 100 * f; if (b < 0.05) b = 0.05; printf "%.2f", b }'
 }
 
 apply() {
