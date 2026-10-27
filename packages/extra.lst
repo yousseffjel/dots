@@ -171,6 +171,9 @@ nsxiv
 neovim
 vim-huge
 tmux
+# The tmux-256color terminfo entry (tmux's default-terminal). Void's ncurses-base
+# lacks it; without it zsh inside tmux cannot clear a line and redraws leave junk.
+ncurses-term
 rust
 cargo
 python3-pip

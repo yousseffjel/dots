@@ -97,6 +97,12 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **Typing in tmux no longer leaves junk on screen.** tmux names its
+  terminal `tmux-256color`, and Void ships that terminfo entry in
+  `ncurses-term`, which was never installed. Without it the shell inside
+  tmux could not clear a line. `ncurses-term` is installed now, tmux falls
+  back to `screen-256color` until it is, and alacritty gets true colour
+  inside tmux.
 - **A region screenshot now catches open dropdowns and menus.** The region
   key moved from `Super` + `p` to `Super` + `a`, for one hand, and it no
   longer closes an open browser dropdown. Any grabbed hotkey took focus
