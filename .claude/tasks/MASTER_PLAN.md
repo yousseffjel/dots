@@ -89,7 +89,7 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
-- 2026-10-27 — **Scope K — integrated desktop** (Epic, all 7 slots; branch
+- 2026-10-27 — **Scope K — integrated desktop** (Epic, all 7 slots; ff `9d7a780`, branch
   `wip/scope-k-integrated-desktop`; scope file `scope-k-integrated-desktop.md`
   has the slot → commit table). Keyring unlocked at login, Qt themed from the
   wallpaper, XDG autostart, desktop sounds, dim before lock, a calendar under
