@@ -1,10 +1,12 @@
 # starship prompt for the dots desktop.
 #
 # Adopted verbatim from the user's own ~/.config/starship/starship.toml, with
-# the distro logo changed — see below. Deployed by scripts/symlinks.sh, which
-# links config/starship/ to ~/.config/starship/. starship's own default path is
-# the bare $XDG_CONFIG_HOME/starship.toml and symlinks.sh links directories,
-# not files, so conf.d/99-prompt.zsh has to set $STARSHIP_CONFIG either way.
+# the distro logo changed: the first glyph of `format` is Void's mark
+# (nf-linux-void, U+F32E; Fedora's U+F30A until 2026-10-27). Deployed by
+# scripts/symlinks.sh, which links config/starship/ to ~/.config/starship/.
+# starship's own default path is the bare $XDG_CONFIG_HOME/starship.toml and
+# symlinks.sh links directories, not files, so conf.d/99-prompt.zsh has to set
+# $STARSHIP_CONFIG either way.
 #
 # REQUIRES A NERD FONT. The glyphs below (distro mark, git branch, per-language
 # symbols) come from Cascadia Code NF, vendored in assets/fonts/. Without it
@@ -36,7 +38,7 @@
 # "$schema" = 'https://starship.rs/config-schema.json'
 add_newline = false
 format = """\
-   \
+   \
   $directory\
   $git_branch$git_commit$git_state $git_status\
   $character\n
