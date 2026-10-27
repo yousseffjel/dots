@@ -64,11 +64,23 @@ terminfo() {
             | tic -x -o "$dir" - 2>/dev/null
     done
 }
+# The config asks `infocmp tmux-256color`. ncurses searches the system
+# terminfo dirs even with TERMINFO and TERMINFO_DIRS set, and Debian/Ubuntu
+# ship tmux-256color in ncurses-base, so on CI's runner the real infocmp found
+# it in the "without" case. This one answers from $TERMINFO alone.
+mkdir -p "$TMP/bin"
+cat >"$TMP/bin/infocmp" <<'EOF'
+#!/bin/sh
+for a; do name="$a"; done
+[ -n "$(find "$TERMINFO" -type f -name "$name" 2>/dev/null)" ]
+EOF
+chmod 755 "$TMP/bin/infocmp"
+
 # tmx <terminfo dir> <tmux command>... — one run of the config in a fresh server.
 tmx() {
     local dir="$1"
     shift
-    env -i PATH="$PATH" HOME="$TMP" TMUX_TMPDIR="$TMP" TERMINFO="$dir" TERMINFO_DIRS="$dir" \
+    env -i PATH="$TMP/bin:$PATH" HOME="$TMP" TMUX_TMPDIR="$TMP" TERMINFO="$dir" TERMINFO_DIRS="$dir" \
         tmux -L termtest -f "$CONF" new-session -d -s t \; "$@" \; kill-server
 }
 

@@ -14,7 +14,7 @@
 #
 # HOW. Fakes in a temp dir: each program the stops name is started as what
 # it is — a script for the names in ENV_SCRIPTS, a binary (a renamed copy
-# of sleep) for the rest. Each stop line then runs with pkill replaced by
+# of bash) for the rest. Each stop line then runs with pkill replaced by
 # pgrep and must list its fake's pid. Nothing is ever killed by pattern:
 # pkill -u "$(id -u)" -x dwmblocks here would stop the bar of the session
 # this runs in.
@@ -73,13 +73,17 @@ start() {
     if [[ $kind == script ]]; then
         printf '#!/usr/bin/env bash\nsleep 300\n' >"$SB/bin/$name"
     else
-        cp "$(command -v sleep)" "$SB/bin/$name"
+        # A renamed bash, not a renamed sleep: on Ubuntu 26 (CI's runner)
+        # sleep is uutils' multi-call binary, which reads its job from its
+        # own name and exits at once as anything else. `; :` keeps bash
+        # from exec'ing sleep in its place, so the process keeps the name.
+        cp "$(command -v bash)" "$SB/bin/$name"
     fi
     chmod 755 "$SB/bin/$name"
     if [[ $kind == script ]]; then
         PATH="$SB/bin:$PATH" setsid "$name" "${@:2}" </dev/null >/dev/null 2>&1 &
     else
-        PATH="$SB/bin:$PATH" setsid "$name" 300 </dev/null >/dev/null 2>&1 &
+        PATH="$SB/bin:$PATH" setsid "$name" -c 'sleep 300; :' </dev/null >/dev/null 2>&1 &
     fi
     echo "$!" >>"$SB/pids"
     echo "$!"
