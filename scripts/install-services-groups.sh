@@ -11,13 +11,17 @@
 #   bluetooth  bluez's D-Bus policy grants this group the adapter (blueman);
 #              bluez creates the group, so it exists only once bluez is in.
 #   kvm        libvirt/QEMU guests; harmless on a box without them.
+#   video      brightnessctl's udev rule grants this group the backlight
+#              (dwm-brightness on a laptop). Void's own installer adds it,
+#              but install-live.sh's useradd did not, so the brightness keys
+#              failed with "Permission denied" (2026-10-27).
 # wheel is NOT here: it is the precondition for sudo, checked by
 # install-pre.sh before anything runs.
 #
 # Never reverted, so no manifest row: taking `network` away can lock a user
 # out of their own network settings (docs/UNINSTALL.md, "What's kept").
 
-USER_GROUPS=(network bluetooth kvm)
+USER_GROUPS=(network bluetooth kvm video)
 
 # groups_add <user> — add the user to every USER_GROUPS group that exists and
 # they are not in yet, in one usermod. Idempotent: a re-run adds nothing.

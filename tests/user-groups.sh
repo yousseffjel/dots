@@ -29,7 +29,7 @@ export LOG="$SB/calls.log"
 seal_path "$SB/bin" bash grep sed tr cat rm
 # shellcheck disable=SC2016 # the bodies expand when the fakes run
 {
-    fake "$SB/bin" id '[[ "$1" == -nG ]] && echo "${FAKE_GROUPS:-ysf wheel audio video}"'
+    fake "$SB/bin" id '[[ "$1" == -nG ]] && echo "${FAKE_GROUPS:-ysf wheel}"'
     fake "$SB/bin" getent '[[ "$1" == group ]] || exit 2
 [[ " ${FAKE_NOGROUP:-} " == *" $2 "* ]] && exit 2; echo "$2:x:1:"'
     fake "$SB/bin" usermod 'echo "usermod $*" >>"$LOG"; [[ -z "${FAKE_FAIL:-}" ]]'
@@ -60,35 +60,35 @@ run() {
     groups_add ysf >"$SB/out" 2>&1
 }
 
-printf '\033[34m%s\033[0m\n' "==> a fresh user (installer defaults)"
+printf '\033[34m%s\033[0m\n' "==> a fresh user (install-live.sh: wheel only)"
 run
-check "one usermod for all three" test "$(cat "$LOG")" = "usermod -aG network,bluetooth,kvm ysf"
+check "one usermod for all four" test "$(cat "$LOG")" = "usermod -aG network,bluetooth,kvm,video ysf"
 check "re-login reminder" said "log out and back in"
 
 printf '\033[34m%s\033[0m\n' "==> already in some"
-FAKE_GROUPS="ysf wheel network kvm" run
+FAKE_GROUPS="ysf wheel network kvm video" run
 check "only the missing one" test "$(cat "$LOG")" = "usermod -aG bluetooth ysf"
 
 printf '\033[34m%s\033[0m\n' "==> already in all"
-FAKE_GROUPS="ysf wheel network bluetooth kvm" run
+FAKE_GROUPS="ysf wheel network bluetooth kvm video" run
 check "no usermod" test ! -s "$LOG"
 check "no reminder" not_said "log out and back in"
 
 printf '\033[34m%s\033[0m\n' "==> bluez not installed: no bluetooth group"
 FAKE_NOGROUP=bluetooth run
 check "skipped with a reason" said "skip    group bluetooth does not exist"
-check "never passed to usermod" test "$(cat "$LOG")" = "usermod -aG network,kvm ysf"
+check "never passed to usermod" test "$(cat "$LOG")" = "usermod -aG network,kvm,video ysf"
 
 printf '\033[34m%s\033[0m\n' "==> usermod fails"
 rc=0
 FAKE_FAIL=1 run || rc=$?
 check "not fatal" test "$rc" -eq 0
-check "says what to run" said "run:  sudo usermod -aG network,bluetooth,kvm ysf"
+check "says what to run" said "run:  sudo usermod -aG network,bluetooth,kvm,video ysf"
 
 printf '\033[34m%s\033[0m\n' "==> --dry-run"
 DRY_RUN=1 run
 check "no usermod" test ! -s "$LOG"
-check "says what it would run" said "(dry-run) would run: usermod -aG network,bluetooth,kvm ysf"
+check "says what it would run" said "(dry-run) would run: usermod -aG network,bluetooth,kvm,video ysf"
 
 if [[ $FAILS -eq 0 ]]; then
     printf '\033[32m%s\033[0m\n' "✓ user groups: added once, together, never fatal"

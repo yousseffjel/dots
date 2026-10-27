@@ -170,9 +170,9 @@ check "a disabled service fails" row fail install service-ly
 check "...saying the login screen will not start" grep -q "login screen will not start" <<<"$(detail service-ly)"
 tsv
 check "every D4 group: ok" row ok install group-network
-FAKE_DB_GROUPS="probe wheel bluetooth kvm" tsv
+FAKE_DB_GROUPS="probe wheel bluetooth kvm video" tsv
 check "not in network: warns, naming the fix" grep -q -- '--only-services' <<<"$(detail group-network)"
-FAKE_DB_GROUPS="probe wheel network bluetooth kvm" FAKE_SESSION_GROUPS="probe wheel" tsv
+FAKE_DB_GROUPS="probe wheel network bluetooth kvm video" FAKE_SESSION_GROUPS="probe wheel" tsv
 check "added but not logged in again: says so" grep -q 'log out and back in' <<<"$(detail group-kvm)"
 FAKE_NOGROUP=bluetooth tsv
 check "bluez not installed: the bluetooth group skips" row skip install group-bluetooth

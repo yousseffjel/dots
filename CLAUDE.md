@@ -138,7 +138,7 @@ dots/
 │   ├── install-services.sh     # stage: login shell to zsh (sudo usermod) + runit services + groups + ly on tty2
 │   ├── install-services-runit.sh # sourced: SERVICE/SERVICEOFF rows; dbus, elogind, NetworkManager, bluetoothd
 │   │                             # (dhcpcd/wpa_supplicant off only once NM is enabled); tty2's getty handed to ly
-│   ├── install-services-groups.sh # sourced: usermod -aG network,bluetooth,kvm (D4; never reverted)
+│   ├── install-services-groups.sh # sourced: usermod -aG network,bluetooth,kvm,video (D4; never reverted)
 │   ├── install-services-ly.sh  # sourced: ly v1.4.1 built from source — pinned commit, vendored deps, zig 0.16.0
 │   │                           # tarball by sha256 (tests/ly-pins.sh); LYBUILD ly <path> rows; uninstall-runit.sh reverts
 │   ├── install-services-ly-place.sh # sourced by it: placing (copy + rename, so a running ly never blocks it),
