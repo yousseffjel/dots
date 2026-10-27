@@ -8,8 +8,9 @@
 #              device answers. Only a laptop has one, and only a laptop gets
 #              brightnessctl (packages/laptop.lst, installed by dots drivers).
 #              Void builds it without logind: it writes /sys through the
-#              udev rule it ships, which grants the `video` group (a Void
-#              installer default). This dims the lamp.
+#              udev rule it ships, which grants the `video` group (the
+#              services stage adds; install-services-groups.sh). This dims
+#              the lamp.
 #   gamma      xrandr --brightness, everywhere else. A desktop GPU exposes no
 #              backlight, so this scales the output signal instead: the panel
 #              keeps drawing full power and the image gets darker (scope-b

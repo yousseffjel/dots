@@ -276,6 +276,12 @@ static void scratchpad_remove(const Arg *arg);
 static void scratchpad_show(const Arg *arg);
 static int sendevent(Window w, Atom proto, int m, long d0, long d1, long d2, long d3, long d4);
 static void sendmon(Client *c, Monitor *m);
+static int claimclients(void);
+static Monitor *tagowner(unsigned int want, Client *skip);
+static unsigned int freetag(Monitor *skip);
+static void movemon(Client *c, Monitor *m);
+static void settletags(void);
+static int sharetags(unsigned int oldtags);
 static void setclientstate(Client *c, long state);
 static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
@@ -390,13 +396,25 @@ static XrmDatabase xrdb = NULL;
 
 struct Pertag {
 	unsigned int curtag, prevtag; /* current and previous tag */
+	unsigned int restoredprevset; /* preservepertag: saved other tagset, 0 = none */
+};
+
+/* sharetags: every monitor views the same nine tags, so a tag's layout,
+ * mfact, nmaster and bar belong to the tag and follow it to whichever
+ * monitor shows it. Kept once, not per monitor as pertag had them; only
+ * curtag and prevtag (a monitor's own history) stay in Pertag. */
+static struct {
 	int nmasters[LENGTH(tags) + 1]; /* number of windows in master area */
 	float mfacts[LENGTH(tags) + 1]; /* mfacts per tag */
 	unsigned int sellts[LENGTH(tags) + 1]; /* selected layouts */
 	const Layout *ltidxs[LENGTH(tags) + 1][2]; /* matrix of tags and layouts indexes  */
 	int showbars[LENGTH(tags) + 1]; /* display bar for the current tag */
-	unsigned int restoredprevset; /* preservepertag: saved other tagset, 0 = none */
-};
+	int set; /* filled in by the first createmon() */
+} tagprefs;
+
+/* sharetags: set while views or windows must not be settled yet — during
+ * the startup scan and restore, and inside sharetags() itself. */
+static int sharelock;
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 /* 30, not 31: SCRATCHPAD_MASK claims the bit just above the real tags. */
@@ -616,8 +634,11 @@ buttonpress(XEvent *e)
 	if (ev->window == selmon->barwin) {
 		i = x = 0;
 		unsigned int occ = 0;
-		for(c = m->clients; c; c=c->next)
-			occ |= c->tags == TAGMASK ? 0 : c->tags;
+		Monitor *o;
+		/* sharetags: the same occupancy drawbar() draws. */
+		for (o = mons; o; o = o->next)
+			for (c = o->clients; c; c = c->next)
+				occ |= c->tags == TAGMASK ? 0 : c->tags;
 		do {
 			/* Do not reserve space for vacant tags */
 			if (!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
@@ -838,6 +859,8 @@ configurenotify(XEvent *e)
 			drw_resize(drw, sw, bh);
 			updatebars();
 			restorehomes();
+			/* sharetags: a new monitor's free tag brings its windows. */
+			claimclients();
 			for (m = mons; m; m = m->next) {
 				for (c = m->clients; c; c = c->next)
 					if (c->isfullscreen)
@@ -909,7 +932,8 @@ createmon(void)
 	unsigned int i;
 
 	m = ecalloc(1, sizeof(Monitor));
-	m->tagset[0] = m->tagset[1] = 1;
+	/* sharetags: a new monitor shows the first tag no other one shows. */
+	m->tagset[0] = m->tagset[1] = freetag(NULL) ? freetag(NULL) : 1;
 	m->mfact = mfact;
 	m->nmaster = nmaster;
 	m->showbar = showbar;
@@ -918,19 +942,34 @@ createmon(void)
 	m->lt[1] = &layouts[1 % LENGTH(layouts)];
 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
 	m->pertag = ecalloc(1, sizeof(Pertag));
-	m->pertag->curtag = m->pertag->prevtag = 1;
+	for (i = 0; !(m->tagset[0] & 1 << i); i++);
+	m->pertag->curtag = m->pertag->prevtag = i + 1;
 	m->fresh = 1;
 
-	for (i = 0; i <= LENGTH(tags); i++) {
-		m->pertag->nmasters[i] = m->nmaster;
-		m->pertag->mfacts[i] = m->mfact;
+	/* sharetags: the shared per-tag table is filled once; a monitor
+	 * plugged in later must not reset the layouts every tag carries, and
+	 * takes on its own tag's instead. */
+	if (!tagprefs.set) {
+		tagprefs.set = 1;
+		for (i = 0; i <= LENGTH(tags); i++) {
+			tagprefs.nmasters[i] = m->nmaster;
+			tagprefs.mfacts[i] = m->mfact;
 
-		m->pertag->ltidxs[i][0] = m->lt[0];
-		m->pertag->ltidxs[i][1] = m->lt[1];
-		m->pertag->sellts[i] = m->sellt;
+			tagprefs.ltidxs[i][0] = m->lt[0];
+			tagprefs.ltidxs[i][1] = m->lt[1];
+			tagprefs.sellts[i] = m->sellt;
 
-		m->pertag->showbars[i] = m->showbar;
+			tagprefs.showbars[i] = m->showbar;
+		}
 	}
+	i = m->pertag->curtag;
+	m->nmaster = tagprefs.nmasters[i];
+	m->mfact = tagprefs.mfacts[i];
+	m->sellt = tagprefs.sellts[i];
+	m->lt[m->sellt] = tagprefs.ltidxs[i][m->sellt];
+	m->lt[m->sellt ^ 1] = tagprefs.ltidxs[i][m->sellt ^ 1];
+	m->showbar = tagprefs.showbars[i];
+	strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, sizeof m->ltsymbol);
 
 	return m;
 }
@@ -1041,7 +1080,7 @@ dragtile(Client *c)
 			/* the split exists only with both columns on screen */
 			if (m->nmaster && nt > m->nmaster) {
 				f = omfact + (float)(ev.xmotion.x - ox) / m->ww;
-				m->mfact = m->pertag->mfacts[m->pertag->curtag] = MAX(0.05, MIN(f, 0.95));
+				m->mfact = tagprefs.mfacts[m->pertag->curtag] = MAX(0.05, MIN(f, 0.95));
 			}
 			/* the pair keeps its height hp and its cfact sum */
 			if (nb) {
@@ -1246,6 +1285,7 @@ drawbar(Monitor *m)
 	int boxw = drw->fonts->h / 6 + 2;
 	unsigned int i, occ = 0, urg = 0;
 	Client *c;
+	Monitor *o;
 
 	if (!m->showbar)
 		return;
@@ -1259,11 +1299,13 @@ drawbar(Monitor *m)
 	tw = statusw = m->ww - drawstatusbar(m, bh, stext);
 
 	resizebarwin(m);
-	for (c = m->clients; c; c = c->next) {
-		occ |= c->tags == TAGMASK ? 0 : c->tags;
-		if (c->isurgent)
-			urg |= c->tags;
-	}
+	/* sharetags: a tag is occupied wherever its windows are. */
+	for (o = mons; o; o = o->next)
+		for (c = o->clients; c; c = c->next) {
+			occ |= c->tags == TAGMASK ? 0 : c->tags;
+			if (c->isurgent)
+				urg |= c->tags;
+		}
 	x = 0;
 	for (i = 0; i < LENGTH(tags); i++) {
 		/* Do not draw vacant tags */
@@ -1577,7 +1619,7 @@ grabkeys(void)
 void
 incnmaster(const Arg *arg)
 {
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
+	selmon->nmaster = tagprefs.nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
 	arrange(selmon);
 }
 
@@ -1742,6 +1784,8 @@ manage(Window w, XWindowAttributes *wa)
 		XRaiseWindow(dpy, c->win);
 	attach(c);
 	attachstack(c);
+	/* sharetags: a rule's tag shown on another monitor opens it there. */
+	claimclients();
 	XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
 		(unsigned char *) &(c->win), 1);
 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
@@ -2392,12 +2436,12 @@ loadpertag(void)
 			|| (e[2] != 0 && e[2] != 1) || e[3] < 0 || e[3] >= (long)LENGTH(layouts)
 			|| e[4] < 0 || e[4] >= (long)LENGTH(layouts) || (e[5] != 0 && e[5] != 1))
 				continue;
-			m->pertag->nmasters[t] = e[0];
-			m->pertag->mfacts[t] = e[1] / 1000.0;
-			m->pertag->sellts[t] = e[2];
-			m->pertag->ltidxs[t][0] = &layouts[e[3]];
-			m->pertag->ltidxs[t][1] = &layouts[e[4]];
-			m->pertag->showbars[t] = e[5];
+			tagprefs.nmasters[t] = e[0];
+			tagprefs.mfacts[t] = e[1] / 1000.0;
+			tagprefs.sellts[t] = e[2];
+			tagprefs.ltidxs[t][0] = &layouts[e[3]];
+			tagprefs.ltidxs[t][1] = &layouts[e[4]];
+			tagprefs.showbars[t] = e[5];
 		}
 		m->pertag->restoredprevset = d[base + 1];
 		applycurtag(m);
@@ -2413,17 +2457,17 @@ applycurtag(Monitor *m)
 	unsigned int ct = m->pertag->curtag;
 	Monitor *prev = selmon;
 
-	m->nmaster = m->pertag->nmasters[ct];
-	m->mfact = m->pertag->mfacts[ct];
-	m->sellt = m->pertag->sellts[ct];
-	m->lt[m->sellt] = m->pertag->ltidxs[ct][m->sellt];
-	m->lt[m->sellt ^ 1] = m->pertag->ltidxs[ct][m->sellt ^ 1];
-	if (m->showbar != m->pertag->showbars[ct]) {
+	m->nmaster = tagprefs.nmasters[ct];
+	m->mfact = tagprefs.mfacts[ct];
+	m->sellt = tagprefs.sellts[ct];
+	m->lt[m->sellt] = tagprefs.ltidxs[ct][m->sellt];
+	m->lt[m->sellt ^ 1] = tagprefs.ltidxs[ct][m->sellt ^ 1];
+	if (m->showbar != tagprefs.showbars[ct]) {
 		/* togglebar() is the one place that moves the bar and the systray;
 		 * it flips showbar and the pertag entry together, so it lands on
 		 * the saved value. */
 		selmon = m;
-		m->pertag->showbars[ct] = m->showbar;
+		tagprefs.showbars[ct] = m->showbar;
 		togglebar(NULL);
 		selmon = prev;
 	}
@@ -2616,12 +2660,12 @@ savepertag(void)
 		 * slot that is not showing is what makes it come back. */
 		v[i++] = m->tagset[m->seltags ^ 1];
 		for (t = 0; t < nt; t++) {
-			v[i++] = m->pertag->nmasters[t];
-			v[i++] = (long)(m->pertag->mfacts[t] * 1000 + 0.5);
-			v[i++] = m->pertag->sellts[t];
-			v[i++] = layoutindex(m->pertag->ltidxs[t][0]);
-			v[i++] = layoutindex(m->pertag->ltidxs[t][1]);
-			v[i++] = m->pertag->showbars[t];
+			v[i++] = tagprefs.nmasters[t];
+			v[i++] = (long)(tagprefs.mfacts[t] * 1000 + 0.5);
+			v[i++] = tagprefs.sellts[t];
+			v[i++] = layoutindex(tagprefs.ltidxs[t][0]);
+			v[i++] = layoutindex(tagprefs.ltidxs[t][1]);
+			v[i++] = tagprefs.showbars[t];
 		}
 	}
 	XChangeProperty(dpy, root, dwmatom[DwmPertag], XA_CARDINAL, 32,
@@ -2782,6 +2826,171 @@ scratchpad_show(const Arg *arg)
 		XRaiseWindow(dpy, sp[i]->win);
 	restack(selmon);
 	free(sp);
+}
+
+/* sharetags: the tags every monitor but skip shows. */
+static unsigned int
+usedtags(Monitor *skip)
+{
+	Monitor *m;
+	unsigned int used = 0;
+
+	for (m = mons; m; m = m->next)
+		if (m != skip)
+			used |= m->tagset[m->seltags];
+	return used;
+}
+
+/* sharetags: the lowest tag no monitor but skip shows, 0 when none is left. */
+unsigned int
+freetag(Monitor *skip)
+{
+	unsigned int i, used = usedtags(skip);
+
+	for (i = 0; i < LENGTH(tags); i++)
+		if (!(used & 1 << i))
+			return 1 << i;
+	return 0;
+}
+
+/* sharetags: the monitor a tag belongs to — the one showing it, else the
+ * one holding its windows (selmon first), as Hyprland binds a workspace to
+ * the monitor it was opened on. NULL for an empty tag nobody shows. skip is
+ * left out of the count: the window being tagged. */
+Monitor *
+tagowner(unsigned int want, Client *skip)
+{
+	Monitor *m, *held = NULL;
+	Client *c;
+
+	want &= TAGMASK;
+	for (m = mons; m; m = m->next)
+		if (m->tagset[m->seltags] & want)
+			return m;
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = c->next)
+			if (c != skip && c->tags != TAGMASK && c->tags & want
+			&& (!held || m == selmon))
+				held = m;
+	return held;
+}
+
+/* sharetags: c to monitor m, keeping its tags. A floating window keeps its
+ * offset from the monitor's corner, pulled inside if m is smaller; a
+ * fullscreen one fills m. Unlike sendmon(), a replug home is kept: the
+ * window followed its tag, it was not moved by hand. */
+void
+movemon(Client *c, Monitor *m)
+{
+	Monitor *from = c->mon;
+
+	if (from == m)
+		return;
+	if (c == selmon->sel)
+		unfocus(c, 1);
+	detach(c);
+	detachstack(c);
+	c->mon = m;
+	if (c->isfloating) {
+		c->x = MIN(m->mx + (c->x - from->mx), m->mx + m->mw - WIDTH(c));
+		c->y = MIN(m->my + (c->y - from->my), m->my + m->mh - HEIGHT(c));
+		c->x = MAX(c->x, m->mx);
+		c->y = MAX(c->y, m->my);
+	}
+	attach(c);
+	attachstack(c);
+	if (c->isfullscreen)
+		resizeclient(c, m->mx, m->my, m->mw, m->mh);
+}
+
+/* sharetags: a window lives on the monitor that shows one of its tags. Each
+ * window hidden where it is, whose tag another monitor shows, moves there.
+ * One hidden everywhere stays put (stashed scratchpads among them: their
+ * bit is outside TAGMASK). Returns whether any window moved. */
+int
+claimclients(void)
+{
+	Monitor *m, *t;
+	Client *c, *next;
+	int moved = 0;
+
+	if (sharelock)
+		return 0;
+	for (m = mons; m; m = m->next)
+		for (c = m->clients; c; c = next) {
+			next = c->next;
+			if (ISVISIBLE(c))
+				continue;
+			for (t = mons; t && !(t->tagset[t->seltags] & c->tags & TAGMASK); t = t->next);
+			if (!t)
+				continue;
+			movemon(c, t);
+			moved = 1;
+		}
+	return moved;
+}
+
+/* sharetags: selmon has just changed its view from oldtags. A monitor that
+ * showed any of its new tags gives them up: it keeps what is left, or else
+ * goes back to its own previous view (its Mod+Tab), or else takes selmon's
+ * old view (the two screens swap), or else the first free tag — whichever
+ * no other monitor shows. With no tag free (Mod+0 views them all) it keeps
+ * its view. Then the windows follow their tags. Returns whether anything
+ * else changed. */
+int
+sharetags(unsigned int oldtags)
+{
+	Monitor *m, *prev = selmon;
+	unsigned int newtags = selmon->tagset[selmon->seltags], t;
+	int changed = 0;
+
+	if (sharelock)
+		return 0;
+	sharelock = 1;
+	for (m = mons; m; m = m->next) {
+		if (m == prev || !(m->tagset[m->seltags] & newtags))
+			continue;
+		t = m->tagset[m->seltags] & ~newtags;
+		if (!t && !(m->tagset[m->seltags ^ 1] & usedtags(m)))
+			t = m->tagset[m->seltags ^ 1];
+		if (!t)
+			t = oldtags & ~usedtags(m);
+		if (!t)
+			t = freetag(m);
+		if (!t)
+			continue;
+		selmon = m;
+		view(&(Arg){ .ui = t });
+		changed = 1;
+	}
+	selmon = prev;
+	sharelock = 0;
+	return claimclients() || changed;
+}
+
+/* sharetags: after the startup scan and restore, which ran with sharing
+ * held off. An older instance (or a monitor the restore could not match)
+ * can leave two monitors on one tag: each later one moves to a free tag.
+ * Then the windows follow their tags. */
+void
+settletags(void)
+{
+	Monitor *m, *prev = selmon;
+	unsigned int t, before = 0;
+
+	sharelock = 1;
+	for (m = mons; m; m = m->next) {
+		if (m->tagset[m->seltags] & before && (t = freetag(m))) {
+			selmon = m;
+			view(&(Arg){ .ui = t });
+		}
+		before |= m->tagset[m->seltags];
+	}
+	selmon = prev;
+	sharelock = 0;
+	claimclients();
+	focus(NULL);
+	arrange(NULL);
 }
 
 /* replug: dwm reuses Monitor structs by index and drops the LAST one when a
@@ -2961,9 +3170,9 @@ void
 setlayout(const Arg *arg)
 {
 	if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
-		selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag] ^= 1;
+		selmon->sellt = tagprefs.sellts[selmon->pertag->curtag] ^= 1;
 	if (arg && arg->v)
-		selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] = (Layout *)arg->v;
+		selmon->lt[selmon->sellt] = tagprefs.ltidxs[selmon->pertag->curtag][selmon->sellt] = (Layout *)arg->v;
 	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
 	if (selmon->sel)
 		arrange(selmon);
@@ -3006,7 +3215,7 @@ setmfact(const Arg *arg)
 	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
 	if (f < 0.05 || f > 0.95)
 		return;
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag] = f;
+	selmon->mfact = tagprefs.mfacts[selmon->pertag->curtag] = f;
 	arrange(selmon);
 }
 
@@ -3244,8 +3453,16 @@ void
 tag(const Arg *arg)
 {
 	if (selmon->sel && arg->ui & TAGMASK) {
+		Monitor *m;
+
 		selmon->sel->tags = arg->ui & TAGMASK;
 		scratchpad_leave(selmon->sel);
+		/* sharetags: to a tag that belongs to another monitor (shown there,
+		 * or holding its windows), the window goes there. */
+		if ((m = tagowner(arg->ui, selmon->sel)) && m != selmon) {
+			movemon(selmon->sel, m);
+			arrange(NULL);
+		}
 		focus(NULL);
 		arrange(selmon);
 	}
@@ -3298,7 +3515,7 @@ tile(Monitor *m)
 void
 togglebar(const Arg *arg)
 {
-	selmon->showbar = selmon->pertag->showbars[selmon->pertag->curtag] = !selmon->showbar;
+	selmon->showbar = tagprefs.showbars[selmon->pertag->curtag] = !selmon->showbar;
 	updatebarpos(selmon);
 	resizebarwin(selmon);
 	if (showsystray) {
@@ -3347,6 +3564,8 @@ toggletag(const Arg *arg)
 	if (newtags) {
 		selmon->sel->tags = newtags;
 		scratchpad_leave(selmon->sel);
+		if (claimclients())
+			arrange(NULL);
 		focus(NULL);
 		arrange(selmon);
 	}
@@ -3355,7 +3574,8 @@ toggletag(const Arg *arg)
 void
 toggleview(const Arg *arg)
 {
-	unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
+	unsigned int oldtags = selmon->tagset[selmon->seltags];
+	unsigned int newtagset = oldtags ^ (arg->ui & TAGMASK);
 	int i;
 
 	if (newtagset) {
@@ -3378,15 +3598,17 @@ toggleview(const Arg *arg)
 		}
 
 		/* apply settings for this view */
-		selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-		selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
-		selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-		selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-		selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
+		selmon->nmaster = tagprefs.nmasters[selmon->pertag->curtag];
+		selmon->mfact = tagprefs.mfacts[selmon->pertag->curtag];
+		selmon->sellt = tagprefs.sellts[selmon->pertag->curtag];
+		selmon->lt[selmon->sellt] = tagprefs.ltidxs[selmon->pertag->curtag][selmon->sellt];
+		selmon->lt[selmon->sellt^1] = tagprefs.ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
-		if (selmon->showbar != selmon->pertag->showbars[selmon->pertag->curtag])
+		if (selmon->showbar != tagprefs.showbars[selmon->pertag->curtag])
 			togglebar(NULL);
 
+		if (sharetags(oldtags))
+			arrange(NULL);
 		focus(NULL);
 		arrange(selmon);
 	}
@@ -3819,10 +4041,28 @@ void
 view(const Arg *arg)
 {
 	int i;
-	unsigned int tmptag;
+	unsigned int tmptag, oldtags = selmon->tagset[selmon->seltags];
+	Monitor *m;
 
 	if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
 		return;
+	/* sharetags: a tag that belongs to another monitor is viewed THERE, and
+	 * focus and the pointer go with it. Mod+0 (all tags) stays here. */
+	if (!sharelock && (arg->ui & TAGMASK) != TAGMASK
+	&& (m = tagowner(arg->ui, NULL)) && m != selmon) {
+		unfocus(selmon->sel, 0);
+		selmon = m;
+		if ((arg->ui & TAGMASK) != m->tagset[m->seltags])
+			view(arg);
+		else
+			focus(NULL);
+		if (m->sel)
+			XWarpPointer(dpy, None, root, 0, 0, 0, 0,
+				m->sel->x + WIDTH(m->sel) / 2, m->sel->y + HEIGHT(m->sel) / 2);
+		else
+			XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->wx + m->ww / 2, m->wy + m->wh / 2);
+		return;
+	}
 	selmon->seltags ^= 1; /* toggle sel tagset */
 	if (arg->ui & TAGMASK) {
 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
@@ -3840,15 +4080,17 @@ view(const Arg *arg)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
-	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
+	selmon->nmaster = tagprefs.nmasters[selmon->pertag->curtag];
+	selmon->mfact = tagprefs.mfacts[selmon->pertag->curtag];
+	selmon->sellt = tagprefs.sellts[selmon->pertag->curtag];
+	selmon->lt[selmon->sellt] = tagprefs.ltidxs[selmon->pertag->curtag][selmon->sellt];
+	selmon->lt[selmon->sellt^1] = tagprefs.ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
-	if (selmon->showbar != selmon->pertag->showbars[selmon->pertag->curtag])
+	if (selmon->showbar != tagprefs.showbars[selmon->pertag->curtag])
 		togglebar(NULL);
 
+	if (sharetags(oldtags))
+		arrange(NULL);
 	focus(NULL);
 	arrange(selmon);
 }
@@ -4017,8 +4259,11 @@ main(int argc, char *argv[])
 	if (pledge("stdio rpath proc exec", NULL) == -1)
 		die("pledge");
 #endif /* __OpenBSD__ */
+	/* sharetags: views and windows settle once both are restored. */
+	sharelock = 1;
 	scan();
 	restorestate();
+	settletags();
 	runautostart();
 	run();
 	if(restart) {

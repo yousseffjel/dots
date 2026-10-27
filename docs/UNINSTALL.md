@@ -158,7 +158,7 @@ partial uninstall is a normal, supported outcome, not an error.
 
 ## What's kept, always
 
-- Your group memberships (`network`, `bluetooth`, `kvm`, added by the
+- Your group memberships (`network`, `bluetooth`, `kvm`, `video`, added by the
   services stage). Taking `network` away could lock you out of your own
   network settings, so it is never reverted.
 - Anything in the manifest's config target that isn't currently *this

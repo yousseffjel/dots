@@ -66,7 +66,7 @@ esac'
         # id: the group database (-nG <user>) and this session's groups (-nG)
         # differ when a group was added after login (FAKE_DB_GROUPS /
         # FAKE_SESSION_GROUPS).
-        fake "$BIN" id 'all="probe wheel network bluetooth kvm"
+        fake "$BIN" id 'all="probe wheel network bluetooth kvm video"
 case "$*" in
 -un) [[ -n "${FAKE_NOID:-}" ]] || echo probe ;;
 -u) echo 1000 ;;

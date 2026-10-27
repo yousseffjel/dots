@@ -36,7 +36,9 @@ check_multimon_scratchpad() {
     # the right is above anything tiled on the left. A scratchpad stashed from
     # the left and shown on the right sat under the right's tiled windows until
     # Super+s raised it: arrange(NULL) alone never restacks.
-    xdotool mousemove 300 500 sleep 0.3 key super+9 sleep 0.3
+    # Tag 8, not 9: the right shows 9, and Super+9 here would go there
+    # (sharetags).
+    xdotool mousemove 300 500 sleep 0.3 key super+8 sleep 0.3
     wp="$(spawn_win)"
     xdotool key super+shift+s sleep 0.3 mousemove 2500 500 sleep 0.3
     wt="$(spawn_win)"
