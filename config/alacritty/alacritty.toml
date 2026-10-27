@@ -107,4 +107,8 @@ hide_when_typing = true
 [keyboard]
 bindings = [
   { key = "A", mods = "Super", action = "None" },
+  # Shift+Enter sends ESC+CR, so a TUI can tell it from Enter (a newline
+  # without submitting, in Claude Code). Was appended as a separate
+  # [[keyboard.bindings]] table, which TOML rejects next to this array.
+  { key = "Return", mods = "Shift", chars = "\u001B\r" },
 ]

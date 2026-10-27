@@ -18,6 +18,14 @@ export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 
+# alacritty (winit) scales each monitor by the physical size its EDID claims,
+# and docks and HDMI adapters often claim nonsense: two 1080p screens behind a
+# USB-C dock reported 160x90mm, so alacritty drew text ~3.2x there against
+# ~1.7x on the laptop panel. One fixed factor everywhere instead, 1.3 by
+# user choice (1.7 was too big). dwm, st and dmenu are unaffected
+# (Xft, no per-monitor scale). A value already in the environment wins.
+export WINIT_X11_SCALE_FACTOR="${WINIT_X11_SCALE_FACTOR:-1.3}"
+
 # PATH must be set here rather than in conf.d, because dwm's autostart and
 # the theming engine invoke config/dwm/bin/* from non-interactive contexts.
 # typeset -U keeps entries unique if this file is sourced more than once.
