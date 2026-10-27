@@ -161,7 +161,9 @@ if [[ -z "$res" ]]; then
 elif [[ -z "$lib" ]]; then
     yellow "  skip: no libgtk-3 on this host to look $res up in"
 elif command -v gresource >/dev/null 2>&1; then
-    if gresource list "$lib" | grep -qxF "$res"; then ok "gresource lists $res"; else bad "$res is not in $lib"; fi
+    # Not grep -q: it exits at the first match, gresource dies of SIGPIPE
+    # writing the rest, and pipefail turns that into a miss.
+    if gresource list "$lib" | grep -xF "$res" >/dev/null; then ok "gresource lists $res"; else bad "$res is not in $lib"; fi
 elif grep -qaF "${res##*/}" "$lib"; then
     # Weaker: the name appears, not necessarily under this exact path. gresource
     # is in glib2-devel on Fedora and not installed everywhere.

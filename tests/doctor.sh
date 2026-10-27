@@ -117,7 +117,10 @@ check "a missing extra package only warns" row warn packages tier-extra
 check "exit 1" rc_is 1
 FAKE_MISSING=pavucontrol tsv
 check "extra only: exit 0" rc_is 0
-RELEASE="" tsv
+# A real file, not RELEASE="": empty falls back to /etc/os-release, which on
+# a Void dev host is Void.
+printf 'ID=arch\n' >"$SB/os-release-arch"
+RELEASE="$SB/os-release-arch" tsv
 check "not Void: the package section skips" row skip packages xbps
 # The ffmpeg-free/RPM Fusion SATISFIED_BY cases went with the Fedora package
 # names (scope I, I-2); I-4 deletes the swap and the mechanism together.
