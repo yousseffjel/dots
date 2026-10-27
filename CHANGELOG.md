@@ -18,6 +18,14 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **The clock opens a calendar.** A left-click on the clock shows this
+  month's calendar under it, in the wallpaper's colours; click again or press
+  Escape to close it. It used to be the month as a notification, which is
+  still what you get without python3-gobject. See `docs/DESKTOP.md`.
+- **The mouse pointer hides while you are not using it.** After 5 seconds
+  without moving it disappears, and comes back on the next move
+  (unclutter-xfixes). An existing `autostart.sh` gets the line to paste on
+  the next installer run.
 - **The screen fades before it locks.** 15 seconds before the idle lock it
   dims to 40%, and any key or mouse movement brings it back, with the night
   light tint and the brightness you had. The monitor now stays on behind the

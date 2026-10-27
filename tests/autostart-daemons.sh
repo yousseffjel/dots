@@ -59,7 +59,7 @@ for fn in session_autostart_template session_autostart_report; do
 done
 
 # Every daemon this project may autostart.
-DAEMONS=(picom xsettingsd autorandr spice-vdagent dwmblocks clipmenud sxhkd udiskie lxpolkit blueman-applet nm-applet xdg-user-dirs-update dwm-xdg-autostart dwm-sound dwm-lock dwm-nightlight dwm-audiowatch dwm-shotkey)
+DAEMONS=(picom xsettingsd autorandr spice-vdagent dwmblocks clipmenud sxhkd udiskie unclutter lxpolkit blueman-applet nm-applet xdg-user-dirs-update dwm-xdg-autostart dwm-sound dwm-lock dwm-nightlight dwm-audiowatch dwm-shotkey)
 
 # --- side 1: what a fresh install actually launches -------------------------
 # The generated file, straight from the shipped function. A launch counts only

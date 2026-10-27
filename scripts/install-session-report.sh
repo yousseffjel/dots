@@ -120,6 +120,10 @@ session_autostart_report() {
         'without it USB sticks and SD cards never auto-mount — thunar-volman' \
         'only does that while Thunar is running, and nothing daemonises it.'
 
+    session_report_daemon "$autostart" unclutter \
+        'add this line yourself:  command -v unclutter >/dev/null && ! pgrep -x unclutter >/dev/null && unclutter --timeout 5 &' \
+        'without it the mouse pointer stays on screen over whatever you type in.'
+
     session_report_daemon "$autostart" autorandr \
         'add this line yourself:  command -v autorandr >/dev/null && autorandr --change &' \
         'without it a saved display profile is never applied at session start.' \

@@ -182,3 +182,28 @@ dunstrc (`dots wallpaper --random`, or `dots theme dark`). Until then,
 `dots doctor` warns about it. It also checks that `pw-play` and the sound
 theme are present. An existing `autostart.sh` gets the `dwm-sound --login`
 line to paste on the next installer run.
+
+## Calendar
+
+A left-click on the clock opens this month's calendar under it; a second
+click, Escape, or focusing another window closes it. It is
+`config/dwm/bin/dwm-calendar`, a GtkCalendar in a small window, so it takes
+the wallpaper's colours from `gtk.css` like every other GTK app.
+
+It needs **python3-gobject** (`packages/extra.lst`). Without it the click
+shows the month as a notification, as it did before. The window's class is
+`dots-float-calendar`, which the `dots-float-` rule in dwm's `rules[]` already
+floats, so no dwm rebuild is needed.
+
+Not yad, which scope K first chose: on Void yad depends on `libwebkit2gtk41`
+(122 MB) for its HTML dialog, and zenity on webkitgtk 6.0. The script needs
+nothing the desktop does not already have but python3-gobject (671 KB).
+
+## Hidden pointer
+
+The mouse pointer hides after 5 seconds without moving, so it never sits over
+the text you are reading or typing; the next move brings it back.
+`autostart.sh` starts **unclutter-xfixes** (`packages/extra.lst`, binary
+`unclutter`) with `--timeout 5`. Change the number in your `autostart.sh`, or
+delete the line to keep the pointer always visible. An existing
+`autostart.sh` gets the line to paste on the next installer run.

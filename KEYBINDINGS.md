@@ -241,7 +241,7 @@ script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 | 10 | `󰂯` bt | Bluetooth: `󰂲` off, `󰂯` on, `󰂱` and the count while connected | 30 s | left → blueman-manager |
 | 11 | `󰂚` / `󰂛 FOCUS` | The notification button, always shown: a bell and the number of notifications in dunst's history, or a crossed bell and `FOCUS` in focus mode, plus how many it is holding back | 5 s, and at once on a change | left → the notification centre, right → focus mode on / off |
 | 12 | `󰂎`…`󰁹` battery | Battery percent, the icon filled to the nearest tenth, `󰂄` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
-| 13 | `` | Day, date and time | 60 s | left → this month's calendar |
+| 13 | `` | Day, date and time | 60 s | left → the month calendar under the clock, left again (or Escape) closes it (`dwm-calendar`); without python3-gobject, the month in a notification |
 
 **The bar behaves like the keys** (2026-10-07). A click or scroll that changes
 a level shows the same `dwm-osd` pop-up as the volume, mic and brightness

@@ -1,0 +1,104 @@
+#!/bin/sh
+# dwm-calendar — the month calendar the clock block opens (left-click).
+#
+#   dwm-calendar          open it under the pointer; run again while open, it closes
+#   dwm-calendar --help   this text
+#
+# A GtkCalendar in a small undecorated window, so it is themed by GTK like
+# every other GTK app here: the wallpaper's gtk.css, Adwaita-dark underneath.
+# Escape closes it, and so does focusing anything else.
+#
+# Its own script rather than `yad --calendar`, which scope K first chose: on
+# Void yad depends on libwebkit2gtk41 (122 MB, for its HTML dialog alone), and
+# zenity on webkitgtk 6.0. This needs python3-gobject (packages/extra.lst) and
+# gtk+3, which the desktop already has. (User decision, 2026-10-27.) The GTK
+# code is Python, run from the heredoc below; the shell around it is what
+# answers --help, like every other dwm-* command (tests/dwm-help.sh).
+#
+# ONE INSTANCE. It is a GtkApplication, so a second launch reaches the first
+# over the session bus and closes it — that is the clock's toggle. Without a
+# bus every launch opens its own window.
+#
+# FLOATS WITH NO RULE OF ITS OWN. WM_CLASS is dots-float-calendar, which the
+# one "dots-float-" rule in dwm's rules[] floats (as it does the bar's pop-up
+# terminals). It asks for a place under the pointer, which is on the clock;
+# dwm keeps a floating window inside the monitor and below the bar.
+
+case "${1:-}" in
+-h | --help)
+	printf 'usage: dwm-calendar [--help]\n\n'
+	sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p}' "$0"
+	exit 0
+	;;
+esac
+
+exec python3 - "$@" <<'PY'
+import sys
+
+import gi
+
+gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+
+APP_ID = "org.dots.Calendar"
+WM_CLASS = "dots-float-calendar"
+# Gap between the window and the right edge of the monitor, in pixels.
+EDGE = 8
+
+
+def place(win):
+    """Centre the window under the pointer, clamped to the pointer's monitor."""
+    display = Gdk.Display.get_default()
+    _, px, py = display.get_default_seat().get_pointer().get_position()
+    geo = display.get_monitor_at_point(px, py).get_geometry()
+    w, _ = win.get_size()
+    x = min(px - w // 2, geo.x + geo.width - w - EDGE)
+    win.move(max(x, geo.x), geo.y)
+
+
+def build(app):
+    win = Gtk.ApplicationWindow(application=app, title="Calendar")
+    win.set_decorated(False)
+    win.set_resizable(False)
+    win.set_skip_taskbar_hint(True)
+    win.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+    box.set_border_width(10)
+    today = Gtk.Label(label=GLib.DateTime.new_now_local().format("%A, %d %B %Y"))
+    today.get_style_context().add_class("dim-label")
+    box.pack_start(today, False, False, 0)
+    box.pack_start(Gtk.Calendar(), False, False, 0)
+    win.add(box)
+
+    def key(_w, ev):
+        if ev.keyval == Gdk.KEY_Escape:
+            app.quit()
+
+    win.connect("key-press-event", key)
+    win.connect("focus-out-event", lambda *_: app.quit())
+    box.show_all()
+    place(win)
+    win.present()
+
+
+def activate(app):
+    # The first launch builds the window; a later one arrives here in the
+    # running instance, and closes it.
+    if app.get_windows():
+        app.quit()
+    else:
+        build(app)
+
+
+def main():
+    Gdk.set_program_class(WM_CLASS)
+    GLib.set_prgname(WM_CLASS)
+    app = Gtk.Application(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
+    app.connect("activate", activate)
+    return app.run(sys.argv[:1])
+
+
+sys.exit(main())
+PY

@@ -173,6 +173,14 @@ if command -v udiskie >/dev/null 2>&1 && ! pgrep -x udiskie >/dev/null 2>&1; the
 	udiskie --automount --notify --smart-tray &
 fi
 
+# Hides the mouse pointer after 5 idle seconds; the next move brings it back.
+# unclutter-xfixes (packages/extra.lst) — it hides the pointer through XFixes,
+# so no window is created and focus never moves. An X client: it dies with the
+# server and needs no line at logout.
+if command -v unclutter >/dev/null 2>&1 && ! pgrep -x unclutter >/dev/null 2>&1; then
+	unclutter --timeout 5 &
+fi
+
 EOF
 }
 

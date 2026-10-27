@@ -115,6 +115,15 @@ alsa-utils
 # so the picker became a script. Void does package xcolor (0.5.1_2); the
 # script stays because it works and needs nothing new.
 gpick
+# The clock's month calendar (left-click; config/dwm/bin/dwm-calendar) is a
+# GTK 3 script, and this is its binding. Without it the click falls back to
+# the month as a notification. Chosen over yad, which on Void pulls in
+# libwebkit2gtk41 (122 MB) for one popup (scope K, 2026-10-27).
+python3-gobject
+# Hides the mouse pointer after a few idle seconds; it comes back on the
+# next move. autostart.sh starts it. The XFixes rewrite (binary: unclutter),
+# not the older `unclutter` package of the same binary name.
+unclutter-xfixes
 # bluetooth: bluez is the stack, blueman the GTK manager the statusbar
 # block's click action opens (sub-task 7).
 bluez

@@ -1,6 +1,6 @@
 # MASTER_PLAN — dots
 
-Last Updated: 2026-10-23
+Last Updated: 2026-10-27
 
 Strategic roadmap. One task per slot; multiple `## Active` entries allowed
 when slots run concurrently.
@@ -9,10 +9,7 @@ when slots run concurrently.
 
 ## Active
 
-- **Scope K — integrated desktop** (Epic, opened 2026-10-23; 7 slots).
-  Scope file `scope-k-integrated-desktop.md`: keyring + PAM, Qt themed from
-  the wallpaper, XDG autostart, desktop sounds, dim before lock, calendar
-  popup, cursor hiding. Next: slot 1 `keyring`.
+_None._ Scope K closed 2026-10-27 — see Recently Closed.
 
 ---
 
@@ -92,6 +89,13 @@ the same time and **not** queued — raise them separately if wanted.
 
 ## Recently Closed
 
+- 2026-10-27 — **Scope K — integrated desktop** (Epic, all 7 slots; branch
+  `wip/scope-k-integrated-desktop`; scope file `scope-k-integrated-desktop.md`
+  has the slot → commit table). Keyring unlocked at login, Qt themed from the
+  wallpaper, XDG autostart, desktop sounds, dim before lock, a calendar under
+  the clock (our own GTK 3 script, not yad: user decision 2026-10-27), and a
+  pointer that hides when idle. Open: the Void VM proofs each slot's log
+  lists.
 - 2026-10-22 — **scratchpad-tag-leave** (merge `0b42969`; log
   `2026-10-22-scratchpad-tag-leave.md`). Sending a scratchpad to a tag
   takes it out of the Super+s set and tiles it.

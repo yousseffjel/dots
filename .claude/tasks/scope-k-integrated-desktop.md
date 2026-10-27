@@ -102,3 +102,33 @@ this scope relies on (rule 8).
 - gnome-keyring also ships a Secret portal backend (`gnome-keyring.portal`).
   `portals.conf` routes only `default=gtk`, which has no Secret portal, so
   Flatpak apps would get no keyring until the file names it.
+
+## Decision reversal (user, 2026-10-27) — slot 6 is not yad
+
+Locked decision 3 chose `yad --calendar`. Reading yad 14.2's `run_depends`
+in the live repodata showed `libwebkit2gtk41` (122 MB installed, plus
+GStreamer and the rest of WebKit's chain), linked for yad's HTML dialog
+alone. zenity is no way out (webkitgtk 6.0), and gsimplecal is not a Void
+package. Asked, the user chose a GTK 3 calendar of our own through
+python3-gobject (671 KB; gtk+3 and python3 are already installed):
+`config/dwm/bin/dwm-calendar`. The decision's intent stands: a popup under
+the clock, themed by gtk.css. Its class is `dots-float-calendar`, so the
+existing `dots-float-` rule floats it and `rules[]` needs no new entry
+(read with xprop under Xvfb, `tests/dwm-calendar.sh`).
+
+## Status (2026-10-27) — all seven slots done
+
+| Slot | Landed |
+| ---- | ------ |
+| 1 keyring | `249d4b9` |
+| 2 qt-theme | `430a8ca` |
+| 3 xdg-autostart | `f529c0e` |
+| 4 desktop-sounds | `7102904` |
+| 5 idle-dim | `b80dee0` |
+| 6 calendar-popup | this branch, 2026-10-27 (log `2026-10-27-calendar-cursor.md`) |
+| 7 cursor-hide | this branch, 2026-10-27 (same log) |
+
+No slot has had a login in the Void VM yet. Each is tested on the dev host
+(fakes, and Xvfb where it draws), and each slot's change log lists the VM
+proof still open (the keyring unlock with no prompt is the one only a real
+ly login can show).

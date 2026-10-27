@@ -5,7 +5,9 @@
 # tests/lib/blocks.sh.
 #
 # What is asserted:
-#   * clock: one formatted date; left-click notifies the month's calendar;
+#   * clock: one formatted date; left-click opens dwm-calendar (found off
+#     PATH, as under dwmblocks), and notifies the month's calendar when it
+#     is missing or python3-gobject is;
 #   * UPD: counts the `update` lines of a LOCAL dry run (`xbps-install -nu`,
 #     no -S), not the `install` lines of new dependencies, and lists exactly
 #     those packages; n/a when xbps fails or is missing; left lists them; right
@@ -57,7 +59,16 @@ fake "$SB/fake" cal 'echo CAL'
 block dwm-clock
 check "weekday, day, month, time" is "Wed 07 Oct 14:05"
 block dwm-clock 1
-check "left: the month's calendar" logged "notify-send -u low October 2026 CAL"
+check "left, no dwm-calendar: the month as a notification" logged "notify-send -u low October 2026 CAL"
+# shellcheck disable=SC2016
+fake "$DWM_BIN" dwm-calendar 'echo "dwm-calendar $*" >>"$LOG"'
+block dwm-clock 1
+check "left, no python3-gobject: still the notification" logged "notify-send -u low October 2026 CAL"
+fake "$SB/fake" python3 'exit 0'
+block dwm-clock 1
+check "left: the calendar popup" logged "dwm-calendar "
+check "left: the popup, not the notification too" not_logged "notify-send"
+rm "$SB/fake/python3"
 
 blue "UPD"
 # shellcheck disable=SC2016
