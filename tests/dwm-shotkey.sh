@@ -11,7 +11,10 @@
 #   * the "a" key is looked up in the live keymap (an AZERTY a fires, the US
 #     keycode does not), with the evdev keycodes when xmodmap is missing;
 #   * it exits at once when another listener runs (a bash process), not when
-#     a wrapper such as setsid matches, and fails without xinput.
+#     a wrapper such as setsid matches, and fails without xinput;
+#   * an xinput that ends while the X server is still up (BadAccess: another
+#     client holds the root window's XI2 selections) is restarted, and why is
+#     logged; once `xinput list` fails too, it exits.
 #
 # SAFETY: pkill is a fake — the real one would kill the tester's own slop.
 
@@ -31,7 +34,7 @@ FIXTURE="$SCRIPT_DIR/fixtures/xinput-test-xi2-super-a-escape.txt"
 SB="$(mktemp -d)"
 trap 'rm -rf "$SB"' EXIT
 
-seal_path "$SB/real" bash cat awk id sleep
+seal_path "$SB/real" bash cat awk id sleep mkdir
 mkdir -p "$SB/fake" "$SB/noxi" "$SB/bin"
 cp "$DOTS_DIR/config/dwm/bin/dwm-shotkey" "$SB/bin/"
 export LOG="$SB/log" SB
@@ -39,8 +42,18 @@ export LOG="$SB/log" SB
 # The shot runs for a moment, so an Escape that follows it finds it running.
 # shellcheck disable=SC2016 # expanded by the fake, not here
 fake "$SB/bin" dwm-screenshot 'echo "shot $*" >>"$LOG"; sleep "${SHOT_TIME:-0.5}"'
+# `xinput list` answers whether the X server is up: no, unless XLIST_UP
+# names a counter file holding how many more times to say yes. test-xi2
+# replays $STREAM, with XI_ERR on stderr.
 # shellcheck disable=SC2016
-fake "$SB/fake" xinput 'cat "$STREAM"'
+fake "$SB/fake" xinput 'if [ "$1" = list ]; then
+    n="$(cat "${XLIST_UP:-/nonexistent}" 2>/dev/null)" || exit 1
+    [ "${n:-0}" -gt 0 ] || exit 1
+    echo $((n - 1)) >"$XLIST_UP"
+    exit 0
+fi
+cat "$STREAM"
+[ -z "${XI_ERR:-}" ] || echo "$XI_ERR" >&2'
 # The real format: `keycode  38 = a A a A`. XMODMAP_A moves the a key.
 # shellcheck disable=SC2016
 fake "$SB/fake" xmodmap 'printf "keycode   9 = Escape NoSymbol Escape\nkeycode  %s = a A a A\nkeycode 133 = Super_L NoSymbol Super_L\nkeycode 134 = Super_R NoSymbol Super_R\n" "${XMODMAP_A:-38}"'
@@ -65,7 +78,8 @@ RC=0
 run() {
     rm -f "$LOG"
     RC=0
-    env PATH="${BIN:-$SB/fake}:$SB/real" STREAM="${STREAM:-$SB/stream}" "$@" \
+    env PATH="${BIN:-$SB/fake}:$SB/real" STREAM="${STREAM:-$SB/stream}" \
+        XDG_STATE_HOME="$SB/state" "$@" \
         "$(type -P bash)" "$SB/bin/dwm-shotkey" >/dev/null 2>&1 || RC=$?
     sleep 0.8
 }
@@ -124,15 +138,32 @@ echo bash >"$SB/proc/4242/comm"
 echo "4242 (bash) S 1 4242" >"$SB/proc/4242/stat"
 STREAM="$FIXTURE" run OTHER=4242 DOTS_PROC="$SB/proc"
 check "another listener running: exits, shoots nothing" ""
-# Its own \$( ) subshell: bash, but a child of the listener.
+# Its own \$( ) subshell: bash, but a child of the listener. The fake's
+# parent is that subshell, or the listener when bash ran pgrep without one;
+# the entry it writes names the listener as its parent either way. (Until
+# mkdir was sealed in, the fake's mkdir failed and this case tested nothing.)
 mkdir -p "$SB/child"
 # shellcheck disable=SC2016 # expanded by the fake, not here
-fake "$SB/child" pgrep 'echo 4243; mkdir -p "$SB/proc/4243"; echo bash >"$SB/proc/4243/comm"; echo "4243 (bash) S $PPID 4243" >"$SB/proc/4243/stat"'
+fake "$SB/child" pgrep 'l=$PPID
+p="$(awk "{ print \$4 }" "/proc/$l/stat")"
+awk "BEGIN { RS = \"\\0\" } /dwm-shotkey\$/ { f = 1 } END { exit !f }" "/proc/$p/cmdline" && l=$p
+echo 4243; mkdir -p "$SB/proc/4243"; echo bash >"$SB/proc/4243/comm"; echo "4243 (bash) S $l 4243" >"$SB/proc/4243/stat"'
 BIN="$SB/child:$SB/fake" STREAM="$FIXTURE" run DOTS_PROC="$SB/proc"
 check "its own pgrep subshell is not another listener" "${SHOT}pkill -u $(id -u) -x slop|"
 echo setsid >"$SB/proc/4242/comm"
 STREAM="$FIXTURE" run OTHER=4242 DOTS_PROC="$SB/proc"
 check "a wrapper (setsid -f) is not another listener" "${SHOT}pkill -u $(id -u) -x slop|"
 
+# The server stays up for one more check: the stream is listened to twice.
+stream p133 p38 r38 r133
+echo 1 >"$SB/xlist"
+run SHOT_TIME=0 XLIST_UP="$SB/xlist" XI_ERR="X Error of failed request:  BadAccess"
+check "xinput ends, X still up: listens again" "$SHOT$SHOT"
+if grep -q 'exited: X Error of failed request:  BadAccess; retrying in 1s' "$SB/state/dots/shotkey.log" 2>/dev/null; then
+    green "  ok: the retry and xinput's error are logged"
+else
+    red "  the retry is not logged: '$(cat "$SB/state/dots/shotkey.log" 2>/dev/null)'"
+    rc=1
+fi
 if ((rc == 0)); then green "✓ dwm-shotkey"; else red "✗ dwm-shotkey"; fi
 exit "$rc"

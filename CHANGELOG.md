@@ -113,6 +113,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`Super` + `a` no longer stops working for the rest of the session.** Its
+  listener quit, silently, whenever another program briefly held the
+  keyboard events it reads; now it waits and starts listening again, and
+  writes why to `~/.local/state/dots/shotkey.log`.
 - **`Super` + `a` is ready in about a second, and the dropdown stays in the
   shot.** Before, a 4K screen waited about 4 seconds for the frozen frame to
   be encoded before the selector appeared, and with a dropdown open the

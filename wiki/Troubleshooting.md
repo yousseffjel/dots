@@ -91,6 +91,8 @@ pkill -x dwmblocks; setsid -f dwmblocks
 
 It is read by a small listener, `dwm-shotkey`, started from `autostart.sh`. An `autostart.sh` from before it existed
 does not start it, and the installer prints the line to add. `Shift` + `Print` takes the same shot in the meantime.
+If it is running but the key still does nothing, `~/.local/state/dots/shotkey.log` says why: it is retrying while
+another program holds the keyboard events it listens to, and it picks the key up again once that program is gone.
 
 ### `Super` + `a` types an "a" in st
 

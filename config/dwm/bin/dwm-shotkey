@@ -20,7 +20,8 @@
 # Super+a fires only with nothing but Super held, so Super+Shift+a (the
 # delayed shot, an sxhkd key) never starts this one too. Started by
 # autostart.sh; dwm re-runs that on every restart, so a second launch finds
-# the first and exits. It ends with the X server, when xinput does.
+# the first and exits. It ends with the X server; an xinput that fails while
+# the server is still up is retried (see the end of this file).
 #
 # usage: dwm-shotkey   (no arguments)
 
@@ -112,19 +113,59 @@ press() {
 
 # xinput test-xi2 prints a block per event: an "EVENT type N (Name)" line,
 # then indented fields, "detail:" being the keycode for key events.
-ev=""
-while IFS= read -r line; do
-    case "$line" in
-        "EVENT type"*"(RawKeyPress)") ev=press ;;
-        "EVENT type"*"(RawKeyRelease)") ev=release ;;
-        "EVENT type"*) ev="" ;;
-        *"detail: "*)
-            code="${line##*detail: }"
-            case "$ev" in
-                press) press "$code" ;;
-                release) unset "HELD[$code]" ;;
-            esac
-            ev=""
-            ;;
-    esac
-done < <(xinput test-xi2 --root 2>/dev/null)
+listen() {
+    local line code ev=""
+    HELD=()
+    while IFS= read -r line; do
+        case "$line" in
+            "EVENT type"*"(RawKeyPress)") ev=press ;;
+            "EVENT type"*"(RawKeyRelease)") ev=release ;;
+            "EVENT type"*) ev="" ;;
+            *"detail: "*)
+                code="${line##*detail: }"
+                case "$ev" in
+                    press) press "$code" ;;
+                    release) unset "HELD[$code]" ;;
+                esac
+                ev=""
+                ;;
+        esac
+    done < <(xinput test-xi2 --root 2>"$ERR_FILE")
+}
+
+# xinput ending does not mean the X server did. test-xi2 selects every XI2
+# event on the root window, and the server lets one client at a time hold the
+# button and touch ones: while another holds them, ours fails with BadAccess
+# (seen 2026-10-28). Until then this script ended with it, silently, and
+# Super+a stayed dead for the rest of the session. So it retries, backing off
+# to RETRY_MAX seconds, for as long as `xinput list` still reaches the
+# server, and says why in LOG_FILE (one session's worth: emptied at start).
+LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/dots/shotkey.log"
+ERR_FILE="$LOG_FILE.xinput"
+RETRY_MAX=30
+# A listener that ran this long was working; its failure starts over at 1 s.
+RETRY_RESET=60
+if ! mkdir -p "${LOG_FILE%/*}" 2>/dev/null || ! : >"$LOG_FILE" 2>/dev/null; then
+    LOG_FILE=/dev/null ERR_FILE=/dev/null
+fi
+
+# log <message> — one timestamped line in LOG_FILE.
+log() { printf '%(%F %T)T %s\n' -1 "$*" >>"$LOG_FILE" 2>/dev/null || true; }
+
+delay=1
+last=""
+while :; do
+    started=$SECONDS
+    listen
+    xinput list >/dev/null 2>&1 || exit 0
+    ((SECONDS - started < RETRY_RESET)) || delay=1
+    err=""
+    [[ -s "$ERR_FILE" ]] && read -r err <"$ERR_FILE"
+    # At the longest delay the same error once is enough.
+    if ((delay < RETRY_MAX)) || [[ "$err" != "$last" ]]; then
+        log "xinput test-xi2 exited${err:+: $err}; retrying in ${delay}s"
+    fi
+    last="$err"
+    sleep "$delay"
+    ((delay = delay * 2 > RETRY_MAX ? RETRY_MAX : delay * 2))
+done
