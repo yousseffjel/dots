@@ -10,6 +10,7 @@ gpu 0000:00:14.3 0x028000 8086 a0f0 iwlwifi # Wi-Fi: not a display device
 run
 check "intel-media-driver installed" has intel-media-driver
 check "not the legacy driver" lacks libva-intel-driver
+check "Vulkan: mesa-vulkan-intel installed" has mesa-vulkan-intel
 check "PACKAGE row for it" row PACKAGE intel-media-driver
 check "Intel CPU: intel-ucode" has intel-ucode
 check "...and the initramfs rebuilt for the installed kernel" grep -qx "xbps-reconfigure -f linux6.12" "$LOG"
@@ -95,13 +96,15 @@ gpu 0000:00:02.0 0x030000 8086 0166 i915
 run
 check "libva-intel-driver installed" has libva-intel-driver
 check "iHD, which cannot drive it, is not" lacks intel-media-driver
+check "...nor ANV, which starts at Broadwell" lacks mesa-vulkan-intel
 
-blue "==> AMD: mesa-vaapi, and the CPU's microcode from linux-firmware-amd"
+blue "==> AMD: mesa-vaapi + mesa-vulkan-radeon, and the CPU's microcode from linux-firmware-amd"
 machine AuthenticAMD none
 gpu 0000:03:00.0 0x030000 1002 73bf amdgpu
 run
 check "mesa-vaapi installed" has mesa-vaapi
 check "PACKAGE row" row PACKAGE mesa-vaapi
+check "Vulkan: mesa-vulkan-radeon installed" has mesa-vulkan-radeon
 check "AMD CPU: linux-firmware-amd" has linux-firmware-amd
 check "...and the initramfs rebuilt" grep -qx "xbps-reconfigure -f linux6.12" "$LOG"
 NO_KERNEL=1 machine AuthenticAMD none

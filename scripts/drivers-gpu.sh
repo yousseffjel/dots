@@ -6,12 +6,18 @@
 # (mesa's template sets -Dvideo-codecs=all; checked 2026-10-15), so there is
 # no repository to gate on and nothing to swap:
 #
-#   Intel  Broadwell+  intel-media-driver (iHD)
+#   Intel  Broadwell+  intel-media-driver (iHD) + mesa-vulkan-intel (ANV)
 #          older       libva-intel-driver (i965)
-#   AMD                mesa-vaapi (radeonsi's VA-API driver)
+#   AMD                mesa-vaapi (radeonsi's VA-API driver) + mesa-vulkan-radeon (RADV)
 #   NVIDIA             REPORTED, never installed — see drivers-lib.sh
 #
 # (Fedora needed RPM Fusion for all three, and a mesa-va-drivers swap on AMD.)
+#
+# The Vulkan driver is the GPU's ICD for vulkan-loader, which mpv pulls in:
+# without one, mpv's gpu-next (libplacebo) cannot start on Vulkan and falls
+# back to OpenGL. Found missing on an AMD HawkPoint laptop (2026-10-28), where
+# only virtio's ICD was installed. Pre-Broadwell Intel gets none: ANV starts at
+# Broadwell, and the older parts' hasvk driver is incomplete.
 
 drivers_gpu() {
     local slot vendor device driver gpus
@@ -24,8 +30,9 @@ drivers_gpu() {
         case "$vendor" in
             8086) drivers_gpu_intel "$device" ;;
             1002)
-                blue "  AMD GPU: mesa-vaapi"
+                blue "  AMD GPU: mesa-vaapi, mesa-vulkan-radeon"
                 pkg_ensure mesa-vaapi "no VA-API decoding on AMD: mpv decodes HEVC on the CPU" || true
+                pkg_ensure mesa-vulkan-radeon "no Vulkan on AMD: mpv renders through OpenGL" || true
                 ;;
             10de) drivers_nvidia_report "$slot" "$device" "$driver" ;;
             *)
@@ -45,8 +52,9 @@ drivers_gpu_intel() {
         blue "  Intel GPU $device (pre-Broadwell): libva-intel-driver"
         pkg_ensure libva-intel-driver "no VA-API decoding on this Intel GPU: mpv decodes on the CPU" || true
     else
-        blue "  Intel GPU $device: intel-media-driver"
+        blue "  Intel GPU $device: intel-media-driver, mesa-vulkan-intel"
         pkg_ensure intel-media-driver "no VA-API decoding on Intel: mpv decodes HEVC on the CPU" || true
+        pkg_ensure mesa-vulkan-intel "no Vulkan on Intel: mpv renders through OpenGL" || true
     fi
 }
 

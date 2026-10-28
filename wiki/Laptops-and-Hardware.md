@@ -21,6 +21,8 @@ moving the install to other hardware. It installs:
 - **The video decoding driver for your GPU** (VA-API), so mpv decodes H.264 and HEVC on the GPU rather than the CPU:
   `intel-media-driver` or `libva-intel-driver` for Intel, `mesa-vaapi` for AMD, `nvidia-vaapi-driver` for NVIDIA once
   the NVIDIA driver is loaded.
+- **The Vulkan driver for your GPU**, so mpv renders through Vulkan: `mesa-vulkan-radeon` for AMD, `mesa-vulkan-intel`
+  for Intel from Broadwell (2014) on.
 - **Missing firmware.** It reads the kernel log for firmware files a driver failed to load, and installs the
   `linux-firmware-*` package that ships each one. Reboot afterwards.
 - **CPU microcode** on bare metal: `intel-ucode` (from Void's nonfree repository) or `linux-firmware-amd`, then it

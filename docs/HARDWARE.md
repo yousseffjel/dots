@@ -11,9 +11,9 @@ the same things under **drivers**.
 
 | Hardware | Package | From |
 | -------- | ------- | ---- |
-| Intel GPU, Broadwell (2014) and newer | `intel-media-driver` | Void main |
+| Intel GPU, Broadwell (2014) and newer | `intel-media-driver`, `mesa-vulkan-intel` | Void main |
 | Intel GPU, older | `libva-intel-driver` | Void main |
-| AMD GPU | `mesa-vaapi` | Void main |
+| AMD GPU | `mesa-vaapi`, `mesa-vulkan-radeon` | Void main |
 | NVIDIA GPU with the NVIDIA driver loaded | `nvidia-vaapi-driver` | Void main |
 | Firmware a driver failed to load this boot | the `linux-firmware-*` package that ships the file | Void main |
 | Intel CPU (bare metal) | `intel-ucode` | Void nonfree |
@@ -21,10 +21,12 @@ the same things under **drivers**.
 | Any bare-metal machine | `fwupd` | Void main |
 | A laptop | everything in `packages/laptop.lst` (`brightnessctl`, `power-profiles-daemon`) | Void main |
 
-The GPU packages are the VA-API drivers: without them mpv decodes HEVC and
-H.264 on the CPU. Void builds mesa with every codec (its template sets
-`-Dvideo-codecs=all`), so unlike on Fedora there is no third-party repository
-and nothing to swap.
+The GPU packages are the VA-API drivers, without which mpv decodes HEVC and
+H.264 on the CPU, and the Vulkan drivers, without which mpv's renderer
+(gpu-next) falls back from Vulkan to OpenGL. Older Intel GPUs get no Vulkan
+driver: Mesa's full one starts at Broadwell. Void builds mesa with every
+codec (its template sets `-Dvideo-codecs=all`), so unlike on Fedora there is
+no third-party repository and nothing to swap.
 
 Microcode loads early, from the initramfs, so after installing it `dots
 drivers` rebuilds the initramfs of every installed kernel package

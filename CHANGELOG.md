@@ -18,6 +18,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **`dots drivers` installs the GPU's Vulkan driver.** `mesa-vulkan-radeon`
+  on AMD, `mesa-vulkan-intel` on Intel from Broadwell on, next to the video
+  decoding driver. Without it mpv rendered through OpenGL instead of Vulkan.
 - **A project wiki.** Install and usage guides plus contributor pages, kept
   in `wiki/` and published to the GitHub wiki with
   `scripts/wiki-publish.sh`.

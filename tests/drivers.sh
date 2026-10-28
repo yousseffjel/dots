@@ -9,8 +9,9 @@
 # "[-] <pkgver> <desc>" lines; `-Rf <pkg>` one path per line.
 #
 # What is asserted:
-#   * GPU -> package: Intel Broadwell+ gets intel-media-driver, pre-Broadwell
-#     libva-intel-driver, AMD mesa-vaapi; a virtual GPU and a non-display PCI
+#   * GPU -> package: Intel Broadwell+ gets intel-media-driver and
+#     mesa-vulkan-intel, pre-Broadwell libva-intel-driver only, AMD mesa-vaapi
+#     and mesa-vulkan-radeon; a virtual GPU and a non-display PCI
 #     device get nothing;
 #   * NVIDIA is never installed: the branch package (Void's nonfree names)
 #     comes from pci.ids (scoped to the vendor block), Secure Boot adds a
