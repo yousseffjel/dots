@@ -12,8 +12,8 @@ stale, so each fact is kept in one place and linked from the others.
 
 - **Void Linux only** (glibc, x86_64). `scripts/install-void.sh` is the one
   supported installer, and package names are Void/xbps names. The port from
-  Fedora is in progress (`.claude/tasks/scope-i-void-port.md`); text below
-  that still names dnf or Fedora describes code that has not been ported yet.
+  Fedora merged on 2026-10-15 (`.claude/tasks/scope-i-void-port.md`); where
+  a doc still names dnf or Fedora, it is history or a stale line to fix.
 - **Read `CLAUDE.md`'s "Project-specific rules".** It is written for an AI
   assistant, but those ten rules are the repo's conventions, and the numbers
   below refer to them.
@@ -60,7 +60,7 @@ When you write a test:
 | Every script | idempotent, `set -euo pipefail`, own colour helpers, `SCRIPT_DIR`/`DOTS_DIR` | `CLAUDE.md` rules 1–3 |
 | Size | 250 lines per file, 60 per function; split, don't grow | a sourced `*-<part>.sh` sibling, as in `scripts/install-session-*.sh` |
 | Packages | names only in `packages/*.lst`; pick the tier by what breaks | `CLAUDE.md` rule 10, `tests/pkglist.sh` |
-| Package names | checked against packages.fedoraproject.org, never guessed | `CLAUDE.md` rule 8 |
+| Package names | checked against a snapshot of Void's repo index, never guessed | `CLAUDE.md` rule 8, `tests/void-pkgnames.sh` |
 | Third-party repos | never enabled by default | `CLAUDE.md` rule 4 |
 | suckless | change the sources **and** the `.diff` + `PATCHES.md` record together | `CLAUDE.md` rule 5 |
 | Autostart | a new daemon is a three-place change | `CLAUDE.md` rule 6, `tests/autostart-daemons.sh` |

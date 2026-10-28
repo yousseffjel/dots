@@ -55,8 +55,8 @@ concurrency:
 
 jobs:
   # The only job anywhere in this repo that runs the installer. In ci.yml,
-  # install-dry-run validates the installer's INPUTS (every name in
-  # packages/*.lst resolves against enabled repos) and never invokes
+  # package-names validates the installer's INPUTS (every name in
+  # packages/*.lst resolves against the live index) and never invokes
   # scripts/install-void.sh at all; build-suckless compiles the C programs
   # without installing anything around them. Between them, "does a full
   # install actually complete on a clean Void?" was unproven — which is why

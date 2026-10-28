@@ -29,8 +29,8 @@ Each category below is its own confirmation prompt (auto-confirmed under
 previewed); declining one skips it and moves on to the next — a
 partial uninstall is a normal, supported outcome, not an error.
 
-1. **Configs.** For every config the installer symlinked
-   (`~/.config/{tmux,zsh,dwm}`), removes the symlink — but only if it's
+1. **Configs.** For every config directory the installer symlinked into
+   `~/.config` (`scripts/symlinks.sh --list-links` prints them), removes the symlink — but only if it's
    still pointed at this repo (a target you've since replaced with
    something else, or unlinked yourself, is left alone with a warning).
    See **How backups are restored** below.
@@ -112,15 +112,15 @@ partial uninstall is a normal, supported outcome, not an error.
    (`~/Pictures`, `wallpapers/`) are removed with it when they are empty;
    folders that already existed are never touched. A folder that was already
    at that path before installing was never cloned or recorded.
-5d. **Package swaps.** The installer swaps Fedora's `ffmpeg-free` for RPM
-   Fusion's `ffmpeg` (for HEVC/HDR video). If it made that swap, it is
-   reversed here with `dnf swap ffmpeg ffmpeg-free`. A swap is never undone
-   by removing `ffmpeg`, which would remove everything that depends on it.
-   Runs before the package step, so a `ffmpeg-free` the installer added in
-   the first place can then be removed there. On an AMD GPU under Fedora 43
-   or older, `dots drivers` also swaps `mesa-va-drivers` for RPM Fusion's
-   `mesa-va-drivers-freeworld` (`docs/HARDWARE.md`), and that swap is
-   reversed here the same way.
+5d. **PipeWire and the login screen.** Two prompts. The links the
+   installer made in `~/.config/pipewire/pipewire.conf.d/` (which start
+   WirePlumber and pipewire-pulse with PipeWire) are removed while each is
+   still a link to the file it was made for; the directories go only when
+   empty. Then, if dots recoloured ly (the installer, a theme switch or
+   `dots login-theme`),
+   `scripts/theme/ly-theme.sh --restore` writes back the original lines it
+   saved, with sudo. An ly the installer built itself is removed whole in
+   step 7 instead.
 5e. **System files.** On a laptop `dots drivers` copies
    the touchpad settings to `/etc/X11/xorg.conf.d/40-dots-touchpad.conf`
    (`docs/HARDWARE.md`). Each file is removed, with sudo, only while it is
@@ -165,8 +165,7 @@ partial uninstall is a normal, supported outcome, not an error.
   repo's own symlink* — e.g. if you deleted `~/.config/dwm` and replaced
   it with your own directory after installing, uninstall.sh leaves it
   alone rather than guessing you want it gone.
-- Any dnf package that was already installed before `install-void.sh`
-  ran.
+- Any package that was already installed before `install-void.sh` ran.
 - `~/.zshenv`'s `ZDOTDIR` export line (install-restore.sh appends it, but
   it's a one-line addition to a file that may contain your own content
   too — removing just that line automatically was judged too risky;
@@ -182,9 +181,8 @@ partial uninstall is a normal, supported outcome, not an error.
   anything in it since installing (step 5c says which). Delete
   `wallpapers/dots/` in your pictures folder by hand if you want it gone.
 - The nonfree repository while anything installed still comes from it
-  (and always, if it was enabled before the installer ran). A key with no repository signs nothing; list them with
-  `rpm -qa 'gpg-pubkey*' --qf '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'`
-  and remove one with `sudo rpm -e <name>` if you want it gone.
+  (and always, if it was enabled before the installer ran). Remove it by
+  hand with `sudo xbps-remove void-repo-nonfree` if you want it gone.
 - The Flathub remote, while any installed Flatpak still comes from it. Run
   `flatpak remote-delete --user flathub` after uninstalling those apps if
   you want it gone.
@@ -225,5 +223,5 @@ are exercised by the `install-container` CI job instead.
 
 Same advice as `TESTING.md` gives for installing: don't iterate against a
 machine you care about. `--dry-run` is the fast local check; for a full
-real run, use the same disposable Fedora container/VM flow described
+real run, use the same disposable Void container/VM flow described
 there, `install-void.sh` first, then `uninstall.sh`.

@@ -10,8 +10,8 @@
 #
 # WHY xss-lock AND NOT xautolock. xss-lock hooks both X's MIT-SCREEN-SAVER
 # extension and logind (elogind on Void), so the screen also locks on suspend — which
-# xautolock structurally cannot do. The target is a desktop (roster Epic
-# locked decision 9): no lid to close, but it still suspends.
+# xautolock structurally cannot do: a desktop suspends too, and a laptop
+# suspends (so locks) when elogind sees its lid close.
 #
 # WHY NOT --transfer-sleep-lock. That flag hands logind's delay-lock fd to the
 # locker, and xss-lock(1) is explicit that "the locker should close this file

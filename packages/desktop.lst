@@ -1,5 +1,5 @@
-# Desktop-critical packages — install-pkg.sh installs these one at a time and
-# NEVER aborts on a failure, but every failure is repeated in a red block at
+# Desktop-critical packages — install-pkg.sh installs these in one xbps
+# transaction (one at a time only if it fails) and NEVER aborts on a failure, but every failure is repeated in a red block at
 # the end of the run together with the consequence spelled out below.
 #
 # THE CRITERION: without this package a shipped keybind, an autostart daemon,

@@ -1,5 +1,6 @@
-# Best-effort packages — install-pkg.sh installs these one at a time; a
-# single missing or renamed package is skipped and the run carries on.
+# Best-effort packages — install-pkg.sh installs these in one xbps
+# transaction (one at a time only if it fails); a single missing or renamed
+# package is skipped and the run carries on.
 #
 # THE CRITERION: applications and conveniences. Losing one costs you that
 # program and nothing else — no daemon stops starting, no keybind silently

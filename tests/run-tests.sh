@@ -105,7 +105,7 @@ blue "==> test workspace: $work"
 # Two tests are skipped by default. Each needs an environment this runner
 # does not have, and each is INVOKED by the job that does have it, never
 # reimplemented there: build.sh needs the X11 build toolchain (run by
-# build-suckless inside a Fedora container); lint.sh needs shellcheck/shfmt/
+# build-suckless inside a Void container); lint.sh needs shellcheck/shfmt/
 # markdownlint (run by the lint job as `tests/lint.sh --strict` once it has
 # installed them). run-tests.sh excludes itself from its own glob.
 run_suite() {

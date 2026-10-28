@@ -71,9 +71,9 @@ XF86AudioMicMute
 	pamixer --default-source --toggle-mute && pkill -RTMIN+7 dwmblocks; dwm-osd mic
 
 # --- brightness --------------------------------------------------------
-# Software gamma via xrandr, NOT a hardware backlight — this target is a
-# desktop GPU with no /sys/class/backlight (roster Epic locked decision
-# 12). It dims the output signal; the monitor's lamp stays at full power.
+# A laptop's real backlight where /sys/class/backlight has one (scope-h);
+# elsewhere software gamma via xrandr, which dims the output signal while
+# the monitor's lamp stays at full power (docs/HARDWARE.md).
 # dwm-brightness owns the clamping and the multi-output walk; sub-task 7's
 # status block reads the same value back with `dwm-brightness get`.
 

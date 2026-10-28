@@ -38,8 +38,9 @@ script's own code, and use tabs to match `sh`-script convention.
 
 ## Markdown linting
 
-`markdownlint` runs against the repo's own authored docs
-(`README.md`, `TESTING.md`, and future top-level docs) using
+`markdownlint` runs against every `*.md` in the repo (`**/*.md`: the
+top-level docs, `docs/` and `wiki/` included) except the paths in
+`.markdownlintignore`, using
 `.markdownlint.yaml` — relaxed line length (120, ignoring code blocks and
 tables) and inline HTML allowed.
 
