@@ -438,19 +438,23 @@ you end up cleaning up after — press `Print` (or `Super` + `Alt` + `p` for
 the whole screen) when you want the shot kept.
 
 Every one of these keys runs `config/dwm/bin/dwm-screenshot`, which drives `maim` for the
-capture, `slop` for the region selector and `xclip` for the clipboard. The
-selector rectangle is drawn in `dwm.selbordercolor` read live from `xrdb`, so
-it matches the border dwm puts around the focused window and re-themes with
-the wallpaper. Unthemed, it falls back to slop's own grey.
+capture and `xclip` for the clipboard. A region is selected by
+`config/dwm/bin/dwm-shotselect`: it reads the whole screen into memory the
+moment it starts, shows that frozen frame full-screen, and you drag on the
+picture, so whatever was open at the keypress is in the shot even if it
+closes after. Escape or the right button cancels. Without python3-gobject it
+falls back to `maim` + `slop`. The selector rectangle is drawn in
+`dwm.selbordercolor` read live from `xrdb`, so it matches the border dwm puts
+around the focused window and re-themes with the wallpaper.
 
 **`Super` + `a` is not a normal hotkey.** Every other key here is grabbed
 (by sxhkd or dwm), and a grab takes the keyboard focus off the window while
 the key is held. A browser treats that as losing focus and closes an open
 dropdown before any screenshot code runs. So `Super` + `a` is read without a
 grab by `config/dwm/bin/dwm-shotkey`, a small listener started by
-`autostart.sh`, and the region selector runs without its keyboard grab
-(`dwm-screenshot --no-grab`). The dropdown stays open while you drag, and
-Escape still cancels: the listener does it. Three consequences:
+`autostart.sh`. An open dropdown holds the pointer grab itself, so the
+selector photographs it first and only then sends it Escape to free the
+pointer for the drag. Three consequences:
 
 - With no grab, the focused window gets `Super` + `a` too. Firefox ignores it;
   st and alacritty are configured to ignore it rather than type an "a".
@@ -459,15 +463,16 @@ Escape still cancels: the listener does it. Three consequences:
 - An install older than this has an `autostart.sh` without the listener: the
   installer prints the line to add.
 
-Region mode also captures the whole screen at the keypress and crops your
-selection out of that frame (with ImageMagick), so what is in the image is
-what was on screen when you pressed the key. From a shell, `--delay N` waits
-before any mode.
+Region mode selects on a frozen frame of the whole screen, taken when you
+press the key, so what is in the image is what was on screen then (the slop
+fallback does the same with ImageMagick's crop). From a shell, `--delay N`
+waits before any mode.
 
 > **`window` means the *focused* window, not one you click.** It resolves
 > `_NET_ACTIVE_WINDOW` via `xprop`, so it needs no mouse — that is the only
-> thing it does that region mode cannot, since a plain click inside a region
-> selection already snaps to whatever window is under the pointer. maim
+> thing it does that region mode cannot. (A plain click in the region
+> selector selects nothing: drag instead. Only the slop fallback snaps a
+> click to the window under the pointer.) maim
 > captures the window's screen rectangle, so anything stacked on top of it
 > appears in the image.
 

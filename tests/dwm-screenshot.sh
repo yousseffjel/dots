@@ -84,6 +84,18 @@ mkbin no-xdg xdg-user-dir
 mkbin samesec
 fake "$TMP/samesec" date "exec '$(type -P date)' -d @1700000000 \"\$@\""
 
+# dwm-shotselect's stand-in, outside every sealed PATH (the script calls it by
+# path). Exits FAKE_SELECT_RC; on 0 it writes the shot, like the real one.
+# run() defaults that to 3, "cannot run here", so the maim + slop fallback
+# is what most of this file exercises.
+cat >"$TMP/shotselect" <<EOF
+#!/bin/bash
+echo "shotselect \$*" >>'$LOG'
+[[ "\$FAKE_SELECT_RC" == 0 ]] && echo PNG >"\$1"
+exit "\$FAKE_SELECT_RC"
+EOF
+chmod +x "$TMP/shotselect"
+
 # run <bin> [VAR=val...] -- <args...>; sets RC and ERR; fresh log/menu/shots.
 run() {
     local bin="$1" envs=()
@@ -96,7 +108,8 @@ run() {
     : >"$LOG"
     rm -rf "$SHOTS" "$TMP/menu.n"
     RC=0
-    env -i PATH="$TMP/$bin" HOME="$TMP/home" TMPDIR="$TMP" DOTS_SCREENSHOT_DIR="$SHOTS" "${envs[@]}" \
+    env -i PATH="$TMP/$bin" HOME="$TMP/home" TMPDIR="$TMP" DOTS_SCREENSHOT_DIR="$SHOTS" \
+        DOTS_SHOTSELECT="$TMP/shotselect" FAKE_SELECT_RC=3 "${envs[@]}" \
         bash "$SUT" "$@" >/dev/null 2>"$TMP/err" || RC=$?
     ERR="$(cat "$TMP/err")"
 }
@@ -151,6 +164,32 @@ if [[ $RC -ne 0 && "$ERR" == *"no active window"* ]] && ! has maim; then
     pass "--window with _NET_ACTIVE_WINDOW 0x0 fails before capturing"
 else
     fail "--window 0x0: rc=$RC"
+fi
+
+blue "==> region: dwm-shotselect first, maim + slop only as its fallback"
+run all FAKE_SELECT_RC=0 FAKE_SEL='#ff8000' -- --region --clipboard
+if [[ $RC -eq 0 ]] && has "shotselect " && has "1.000,0.502,0.000,1" && ! has maim && ! has slop && has "xclip"; then
+    pass "shotselect froze and selected: themed, no maim, no slop, to the clipboard"
+else
+    fail "shotselect: rc=$RC $(cat "$LOG")"
+fi
+run all FAKE_SELECT_RC=2 -- --region --file
+if [[ $RC -eq 0 ]] && ! has maim && ! has slop && [[ "$(shots)" -eq 0 ]]; then
+    pass "Escape in shotselect: exit 0, no fallback, nothing saved"
+else
+    fail "shotselect cancel: rc=$RC shots=$(shots) $(cat "$LOG")"
+fi
+run all FAKE_SELECT_RC=1 -- --region --clipboard
+if [[ $RC -ne 0 ]] && ! has slop && has "could not start"; then
+    pass "shotselect failing (a grab it never got) is an error, not a slop retry"
+else
+    fail "shotselect failure: rc=$RC $(cat "$LOG")"
+fi
+run all FAKE_SELECT_RC=127 FAKE_GEOM=800x600+10+20 -- --region --clipboard
+if [[ $RC -eq 0 ]] && has "slop --bordersize 2"; then
+    pass "no python3 (127): falls back to maim + slop"
+else
+    fail "127 fallback: rc=$RC $(cat "$LOG")"
 fi
 
 blue "==> region: slop theming and cancel"

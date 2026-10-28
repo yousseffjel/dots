@@ -6,8 +6,8 @@
 #   record>  full | monitor | region
 #
 # full is the whole X screen, every monitor at once; monitor is the one
-# under the pointer (dwm-lib-monitor.sh); region is drawn with slop, as
-# dwm-screenshot does. With a recording
+# under the pointer (dwm-lib-monitor.sh); region is drawn with slop (a
+# recording is live, so there is no frame to freeze). With a recording
 # running, the same key stops it and says where the file went. Escape at the
 # prompt or in slop aborts silently.
 #

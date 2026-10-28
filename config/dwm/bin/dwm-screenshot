@@ -20,10 +20,13 @@
 #   dwm-screenshot --delay 3 --region --clipboard
 #                                         3 s to open a menu, then the region
 #
-# --delay and --no-grab exist for dropdowns and menus: a key grab takes the
-# focus off the window while it is held, and a browser closes its dropdown on
-# that. --no-grab runs slop without its keyboard grab, so Escape cannot
-# cancel; dwm-shotkey (Super+a, read without a grab) cancels on Escape for it.
+# Region selection is dwm-shotselect's: it freezes the screen in memory and
+# you drag on that frame, so an open dropdown is in the shot. Without
+# python3-gobject it falls back to maim + slop, which is what --delay and
+# --no-grab are for: a key grab takes the focus off the window while it is
+# held, and a browser closes its dropdown on that. --no-grab runs slop
+# without its keyboard grab, so Escape cannot cancel; dwm-shotkey (Super+a,
+# read without a grab) cancels on Escape for it.
 # --delay is for a shot started from a grabbed key: press it, then open the
 # menu before the delay runs out.
 #

@@ -62,7 +62,7 @@ active_window() {
 # mode list here would be a second place to forget when one is added. An
 # unknown mode falls through to the empty-capture check downstream.
 capture() {
-    local mode="$1" out="$2" id geom rgba magick slop_opts=()
+    local mode="$1" out="$2" id geom rgba magick rc=0 slop_opts=()
 
     case "$mode" in
         full)
@@ -85,6 +85,21 @@ capture() {
             maim "${CAPTURE_OPTS[@]}" --window "$id" "$out"
             ;;
         region)
+            rgba="$(selector_color)"
+            # dwm-shotselect first (2026-10-28): it freezes the screen in
+            # memory and selects on that frame, so an open dropdown, which
+            # holds the pointer grab slop needs, is in the shot. 3 (or 127,
+            # no python3) means it cannot run here: maim + slop below.
+            "${DOTS_SHOTSELECT:-${BASH_SOURCE[0]%/*}/dwm-shotselect}" "$out" ${rgba:+"$rgba"} || rc=$?
+            case "$rc" in
+                3 | 126 | 127) ;;
+                1)
+                    notify -u critical "Screenshot failed" "the region selector could not start"
+                    return 1
+                    ;;
+                *) return "$rc" ;;
+            esac
+            # The fallback, and until 2026-10-28 the only region path.
             require slop "region selection" || return 1
             magick="$(magick_bin)" || return 1
             # Freeze first (2026-10-22): the whole screen is captured BEFORE
@@ -101,7 +116,6 @@ capture() {
             # both exit 1 with nothing on stdout. Its stderr is deliberately
             # NOT discarded — that is the only thing separating "the user
             # changed their mind" from "another client holds a grab".
-            rgba="$(selector_color)"
             slop_opts=(--bordersize "$SLOP_BORDER")
             if [[ -n "$rgba" ]]; then slop_opts+=(--color "$rgba"); fi
             # --no-grab: slop's keyboard grab would close an open dropdown.

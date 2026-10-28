@@ -1,0 +1,239 @@
+#!/bin/sh
+# dwm-shotselect — freeze the screen, then drag a region of the frozen frame.
+#
+#   dwm-shotselect OUT.png [R,G,B,A]   save the selection to OUT.png
+#   dwm-shotselect --help              this text
+#
+# dwm-screenshot's region mode (Super+a, Shift+Print). The whole screen is
+# read into memory the moment this starts, BEFORE anything takes a grab,
+# and the selection is made on a full-screen picture of that frame. So an
+# open dropdown or menu is in the shot even though it closes afterwards.
+#
+# WHY NOT slop (2026-10-28). An open GTK or Firefox dropdown holds the
+# pointer grab itself, so slop could not get one ("Couldn't grab the mouse
+# after 10 tries") and the click meant for the selection closed the menu.
+# And on a 3840x2280 screen, maim spent ~4 s encoding the frozen frame as a
+# PNG before slop even started; here only the selection is ever encoded.
+#
+# A GRAB HELD BY SOMEONE ELSE is that open popup. Its picture is already
+# taken, so Escape is sent to close it (xdotool, Super released for the
+# key), and the grab is retried. Escape is sent ONLY then: with no popup it
+# would reach the focused window (a terminal, vim).
+#
+# Drag with the left button. Escape or the right button cancels; a click
+# with no drag selects nothing and waits. The colour is slop's float RGBA
+# (dwm-screenshot's selector_color), the focused border's.
+#
+# Exit: 0 saved, 1 failed, 2 cancelled, 3 python3-gobject or GTK 3 missing
+# (dwm-screenshot falls back to maim + slop then).
+
+case "${1:-}" in
+-h | --help)
+	printf 'usage: dwm-shotselect OUT.png [R,G,B,A]\n\n'
+	sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p}' "$0"
+	exit 0
+	;;
+"")
+	echo "usage: dwm-shotselect OUT.png [R,G,B,A]" >&2
+	exit 1
+	;;
+esac
+
+# Device pixels: the frame and the pointer must share one coordinate space.
+GDK_SCALE=1 GDK_DPI_SCALE=1 exec python3 - "$@" <<'PY'
+import subprocess
+import sys
+
+try:
+    import cairo
+    import gi
+
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk
+except (ImportError, ValueError) as err:
+    print(f"dwm-shotselect: {err}", file=sys.stderr)
+    sys.exit(3)
+
+OUT = sys.argv[1]
+COLOR = (0.5, 0.5, 0.5, 1.0)
+if len(sys.argv) > 2:
+    try:
+        COLOR = tuple(float(v) for v in sys.argv[2].split(","))[:4]
+    except ValueError:
+        pass
+BORDER = 2
+DIM = 0.35  # the frame outside the selection, darkened while dragging
+GRAB_TRIES = 20  # 50 ms apart: a popup closes in a frame or two
+
+if not Gdk.init_check(sys.argv)[0]:
+    print("dwm-shotselect: cannot open the display", file=sys.stderr)
+    sys.exit(3)
+
+# First, before GTK is even loaded and before any grab: this IS the
+# screenshot. A cairo copy of the root, not a GdkPixbuf: no per-pixel
+# conversion (0.1 s less at 4K), and the redraws while dragging are a blit.
+root = Gdk.get_default_root_window()
+W, H = root.get_width(), root.get_height()
+frame = cairo.ImageSurface(cairo.FORMAT_RGB24, W, H)
+cr = cairo.Context(frame)
+Gdk.cairo_set_source_window(cr, root, 0, 0)
+cr.paint()
+frame.flush()
+del cr
+
+try:
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import GLib, Gtk
+except (ImportError, ValueError) as err:
+    print(f"dwm-shotselect: {err}", file=sys.stderr)
+    sys.exit(3)
+
+state = {"start": None, "end": None, "rc": 2, "tries": 0, "escaped": False}
+
+win = Gtk.Window(type=Gtk.WindowType.POPUP)  # override-redirect: dwm keeps out
+win.move(0, 0)
+win.set_default_size(W, H)
+win.set_app_paintable(True)
+area = Gtk.DrawingArea()
+area.add_events(
+    Gdk.EventMask.BUTTON_PRESS_MASK
+    | Gdk.EventMask.BUTTON_RELEASE_MASK
+    | Gdk.EventMask.POINTER_MOTION_MASK
+)
+win.add(area)
+
+
+def rect():
+    (x0, y0), (x1, y1) = state["start"], state["end"]
+    x, y = min(x0, x1), min(y0, y1)
+    return x, y, abs(x1 - x0), abs(y1 - y0)
+
+
+def damage(old):
+    """Redraw only what changed: the old and new rectangles' bounding box."""
+    if old is None or state["start"] is None:
+        area.queue_draw()
+        return
+    x, y, w, h = rect()
+    ox, oy, ow, oh = old
+    x0, y0 = min(x, ox) - BORDER, min(y, oy) - BORDER
+    x1 = max(x + w, ox + ow) + BORDER
+    y1 = max(y + h, oy + oh) + BORDER
+    area.queue_draw_area(x0, y0, x1 - x0, y1 - y0)
+
+
+def draw(_w, cr):
+    cr.set_source_surface(frame, 0, 0)
+    cr.paint()
+    if state["start"] is None:
+        return
+    x, y, w, h = rect()
+    # Dim everything but the selection, so the frozen frame reads as frozen.
+    cr.set_source_rgba(0, 0, 0, DIM)
+    cr.rectangle(0, 0, W, H)
+    cr.rectangle(x, y, w, h)
+    cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)  # the selection is a hole
+    cr.fill()
+    cr.set_source_rgba(*COLOR)
+    cr.set_line_width(BORDER)
+    cr.rectangle(x - BORDER / 2, y - BORDER / 2, w + BORDER, h + BORDER)
+    cr.stroke()
+
+
+def finish(rc):
+    state["rc"] = rc
+    Gtk.main_quit()
+
+
+def press(_w, ev):
+    if ev.button == 3:
+        finish(2)
+    elif ev.button == 1:
+        state["start"] = state["end"] = (int(ev.x_root), int(ev.y_root))
+        area.queue_draw()  # the whole frame dims
+
+
+def motion(_w, ev):
+    if state["start"] is not None:
+        old = rect()
+        state["end"] = (int(ev.x_root), int(ev.y_root))
+        damage(old)
+
+
+def release(_w, ev):
+    if ev.button != 1 or state["start"] is None:
+        return
+    state["end"] = (int(ev.x_root), int(ev.y_root))
+    x, y, w, h = rect()
+    if w < 2 or h < 2:  # a click, not a drag
+        state["start"] = None
+        area.queue_draw()
+        return
+    x, y = max(0, x), max(0, y)
+    w, h = min(w, W - x), min(h, H - y)
+    shot = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
+    cr = cairo.Context(shot)
+    cr.set_source_surface(frame, -x, -y)
+    cr.paint()
+    try:
+        shot.write_to_png(OUT)
+    except (OSError, cairo.Error) as err:
+        print(f"dwm-shotselect: {err}", file=sys.stderr)
+        finish(1)
+        return
+    finish(0)
+
+
+def key(_w, ev):
+    if ev.keyval == Gdk.KEY_Escape:
+        finish(2)
+
+
+def grab():
+    seat = Gdk.Display.get_default().get_default_seat()
+    status = seat.grab(
+        win.get_window(),
+        Gdk.SeatCapabilities.ALL,
+        True,  # owner events: the drawing area gets its own clicks
+        Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "crosshair"),
+        None,
+        None,
+        None,
+    )
+    if status == Gdk.GrabStatus.SUCCESS:
+        return False
+    state["tries"] += 1
+    if status == Gdk.GrabStatus.ALREADY_GRABBED and not state["escaped"]:
+        # Someone else holds the grab: the open popup that is already in the
+        # frame. --clearmodifiers lifts the held Super for the key.
+        state["escaped"] = True
+        subprocess.run(
+            ["xdotool", "key", "--clearmodifiers", "Escape"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    if state["tries"] >= GRAB_TRIES:
+        print("dwm-shotselect: another client holds the pointer grab", file=sys.stderr)
+        finish(1)
+        return False
+    return True
+
+
+area.connect("draw", draw)
+area.connect("button-press-event", press)
+area.connect("motion-notify-event", motion)
+area.connect("button-release-event", release)
+win.connect("key-press-event", key)
+def mapped(*_):
+    # Grabbed once mapped: an unmapped window's grab fails as not viewable.
+    if grab():
+        GLib.timeout_add(50, grab)
+    return False
+
+
+win.connect("map-event", mapped)
+win.show_all()
+Gtk.main()
+sys.exit(state["rc"])
+PY

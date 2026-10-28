@@ -110,6 +110,16 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Fixed
 
+- **`Super` + `a` is ready in about a second, and the dropdown stays in the
+  shot.** Before, a 4K screen waited about 4 seconds for the frozen frame to
+  be encoded before the selector appeared, and with a dropdown open the
+  selector could not start at all: the dropdown holds the mouse, so your
+  click closed it instead. The new `dwm-shotselect` freezes the screen in
+  memory, shows the frozen picture, and you drag on that; only the selected
+  part is encoded. All region shots use it (`Shift` + `Print` and
+  `Super` + `Shift` + `a` too); without python3-gobject they fall back to
+  slop.
+
 - **Typing in tmux no longer leaves junk on screen.** tmux names its
   terminal `tmux-256color`, and Void ships that terminfo entry in
   `ncurses-term`, which was never installed. Without it the shell inside

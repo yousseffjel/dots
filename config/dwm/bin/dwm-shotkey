@@ -7,9 +7,11 @@
 # before any screenshot code has run (measured in Xvfb, 2026-10-22: the page
 # saw `blur` on sxhkd's grab and on slop's keyboard grab, and nothing on an
 # ungrabbed key or on slop --nokeyboard). So this key is not grabbed at all:
-# it is read from XInput2's raw events, which every client may listen to, and
-# the screenshot runs with --no-grab (slop --nokeyboard). Escape cannot
-# reach slop then, so this script cancels the selection on Escape itself.
+# it is read from XInput2's raw events, which every client may listen to.
+# The selection is dwm-shotselect's (2026-10-28), which photographs the
+# screen before it grabs anything. Its slop fallback runs with --no-grab
+# (slop --nokeyboard), and Escape cannot reach slop then, so this script
+# cancels that selection on Escape itself.
 #
 # The price of no grab: the focused window gets the key too. Firefox ignores
 # Super+a; st and alacritty would type an "a", so both bind it to nothing
