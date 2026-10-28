@@ -199,6 +199,10 @@ dots/
 ├── .github/workflows/   # ci.yml — lint / tests / build-suckless / package-names (Void container jobs)
 │                        # install-container.yml — the only job that RUNS install-void.sh (paths-filtered)
 ├── docs/                # user docs; `ls docs/` is the list (this line named five and missed two)
+├── wiki/                # GitHub wiki SOURCE (2026-10-28): users + contributors. Pages link each other as
+│                        #  (Page-Name) and repo files as absolute github.com/.../blob/main/ URLs — a relative
+│                        #  link is dead once published. tests/wiki-links.sh checks every link + the sidebar.
+│                        #  scripts/wiki-publish.sh mirrors HEAD's wiki/ to <origin>.wiki.git (dev tool only)
 ├── KEYBINDINGS.md       # every dwm and sxhkd binding
 ├── HyDE/                # untracked local clone of HyDE-Project/HyDE — reference only, not part of this repo
 ├── dwm-titus/           # untracked local clone of ChrisTitusTech/dwm-titus — reference only; see Reference clones

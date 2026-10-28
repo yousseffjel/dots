@@ -18,6 +18,9 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 
 ### Added
 
+- **A project wiki.** Install and usage guides plus contributor pages, kept
+  in `wiki/` and published to the GitHub wiki with
+  `scripts/wiki-publish.sh`.
 - **The clock opens a calendar.** A left-click on the clock shows this
   month's calendar under it, in the wallpaper's colours; click again or press
   Escape to close it. It used to be the month as a notification, which is
