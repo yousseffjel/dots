@@ -21,8 +21,9 @@
 #     own autostart OFF that way, and dex 0.10.1 ignores the key.
 #
 # Only ~/.config/autostart, never /etc/xdg/autostart: the entries there belong
-# to desktop components autostart.sh already starts itself (nm-applet,
-# blueman, the polkit agent), and would start twice. docs/DESKTOP.md.
+# to desktop components autostart.sh starts itself (the polkit agent), which
+# would start twice, or deliberately leaves off (nm-applet, blueman-applet:
+# the bar's blocks do their job). docs/DESKTOP.md.
 #
 # DOTS_PROC replaces /proc for the no-bus fallback (tests).
 set -euo pipefail

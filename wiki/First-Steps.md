@@ -22,11 +22,11 @@ The bar runs along the top of each monitor:
 
 - **Left:** the tags `1` to `9`, dwm's equivalent of workspaces. Only tags with windows on them are shown, plus the
   one you are viewing. Next to them is the layout symbol, then the focused window's title.
-- **Right:** the status blocks, then the system tray. The blocks show, from left to right, pending package updates,
-  free disk space, CPU temperature and load, memory, brightness, microphone, volume, network, Bluetooth, a
+- **Right:** the status blocks, then the system tray. The blocks show, from left to right, free disk space, CPU temperature and load, memory, brightness, microphone, volume, network, Bluetooth, a
   notification bell, the battery (laptops only) and the clock.
-- **The tray** holds the applets: NetworkManager, Bluetooth (on a machine with an adapter) and, while a removable
-  drive is plugged in, the drive mounter (udiskie).
+- **The tray** holds the icon of any app that puts one there. There are no network, Bluetooth or drive-mounter
+  applets: the bar's network and Bluetooth blocks do that job (left-click them), and a USB drive mounts with a
+  click in Thunar's side pane.
 
 Every block does something when clicked. Left-click the clock for a calendar, the volume to mute, the network to
 open `nmtui`, the bell for the notification centre. Scroll over volume or brightness to change them. The full table

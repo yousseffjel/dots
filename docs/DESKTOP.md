@@ -133,12 +133,15 @@ Three things it adds on top of dex:
   use it to turn their own autostart off, and dex ignores it.
 
 **Only `~/.config/autostart`.** `/etc/xdg/autostart` holds entries for
-desktop components that `autostart.sh` already starts itself, such as
-nm-applet, blueman and the polkit agent, so reading it would start them
-twice. To stop one of those, edit `autostart.sh`. To stop an app you enabled,
+desktop components that `autostart.sh` either starts itself (the polkit
+agent) or deliberately leaves off (nm-applet and blueman's tray applet: the
+bar's network and Bluetooth blocks do their job, without the memory),
+so reading it would start them twice or bring them back. To stop one
+`autostart.sh` starts, edit `autostart.sh`. To stop an app you enabled,
 use its own switch, or delete its file from `~/.config/autostart`. An entry
-there for something `autostart.sh` already starts (an `nm-applet.desktop` of
-your own, say) starts a second copy.
+there for something `autostart.sh` already starts (an `lxpolkit.desktop` of
+your own, say) starts a second copy. One of yours for nm-applet or
+blueman-applet starts it, which is how to have the tray icon back.
 
 ## Sounds
 

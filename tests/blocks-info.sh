@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Exercises the clock, UPD and BT status blocks
-# (suckless/dwmblocks/scripts/dwm-clock, dwm-updates, dwm-bluetooth) and the
+# Exercises the clock and BT status blocks
+# (suckless/dwmblocks/scripts/dwm-clock, dwm-bluetooth) and the
 # shared helpers in dwm-blockutil, on a sealed PATH — harness in
 # tests/lib/blocks.sh.
 #
@@ -8,12 +8,6 @@
 #   * clock: one formatted date; left-click opens dwm-calendar (found off
 #     PATH, as under dwmblocks), and notifies the month's calendar when it
 #     is missing or python3-gobject is;
-#   * UPD: counts the `update` lines of a LOCAL dry run (`xbps-install -nu`,
-#     no -S), not the `install` lines of new dependencies, and lists exactly
-#     those packages; n/a when xbps fails or is missing; left lists them; right
-#     opens the upgrade in a floating terminal EVEN when the count failed —
-#     and that command, run for real against fakes, upgrades, then refreshes
-#     the block, then waits for Enter;
 #   * BT: n/a without bluetoothctl or an adapter, the crossed icon alone when
 #     unpowered, the connect icon and count, the plain icon with none; left
 #     opens blueman-manager;
@@ -24,9 +18,8 @@
 #     block_term fails cleanly with no terminal at all, and the class it
 #     gives a terminal is one config.def.h's rules[] floats.
 #
-# The xbps fixture is `xbps-install -nu`'s real shape (`<pkgver> <action>
-# <arch> <repo> <installed> <download>`, exit 0), captured with xbps-static
-# 0.60.7 on 2026-10-15; bluetoothctl's from bluez 5.8x on the dev host.
+# bluetoothctl's fixture is from bluez 5.8x on the dev host. (The UPD block
+# and its xbps fixture went with dwm-updates, 2026-10-28.)
 
 set -euo pipefail
 
@@ -69,38 +62,6 @@ block dwm-clock 1
 check "left: the calendar popup" logged "dwm-calendar "
 check "left: the popup, not the notification too" not_logged "notify-send"
 rm "$SB/fake/python3"
-
-blue "UPD"
-# shellcheck disable=SC2016
-fake "$SB/fake" xbps-install 'echo "xbps-install $*" >>"$LOG"; cat "'"$SB"'/xbps.out"; exit "$(cat "'"$SB"'/xbps.rc")"'
-printf '%s\n' \
-    'oniguruma-6.9.10_1 update x86_64 https://repo-default.voidlinux.org/current 640404 199767' \
-    'cairo-1.18.6_1 update x86_64 https://repo-default.voidlinux.org/current 1924096 731242' \
-    'libnew-1.0_1 install x86_64 https://repo-default.voidlinux.org/current 10240 4096' \
-    'mesa-26.2.5_1 update x86_64 https://repo-default.voidlinux.org/current 52428800 9437184' >"$SB/xbps.out"
-echo 0 >"$SB/xbps.rc"
-block dwm-updates
-check "three pending, the new dependency not counted" is "󰏗 3"
-check "a local dry run (-nu), never a sync" logged "xbps-install -nu"
-block dwm-updates 1
-check "left: lists them" has "notify-send -u low 3 update(s) pending oniguruma-6.9.10_1"
-: >"$SB/xbps.out"
-block dwm-updates
-check "none pending" is "󰏗 0"
-echo 1 >"$SB/xbps.rc"
-block dwm-updates 3
-check "xbps failed (no index yet): n/a" is "󰏗 n/a"
-check "right: the upgrade terminal opens anyway" has "alacritty --class dots-float-updates -e sh -c sudo xbps-install -Su;"
-upgrade="$(sed -n 's/^alacritty --class dots-float-updates -e sh -c //p' "$LOG")"
-# shellcheck disable=SC2016
-for t in sudo pkill; do fake "$SB/fake" "$t" 'echo "${0##*/} $*" >>"$LOG"'; done
-: >"$LOG"
-env -i LOG="$LOG" PATH="$SB/fake:$SB/real" /bin/sh -c "$upgrade" <<<"" >/dev/null
-check "the upgrade command syncs and upgrades everything, then refreshes UPD (signal 1)" \
-    test "$(tr '\n' '|' <"$LOG")" = "sudo xbps-install -Su|pkill -RTMIN+1 dwmblocks|"
-mv "$SB/fake/xbps-install" "$SB/xbps.off"
-block dwm-updates
-check "no xbps" is "󰏗 n/a"
 
 blue "BT"
 # shellcheck disable=SC2016

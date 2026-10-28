@@ -231,34 +231,31 @@ returns to the tag you were on before (`preservepertag`).
 
 ## Status bar
 
-Thirteen blocks, left to right, then dwm's native systray furthest right. Each is a
+Twelve blocks, left to right, then dwm's native systray furthest right. Each is a
 script in `suckless/dwmblocks/scripts/`, installed to `~/.local/bin` by
 `make install-scripts` and listed in `suckless/dwmblocks/blocks.def.h`.
 
 | # | Block | Shows | Refreshes | Clicks |
 | --- | --- | --- | --- | --- |
-| 1 | `󰏗` updates | Pending package updates | hourly | left → list them in a notification, right → `sudo xbps-install -Su` in a terminal |
-| 2 | `󰋊` disk | Free space on `/` | 5 min | left → open `/` in thunar |
-| 3 | `󰔏` temp | CPU package temperature, in °C | 5 s | left → htop |
-| 4 | `󰻠` cpu | CPU utilisation | 2 s | left → htop |
-| 5 | `󰍛` mem | RAM in use | 10 s | left → htop |
-| 6 | `󰛨` / `󰃟` brightness | Backlight (laptop, the lamp) or screen gamma (desktop, the sun) level | **on change only** | left → night light on / off, scroll → brightness ±, with the pop-up |
-| 7 | `󰍬` mic | Microphone level, or `󰍭` alone when muted | **on change only** | left → toggle mute, with the pop-up |
-| 8 | `󰕿` `󰖀` `󰕾` vol | Output volume, the waves following the level, or `󰝟` alone when muted | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
-| 9 | `󰤯`…`󰤨` net | Wi-Fi bars and signal, `󰈀` wired, `󰤮` off, `󰛳` when only the kernel's link state is known. No SSID: nmtui shows it | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
-| 10 | `󰂯` bt | Bluetooth: `󰂲` off, `󰂯` on, `󰂱` and the count while connected | 30 s | left → blueman-manager |
-| 11 | `󰂚` / `󰂛 FOCUS` | The notification button, always shown: a bell and the number of notifications in dunst's history, or a crossed bell and `FOCUS` in focus mode, plus how many it is holding back | 5 s, and at once on a change | left → the notification centre, right → focus mode on / off |
-| 12 | `󰂎`…`󰁹` battery | Battery percent, the icon filled to the nearest tenth, `󰂄` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
-| 13 | `` | Day, date and time | 60 s | left → the month calendar under the clock, left again (or Escape) closes it (`dwm-calendar`); without python3-gobject, the month in a notification |
+| 1 | `󰋊` disk | Free space on `/` | 5 min | left → open `/` in thunar |
+| 2 | `󰔏` temp | CPU package temperature, in °C | 15 s | left → htop |
+| 3 | `󰻠` cpu | CPU utilisation | 2 s | left → htop |
+| 4 | `󰍛` mem | RAM in use | 10 s | left → htop |
+| 5 | `󰛨` / `󰃟` brightness | Backlight (laptop, the lamp) or screen gamma (desktop, the sun) level | **on change only** | left → night light on / off, scroll → brightness ±, with the pop-up |
+| 6 | `󰍬` mic | Microphone level, or `󰍭` alone when muted | **on change only** | left → toggle mute, with the pop-up |
+| 7 | `󰕿` `󰖀` `󰕾` vol | Output volume, the waves following the level, or `󰝟` alone when muted | **on change only** | left → mute, right → pavucontrol, scroll → ±5%; left and scroll show the pop-up |
+| 8 | `󰤯`…`󰤨` net | Wi-Fi bars (no percent), `󰈀` wired, `󰤮` off, `󰛳` when only the kernel's link state is known. No SSID: nmtui shows it | 30 s | left → nmtui in a terminal (nm-connection-editor if nmtui is missing) |
+| 9 | `󰂯` bt | Bluetooth: `󰂲` off, `󰂯` on, `󰂱` and the count while connected | 60 s | left → blueman-manager |
+| 10 | `󰂚` / `󰂛 FOCUS` | The notification button, always shown: a bell and the number of notifications in dunst's history, or a crossed bell and `FOCUS` in focus mode, plus how many it is holding back | 30 s, and at once on a change | left → the notification centre, right → focus mode on / off |
+| 11 | `󰂎`…`󰁹` battery | Battery percent, the icon filled to the nearest tenth, `󰂄` while charging. Shown **only** on a machine with a system battery (a laptop); empty on a desktop. Warn colour at 15 %, urgent at 5 %, each with one notification | 60 s | left → state, percent and time left / to full |
+| 12 | `` | Day, date and time | 60 s | left → the month calendar under the clock, left again (or Escape) closes it (`dwm-calendar`); without python3-gobject, the month in a notification |
 
 **The bar behaves like the keys** (2026-10-07). A click or scroll that changes
 a level shows the same `dwm-osd` pop-up as the volume, mic and brightness
-keys. Every terminal a click opens (`nmtui`, `htop`, the upgrade) floats: its
+keys. Every terminal a click opens (`nmtui`, `htop`) floats: its
 class is `dots-float-<tool>`, and one `dots-float-` rule in `config.def.h`
 matches them all. The terminal is alacritty, or st without it. The helpers
-live in `dwm-blockutil`, sourced by the blocks the way `dwm-colors` is. The
-upgrade terminal refreshes the updates block the moment dnf finishes and stays open until
-Enter, so a failed upgrade can be read.
+live in `dwm-blockutil`, sourced by the blocks the way `dwm-colors` is.
 
 > **Scroll on the bar needs a dwm rebuild on an existing install.** dwm bound
 > `ClkStatusText` for Button1/2/3 only, so a scroll was discarded before any
@@ -270,7 +267,7 @@ Enter, so a failed upgrade can be read.
 > scripts/install-suckless.sh --skip-deps
 > ```
 
-**The network block, and the notification button's 5 s refresh, need a dwmblocks rebuild
+**The network block, and the notification button's timed refresh, need a dwmblocks rebuild
 with a fresh `blocks.h` on an existing install.** Without it the button still
 works, but its count only moves when you click it or press a notification key.
 The block list is compiled in, and `blocks.h` is generated from `blocks.def.h`
@@ -303,11 +300,10 @@ order and changes between boots. A machine whose CPU sensor is named something
 else shows `n/a` rather than silently reporting an NVMe drive or the
 motherboard; add the name to `CPU_SENSORS` in `dwm-temp` to fix it.
 
-The updates block runs `xbps-install -nu` — a dry run against the repo index already on
-disk, never the network, since dwmblocks runs blocks synchronously and one
-slow block stalls the whole bar. The count is therefore as fresh as the last
-sync (`xbps-install -S`, which every installer run and `dots update` do) and
-no fresher.
+**The polled blocks run as rarely as their value is worth** (2026-10-28):
+every poll forks a shell and its tools, so the intervals above are a CPU
+budget, not a refresh rate to raise. There is no pending-updates block any
+more (it was dropped then): `dots update`, or `xbps-install -Su`, tells you.
 
 ---
 

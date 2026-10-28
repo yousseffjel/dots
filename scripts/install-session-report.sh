@@ -115,11 +115,6 @@ session_autostart_report() {
         'without it GTK apps ignore ~/.config/xsettingsd/xsettingsd.conf —' \
         'Xft antialiasing, hinting and RGBA fall back to toolkit defaults.'
 
-    session_report_daemon "$autostart" udiskie \
-        'add this line yourself:  command -v udiskie >/dev/null && ! pgrep -x udiskie >/dev/null && udiskie --automount --notify --smart-tray &' \
-        'without it USB sticks and SD cards never auto-mount — thunar-volman' \
-        'only does that while Thunar is running, and nothing daemonises it.'
-
     session_report_daemon "$autostart" unclutter \
         'add this line yourself:  command -v unclutter >/dev/null && ! pgrep -x unclutter >/dev/null && unclutter --timeout 5 &' \
         'without it the mouse pointer stays on screen over whatever you type in.'

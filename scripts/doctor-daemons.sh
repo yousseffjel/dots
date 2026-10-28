@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The autostart-daemon checks of scripts/doctor.sh — SOURCED by it, never run
 # alone. Split out of doctor-session.sh at the 250-line cap (2026-10-12).
-# Assumes doctor.sh's report(), DOTS_DIR, and BT_SYSFS from doctor-session.sh.
+# Assumes doctor.sh's report() and DOTS_DIR.
 
 AUTOSTART="${XDG_DATA_HOME:-$HOME/.local/share}/dwm/autostart.sh"
 
@@ -20,8 +20,6 @@ declare -A DAEMON_PROCESS=(["dwm-lock"]="xss-lock" ["autorandr"]="" ["xdg-user-d
 daemon_applies() {
     case "$1" in
         spice-vdagent) drivers_is_vm ;;
-        blueman-applet) [[ -n "$(ls -A "$BT_SYSFS" 2>/dev/null)" ]] ;;
-        nm-applet) pgrep -x NetworkManager >/dev/null 2>&1 ;;
         dwm-audiowatch) command -v pactl >/dev/null 2>&1 ;;
         dwm-shotkey) command -v xinput >/dev/null 2>&1 ;;
         *) return 0 ;;
@@ -34,8 +32,6 @@ daemon_applies() {
 daemon_skip_reason() {
     case "$1" in
         spice-vdagent) echo "not a VM" ;;
-        blueman-applet) echo "no bluetooth adapter" ;;
-        nm-applet) echo "NetworkManager is not running" ;;
         dwm-audiowatch) echo "pactl is not installed" ;;
         dwm-shotkey) echo "xinput is not installed" ;;
         *) echo "not needed on this machine" ;;

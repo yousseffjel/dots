@@ -1,10 +1,11 @@
 #!/bin/sh
-# Network state as an icon: Wi-Fi bars and the signal percent, 󰈀 for a wired
+# Network state as an icon: Wi-Fi bars, 󰈀 for a wired
 # link, 󰤮 when nothing is connected. Read from NetworkManager via nmcli;
 # without nmcli (or with NetworkManager stopped) it falls back to the kernel's
 # link state, which knows a link is up but not what kind, so it shows 󰛳.
 # The SSID is not shown (user decision 2026-10-22, to keep the bar compact);
-# a left-click's nmtui names it.
+# a left-click's nmtui names it. Nor is the signal as a number (2026-10-28,
+# same reason): the bars are read from it, one per 20 points.
 #
 # Every nmcli call is wrapped in `timeout`: like bluetoothctl it talks to a
 # daemon over D-Bus, and dwmblocks runs blocks synchronously, so a wedged
@@ -122,7 +123,7 @@ if [ -n "$wifi" ]; then
 	signal=$(timeout "$NM_TIMEOUT" nmcli -t -f ACTIVE,SIGNAL device wifi list --rescan no 2>/dev/null \
 		| sed -n 's/^yes:\([0-9]*\)$/\1/p' | head -n 1)
 	if [ -n "$signal" ]; then
-		on "$(wifi_icon "$signal")" "$signal%"
+		on "$(wifi_icon "$signal")"
 	else
 		on 󰖩
 	fi

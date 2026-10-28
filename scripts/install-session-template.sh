@@ -159,19 +159,9 @@ if command -v sxhkd >/dev/null 2>&1 && ! pgrep -x sxhkd >/dev/null 2>&1; then
 	sxhkd &
 fi
 
-# Removable media: auto-mounts USB sticks and SD cards and reports them through
-# dunst. thunar-volman does this too, but only while Thunar is running, and
-# nothing here daemonises Thunar — so without this line removable media has to
-# be mounted by hand.
-#
-# --automount and --notify are udiskie's defaults; they are named anyway so the
-# behaviour is stated in the file the user actually reads, and so a future
-# change of defaults cannot silently disable either. --smart-tray shows a tray
-# icon only while something is mounted, which suits a bar that is otherwise
-# empty; dwm's systray patch provides the host for it.
-if command -v udiskie >/dev/null 2>&1 && ! pgrep -x udiskie >/dev/null 2>&1; then
-	udiskie --automount --notify --smart-tray &
-fi
+# No removable-media daemon (udiskie was dropped 2026-10-28: a resident Python
+# process duplicating gvfs). A USB stick or SD card mounts with a click in
+# Thunar's side pane, and thunar-volman auto-mounts while Thunar is open.
 
 # Hides the mouse pointer after 5 idle seconds; the next move brings it back.
 # unclutter-xfixes (packages/extra.lst) — it hides the pointer through XFixes,

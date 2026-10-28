@@ -21,16 +21,6 @@ session_autostart_report_more() {
         'that package is retired on Fedora 43 and 44, so its [ -x ] guards' \
         'never match and the block has been doing nothing.'
 
-    session_report_daemon "$autostart" blueman-applet \
-        'add this line yourself:  command -v blueman-applet >/dev/null && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] && ! pgrep -x blueman-applet >/dev/null && blueman-applet &' \
-        'without it there is no bluetooth tray icon; pairing still works' \
-        'from blueman-manager (left-click the BT block).'
-
-    session_report_daemon "$autostart" nm-applet \
-        'add this line yourself:  command -v nm-applet >/dev/null && pgrep -x NetworkManager >/dev/null && ! pgrep -x nm-applet >/dev/null && nm-applet &' \
-        'without it there is no network tray icon; Wi-Fi still works from' \
-        'nmtui or nm-connection-editor (left-click the NET block).'
-
     session_report_daemon "$autostart" xdg-user-dirs-update \
         'add this line yourself:  command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update &' \
         'without it ~/Pictures, ~/Videos and the rest are never created or named,' \

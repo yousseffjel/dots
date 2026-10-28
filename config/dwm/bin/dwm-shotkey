@@ -113,24 +113,29 @@ press() {
 
 # xinput test-xi2 prints a block per event: an "EVENT type N (Name)" line,
 # then indented fields, "detail:" being the keycode for key events.
+#
+# It prints EVERY event, though — every pointer move is a block of its own,
+# and test-xi2 has no filter. Read line by line in bash, that cost ~10% of a
+# core over a session (measured 2026-10-28: 15 CPU-minutes in 2.5 h, more
+# than picom), and woke the CPU on every pixel the pointer moved. awk drops
+# all but the key events, so the loop below wakes once per key press.
+# fflush() hands each one over at once instead of when a buffer fills.
+key_events() {
+    awk '
+        /^EVENT type/ { ev = /\(RawKeyPress\)/ ? "press" : /\(RawKeyRelease\)/ ? "release" : ""; next }
+        ev != "" && /detail: / { sub(/.*detail: /, ""); print ev, $0; fflush(); ev = "" }
+    '
+}
+
 listen() {
-    local line code ev=""
+    local ev code
     HELD=()
-    while IFS= read -r line; do
-        case "$line" in
-            "EVENT type"*"(RawKeyPress)") ev=press ;;
-            "EVENT type"*"(RawKeyRelease)") ev=release ;;
-            "EVENT type"*) ev="" ;;
-            *"detail: "*)
-                code="${line##*detail: }"
-                case "$ev" in
-                    press) press "$code" ;;
-                    release) unset "HELD[$code]" ;;
-                esac
-                ev=""
-                ;;
+    while read -r ev code; do
+        case "$ev" in
+            press) press "$code" ;;
+            release) unset "HELD[$code]" ;;
         esac
-    done < <(xinput test-xi2 --root 2>"$ERR_FILE")
+    done < <(xinput test-xi2 --root 2>"$ERR_FILE" | key_events)
 }
 
 # xinput ending does not mean the X server did. test-xi2 selects every XI2

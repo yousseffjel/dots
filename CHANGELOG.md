@@ -118,8 +118,37 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
   this layout as a profile", names and saves the current arrangement with
   autorandr; plugging the same screens in again restores it.
 
+### Changed
+
+- **The status bar polls less.** Temperature every 15 s (was 5), Bluetooth
+  every 60 s, and the notification button every 30 s (it still updates at
+  once when you click it or press a notification key); CPU and memory keep
+  their 2 s and 10 s. Each poll starts a shell and its tools, so this is a
+  CPU saving, and the temperature block no longer starts `cat` at all. The
+  network block shows the Wi-Fi bars without the percent next to them.
+  Rebuild dwmblocks (`dots update`, or `scripts/install-suckless.sh`).
+
+### Removed
+
+- **The pending-updates block.** It is gone from the bar; `dots update` or
+  `xbps-install -Su` tells you what is pending.
+- **The network and Bluetooth tray applets** (nm-applet, blueman-applet) no
+  longer start at login. The bar's network and Bluetooth blocks do the same
+  job (left-click them for nmtui and blueman-manager) without ~30 MB of
+  GTK/Python resident. An existing `autostart.sh` is yours: delete their two
+  blocks from it yourself, or keep them to keep the icons.
+- **udiskie, the removable-drive automounter.** A USB stick or SD card now
+  mounts with a click in Thunar's side pane (gvfs, already running for
+  Thunar), and thunar-volman still auto-mounts while Thunar is open. Delete
+  udiskie's block from an existing `autostart.sh` yourself;
+  `sudo xbps-remove udiskie` removes the package.
+
 ### Fixed
 
+- **`Super` + `a`'s listener no longer burns CPU on mouse movement.** It
+  read every input event, every pointer move included, through a shell
+  loop: about a tenth of a CPU core over a session. Now only key events
+  reach it.
 - **`Super` + `a` no longer stops working for the rest of the session.** Its
   listener quit, silently, whenever another program briefly held the
   keyboard events it reads; now it waits and starts listening again, and

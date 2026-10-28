@@ -156,7 +156,7 @@ dots/
 │   │                           # with the in-place restart for each. DOTS_PROC fakes /proc in tests
 │   ├── install-session.sh      # sourced by install-suckless.sh: autostart.sh hook + ~/.xinitrc (both user-owned once they exist)
 │   ├── install-session-template.sh # sourced by install-session.sh: the autostart.sh BODY (display / daemons / services parts)
-│   ├── install-session-template-applets.sh # sourced by the template: the desktop-applet part (polkit, blueman, nm-applet, xdg-user-dirs)
+│   ├── install-session-template-applets.sh # sourced by the template: the desktop-applet part (polkit, xdg-user-dirs; blueman and nm-applet dropped 2026-10-28)
 │   ├── install-session-report.sh # sourced by install-session.sh: what to tell someone who already HAS an autostart.sh
 │   ├── install-session-report-applets.sh # sourced by the report: the second half of its daemon list
 │   ├── install-session-report-xinitrc.sh # sourced by the report: the paste lines for an existing ~/.xinitrc
@@ -259,7 +259,7 @@ for current state.
 
 **Also done, superseding earlier "pending" entries (roster Epic, 2026-08-06/07 — scope file `.claude/tasks/scope-b-app-roster-finalization.md`):**
 - **Screenshot and lock/idle both landed** (ROADMAP §3 is stale on this): `maim` + `slop` behind a dmenu mode menu in `config/dwm/bin/dwm-screenshot`, and `xss-lock` + `xset` + slock behind `config/dwm/bin/dwm-lock`. Both bound in `config/sxhkd/sxhkdrc`.
-- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 13 blocks plus the systray (NET added 2026-10-05; DND, empty unless dunst is paused, 2026-10-07; BAT, empty without a system battery, 2026-10-13 — the DND block became an always-visible notification button on 2026-10-15, opening `dwm-notify`); picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
+- alacritty is the main terminal (st retained as the no-GPU fallback); thunar is finalized with archive/thumbnail/mime defaults; the status bar runs 12 blocks plus the systray (the updates block was dropped 2026-10-28 and the polled intervals raised, to cut CPU; NET added 2026-10-05; DND, empty unless dunst is paused, 2026-10-07; BAT, empty without a system battery, 2026-10-13 — the DND block became an always-visible notification button on 2026-10-15, opening `dwm-notify`); picom is performance-tuned; the prompt is starship and fastfetch is the fetch tool. Both of the last two are themed from the wallpaper.
 - **README.md is no longer a stub** — it carries the CI badge and the pre-commit setup.
 
 **Roster gap-fill Epic closed 2026-08-12** (scope file

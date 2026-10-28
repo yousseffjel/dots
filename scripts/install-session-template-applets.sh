@@ -24,25 +24,6 @@ if command -v lxpolkit >/dev/null 2>&1 && ! pgrep -x lxpolkit >/dev/null 2>&1; t
 	lxpolkit &
 fi
 
-# Bluetooth tray icon (pairing, connecting, file transfer). blueman ships an
-# /etc/xdg/autostart entry, but nothing in a dwm session reads that directory.
-# Started only when an adapter exists: without one the applet still runs and
-# puts a dead icon in the tray. The bar's BT block works either way.
-if command -v blueman-applet >/dev/null 2>&1 && [ -n "$(ls -A /sys/class/bluetooth 2>/dev/null)" ] \
-	&& ! pgrep -x blueman-applet >/dev/null 2>&1; then
-	blueman-applet &
-fi
-
-# Network tray icon: Wi-Fi networks, VPNs and the connection editor. Like
-# blueman, NetworkManager ships an /etc/xdg/autostart entry that nothing here
-# reads. Started only while NetworkManager runs — otherwise the applet sits in
-# the tray as a dead icon. The bar's NET block works either way (left-click
-# opens nmtui).
-if command -v nm-applet >/dev/null 2>&1 && pgrep -x NetworkManager >/dev/null 2>&1 \
-	&& ! pgrep -x nm-applet >/dev/null 2>&1; then
-	nm-applet &
-fi
-
 # The XDG user directories (~/Pictures, ~/Videos, ...) and the
 # ~/.config/user-dirs.dirs that names them — what `xdg-user-dir PICTURES`
 # reads, and so where screenshots and recordings land. Fedora's desktops run

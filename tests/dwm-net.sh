@@ -3,7 +3,7 @@
 # fake /sys/class/net (DWM_NET_SYSFS), on a sealed PATH.
 #
 # What is asserted:
-#   * Wi-Fi shows bars for its signal and the percent, never the SSID, and
+#   * Wi-Fi shows bars for its signal, never the percent or the SSID, and
 #     a '\:' in a terse-mode SSID does not hide the connection; with no
 #     signal reading, the plain Wi-Fi icon;
 #   * wired only shows 󰈀; Wi-Fi wins when both are connected;
@@ -83,7 +83,7 @@ blue "Wi-Fi"
 printf '%s\n' 'wifi:connected:Home\:Net' 'ethernet:unavailable:' 'loopback:connected (externally):lo' >"$SB/status"
 printf '%s\n' 'no:40' 'yes:72' >"$SB/wifi"
 net
-check "bars and signal, no SSID" is "󰤥 72%"
+check "bars only: no signal number, no SSID" is "󰤥"
 check "signal read without a rescan" grep -q -- '--rescan no' "$LOG"
 
 blue "signal bars"
@@ -91,7 +91,7 @@ printf '%s\n' 'wifi:connected:Cafe' >"$SB/status"
 for case in 100:󰤨 80:󰤨 79:󰤥 40:󰤢 39:󰤟 20:󰤟 19:󰤯 0:󰤯; do
     printf '%s\n' "yes:${case%%:*}" >"$SB/wifi"
     net
-    check "${case%%:*}%: ${case#*:}" is "${case#*:} ${case%%:*}%"
+    check "${case%%:*}%: ${case#*:}" is "${case#*:}"
 done
 : >"$SB/wifi"
 net
@@ -111,12 +111,12 @@ check "connected (externally) counts" is "󰈀"
 blue "both"
 printf '%s\n' 'ethernet:connected:Wired connection 1' 'wifi:connected:Cafe' >"$SB/status"
 net
-check "Wi-Fi wins" is "󰤥 72%"
+check "Wi-Fi wins" is "󰤥"
 
 blue "two Wi-Fi adapters"
 printf '%s\n' 'wifi:connected:First' 'wifi:connected:Second' >"$SB/status"
 net
-check "the active one's signal" is "󰤥 72%"
+check "the active one's signal" is "󰤥"
 
 blue "nothing connected"
 printf '%s\n' 'ethernet:unavailable:' 'wifi:disconnected:' 'loopback:connected (externally):lo' >"$SB/status"

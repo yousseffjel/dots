@@ -3,8 +3,9 @@
 # htop.
 #
 # Read from sysfs rather than shelling out to `sensors`, so this needs no
-# lm_sensors package and costs a couple of virtual-file reads. That matters:
-# this is the fastest block in the bar at a 5s interval.
+# lm_sensors package and costs a couple of virtual-file reads. Those reads use
+# the shell's own `read`, not `cat` (2026-10-28): a $(cat) forks once per hwmon
+# directory on every update, and this block polls every 15 s.
 #
 # Sensors are matched BY NAME, never by hwmon number -- the numbering is
 # assigned in probe order and changes between boots, so hwmon0 is not a stable
@@ -51,14 +52,15 @@ for hw in "$HWMON_ROOT"/hwmon*; do
 	[ -r "$hw/name" ] || continue
 	[ -r "$hw/temp1_input" ] || continue
 
-	name=$(cat "$hw/name" 2>/dev/null)
+	name=
+	read -r name <"$hw/name" 2>/dev/null
 	match=0
 	for want in $CPU_SENSORS; do
 		[ "$name" = "$want" ] && match=1 && break
 	done
 	[ "$match" -eq 1 ] || continue
 
-	milli=$(cat "$hw/temp1_input" 2>/dev/null)
+	read -r milli <"$hw/temp1_input" 2>/dev/null
 	break
 done
 

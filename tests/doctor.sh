@@ -204,12 +204,16 @@ FAKE_DOWN=xss-lock tsv
 check "dwm-lock without xss-lock warns" row warn session daemon-dwm-lock
 FAKE_DOWN=spice-vdagent FAKE_VIRT=none tsv
 check "spice-vdagent off a VM is skipped" row skip session daemon-spice-vdagent
-FAKE_DOWN=nm-applet tsv
-check "nm-applet without NetworkManager is skipped" row skip session daemon-nm-applet
+# The sealed PATH has no pactl, so dwm-audiowatch does not apply until one is
+# faked. (These cases used nm-applet until it left autostart, 2026-10-28.)
+FAKE_DOWN=dwm-audiowatch tsv
+check "dwm-audiowatch without pactl is skipped" row skip session daemon-dwm-audiowatch
 # shellcheck disable=SC2016 # $1 is the inner bash's argument
-check "...naming that reason, and only that one" bash -c '[[ "$1" == *"(NetworkManager is not running)" ]]' _ "$(detail daemon-nm-applet)"
-FAKE_UP=NetworkManager FAKE_DOWN=nm-applet tsv
-check "nm-applet down while NetworkManager runs warns" row warn session daemon-nm-applet
+check "...naming that reason, and only that one" bash -c '[[ "$1" == *"(pactl is not installed)" ]]' _ "$(detail daemon-dwm-audiowatch)"
+fake "$BIN" pactl 'exit 0'
+FAKE_DOWN=dwm-audiowatch tsv
+check "dwm-audiowatch down while pactl is installed warns" row warn session daemon-dwm-audiowatch
+rm "$BIN/pactl"
 # A dwm whose binary an install replaced: /proc/<pid>/exe reads "... (deleted)".
 mkdir -p "$SB/proc/4242" "$SB/inst"
 echo dwm >"$SB/proc/4242/comm"
