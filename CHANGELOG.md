@@ -21,6 +21,10 @@ reasoning. This file is the user-facing summary of those logs, not a copy.
 - **`dots drivers` installs the GPU's Vulkan driver.** `mesa-vulkan-radeon`
   on AMD, `mesa-vulkan-intel` on Intel from Broadwell on, next to the video
   decoding driver. Without it mpv rendered through OpenGL instead of Vulkan.
+- **Weekly SSD TRIM and zram swap tuning.** The services stage installs
+  `/etc/cron.weekly/fstrim`, run by `snooze`'s `snooze-weekly` service (Void
+  ran no TRIM at all), and, where swap is on zram, a sysctl file with
+  `vm.swappiness = 180`. See `docs/HARDWARE.md`.
 - **A project wiki.** Install and usage guides plus contributor pages, kept
   in `wiki/` and published to the GitHub wiki with
   `scripts/wiki-publish.sh`.

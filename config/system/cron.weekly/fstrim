@@ -1,0 +1,7 @@
+#!/bin/sh
+# Weekly SSD TRIM — installed by dots (scripts/install-services-maint.sh) as
+# /etc/cron.weekly/fstrim and run by the snooze-weekly runit service, which
+# also catches up a week the machine was off. It tells each SSD which blocks
+# are free, so writes stay fast and wear stays even. Void schedules no TRIM
+# by itself. A file system or device without discard support is skipped.
+exec fstrim -a

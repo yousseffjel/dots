@@ -65,6 +65,7 @@ run_stage() {
         XDG_CONFIG_HOME="$d/home/.config" XDG_CACHE_HOME="$d/home/.cache" \
         XDG_DATA_HOME="$d/home/.local/share" DOTS_RUNIT_SV="$d/sv" \
         DOTS_RUNIT_SERVICE="$d/service" DOTS_LY_ROOT="$d/root" DOTS_VIRT=none \
+        DOTS_ETC="$d/etc" DOTS_PROC_SWAPS=/dev/null \
         DOTS_LY_CONFIG="$d/root/etc/ly/config.ini" PATH="$d/fake:$SB/real" \
         "$(type -P bash)" "$DOTS_DIR/scripts/install-services.sh" >"$d/out" 2>&1 \
         || { red "install-services.sh exited non-zero in $1:" && cat "$d/out" && FAILS=$((FAILS + 1)); }

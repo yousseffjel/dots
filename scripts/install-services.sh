@@ -4,7 +4,8 @@
 # install-services-runit.sh), adds the user to the groups it needs
 # (install-services-groups.sh), builds ly from source
 # (install-services-ly.sh) and hands tty2 from its getty to ly. tty1's getty
-# is deliberately left alone as a rescue login.
+# is deliberately left alone as a rescue login. Then system upkeep: a weekly
+# SSD TRIM and zram swap tuning (install-services-maint.sh).
 #
 # usage: install-services.sh [--dry-run]
 
@@ -47,6 +48,8 @@ source "$SCRIPT_DIR/install-services-runit.sh"
 source "$SCRIPT_DIR/install-services-groups.sh"
 # shellcheck source=install-services-ly.sh
 source "$SCRIPT_DIR/install-services-ly.sh"
+# shellcheck source=install-services-maint.sh
+source "$SCRIPT_DIR/install-services-maint.sh"
 
 SUDO=()
 if [[ $EUID -ne 0 ]]; then
@@ -133,6 +136,7 @@ else
 fi
 
 services_enable_desktop
+services_maintenance
 groups_add "${USER:-$(id -un 2>/dev/null || true)}"
 
 # ly, then tty2. tty2 is handed over only once a ly binary is really there and

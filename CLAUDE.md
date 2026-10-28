@@ -68,6 +68,8 @@ dots/
 │   ├── fontconfig/      # fonts.conf — Latin face first, Noto Arabic behind it; symlinked (docs/FONTS.md)
 │   ├── xorg/            # 40-dots-touchpad.conf — COPIED by drivers-laptop.sh to /etc/X11/xorg.conf.d on laptops
 │   │                    #  only (sudo, SYSFILE row); never linked, never in symlinks.sh
+│   ├── system/          # cron.weekly/fstrim + sysctl.d/99-dots-zram.conf — COPIED to /etc by the services
+│   │                    #  stage (install-services-maint.sh, sudo, SYSFILE rows); never linked, never in symlinks.sh
 │   ├── xdg-desktop-portal/ # portals.conf — names the gtk backend (a dwm session sets no XDG_CURRENT_DESKTOP); symlinked
 │   ├── dunst/, picom/   # base configs — COPIED by the installer, never symlinked (theming engine rewrites them)
 │   └── theme/templates/ # .dcol templates: always/ (every wallpaper change), theme/ (theme switch only)
@@ -140,6 +142,8 @@ dots/
 │   ├── install-services.sh     # stage: login shell to zsh (sudo usermod) + runit services + groups + ly on tty2
 │   ├── install-services-runit.sh # sourced: SERVICE/SERVICEOFF rows; dbus, elogind, NetworkManager, bluetoothd
 │   │                             # (dhcpcd/wpa_supplicant off only once NM is enabled); tty2's getty handed to ly
+│   ├── install-services-maint.sh # sourced: weekly SSD TRIM (/etc/cron.weekly/fstrim + snooze-weekly) and,
+│   │                           # only with swap on zram, the vm.swappiness sysctl file (SYSFILE rows)
 │   ├── install-services-groups.sh # sourced: usermod -aG network,bluetooth,kvm,video (D4; never reverted)
 │   ├── install-services-ly.sh  # sourced: ly v1.4.1 built from source — pinned commit, vendored deps, zig 0.16.0
 │   │                           # tarball by sha256 (tests/ly-pins.sh); LYBUILD ly <path> rows; uninstall-runit.sh reverts

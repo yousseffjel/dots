@@ -46,6 +46,9 @@ elogind  # no session manager: suspend, reboot and poweroff in the power menu fa
 # login password unlocks it, and the bus activates the secrets component
 # through org.freedesktop.secrets.service on first use.
 gnome-keyring  # no Secret Service: browsers, VS Code and git credential helpers keep passwords and tokens in plain text on disk, or ask for a keyring that never comes
+# snooze runs /etc/cron.weekly through its snooze-weekly runit service, which
+# the services stage enables (install-services-maint.sh): Void runs no cron.
+snooze  # no weekly SSD TRIM: the services stage's /etc/cron.weekly/fstrim never runs, and writes slow down as the drive fills
 
 # --- X tools the shipped scripts call by name ---
 xrdb  # theming engine cannot load colours; dwm, st, dmenu and slock stay at their compiled defaults

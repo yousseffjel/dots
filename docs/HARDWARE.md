@@ -184,6 +184,29 @@ pending, going by the last `fwupdmgr refresh`. To apply them:
 fwupdmgr refresh && fwupdmgr update
 ```
 
+## SSD TRIM and zram swap
+
+These two come from the installer's services stage, not `dots drivers`, since
+they concern disks and memory rather than a device's driver. A re-run of
+`install-void.sh` (or `dots update`) adds them to an existing install.
+
+- **Weekly TRIM.** `/etc/cron.weekly/fstrim` runs `fstrim -a`, which tells
+  every SSD which blocks are free so writes stay fast as the drive fills. Void
+  schedules no TRIM and runs no cron, so the stage also enables `snooze`'s
+  `snooze-weekly` runit service. snooze remembers the last run, so a week
+  spent switched off is caught up at the next boot. Run it by hand with
+  `sudo fstrim -av`.
+- **zram tuning**, only where swap is on zram (`/proc/swaps` lists
+  `/dev/zram*`, as on every live-ISO install). `/etc/sysctl.d/99-dots-zram.conf`
+  sets `vm.swappiness = 180`, so the kernel swaps to compressed RAM before it
+  drops file cache, and `vm.page-cluster = 0`, since read-ahead buys nothing
+  from RAM. It loads at every boot and is applied at once when written. With
+  swap on a disk only, nothing is written: 180 would page out to the disk far
+  too eagerly.
+
+Both files are kept when you edit them, and `dots uninstall` removes them
+while they are unedited. A swappiness applied live stays until the next boot.
+
 ## Undoing it
 
 Every package `dots drivers` installed and every runit service it enabled is
