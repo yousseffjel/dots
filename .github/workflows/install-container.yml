@@ -93,6 +93,14 @@ jobs:
           # 2026-10-27) failed jobs no change had touched. Three tries, 15 s
           # apart; a real failure still fails. Installed here, before
           # checkout, so every later step in this container can use it.
+          # The main repository through Void's own CDN mirror (the same signed
+          # packages). repo-default answered GitHub's runners so slowly on
+          # 2026-10-27 that retries could not help: a 36-minute build-suckless
+          # and a 40-minute timeout. A file in /etc/xbps.d replaces the
+          # same-named one in /usr/share/xbps.d. Nonfree is left to the
+          # installer, which enables it itself.
+          mkdir -p /etc/xbps.d
+          echo 'repository=https://repo-fastly.voidlinux.org/current' >/etc/xbps.d/00-repository-main.conf
           mkdir -p /usr/local/bin
           cat >/usr/local/bin/retry <<'EOF'
           #!/bin/sh
