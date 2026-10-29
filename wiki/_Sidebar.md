@@ -1,7 +1,7 @@
 <!-- markdownlint-disable-file MD041 -->
 **[Home](Home)**
 
-**Using dots**
+### Using dots
 
 - [Installation](Installation)
 - [First Steps](First-Steps)
@@ -13,7 +13,7 @@
 - [Updating and Uninstalling](Updating-and-Uninstalling)
 - [Troubleshooting](Troubleshooting)
 
-**Working on dots**
+### Working on dots
 
 - [Architecture](Architecture)
 - [Contributing](Contributing)

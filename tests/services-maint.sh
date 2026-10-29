@@ -66,7 +66,7 @@ TRIM="$SB/etc/cron.weekly/fstrim"
 ZRAM="$SB/etc/sysctl.d/99-dots-zram.conf"
 # box [snooze] [zram] — a fresh /etc, runit dirs, /proc/swaps and manifest.
 box() {
-    rm -rf "$SB/etc" "$SB/sv" "$SB/service" "$SB/state" "$SB/sys" "$SB/sysctl.log"
+    rm -rf "${SB:?}/etc" "$SB/sv" "$SB/service" "$SB/state" "$SB/sys" "$SB/sysctl.log"
     mkdir -p "$SB/sv" "$SB/service" "$SB/sys/vm"
     echo 60 >"$SB/sys/vm/swappiness"
     printf 'Filename\tType\tSize\tUsed\tPriority\n/swapfile file 8388604 0 10\n' >"$SB/swaps"

@@ -44,6 +44,7 @@ fi
 # links <file> — every markdown link target, one per line, with code spans
 # and fenced blocks dropped first (a `[a](b)` in a code sample is no link).
 links() {
+    # shellcheck disable=SC2016 # the backticks are a sed pattern, not a substitution
     awk '/^```/ { f = !f; next } !f' "$1" \
         | sed 's/`[^`]*`//g' \
         | grep -oE '\]\([^) ]+' | sed 's/^](//' || true
